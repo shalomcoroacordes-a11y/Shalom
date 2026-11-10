@@ -28,7 +28,7 @@ Viewer.loadDetail = async () => {
   const result = await Viewer.fetchSongsWithRelations([wanted]);
   if (result.error || !result.data?.[0]) { box.innerHTML = Viewer.errorCard("Error al cargar", result.error?.message || "No se pudo cargar la canción."); return; }
   Viewer.detail = { song: result.data[0], transpose: 0, capoMode: false, capoIndex: -1 };
-  document.title = `${Viewer.detail.song.title || "Canción"} | Juntos Hacia Dios`;
+  document.title = `${Viewer.detail.song.title || "Canción"} | SHALOM`;
   Viewer.draw();
 };
 document.addEventListener("DOMContentLoaded", Viewer.loadDetail);

@@ -1,5 +1,5 @@
 (() => {
-  const DEFAULT_TITLE = "Juntos Hacia Dios";
+  const DEFAULT_TITLE = "SHALOM";
   const DEFAULT_DESCRIPTION = "Cancionero cristiano y católico con letras, acordes, tonos, artistas y categorías para comunidades y coros.";
   const imageUrl = () => new URL("social-card.svg", location.href).href;
 
@@ -46,7 +46,7 @@
     ensureMeta("property", "og:type", type);
     ensureMeta("property", "og:url", url);
     ensureMeta("property", "og:image", image);
-    ensureMeta("property", "og:image:alt", "Juntos Hacia Dios");
+    ensureMeta("property", "og:image:alt", "SHALOM");
     ensureMeta("property", "og:locale", "es_MX");
     ensureMeta("name", "twitter:card", "summary_large_image");
     ensureMeta("name", "twitter:title", cleanTitle);
@@ -97,7 +97,7 @@
   }
 
   function setArtist({ name, description } = {}) {
-    const copy = description || `Perfil, canciones y álbumes de ${name || "este artista"} en Juntos Hacia Dios.`;
+    const copy = description || `Perfil, canciones y álbumes de ${name || "este artista"} en SHALOM.`;
     setPage({ title: `${name || "Artista"} | ${DEFAULT_TITLE}`, description: copy, type: "profile" });
     replaceJsonLd("jhdItemSchema", {
       "@context": "https://schema.org",
@@ -109,7 +109,7 @@
   }
 
   function setAlbum({ title, artist, description } = {}) {
-    const copy = description || `Canciones de ${title || "este álbum"}${artist ? ` por ${artist}` : ""} en Juntos Hacia Dios.`;
+    const copy = description || `Canciones de ${title || "este álbum"}${artist ? ` por ${artist}` : ""} en SHALOM.`;
     setPage({ title: `${title || "Álbum"} | ${DEFAULT_TITLE}`, description: copy, type: "music.album" });
     replaceJsonLd("jhdItemSchema", {
       "@context": "https://schema.org",

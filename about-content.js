@@ -3,7 +3,7 @@
     eyebrow: "Conoce el proyecto",
     title: "Un cancionero para",
     highlight: "servir con música y fe",
-    intro: "Juntos Hacia Dios reúne letras, acordes, tonos y recursos musicales para acompañar a coros, ministerios y comunidades en la preparación de celebraciones, ensayos y momentos de oración.",
+    intro: "SHALOM reúne letras, acordes, tonos y recursos musicales para acompañar a coros, ministerios y comunidades en la preparación de celebraciones, ensayos y momentos de oración.",
     card1_title: "Encuentra",
     card1_text: "Busca cantos por título, artista, categoría, álbum o tono y consulta la letra con acordes desde cualquier dispositivo.",
     card2_title: "Prepara",

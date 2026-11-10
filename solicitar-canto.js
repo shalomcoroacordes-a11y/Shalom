@@ -31,7 +31,7 @@
       const key = node.dataset.requestContent;
       if (key && data[key] != null) node.textContent = data[key];
     });
-    document.title = `${data.title || defaults.title} | Juntos Hacia Dios`;
+    document.title = `${data.title || defaults.title} | SHALOM`;
     document.querySelector('meta[name="description"]')?.setAttribute("content", data.intro || defaults.intro);
   }
 

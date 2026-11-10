@@ -157,7 +157,7 @@ function renderSongs() {
 }
 
 async function shareSong(title, url, button) {
-  const text = `Te comparto “${title}” en Juntos Hacia Dios.`;
+  const text = `Te comparto “${title}” en SHALOM.`;
   if (navigator.share) {
     try {
       await navigator.share({ title, text, url });

@@ -336,7 +336,7 @@ function renderSong(song, relations) {
   const title = song.title || song.name || "Canción sin título";
   const type = song.song_type || song.type || "Canción";
   const artistText = names(relations.artists) || song.artist || song.artist_name || "";
-  document.title = `${title} | Juntos Hacia Dios`;
+  document.title = `${title} | SHALOM`;
   $("#songType").textContent = type;
   $("#songTitle").textContent = title;
   $("#songSubtitle").textContent = artistText ? `Por ${artistText}` : "Canción del cancionero.";

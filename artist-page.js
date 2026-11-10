@@ -85,7 +85,7 @@
     try {
       if (navigator.share) {
         try {
-          await navigator.share({ title: `${artistName} | Juntos Hacia Dios`, text: `Conoce los cantos de ${artistName} en Juntos Hacia Dios.`, url });
+          await navigator.share({ title: `${artistName} | SHALOM`, text: `Conoce los cantos de ${artistName} en SHALOM.`, url });
           return;
         } catch (error) {
           if (error?.name === "AbortError") return;
@@ -307,7 +307,7 @@
       return;
     }
     artist = data;
-    document.title = `${artist.name || "Artista"} | Juntos Hacia Dios`;
+    document.title = `${artist.name || "Artista"} | SHALOM`;
 
     const featuredSongs = await loadFeaturedSongs();
     const [summaryRes, albumsRes] = await Promise.all([

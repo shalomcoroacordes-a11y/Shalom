@@ -31,7 +31,7 @@ main:not(.admin-page) .public-category-card::before {
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
-  background: linear-gradient(90deg, rgba(246, 196, 83, .7), rgba(246, 196, 83, 0));
+  background: linear-gradient(90deg, rgba(47,199,131, .7), rgba(47,199,131, 0));
   opacity: .65;
   pointer-events: none;
 }
@@ -44,7 +44,7 @@ main:not(.admin-page) .artist-song-row:hover,
 main:not(.admin-page) .artist-category-card:hover,
 main:not(.admin-page) .artist-discovery-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(246, 196, 83, .42);
+  border-color: rgba(47,199,131, .42);
   background: var(--card-soft);
   box-shadow: var(--public-card-hover-shadow);
 }
@@ -70,9 +70,9 @@ main:not(.admin-page) .song-preview-card .song-preview-main::after {
   width: 29px;
   height: 29px;
   place-items: center;
-  border: 1px solid rgba(246, 196, 83, .2);
+  border: 1px solid rgba(47,199,131, .2);
   border-radius: 10px;
-  background: rgba(246, 196, 83, .08);
+  background: rgba(47,199,131, .08);
   color: var(--gold);
   font-size: 1rem;
   font-weight: 900;

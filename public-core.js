@@ -162,7 +162,7 @@ document.addEventListener("click", async (event) => {
   if (!button) return;
   const href = new URL(button.dataset.shareSong || "canciones.html", location.href).href;
   const title = button.dataset.shareTitle || "Canción";
-  const text = `Te comparto “${title}” en Juntos Hacia Dios.`;
+  const text = `Te comparto “${title}” en SHALOM.`;
   if (navigator.share) {
     try {
       await navigator.share({ title, text, url: href });

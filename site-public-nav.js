@@ -35,7 +35,7 @@
       "description": description,
       "url": url,
       "inLanguage": "es-MX",
-      "isPartOf": { "@type": "WebSite", "name": "Juntos Hacia Dios", "url": location.origin }
+      "isPartOf": { "@type": "WebSite", "name": "SHALOM", "url": location.origin }
     });
     document.head.append(script);
   };
@@ -43,15 +43,15 @@
   const setSeo = () => {
     const page = (location.pathname.split("/").pop() || "index.html").toLowerCase();
     const data = {
-      "index.html": ["Inicio | Juntos Hacia Dios", "Cancionero cristiano y católico con letras, acordes, tonos, artistas y recursos para coros, ministerios y comunidades."],
-      "canciones.html": ["Canciones católicas y cristianas | Juntos Hacia Dios", "Explora cantos cristianos y católicos con letras, acordes, tonos, artistas y categorías para coros, ministerios y comunidades."],
-      "artistas.html": ["Artistas y ministerios | Juntos Hacia Dios", "Explora artistas, salmistas y ministerios con sus cantos, álbumes y recursos musicales."],
-      "categorias.html": ["Categorías de cantos | Juntos Hacia Dios", "Encuentra cantos organizados por momentos, temas, usos litúrgicos y categorías pastorales."],
-      "albumes.html": ["Álbumes de cantos | Juntos Hacia Dios", "Explora álbumes, proyectos y colecciones de cantos cristianos y católicos."],
-      "acerca.html": ["Acerca de | Juntos Hacia Dios", "Conoce el propósito de Juntos Hacia Dios, un cancionero para servir con música y fe."],
-      "contacto.html": ["Contacto y correcciones | Juntos Hacia Dios", "Envía correcciones, sugerencias o comentarios para mejorar letras, acordes, tonos y datos del cancionero."],
-      "solicitar-canto.html": ["Solicitar canto | Juntos Hacia Dios", "Solicita un canto para que sea revisado y agregado al cancionero Juntos Hacia Dios."],
-      "donaciones.html": ["Donaciones | Juntos Hacia Dios", "Apoya el mantenimiento, organización y crecimiento del cancionero Juntos Hacia Dios."]
+      "index.html": ["Inicio | SHALOM", "Cancionero cristiano y católico con letras, acordes, tonos, artistas y recursos para coros, ministerios y comunidades."],
+      "canciones.html": ["Canciones católicas y cristianas | SHALOM", "Explora cantos cristianos y católicos con letras, acordes, tonos, artistas y categorías para coros, ministerios y comunidades."],
+      "artistas.html": ["Artistas y ministerios | SHALOM", "Explora artistas, salmistas y ministerios con sus cantos, álbumes y recursos musicales."],
+      "categorias.html": ["Categorías de cantos | SHALOM", "Encuentra cantos organizados por momentos, temas, usos litúrgicos y categorías pastorales."],
+      "albumes.html": ["Álbumes de cantos | SHALOM", "Explora álbumes, proyectos y colecciones de cantos cristianos y católicos."],
+      "acerca.html": ["Acerca de | SHALOM", "Conoce el propósito de SHALOM, un cancionero para servir con música y fe."],
+      "contacto.html": ["Contacto y correcciones | SHALOM", "Envía correcciones, sugerencias o comentarios para mejorar letras, acordes, tonos y datos del cancionero."],
+      "solicitar-canto.html": ["Solicitar canto | SHALOM", "Solicita un canto para que sea revisado y agregado al cancionero SHALOM."],
+      "donaciones.html": ["Donaciones | SHALOM", "Apoya el mantenimiento, organización y crecimiento del cancionero SHALOM."]
     }[page];
     if (!data) return;
     const url = location.href.split("#")[0];

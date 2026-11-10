@@ -23,14 +23,14 @@
   height: 50px;
   flex: 0 0 50px;
   place-items: center;
-  border: 1px solid rgba(246,196,83,.42);
+  border: 1px solid rgba(47,199,131,.42);
   border-radius: 16px;
-  background: linear-gradient(145deg, var(--gold), #d69f31);
+  background: linear-gradient(145deg, var(--gold), #137A4C);
   color: #17120a;
   font-size: 1rem;
   font-weight: 950;
   letter-spacing: .03em;
-  box-shadow: 0 8px 18px rgba(246,196,83,.12);
+  box-shadow: 0 8px 18px rgba(47,199,131,.12);
 }
 
 .catalog-album-disc {
@@ -75,7 +75,7 @@
 .catalog-artist-card:hover .catalog-card-arrow,
 .catalog-album-card:hover .catalog-card-arrow {
   transform: translateX(3px);
-  background: rgba(246,196,83,.10);
+  background: rgba(47,199,131,.10);
 }
 
 .catalog-card-description {

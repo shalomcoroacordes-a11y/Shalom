@@ -2,56 +2,56 @@
   if (window.__jhdStaticSeo) return;
   window.__jhdStaticSeo = true;
 
-  const baseTitle = "Juntos Hacia Dios";
+  const baseTitle = "SHALOM";
   const baseDescription = "Cancionero cristiano y católico con letras, acordes, tonos, artistas y categorías para coros, ministerios y comunidades.";
   const image = new URL("social-card.svg", location.href).href;
   const path = location.pathname.split("/").pop() || "index.html";
 
   const pages = {
     "index.html": {
-      title: "Inicio | Juntos Hacia Dios",
+      title: "Inicio | SHALOM",
       description: "Cancionero cristiano y católico con letras, acordes, tonos, artistas y recursos para coros, ministerios y comunidades.",
       keywords: "cancionero católico, cantos cristianos, letras y acordes, cantos para misa, ministerios de música"
     },
     "canciones.html": {
-      title: "Canciones católicas y cristianas | Juntos Hacia Dios",
+      title: "Canciones católicas y cristianas | SHALOM",
       description: "Explora cantos cristianos y católicos con letras, acordes, tonos, artistas y categorías para coros, ministerios y comunidades.",
       keywords: "canciones católicas, cantos cristianos, acordes católicos, letras de cantos, tonos de canciones"
     },
     "artistas.html": {
-      title: "Artistas y ministerios | Juntos Hacia Dios",
-      description: "Explora artistas, salmistas y ministerios con sus cantos, álbumes y recursos musicales en Juntos Hacia Dios.",
+      title: "Artistas y ministerios | SHALOM",
+      description: "Explora artistas, salmistas y ministerios con sus cantos, álbumes y recursos musicales en SHALOM.",
       keywords: "artistas católicos, ministerios de música, salmistas, cantos por artista"
     },
     "categorias.html": {
-      title: "Categorías de cantos | Juntos Hacia Dios",
+      title: "Categorías de cantos | SHALOM",
       description: "Encuentra cantos organizados por momentos, temas, usos litúrgicos y categorías pastorales.",
       keywords: "categorías de cantos, cantos para misa, adoración, comunión, entrada, alabanza"
     },
     "albumes.html": {
-      title: "Álbumes de cantos | Juntos Hacia Dios",
+      title: "Álbumes de cantos | SHALOM",
       description: "Explora álbumes, proyectos y colecciones de cantos cristianos y católicos con canciones relacionadas.",
       keywords: "álbumes católicos, álbumes cristianos, canciones por álbum, colecciones de cantos"
     },
     "acerca.html": {
-      title: "Acerca de | Juntos Hacia Dios",
-      description: "Conoce el propósito de Juntos Hacia Dios, un cancionero para servir con música y fe a comunidades y ministerios.",
-      keywords: "Juntos Hacia Dios, cancionero católico, cancionero cristiano, ministerio de música"
+      title: "Acerca de | SHALOM",
+      description: "Conoce el propósito de SHALOM, un cancionero para servir con música y fe a comunidades y ministerios.",
+      keywords: "SHALOM, cancionero católico, cancionero cristiano, ministerio de música"
     },
     "contacto.html": {
-      title: "Contacto y correcciones | Juntos Hacia Dios",
+      title: "Contacto y correcciones | SHALOM",
       description: "Envía correcciones, sugerencias o comentarios para mejorar letras, acordes, tonos y datos del cancionero.",
       keywords: "reportar corrección, sugerencias, corregir acordes, corregir letras"
     },
     "solicitar-canto.html": {
-      title: "Solicitar canto | Juntos Hacia Dios",
-      description: "Solicita un canto para que sea revisado y agregado al cancionero Juntos Hacia Dios.",
+      title: "Solicitar canto | SHALOM",
+      description: "Solicita un canto para que sea revisado y agregado al cancionero SHALOM.",
       keywords: "solicitar canto, pedir canción, agregar canto católico, agregar canto cristiano"
     },
     "donaciones.html": {
-      title: "Donaciones | Juntos Hacia Dios",
-      description: "Apoya el mantenimiento, organización y crecimiento del cancionero Juntos Hacia Dios.",
-      keywords: "donaciones, apoyar cancionero, Juntos Hacia Dios"
+      title: "Donaciones | SHALOM",
+      description: "Apoya el mantenimiento, organización y crecimiento del cancionero SHALOM.",
+      keywords: "donaciones, apoyar cancionero, SHALOM"
     }
   };
 
@@ -120,7 +120,7 @@
     if (!name || /cargando|un momento/i.test(name)) return;
     apply({
       title: `${name} | Canciones y álbumes | ${baseTitle}`,
-      description: `Explora canciones, álbumes y recursos musicales de ${name} en Juntos Hacia Dios.`,
+      description: `Explora canciones, álbumes y recursos musicales de ${name} en SHALOM.`,
       keywords: `${name}, canciones de ${name}, acordes, letras, cantos cristianos, cantos católicos`
     });
   }

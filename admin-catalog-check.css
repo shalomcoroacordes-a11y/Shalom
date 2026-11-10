@@ -74,12 +74,12 @@
   min-height: 25px;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(246,196,83,.14);
+  background: rgba(47,199,131,.14);
   color: var(--gold);
   font-size: .78rem;
 }
 
-.jhd-audit-issue.is-warning .jhd-audit-badge { background: rgba(246,196,83,.14); color: var(--gold); }
+.jhd-audit-issue.is-warning .jhd-audit-badge { background: rgba(47,199,131,.14); color: var(--gold); }
 .jhd-audit-issue.is-critical .jhd-audit-badge { background: rgba(255,118,118,.14); color: #ffb4b4; }
 .jhd-audit-issue.is-info .jhd-audit-badge { background: rgba(142,190,255,.14); color: #a9cdfd; }
 
@@ -94,9 +94,9 @@
 
 .jhd-audit-good {
   padding: 22px;
-  border: 1px solid rgba(246,196,83,.28);
+  border: 1px solid rgba(47,199,131,.28);
   border-radius: 18px;
-  background: rgba(246,196,83,.07);
+  background: rgba(47,199,131,.07);
   color: var(--text);
 }
 

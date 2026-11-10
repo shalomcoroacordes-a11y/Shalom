@@ -5,7 +5,7 @@
   const db = window.supabaseClient || window.AdminPro;
   const PAGE_SIZE = 500;
   const BATCH_SIZE = 200;
-  const FORMAT = "Juntos Hacia Dios backup";
+  const FORMAT = "SHALOM backup";
   const VERSION = 1;
   const TABLES = [
     "artists",
@@ -92,7 +92,7 @@
 
   function validateBackup(payload) {
     if (!isObject(payload)) throw new Error("El archivo no contiene un respaldo válido.");
-    if (payload.format !== FORMAT) throw new Error("Este archivo no es un respaldo de Juntos Hacia Dios.");
+    if (payload.format !== FORMAT) throw new Error("Este archivo no es un respaldo de SHALOM.");
     if (Number(payload.version) !== VERSION) throw new Error("La versión de este respaldo no es compatible.");
     if (!isObject(payload.catalog)) throw new Error("El respaldo no contiene el catálogo.");
 
@@ -276,7 +276,7 @@
   function mountImporter() {
     const grid = document.querySelector("#jhdBackupView .admin-backup-grid");
     if (!grid || getCard()) return;
-    grid.insertAdjacentHTML("beforeend", `<article class="admin-backup-card" id="jhdImportBackupCard"><h3>Cargar respaldo</h3><p>Selecciona un respaldo JSON de Juntos Hacia Dios. Primero se descargará una copia de seguridad del catálogo actual; después se agregarán o actualizarán los datos del archivo.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdChooseBackup">Elegir archivo JSON</button><button class="song-btn" type="button" id="jhdStartImport" disabled>Restaurar respaldo</button><button class="song-btn secondary" type="button" id="jhdClearImport" hidden>Quitar archivo</button><input id="jhdImportFile" type="file" accept="application/json,.json" hidden></div><div id="jhdImportSummary"></div><p class="admin-backup-status jhd-import-status" id="jhdImportBackupStatus"></p></article>`);
+    grid.insertAdjacentHTML("beforeend", `<article class="admin-backup-card" id="jhdImportBackupCard"><h3>Cargar respaldo</h3><p>Selecciona un respaldo JSON de SHALOM. Primero se descargará una copia de seguridad del catálogo actual; después se agregarán o actualizarán los datos del archivo.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdChooseBackup">Elegir archivo JSON</button><button class="song-btn" type="button" id="jhdStartImport" disabled>Restaurar respaldo</button><button class="song-btn secondary" type="button" id="jhdClearImport" hidden>Quitar archivo</button><input id="jhdImportFile" type="file" accept="application/json,.json" hidden></div><div id="jhdImportSummary"></div><p class="admin-backup-status jhd-import-status" id="jhdImportBackupStatus"></p></article>`);
     bindCard();
     renderSelection();
   }

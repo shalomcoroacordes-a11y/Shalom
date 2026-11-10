@@ -208,7 +208,7 @@
   const shareSong = async () => {
     const title = $("#songTitle")?.textContent?.trim() || "Canción";
     const url = window.location.href;
-    const text = `Te comparto “${title}” en Juntos Hacia Dios.`;
+    const text = `Te comparto “${title}” en SHALOM.`;
 
     if (navigator.share) {
       try {

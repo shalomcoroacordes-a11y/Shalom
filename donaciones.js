@@ -1,7 +1,7 @@
 const client = window.supabaseClient;
 const $ = (selector) => document.querySelector(selector);
 
-let donationText = "Gracias por apoyar el proyecto Juntos Hacia Dios.";
+let donationText = "Gracias por apoyar el proyecto SHALOM.";
 let donationMethods = [];
 
 function initNavigation() {

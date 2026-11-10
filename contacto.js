@@ -76,8 +76,12 @@
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!valid()) return;
-    const destination = "juntoshaciadiosacordes@gmail.com";
-    const subject = `[${type?.value || "Mensaje"}] ${title?.value.trim() || "Juntos Hacia Dios"}`;
+    const destination = ""; // Pendiente: confirmar correo público de SHALOM.
+    if (!destination) {
+      if (status) status.textContent = "El correo de contacto de SHALOM está pendiente. Usa «Copiar mensaje» para guardar tu sugerencia.";
+      return;
+    }
+    const subject = `[${type?.value || "Mensaje"}] ${title?.value.trim() || "SHALOM"}`;
     if (status) status.textContent = "Abriendo tu aplicación de correo…";
     location.href = `mailto:${destination}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(buildMessage())}`;
   });
