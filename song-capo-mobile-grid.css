@@ -1,0 +1,44 @@
+#capoControls > button{
+  background:var(--card)!important;
+  color:var(--muted)!important;
+  border:1px solid var(--border)!important;
+  box-shadow:none!important;
+}
+
+#capoControls > button.active{
+  background:var(--gold)!important;
+  color:#151515!important;
+  border-color:var(--gold)!important;
+  box-shadow:0 10px 24px rgba(246,196,83,.2)!important;
+}
+
+@media(max-width:700px){
+  #capoControls{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    align-items:stretch;
+    gap:10px!important;
+    width:100%;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+  }
+
+  #capoControls > button{
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:48px!important;
+    height:48px!important;
+    margin:0!important;
+    padding:8px 10px!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:15px!important;
+    font-size:.9rem!important;
+    line-height:1.1!important;
+    text-align:center!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere;
+  }
+}

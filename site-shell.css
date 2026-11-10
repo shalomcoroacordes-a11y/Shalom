@@ -1,0 +1,21 @@
+@import url("mobile-experience.css?v=1");
+
+/* Capa pública de superficies: la navegación usa exactamente la base de style.css, igual que Admin. */
+body.light-mode {
+  --bg: #0f1117;
+  --card: #191d27;
+  --card-soft: #202532;
+  --text: #ffffff;
+  --muted: #b9bdc9;
+  --gold: #f6c453;
+  --gold-dark: #c9972b;
+  --border: rgba(255,255,255,.09);
+  --shadow: 0 14px 34px rgba(0,0,0,.20);
+}
+
+.theme-toggle { display: none !important; }
+body { background: radial-gradient(circle at 15% 0%, rgba(246,196,83,.09), transparent 30rem), var(--bg); }
+.quick-card, .song-card, .artist-card, .intro-card { background: var(--card); box-shadow: 0 14px 34px rgba(0,0,0,.20); }
+.home-access-group { background: var(--card); box-shadow: 0 10px 24px rgba(0,0,0,.16); }
+.home-discovery-search { box-shadow: 0 10px 24px rgba(0,0,0,.16); }
+.brand-icon { box-shadow: 0 7px 18px rgba(246,196,83,.16); }
