@@ -1,0 +1,161 @@
+/* Hoja compacta para imprimir cantos. No modifica el modo de lectura en pantalla. */
+@media print {
+  @page { margin: 9mm 10mm; }
+
+  html,
+  body.song-detail-page,
+  body.song-detail-page.song-reading-mode {
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    color: #111 !important;
+    background: #fff !important;
+    color-scheme: light !important;
+  }
+
+  body.song-detail-page header,
+  body.song-detail-page footer,
+  body.song-detail-page #songLinks,
+  body.song-detail-page #relatedSongsSection,
+  body.song-detail-page #songReaderToolbar,
+  body.song-detail-page #songReaderPreferences,
+  body.song-detail-page #songReadingProgress,
+  body.song-detail-page #songReadingTop,
+  body.song-detail-page #songReadingSettingsPanel,
+  body.song-detail-page #songReadingSettingsBackdrop,
+  body.song-detail-page #songType,
+  body.song-detail-page #songSubtitle {
+    display: none !important;
+  }
+
+  body.song-detail-page main,
+  body.song-detail-page .hero,
+  body.song-detail-page .section,
+  body.song-detail-page .hero-content,
+  body.song-detail-page .intro-card,
+  body.song-detail-page .song-reader-shell {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    text-align: left !important;
+  }
+
+  body.song-detail-page .hero::before,
+  body.song-detail-page .hero::after {
+    display: none !important;
+  }
+
+  body.song-detail-page #songTitle {
+    margin: 0 0 3mm !important;
+    padding: 0 !important;
+    color: #111 !important;
+    font: 800 14pt/1.15 Arial, sans-serif !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    break-after: avoid-page;
+  }
+
+  body.song-detail-page #songLyrics,
+  body.song-detail-page #songLyrics.lyrics-block {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    color: #111 !important;
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 10pt !important;
+    font-weight: 400 !important;
+    line-height: 1.16 !important;
+    letter-spacing: 0 !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: break-word !important;
+    tab-size: 4;
+  }
+
+  body.song-detail-page #songLyrics .song-line,
+  body.song-detail-page #songLyrics .song-plain-line {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.16 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.song-detail-page #songLyrics .chord-line,
+  body.song-detail-page #songLyrics .lyric-line,
+  body.song-detail-page #songLyrics .song-plain-line {
+    color: #111 !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: 0 !important;
+  }
+
+  body.song-detail-page #songLyrics .chord-line {
+    min-height: 0 !important;
+    font-weight: 700 !important;
+    white-space: pre !important;
+  }
+
+  body.song-detail-page #songLyrics .lyric-line,
+  body.song-detail-page #songLyrics .song-plain-line {
+    white-space: pre-wrap !important;
+  }
+
+  body.song-detail-page #songLyrics .song-section-label {
+    display: block !important;
+    margin: 2.8mm 0 .7mm !important;
+    padding: 0 !important;
+    color: #111 !important;
+    font: 700 10pt/1.1 "Courier New", Courier, monospace !important;
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  body.song-detail-page #songLyrics .song-section-label:first-child {
+    margin-top: 0 !important;
+  }
+
+  body.song-detail-page #songLyrics .song-empty-line {
+    display: block !important;
+    height: 1.5mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Dos columnas solo para cantos largos cuyas líneas caben sin recortar acordes. */
+  body.song-detail-page.song-print-two-columns #songLyrics {
+    column-count: 2 !important;
+    column-gap: 9mm !important;
+    column-rule: 0 !important;
+  }
+
+  body.song-detail-page.song-print-dense #songLyrics,
+  body.song-detail-page.song-print-dense #songLyrics.lyrics-block {
+    font-size: 9pt !important;
+    line-height: 1.12 !important;
+  }
+
+  body.song-detail-page.song-print-dense #songLyrics .song-line,
+  body.song-detail-page.song-print-dense #songLyrics .song-plain-line {
+    line-height: 1.12 !important;
+  }
+}
