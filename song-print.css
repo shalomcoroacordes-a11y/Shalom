@@ -25,6 +25,11 @@
   body.song-detail-page #songReadingTop,
   body.song-detail-page #songReadingSettingsPanel,
   body.song-detail-page #songReadingSettingsBackdrop,
+  body.song-detail-page #songBreadcrumb,
+  body.song-detail-page #songReaderOverview,
+  body.song-detail-page #songLyricsHeading,
+  body.song-detail-page #songFeedback,
+  body.song-detail-page .song-feedback,
   body.song-detail-page #songType,
   body.song-detail-page #songSubtitle {
     display: none !important;
