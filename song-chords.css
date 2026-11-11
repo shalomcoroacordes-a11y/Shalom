@@ -1,0 +1,81 @@
+/* Las posiciones solo son exactas cuando acordes, letra y editor usan el mismo ancho de carácter. */
+body.song-detail-page #songLyrics,
+body.song-detail-page #songLyrics .chord-line,
+body.song-detail-page #songLyrics .lyric-line,
+body.song-detail-page #songLyrics .song-plain-line,
+body.song-detail-page #songLyrics .song-standalone-chords,
+.admin-preview-lyrics,
+.admin-preview-lyrics .chord-line,
+.admin-preview-lyrics .lyric-line,
+.admin-preview-lyrics .song-plain-line,
+.admin-preview-lyrics .song-standalone-chords,
+#songLyricsField {
+  font-family: "Courier New", Courier, monospace !important;
+  font-variant-ligatures: none;
+  letter-spacing: 0 !important;
+  tab-size: 4;
+}
+
+body.song-detail-page #songLyrics,
+.admin-preview-lyrics {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+body.song-detail-page #songLyrics .song-line,
+.admin-preview-lyrics .song-line {
+  display: block;
+  margin-bottom: 8px;
+  break-inside: avoid;
+}
+
+body.song-detail-page #songLyrics .chord-line,
+body.song-detail-page #songLyrics .lyric-line,
+body.song-detail-page #songLyrics .song-plain-line,
+body.song-detail-page #songLyrics .song-standalone-chords,
+.admin-preview-lyrics .chord-line,
+.admin-preview-lyrics .lyric-line,
+.admin-preview-lyrics .song-plain-line,
+.admin-preview-lyrics .song-standalone-chords {
+  display: block;
+  min-height: 0;
+  white-space: pre !important;
+  line-height: 1.45;
+  font-size: 1em;
+}
+
+body.song-detail-page #songLyrics .chord-line,
+body.song-detail-page #songLyrics .song-standalone-chords,
+.admin-preview-lyrics .chord-line,
+.admin-preview-lyrics .song-standalone-chords {
+  color: var(--gold);
+  font-weight: 850;
+}
+
+.admin-preview-lyrics .song-section-label,
+body.song-detail-page #songLyrics .song-section-label {
+  display: block;
+  color: var(--gold);
+  font-weight: 850;
+  margin: 16px 0 6px;
+}
+
+.admin-preview-lyrics .song-empty-line,
+body.song-detail-page #songLyrics .song-empty-line {
+  display: block;
+  height: 9px;
+}
+
+#songLyricsField {
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+/* El acorde no se desplaza por el cambio de fuente o por el ajuste de pantalla. */
+@media (max-width: 700px) {
+  body.song-detail-page #songLyrics {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
