@@ -84,11 +84,9 @@
     for (let index = 0; index < lines.length; index++) {
       const line = lines[index];
       if (!line.trim()) {
-        // Las líneas vacías son separadores; no deben acumular alturas.
-        if (rendered.length && !rendered[rendered.length - 1].includes('song-empty-line') &&
-            !rendered[rendered.length - 1].includes('song-section-label')) {
-          rendered.push('<span class="song-empty-line"></span>');
-        }
+        // Cada Enter del editor debe producir su propio renglón visible.
+        // No condensar los silencios/separadores que el administrador escribió.
+        rendered.push('<span class="song-empty-line"></span>');
         continue;
       }
 
