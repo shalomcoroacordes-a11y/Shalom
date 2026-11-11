@@ -186,7 +186,9 @@ function renderChordLyrics() {
   const lyrics = currentSong.lyrics || currentSong.letter || currentSong.content || "Letra no disponible.";
   const move = transpose + capoShift;
   target.className = "lyrics-block";
-  target.innerHTML = String(lyrics).split("\n").map((line) => {
+  target.innerHTML = window.ShalomChords?.render
+    ? window.ShalomChords.render(lyrics, { transpose: (value) => chordGroup(value, move) })
+    : String(lyrics).split("\n").map((line) => {
     if (!line.trim()) return "<span class='song-empty-line'></span>";
     const section = line.trim().match(/^\[([^\]]+)\]$/);
     if (section) return `<span class="song-section-label">${escapeHTML(section[1])}</span>`;
