@@ -64,7 +64,8 @@ body.song-detail-page #songLyrics .song-section-label {
 .admin-preview-lyrics .song-empty-line,
 body.song-detail-page #songLyrics .song-empty-line {
   display: block;
-  height: 5px;
+  /* Un salto de línea intencional equivale a un renglón del editor. */
+  height: 1.45em;
 }
 
 /* La vista previa del administrador usa exactamente las mismas medidas. */
