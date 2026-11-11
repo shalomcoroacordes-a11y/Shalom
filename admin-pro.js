@@ -271,7 +271,35 @@ function apBindSongs() {
   apBindShowMore();
 }
 function apBindDonations() { ap$("#donationAdminForm")?.addEventListener("submit", apSaveDonation); }
-function apUpdatePreview() { apCaptureSongDraft(); const preview = ap$(".admin-preview-card"); if (!preview) return; const replacement = document.createElement("div"); replacement.innerHTML = apSongPreview(); preview.replaceWith(replacement.firstElementChild); }
+function apUpdatePreview() {
+  apCaptureSongDraft();
+  const preview = ap$(".admin-preview-card");
+  if (!preview) return;
+
+  // Reutilizamos el mismo panel y la misma área de desplazamiento.
+  // Reemplazar toda la tarjeta hacía que la barra regresara al inicio.
+  const replacement = document.createElement("div");
+  replacement.innerHTML = apSongPreview();
+  const updated = replacement.firstElementChild;
+
+  for (const selector of [".hero-kicker", "h2", ".admin-preview-meta"]) {
+    const existingPart = preview.querySelector(selector);
+    const updatedPart = updated.querySelector(selector);
+    if (existingPart && updatedPart) existingPart.innerHTML = updatedPart.innerHTML;
+  }
+
+  const lyricsPanel = preview.querySelector(".admin-preview-lyrics");
+  const updatedLyrics = updated.querySelector(".admin-preview-lyrics");
+  if (lyricsPanel && updatedLyrics) {
+    const scrollTop = lyricsPanel.scrollTop;
+    const scrollLeft = lyricsPanel.scrollLeft;
+    lyricsPanel.innerHTML = updatedLyrics.innerHTML;
+    lyricsPanel.scrollTop = scrollTop;
+    lyricsPanel.scrollLeft = scrollLeft;
+  } else {
+    preview.innerHTML = updated.innerHTML;
+  }
+}
 function apInsertSection(name) { const textarea = ap$("#songLyricsField"); if (!textarea) return; const start = textarea.selectionStart ?? textarea.value.length; const end = textarea.selectionEnd ?? start; const text = `\n[${name}]\n`; textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end); textarea.focus(); textarea.setSelectionRange(start + text.length, start + text.length); apCaptureSongDraft(); apUpdatePreview(); }
 function apAddLinkDraft() { apCaptureSongDraft(); const draft = AP.draft; if (!draft.new_link_title || !draft.new_link_url) { apNote("Escribe título y URL para el enlace.", true); return; } AP.links.push({ title: draft.new_link_title, link_type: draft.new_link_type || "Tutorial", platform: draft.new_link_platform || "", url: draft.new_link_url, sort_order: AP.links.length }); Object.assign(AP.draft, { new_link_title: "", new_link_url: "" }); apRenderView(); }
 function apAddCapoDraft() { apCaptureSongDraft(); const draft = AP.draft, position = Number(draft.new_capo_position || 0); if (position < 1 || !draft.new_capo_key) { apNote("Indica una posición válida y las figuras de la versión de capo.", true); return; } AP.capos.push({ label: draft.new_capo_label || `Capo ${position} · ${draft.new_capo_key}`, capo_position: position, capo_key: draft.new_capo_key, sort_order: AP.capos.length }); Object.assign(AP.draft, { new_capo_label: "", new_capo_position: "0", new_capo_key: "" }); apRenderView(); }
