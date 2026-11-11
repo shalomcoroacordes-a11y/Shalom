@@ -29,6 +29,24 @@
     return isChord(clean) ? String(transpose(clean)) : token;
   });
 
+  // Combina acordes escritos en el renglón superior con los que aún estén
+  // marcados entre paréntesis dentro del verso, sin duplicar su altura.
+  const combineChordRows = (upper, lower) => {
+    const chords = [];
+    for (const line of [upper, lower]) {
+      for (const match of String(line).matchAll(/\S+/g)) {
+        chords.push({ position: match.index, chord: match[0] });
+      }
+    }
+    chords.sort((a, b) => a.position - b.position);
+    let result = "";
+    for (const { position, chord } of chords) {
+      const start = Math.max(position, result.length ? result.length + 1 : 0);
+      result = result.padEnd(start, " ") + chord;
+    }
+    return result;
+  };
+
   const inlineChords = (line, transpose) => {
     const regex = /\(([^)]+)\)/g;
     let chordLine = "";
@@ -66,7 +84,11 @@
     for (let index = 0; index < lines.length; index++) {
       const line = lines[index];
       if (!line.trim()) {
-        rendered.push('<span class="song-empty-line"></span>');
+        // Las líneas vacías son separadores; no deben acumular alturas.
+        if (rendered.length && !rendered[rendered.length - 1].includes('song-empty-line') &&
+            !rendered[rendered.length - 1].includes('song-section-label')) {
+          rendered.push('<span class="song-empty-line"></span>');
+        }
         continue;
       }
 
@@ -79,8 +101,13 @@
       if (isChordRow(line)) {
         const next = lines[index + 1] || "";
         const nextInline = next ? inlineChords(next, transpose) : null;
-        if (next.trim() && !/^\s*\[[^\]]+\]\s*$/.test(next) && !isChordRow(next) && !nextInline?.hasChords) {
-          rendered.push(pair(transformRow(line, transpose), next, "song-stacked-chords"));
+        if (next.trim() && !/^\s*\[[^\]]+\]\s*$/.test(next) && !isChordRow(next)) {
+          const upperChords = transformRow(line, transpose);
+          rendered.push(pair(
+            nextInline?.hasChords ? combineChordRows(upperChords, nextInline.chordLine) : upperChords,
+            nextInline?.hasChords ? nextInline.lyricLine : next,
+            "song-stacked-chords"
+          ));
           index++;
         } else {
           rendered.push(`<span class="song-standalone-chords">${escapeHTML(transformRow(line, transpose))}</span>`);
