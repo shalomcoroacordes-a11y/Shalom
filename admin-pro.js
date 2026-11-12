@@ -406,13 +406,8 @@ async function apSetSession(session) {
     if (message) message.textContent = "No se pudo comprobar el acceso de administrador: " + (error.message || "error desconocido");
   }
 }
-function apBindLogin() {
-  ap$("#adminLoginForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault(); const email = String(new FormData(event.currentTarget).get("email") || "").trim(); const box = ap$("#adminLoginMessage"); if (!email) return; if (box) box.textContent = "Enviando enlace de acceso..."; const { error } = await AdminPro.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } }); if (box) box.textContent = error ? error.message : "Revisa tu correo y abre el enlace para entrar.";
-  });
-}
 async function apStart() {
-  apNav(); apBindLogin();
+  apNav();
   if (!AdminPro) { const box = ap$("#adminLoginMessage"); if (box) box.textContent = "No se pudo iniciar la conexión con Supabase."; return; }
   const { data } = await AdminPro.auth.getSession(); await apSetSession(data?.session);
   AdminPro.auth.onAuthStateChange((_event, session) => { apSetSession(session); });
