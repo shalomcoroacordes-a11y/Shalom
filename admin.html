@@ -14,9 +14,9 @@
   <link rel="stylesheet" href="song-chords.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="Supabase.js?v=2"></script>
-  <script src="admin-auth-controller.js?v=2" defer></script>
+  <script src="admin-auth-controller.js?v=3" defer></script>
   <script src="song-chords.js?v=3" defer></script>
-  <script src="admin-pro.js?v=7" defer></script>
+  <script src="admin-pro.js?v=8" defer></script>
   <script src="admin-donations-plus.js?v=2" defer></script>
   <script src="admin-messages.js?v=1" defer></script>
   <script src="admin-request-page.js?v=1" defer></script>
@@ -59,12 +59,11 @@
     </section>
     <section class="admin-login-card" id="adminLoginSection">
       <h2>Entrar al panel</h2>
-      <p class="admin-note">Inicia sesión con tu correo y contraseña. También puedes solicitar un enlace seguro por correo.</p>
+      <p class="admin-note">Acceso exclusivo para administradores registrados y autorizados en Supabase. No hay registro público.</p>
       <form class="admin-form" id="adminLoginForm">
         <label>Correo<input type="email" name="email" required autocomplete="email" placeholder="correo@ejemplo.com"></label>
         <label>Contraseña<input type="password" name="password" required autocomplete="current-password" placeholder="Tu contraseña"></label>
         <button class="song-btn" type="submit">Iniciar sesión</button>
-        <button class="song-btn secondary" type="button" id="adminEmailLinkButton">Entrar con enlace enviado al correo</button>
       </form>
       <p class="muted-text" id="adminLoginMessage" aria-live="polite"></p>
     </section>
