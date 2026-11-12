@@ -85,35 +85,7 @@
     }
   }
 
-  async function requestEmailLink() {
-    if (!db) {
-      setMessage("No se pudo iniciar la conexión con Supabase.", true);
-      return;
-    }
-    const email = String(new FormData(form).get("email") || "").trim().toLowerCase();
-    if (!email) {
-      setMessage("Escribe tu correo para recibir un enlace.", true);
-      return;
-    }
-    const button = document.querySelector("#adminEmailLinkButton");
-    if (button) button.disabled = true;
-    setMessage("Solicitando enlace de acceso...");
-    try {
-      const { error } = await db.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: adminUrl(), shouldCreateUser: false }
-      });
-      if (error) throw error;
-      setMessage("Si la cuenta existe y está habilitada para recibir correos, llegará un enlace de acceso.");
-    } catch (error) {
-      setMessage("No se pudo enviar el enlace: " + (error.message || "error desconocido"), true);
-    } finally {
-      if (button) button.disabled = false;
-    }
-  }
-
   form?.addEventListener("submit", requestPasswordAccess, true);
-  document.querySelector("#adminEmailLinkButton")?.addEventListener("click", requestEmailLink);
 
   const error = callbackError();
   if (error) setMessage(`El enlace de acceso no pudo completarse: ${error.replace(/\+/g, " ")}`, true);
