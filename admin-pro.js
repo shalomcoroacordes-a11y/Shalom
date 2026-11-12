@@ -377,11 +377,34 @@ async function apSaveDonation(event) { event.preventDefault(); const raw = Objec
 async function apRefresh(message) { try { await apLoadData(); apRenderShell(); apNote(message); } catch (error) { apNote(`Error: ${error.message || "No se pudo actualizar."}`, true); } }
 
 async function apSetSession(session) {
-  AP.user = session?.user || null;
-  ap$("#adminLoginSection")?.classList.toggle("admin-hidden", Boolean(AP.user));
-  ap$("#adminWorkspace")?.classList.toggle("admin-hidden", !AP.user);
-  if (!AP.user) return;
-  try { await apLoadData(); if (!AP.draft) apResetDraft(); apRenderShell(); } catch (error) { apNote(`No se pudo cargar el panel: ${error.message || "Error desconocido"}`, true); }
+  // No mostrar herramientas por el solo hecho de estar autenticado:
+  // cada acceso debe estar autorizado en la lista privada de Supabase.
+  AP.user = null;
+  ap$("#adminLoginSection")?.classList.remove("admin-hidden");
+  ap$("#adminWorkspace")?.classList.add("admin-hidden");
+  if (!session?.user) return;
+  try {
+    const { data: authorized, error: authError } = await AdminPro.rpc("jhd_is_admin");
+    if (authError) throw authError;
+    if (authorized !== true) {
+      await AdminPro.auth.signOut();
+      const message = ap$("#adminLoginMessage");
+      if (message) message.textContent = "Esta cuenta no tiene permiso para administrar SHALOM.";
+      return;
+    }
+    AP.user = session.user;
+    ap$("#adminLoginSection")?.classList.add("admin-hidden");
+    ap$("#adminWorkspace")?.classList.remove("admin-hidden");
+    await apLoadData();
+    if (!AP.draft) apResetDraft();
+    apRenderShell();
+  } catch (error) {
+    AP.user = null;
+    ap$("#adminLoginSection")?.classList.remove("admin-hidden");
+    ap$("#adminWorkspace")?.classList.add("admin-hidden");
+    const message = ap$("#adminLoginMessage");
+    if (message) message.textContent = "No se pudo comprobar el acceso de administrador: " + (error.message || "error desconocido");
+  }
 }
 function apBindLogin() {
   ap$("#adminLoginForm")?.addEventListener("submit", async (event) => {
