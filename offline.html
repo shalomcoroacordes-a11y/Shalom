@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1516">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="SHALOM Offline: descarga tus cantos, letras, acordes y categorías para llevarlos a misa sin internet.">
+  <title>SHALOM Offline</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="offline.css?v=1">
+  <script src="song-chords.js?v=3" defer></script>
+  <script src="offline.js?v=1" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="app-logo" href="offline.html" aria-label="SHALOM Offline"><span class="app-logo-icon">🕊️</span><span>SHALOM <small>OFFLINE</small></span></a>
+    <span class="connection-state" id="connectionState" aria-live="polite">Comprobando conexión</span>
+  </header>
+  <main class="app-main">
+    <section class="intro" id="mainIntro">
+      <p class="eyebrow">Cancionero para llevar contigo</p>
+      <h1>Tus cantos, aunque no haya señal.</h1>
+      <p>Descarga los cantos y sus acordes al teléfono. Cuando no tengas internet, sigue leyendo tu copia guardada.</p>
+    </section>
+    <section class="sync-card" aria-labelledby="syncHeading">
+      <div class="sync-heading">
+        <div><h2 id="syncHeading">Mi cancionero descargado</h2><p id="syncInfo">Todavía no hay una copia local.</p></div>
+        <span class="sync-badge" id="syncBadge">Sin descargar</span>
+      </div>
+      <div class="sync-numbers" aria-live="polite">
+        <div><strong id="countSongs">0</strong><span>Cantos</span></div>
+        <div><strong id="countArtists">0</strong><span>Artistas</span></div>
+        <div><strong id="countCategories">0</strong><span>Categorías</span></div>
+      </div>
+      <label class="wifi-choice"><input type="checkbox" id="wifiOnly" checked><span>Actualizar automáticamente solo si se detecta Wi-Fi. <small>En iPhone quizá necesites usar el botón de actualización.</small></span></label>
+      <button class="primary-btn" id="syncButton" type="button">Descargar cancionero completo</button>
+      <p class="status" id="syncStatus" role="status" aria-live="polite">La primera descarga requiere conexión a internet.</p>
+      <progress id="syncProgress" max="9" value="0" hidden aria-label="Progreso de descarga"></progress>
+    </section>
+    <section class="browse" aria-labelledby="browseTitle" id="browseSection">
+      <div class="section-heading"><h2 id="browseTitle">Buscar en mis cantos</h2><span id="resultCount">0 resultados</span></div>
+      <div class="filters">
+        <label class="search-label">Buscar<input id="songSearch" type="search" placeholder="Título, frase o artista…" autocomplete="off"></label>
+        <label>Tipo<select id="typeFilter"><option value="">Todos</option><option value="catolico">Católico</option><option value="cristiano">Cristiano</option><option value="mixto">Mixto</option></select></label>
+        <label>Categoría<select id="categoryFilter"><option value="">Todas las categorías</option></select></label>
+        <label>Artista<select id="artistFilter"><option value="">Todos los artistas</option></select></label>
+      </div>
+      <div class="song-list" id="songList"><div class="empty">Descarga el cancionero para explorar los cantos sin internet.</div></div>
+    </section>
+    <section class="reader" id="songReader" hidden aria-labelledby="readerTitle">
+      <button class="back-btn" id="backButton" type="button">← Regresar a mis cantos</button>
+      <p class="eyebrow" id="readerType">Canto</p>
+      <h2 id="readerTitle">Canto</h2>
+      <div class="reader-meta" id="readerMeta"></div>
+      <div class="reader-toolbar">
+        <button class="small-btn" id="transposeDown" type="button" aria-label="Bajar medio tono">− tono</button>
+        <strong id="transposeLabel">Tono original</strong>
+        <button class="small-btn" id="transposeUp" type="button" aria-label="Subir medio tono">+ tono</button>
+        <button class="small-btn" id="transposeReset" type="button">Restablecer</button>
+      </div>
+      <article class="lyrics" id="offlineLyrics"></article>
+      <div id="readerAdditional" class="reader-additional"></div>
+    </section>
+  </main>
+  <footer class="app-footer">
+    <span>SHALOM · Copia para consulta sin conexión</span>
+    <a href="index.html">Ir al sitio web</a>
+  </footer>
+</body>
+</html>
