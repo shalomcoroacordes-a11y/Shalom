@@ -68,7 +68,7 @@ function Photo({url,labelText}) {
 function App() {
  const [copy,setCopy]=useState(null);
  const [loaded,setLoaded]=useState(false);
- const [initialSyncNeeded,setInitialSyncNeeded]=useState(false);
+
  const [wifiOnly,setWifiOnly]=useState(true);
  const [network,setNetwork]=useState({online:false,wifi:false});
  const [busy,setBusy]=useState(false);
@@ -130,7 +130,7 @@ function App() {
     setProgress("Descargando "+p.index+"/"+p.total+" · "+p.table.replace(/_/g," "))});
    if(result.skipped){setProgress(result.reason);return}
    const saved=await getCatalog();
-   lastRef.current=saved.syncedAt;setCopy(saved);setInitialSyncNeeded(false);
+   lastRef.current=saved.syncedAt;setCopy(saved);
    setProgress(saved.data.songs.length+" cantos y sus carpetas guardados en el teléfono.");
   }catch(e){
    setError(e.message||"No se pudo descargar el cancionero.");
@@ -167,7 +167,7 @@ function App() {
     if(!enabled)return;
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);setLoaded(true);
-    setInitialSyncNeeded(!snapshot.syncedAt);
+    if(!snapshot.syncedAt && n.online && n.wifi) sync(false);
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
   })();
   const unsubscribe=NetInfo.addEventListener(s=>{
