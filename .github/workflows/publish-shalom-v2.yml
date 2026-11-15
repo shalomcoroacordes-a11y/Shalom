@@ -1,0 +1,67 @@
+name: Publicar SHALOM Android 0.2.0
+on:
+  push:
+    paths:
+      - ".github/workflows/publish-shalom-v2.yml"
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar compilación Android 0.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh run watch 43678905684 --repo "${{ github.repository }}" --exit-status
+      - name: Obtener APK firmado de Android 0.2.0
+        uses: actions/download-artifact@v4
+        with:
+          name: SHALOM-Android-APK
+          path: apk
+          run-id: 43678905684
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Comprobar versión, APK y certificado de firma
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          test -s apk/app-release.apk
+          mv apk/app-release.apk apk/SHALOM-Android-v0.2.0.apk
+          sha256sum apk/SHALOM-Android-v0.2.0.apk
+          APK_SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          if [ -n "$APK_SIGNER" ]; then
+            "$APK_SIGNER" verify --print-certs apk/SHALOM-Android-v0.2.0.apk | tee apk/new-cert.txt
+            mkdir -p apk/old
+            gh release download v0.1.1-paloma-shalom --repo "${{ github.repository }}" --pattern "*.apk" --dir apk/old
+            "$APK_SIGNER" verify --print-certs apk/old/SHALOM-Android-0.1.1.apk | tee apk/old-cert.txt
+            NEW_SHA=$(grep -m1 'Signer #1 certificate SHA-256 digest:' apk/new-cert.txt | sed 's/.*: //')
+            OLD_SHA=$(grep -m1 'Signer #1 certificate SHA-256 digest:' apk/old-cert.txt | sed 's/.*: //')
+            if [ "$NEW_SHA" = "$OLD_SHA" ]; then
+              echo "Firma compatible con la app anterior" > apk/signature-status.txt
+            else
+              echo "La firma cambió: Android puede exigir desinstalar la versión anterior, lo que elimina datos locales." > apk/signature-status.txt
+            fi
+          else
+            echo "Certificado anterior sin verificar; comprueba instalación de actualización antes de desinstalar." > apk/signature-status.txt
+          fi
+      - name: Publicar descarga directa de SHALOM
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > apk/release-notes.md <<'EOF'
+          SHALOM Android v0.2.0 — versión de prueba nativa.
+          Navegación: Inicio, Canciones, Artistas, Categorías, Álbumes.
+          Solicitudes de nuevos cantos y correcciones dirigidas a Supabase SHALOM.
+          Enlaces a YouTube, tutoriales y redes con internet.
+          Consulta offline y copia privada de respaldo del cancionero.
+          Aún requiere prueba real en un teléfono. Antes de desinstalar una versión antigua, comprueba la firma y recuerda que desinstalar borra cantos locales.
+          EOF
+          cat apk/signature-status.txt >> apk/release-notes.md
+          gh release create v0.2.0-android-native apk/SHALOM-Android-v0.2.0.apk \
+            --target "${{ github.sha }}" \
+            --title "SHALOM Android 0.2.0 - Navegación completa" \
+            --prerelease \
+            --notes-file apk/release-notes.md
