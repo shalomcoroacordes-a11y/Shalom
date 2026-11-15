@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "SHALOM",
+    "slug": "shalom-offline",
+    "scheme": "shalom",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shalomcoroacordes.cancionero"
+    },
+    "android": {
+      "package": "com.shalomcoroacordes.cancionero",
+      "edgeToEdgeEnabled": true
+    },
+    "extra": {
+      "source": "ehpvsasyzlrlypjjpzuk"
+    }
+  }
+}
