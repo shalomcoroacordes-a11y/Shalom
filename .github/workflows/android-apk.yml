@@ -6,7 +6,10 @@ on:
       - "mobile/**"
       - ".github/workflows/android-apk.yml"
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: shalom-android-apk
+  cancel-in-progress: true
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -51,3 +54,17 @@ jobs:
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Publish direct APK download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="android-v${VERSION}"
+          APK="SHALOM-Android-v${VERSION}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" --prerelease --title "SHALOM Android v${VERSION} — versión de prueba" --notes "APK nativo para Android con guardado del cancionero dentro de la aplicación, sin depender de Chrome. Versión de prueba; valida la descarga y el modo avión antes de compartir."
+          fi
+
