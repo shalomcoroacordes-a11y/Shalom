@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
+      - uses: actions/checkout@v4
       - name: Comprobar que la compilación con nuevo icono terminó correctamente
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
