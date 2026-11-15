@@ -138,8 +138,8 @@ function App() {
   }finally{inFlight.current=false;setBusy(false)}
  },[]);
  const tryAuto=useCallback(async()=>{
-  if(inFlight.current||!lastRef.current)return;
-  if(Date.now()-new Date(lastRef.current).valueOf()<20*60*1000)return;
+  if(inFlight.current)return;
+  if(lastRef.current && Date.now()-new Date(lastRef.current).valueOf()<20*60*1000)return;
   const n=await networkState().catch(()=>({online:false,wifi:false}));
   if(n.online&&(!prefRef.current||n.wifi))await sync(false);
  },[sync]);
