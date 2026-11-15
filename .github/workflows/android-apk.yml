@@ -33,6 +33,13 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify Expo dependencies
         run: npx expo install --check
+      - name: Create dove launcher icons from original SHALOM logo
+        run: |
+          python3 -m venv /tmp/shalom-icon-generator
+          /tmp/shalom-icon-generator/bin/pip install --disable-pip-version-check --quiet cairosvg
+          /tmp/shalom-icon-generator/bin/python scripts/generate_icons.py
+          test -s assets/icon.png
+          test -s assets/adaptive-foreground.png
       - name: Generate Android native project
         run: npx expo prebuild --platform android --non-interactive --no-install
       - name: Build standalone release APK
