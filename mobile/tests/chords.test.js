@@ -1,0 +1,14 @@
+const assert=require("node:assert/strict");
+const {parseSong,transposeOne,chordRow}=require("../src/chords");
+assert.equal(transposeOne("D",2),"E");
+assert.equal(transposeOne("G/B",2),"A/C#");
+assert.equal(chordRow("   F#m          D#m"),true);
+assert.equal(chordRow("Hola, Señor"),false);
+const song=parseSong("[Coro]\nF#         D#m\nHola, Dios\n\n(F#m)Mi vida",0);
+assert.equal(song.length,4);
+assert.equal(song[0].kind,"section");
+assert.deepEqual([song[1].chordLine.trim(),song[1].lyricLine],["F#         D#m","Hola, Dios"]);
+assert.equal(song[2].kind,"space");
+assert.equal(song[3].chordLine.trim(),"F#m");
+assert.equal(parseSong("(C)Hola",2)[0].chordLine.trim(),"D");
+console.log("SHALOM native: pruebas de acordes correctas");
