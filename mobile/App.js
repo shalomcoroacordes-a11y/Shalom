@@ -103,7 +103,7 @@ function App() {
   if(!term)return true;
   return normalize([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)].join(" ")).includes(term);
  }),[model,typeFilter,categoryId,query]);
- function goTab(next){setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");}
+ function goTab(next){setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
  function selectSong(song){setDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
  function back(){if(detail){setDetail(null);return;}goTab("Inicio");}
  function requestForm(kind="song",song=null) {
