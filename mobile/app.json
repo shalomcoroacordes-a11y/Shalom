@@ -13,10 +13,15 @@
     "android": {
       "package": "com.shalomcoroacordes.cancionero",
       "edgeToEdgeEnabled": true,
-      "versionCode": 2
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#006D3B"
+      }
     },
     "extra": {
       "source": "ehpvsasyzlrlypjjpzuk"
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }
