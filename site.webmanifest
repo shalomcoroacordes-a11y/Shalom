@@ -1,12 +1,12 @@
 {
-  "name": "SHALOM",
+  "name": "SHALOM Offline — Cancionero",
   "short_name": "SHALOM",
-  "description": "Cancionero cristiano y católico con letras, acordes, tonos, artistas y categorías.",
+  "description": "Cancionero de SHALOM para Android y iPhone, con descarga completa de letras y acordes y lectura sin conexión.",
   "lang": "es-MX",
-  "start_url": "./index.html",
+  "start_url": "./offline.html",
   "display": "standalone",
-  "background_color": "#0f1117",
-  "theme_color": "#0f1117",
+  "background_color": "#0d1116",
+  "theme_color": "#0d1116",
   "icons": [
     {
       "src": "favicon.svg",
@@ -14,5 +14,7 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ]
+  ],
+  "id": "./offline.html",
+  "scope": "./"
 }
