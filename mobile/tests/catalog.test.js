@@ -23,6 +23,13 @@ assert.equal(catalog.songsForCategory("c3").length,1);
 assert.equal(catalog.songsForCategory("c2").length,0);
 assert.equal(catalog.categoryPath(catholic),"Católico › Adoración");
 assert.equal(catalog.categoryPath(christian),"Cristiano › Adoración");
+const generalFolder={id:"g1",name:"misa de hoy",song_type:"",parent_id:null};
+const generalChild={id:"g2",name:"Gloria",song_type:"",parent_id:"g1"};
+const generalModel=buildCatalog({ ...data, categories:[...data.categories,generalFolder,generalChild] });
+assert.deepEqual(generalModel.children(null,"general").map(x=>x.name),["misa de hoy"]);
+assert.deepEqual(generalModel.children("g1").map(x=>x.name),["Gloria"]);
+assert.equal(generalModel.categoryPath(generalChild),"General › misa de hoy › Gloria");
+
 assert.deepEqual(catalog.children("c3").map(x=>x.name),["Aleluya"]);
 assert.equal(catalog.songs[0]._links[0].url,"https://youtu.be/test");
 assert.equal(safeWebUrl("javascript:alert(1)"),null);
