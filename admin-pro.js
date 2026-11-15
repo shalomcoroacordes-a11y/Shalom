@@ -128,7 +128,7 @@ function apCaptureSongDraft() {
   if (!form || !AP.draft) return;
   const data = Object.fromEntries(new FormData(form).entries());
   AP.draft = Object.assign({}, AP.draft, data, {
-    collaborators: ap$("input[name='collaborator']:checked", form).map((input) => input.value),
+    collaborators: ap$$("input[name='collaborator']:checked", form).map((input) => input.value),
     category_ids: Array.isArray(AP.draft.category_ids) ? AP.draft.category_ids : [AP.draft.category_id].filter(Boolean)
   });
 }
