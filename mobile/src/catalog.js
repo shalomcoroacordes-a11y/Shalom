@@ -73,7 +73,7 @@ function buildCatalog(data={}) {
  function children(parentId,type) {
   return categoryRows.filter(category=>
    String(category.parent_id||"")===String(parentId||"")&&
-   (!type||normalize(category.song_type)===type)
+   (!type||(normalize(category.song_type)||"general")===normalize(type))
   ).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||byTitle(a,b));
  }
  return {songs,artists:artistRows,categories:categoryRows,albums:albumRows,
