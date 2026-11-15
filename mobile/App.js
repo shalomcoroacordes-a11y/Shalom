@@ -1,10 +1,11 @@
 const React=require("react");
 const {useEffect,useMemo,useState,useRef,useCallback}=React;
 const {
- View,Text,TextInput,Pressable,ScrollView,SafeAreaView,StatusBar,StyleSheet,
+ View,Text,TextInput,Pressable,ScrollView,StatusBar,StyleSheet,
  Switch,Alert,AppState,Platform,Linking,Image,ActivityIndicator
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
+const {SafeAreaProvider,SafeAreaView}=require("react-native-safe-area-context");
 const {getCatalog,getMetadata,setMetadata}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
 const {parseSong}=require("./src/chords");
@@ -67,6 +68,7 @@ function Photo({url,labelText}) {
 function App() {
  const [copy,setCopy]=useState(null);
  const [loaded,setLoaded]=useState(false);
+ const [initialSyncNeeded,setInitialSyncNeeded]=useState(false);
  const [wifiOnly,setWifiOnly]=useState(true);
  const [network,setNetwork]=useState({online:false,wifi:false});
  const [busy,setBusy]=useState(false);
@@ -128,7 +130,7 @@ function App() {
     setProgress("Descargando "+p.index+"/"+p.total+" · "+p.table.replace(/_/g," "))});
    if(result.skipped){setProgress(result.reason);return}
    const saved=await getCatalog();
-   lastRef.current=saved.syncedAt;setCopy(saved);
+   lastRef.current=saved.syncedAt;setCopy(saved);setInitialSyncNeeded(false);
    setProgress(saved.data.songs.length+" cantos y sus carpetas guardados en el teléfono.");
   }catch(e){
    setError(e.message||"No se pudo descargar el cancionero.");
@@ -165,6 +167,7 @@ function App() {
     if(!enabled)return;
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);setLoaded(true);
+    setInitialSyncNeeded(!snapshot.syncedAt);
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
   })();
   const unsubscribe=NetInfo.addEventListener(s=>{
@@ -194,7 +197,7 @@ function App() {
  }
  function title(text,sub){return h(View,{style:S.sectionHeading},label(text,S.title),sub?label(sub,S.info):null)}
  function previewSongs(songs,limit=countLimit) {
-  if(!songs.length)return label("Todavía no hay cantos en esta sección.",S.empty);
+  if(!songs.length)return label(copy?.syncedAt?"Todavía no hay cantos en esta sección.":"Biblioteca pendiente de descarga. Abre Inicio y toca Descargar cancionero.",S.empty);
   return h(View,{style:S.list},
    ...songs.slice(0,limit).map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
    songs.length>limit?h(Btn,{text:"Mostrar más cantos",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null);
@@ -245,6 +248,13 @@ function App() {
  }
  function renderSongs(){
   return h(View,null,title("Canciones","Buscar letras, acordes, tonos o palabras"),
+   !copy?.syncedAt?h(Card,null,
+     label("Primero descarga el cancionero",S.listTitle),
+     label("La app todavía no tiene cantos guardados. Con Wi-Fi, pulsa Descargar para recibirlos desde SHALOM.",S.info),
+     h(Btn,{text:busy?"Descargando…":"Descargar mis cantos",onPress:manualSync,disabled:busy}),
+     busy?h(ActivityIndicator,{color:C.green,style:{marginTop:10}}):null,
+     Boolean(error)?label(error,S.error):null,
+     Boolean(progress)?label(progress,S.info):null):null,
    inputField("Buscar canto",query,v=>{setQuery(v);setCountLimit(80)},{placeholder:"Nombre, letra o artista…"}),
    h(View,{style:S.chips},
     ...[["","Todas"],["catolico","Católico"],["cristiano","Cristiano"],["mixto","Mixto"]]
@@ -254,7 +264,7 @@ function App() {
    categoryId?h(View,{style:S.rowWrap},label("Filtro: "+model.categoryPath(model.categoryMap.get(categoryId)),S.info),
     h(Btn,{text:"Quitar filtro",small:true,secondary:true,onPress:()=>setCategoryId("")})):null,
    label(eligible.length+" resultados",S.smallMuted),
-   previewSongs(eligible));
+   !copy?.syncedAt?label("Aún no se ha descargado la biblioteca. No significa que las canciones hayan desaparecido de Supabase.",S.info):previewSongs(eligible));
  }
  function renderArtists(){
   const list=model.artists.filter(a=>normalize([a.name,a.description,a.artist_type].join(" ")).includes(normalize(query)));
@@ -421,7 +431,7 @@ function App() {
   :tab==="Canciones"?renderSongs():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums()
   :tab==="Solicitar"?renderRequest():renderHome();
- return h(SafeAreaView,{style:S.root},
+ return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:["top","bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg}),
   h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
    h(Pressable,{onPress:()=>requestForm("song"),style:S.headerAction},label("Solicitar +",S.headerActionText)),
@@ -435,10 +445,10 @@ function App() {
      onPress:()=>goTab(name),style:[S.navItem,tab===name&&!detail&&S.navSelected]},
     label(icon,[S.navIcon,tab===name&&!detail&&{color:C.green}]),
     label(name,[S.navText,tab===name&&!detail&&{color:C.green}]))))
- );
+ ));
 }
 const S=StyleSheet.create({
- root:{flex:1,backgroundColor:C.bg},header:{backgroundColor:C.panel,paddingHorizontal:13,paddingVertical:12,flexDirection:"row",alignItems:"center",gap:9,borderBottomWidth:1,borderColor:C.border},
+ root:{flex:1,backgroundColor:C.bg},header:{backgroundColor:C.panel,paddingHorizontal:13,paddingVertical:12,flexDirection:"row",alignItems:"center",gap:9,borderBottomWidth:1,borderColor:C.border,minHeight:56},
  logo:{fontSize:19,fontWeight:"900",color:C.green,flex:1},headerAction:{borderWidth:1,borderColor:C.green,borderRadius:99,padding:7},
  headerActionText:{color:C.pale,fontSize:11,fontWeight:"750"},net:{fontSize:11,fontWeight:"750"},
  page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
@@ -487,7 +497,7 @@ const S=StyleSheet.create({
  chordText:{fontFamily:MONO,fontSize:14,color:C.green,lineHeight:18,fontWeight:"750"},
  lyricText:{fontFamily:MONO,fontSize:14,color:C.text,lineHeight:19},
  verse:{fontFamily:MONO,fontSize:14,color:C.green,fontWeight:"850",marginTop:10,marginBottom:6},
- nav:{backgroundColor:C.panel,borderTopWidth:1,borderColor:C.border,flexDirection:"row",justifyContent:"space-around",paddingVertical:8},
+ nav:{backgroundColor:C.panel,borderTopWidth:1,borderColor:C.border,flexDirection:"row",justifyContent:"space-around",paddingVertical:8,minHeight:62},
  navItem:{alignItems:"center",justifyContent:"center",flex:1,paddingVertical:3},
  navSelected:{backgroundColor:"#143b2c",borderRadius:10},
  navIcon:{fontSize:22,color:C.muted,lineHeight:24},navText:{fontSize:10,fontWeight:"800",color:C.muted,marginTop:4}
