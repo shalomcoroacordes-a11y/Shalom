@@ -3,7 +3,7 @@
     "name": "SHALOM",
     "slug": "shalom-offline",
     "scheme": "shalom",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -12,7 +12,8 @@
     },
     "android": {
       "package": "com.shalomcoroacordes.cancionero",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "versionCode": 2
     },
     "extra": {
       "source": "ehpvsasyzlrlypjjpzuk"
