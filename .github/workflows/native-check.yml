@@ -1,0 +1,26 @@
+name: SHALOM Native Check
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/native-check.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install React Native and Expo dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify Expo SDK compatibility
+        run: npx expo install --check
+      - name: Test chord parser
+        run: node tests/chords.test.js
