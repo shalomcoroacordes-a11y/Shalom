@@ -16,6 +16,18 @@ const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
  text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const tabs=[["Inicio","⌂"],["Canciones","♫"],["Repertorios","☷"],["Artistas","♩"],["Categorías","▦"],["Más","•••"]];
+const moreTabs=new Set(["Popurrís","Álbumes"]);
+const isSelectedTab=(current,name)=>current===name||(name==="Más"&&moreTabs.has(current));
+const matchesSearch=(values,term)=>normalize(values.filter(v=>v!==null&&v!==undefined).join(" ")).includes(normalize(term.trim()));
+const byMostRecent=(a,b)=>{
+ const date=x=>Date.parse(x.updated_at||x.created_at||"")||Date.parse(x.created_at||"")||0;
+ return date(b)-date(a);
+};
+const upcomingMass=(repertoires,today)=>{
+ const masses=repertoires.filter(r=>r.kind==="misa");
+ return masses.filter(r=>r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0]
+  ||masses.find(r=>!r.event_date)||null;
+};
 const label=(value,style)=>h(Text,{style:style||S.info},String(value??""));
 const type=val=>typeLabel(val);
 const inputField=(name,value,onChangeText,more={})=>h(View,{style:S.field,key:name},
@@ -114,9 +126,9 @@ function App() {
   if(categoryId&&!s._categories.some(c=>model.descendants(categoryId).has(c.id)))return false;
   const term=normalize(query.trim());
   if(!term)return true;
-  return normalize([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)].join(" ")).includes(term);
+  return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
  }),[model,typeFilter,categoryId,query]);
- function goTab(next){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
+ function goTab(next,options={}){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setCategoryId("");}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");}
@@ -259,8 +271,7 @@ function App() {
   );
  }
  function renderHome(){
-  const recentDate=item=>Date.parse(item.updated_at||item.created_at||"")||Date.parse(item.created_at||"")||0;
-  const newest=[...model.songs].sort((a,b)=>recentDate(b)-recentDate(a)).slice(0,6);
+  const newest=[...model.songs].sort(byMostRecent).slice(0,6);
   const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
   const lastMedley=lastRead?.type==="medley"?model.medleys.find(x=>String(x.id)===String(lastRead.id)):null;
   return h(View,null,
@@ -276,10 +287,7 @@ function App() {
    busy?label("Sincronizando… "+progress,S.info):null,
    error?label(error,S.error):null,
    title("Mi próxima misa"),
-   (()=>{const today=new Date().toISOString().slice(0,10);
-    const next=[...model.repertoires].filter(r=>r.kind==="misa"&&r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0];
-    const undated=model.repertoires.find(r=>r.kind==="misa"&&!r.event_date);
-    const chosen=next||undated;
+   (()=>{const chosen=upcomingMass(model.repertoires,new Date().toISOString().slice(0,10));
     return chosen?h(Pressable,{style:S.massCard,onPress:()=>selectRepertoire(chosen),accessibilityRole:"button"},
       h(View,{style:{flex:1},children:[label(chosen.title,S.massTitle),
        label([chosen.event_date||"Sin fecha",chosen.location,(chosen.items||[]).length+" cantos"].filter(Boolean).join(" · "),S.rowMeta)]}),
@@ -298,11 +306,11 @@ function App() {
     accessibilityLabel:"Buscar canto en Inicio"}),
    homeSearch.trim()?(()=>{
     const q=normalize(homeSearch.trim());
-    const found=model.songs.filter(song=>normalize([song.title,song.lyrics,names(song._artists)].join(" ")).includes(q)).slice(0,6);
+    const found=model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists)],q)).slice(0,6);
     return h(View,{style:S.list},
      ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
      !found.length?label("No se encontraron cantos.",S.empty):null,
-     h(Btn,{text:"Buscar en todas las canciones",secondary:true,onPress:()=>{goTab("Canciones");setQuery(homeSearch)}}));
+     h(Btn,{text:"Buscar en todas las canciones",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})}));
    })():null,
    title("Últimos cantos actualizados","Nuevos o modificados recientemente"),
    newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
@@ -334,7 +342,7 @@ function App() {
    !copy?.syncedAt?label("Aún no se ha descargado la biblioteca. No significa que las canciones hayan desaparecido de Supabase.",S.info):previewSongs(eligible));
  }
  function renderArtists(){
-  const list=model.artists.filter(a=>normalize([a.name,a.description,a.artist_type].join(" ")).includes(normalize(query)));
+  const list=model.artists.filter(a=>matchesSearch([a.name,a.description,a.artist_type],query));
   return h(View,null,title("Artistas","Descubre ministerios, coros y músicos"),
     inputField("Buscar artista",query,setQuery,{placeholder:"Nombre del artista…"}),
     ...list.slice(0,countLimit).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
@@ -639,10 +647,10 @@ function App() {
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen?h(View,{style:S.nav},
-   ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail},
-     onPress:()=>goTab(name),style:[S.navItem,(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail&&S.navSelected]},
-    label(icon,[S.navIcon,(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail&&{color:C.green}]),
-    label(name,[S.navText,(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail&&{color:C.green}])))) : null
+   ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:(isSelectedTab(tab,name))&&!detail},
+     onPress:()=>goTab(name),style:[S.navItem,(isSelectedTab(tab,name))&&!detail&&S.navSelected]},
+    label(icon,[S.navIcon,(isSelectedTab(tab,name))&&!detail&&{color:C.green}]),
+    label(name,[S.navText,(isSelectedTab(tab,name))&&!detail&&{color:C.green}])))) : null
  ));
 }
 const S=StyleSheet.create({
