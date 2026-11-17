@@ -34,6 +34,9 @@ jobs:
       - name: Test supported category types in admin editor
         run: node tests/category-editor-types-regression.cjs
 
+      - name: Test category refresh lock and recovery
+        run: node tests/category-refresh-lock-regression.cjs
+
       - name: Test concurrent category save protection
         run: node tests/category-concurrent-save-regression.cjs
 
