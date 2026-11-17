@@ -14,4 +14,6 @@ assert.equal(clean(""),"");
 assert.match(src,/apEsc\(apArtistDescription\(edit\.description\)\)/);
 const html=fs.readFileSync("admin.html","utf8");
 assert.doesNotMatch(html,/admin-artist-bio-fallback\.js/);
-console.log("Biografía de artista integrada al administrador.");
+assert.match(src,/artist_type: String\(data\.artist_type \|\| ""\)\.trim\(\) \|\| "general"/);
+assert.equal(fs.existsSync("admin-artist-type-fix.js"),false,"No debe mantenerse el parche de tipo de artista");
+console.log("Biografía y tipo de artista integrados al administrador.");
