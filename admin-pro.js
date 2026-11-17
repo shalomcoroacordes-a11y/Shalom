@@ -196,7 +196,7 @@ function apRenderShell() {
   ap$$("[data-admin-tab]", workspace).forEach((button) => button.addEventListener("click", () => {
     if (AP.tab === "songs") apCaptureSongDraft();
     AP.tab = button.dataset.adminTab;
-    ap$("[data-admin-tab]", workspace).forEach((tab) => tab.classList.toggle("active", tab.dataset.adminTab === AP.tab));
+    ap$$("[data-admin-tab]", workspace).forEach((tab) => tab.classList.toggle("active", tab.dataset.adminTab === AP.tab));
     apRenderView();
   }));
   ap$("#adminLogout")?.addEventListener("click", async () => { await AdminPro.auth.signOut(); });
