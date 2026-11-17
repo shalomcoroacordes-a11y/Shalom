@@ -59,6 +59,27 @@
     };
 
     const editingId = AP.edits?.category || null;
+    // Validate hierarchy at submission time as well as in the editor options.
+    // A stale form or manually modified parent_id must not create a cycle.
+    if (payload.parent_id) {
+      const categories = AP.categories || [];
+      const byId = new Map(categories.map((category) => [String(category.id), category]));
+      const seen = new Set();
+      let cursor = payload.parent_id;
+      while (cursor) {
+        if (cursor === String(editingId || "")) {
+          return apNote("Una categoría no puede estar dentro de sí misma ni de una subcategoría suya.", true);
+        }
+        if (seen.has(cursor)) {
+          return apNote("La jerarquía de categorías contiene una referencia circular.", true);
+        }
+        seen.add(cursor);
+        const parent = byId.get(cursor);
+        if (!parent) return apNote("La carpeta de destino ya no existe. Actualiza el panel.", true);
+        cursor = String(parent.parent_id || "");
+      }
+    }
+
     const duplicate = (AP.categories || []).find((category) =>
       String(category.id) !== String(editingId || "") &&
       String(category.slug || "") === payload.slug &&
