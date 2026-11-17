@@ -16,7 +16,7 @@
 
   function setTabActive(button) {
     const tabs = button?.closest(".admin-tabs");
-    tabs?.querySelectorAll(".admin-tab").forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelectorAll("#adminWorkspace .admin-tab").forEach((item) => item.classList.toggle("active", item === button));
   }
 
   function issue(title, details, items, severity = "warning") {
@@ -25,7 +25,7 @@
 
   async function runAudit() {
     if (!db) throw new Error("No se pudo iniciar la conexión con el catálogo.");
-    const [songsRes, artistsRes, categoriesRes, albumsRes, songArtistsRes, songCategoriesRes, albumSongsRes, linksRes, caposRes] = await Promise.all([
+    const [songsRes, artistsRes, categoriesRes, albumsRes, songArtistsRes, songCategoriesRes, albumSongsRes, linksRes, caposRes, messagesRes] = await Promise.all([
       db.from("songs").select("id,title,lyrics,tone,song_type,slug"),
       db.from("artists").select("id,name"),
       db.from("categories").select("id,name,parent_id"),
@@ -34,9 +34,10 @@
       db.from("song_categories").select("song_id,category_id"),
       db.from("album_songs").select("song_id,album_id"),
       db.from("song_links").select("song_id,title,url,link_type"),
-      db.from("song_capo_versions").select("song_id,label,capo_position,capo_key")
+      db.from("song_capo_versions").select("song_id,label,capo_position,capo_key"),
+      db.from("contact_messages").select("id,status,song_title,message_type").eq("status","pendiente")
     ]);
-    const error = [songsRes, artistsRes, categoriesRes, albumsRes, songArtistsRes, songCategoriesRes, albumSongsRes, linksRes, caposRes].find((result) => result.error)?.error;
+    const error = [songsRes, artistsRes, categoriesRes, albumsRes, songArtistsRes, songCategoriesRes, albumSongsRes, linksRes, caposRes, messagesRes].find((result) => result.error)?.error;
     if (error) throw error;
 
     const songs = songsRes.data || [];
@@ -48,6 +49,9 @@
     const albumSongs = albumSongsRes.data || [];
     const links = linksRes.data || [];
     const capos = caposRes.data || [];
+    const pendingMessages = messagesRes.data || [];
+    const invalidUrls = links.filter(row => { try { const u = new URL(String(row.url || "")); return !["https:", "http:"].includes(u.protocol); } catch { return true; } });
+    const chordReview = songs.filter(row => String(row.lyrics || "").trim() && !/(\[[A-G](?:#|b)?(?:m|maj|min|sus|dim|aug|add|\d|\/|\])|\b(?:Do|Re|Mi|Fa|Sol|La|Si)(?:m|#|b)?\b)/i.test(String(row.lyrics || "")));
 
     const songById = new Map(songs.map((row) => [String(row.id), row]));
     const artistById = new Map(artists.map((row) => [String(row.id), row]));
@@ -112,6 +116,9 @@
       issue("Canciones sin letra", "Conviene completar la letra antes de considerarlas listas.", missingLyrics, "critical"),
       issue("Canciones sin artista", "No tienen un artista o ministerio relacionado.", missingArtist, "warning"),
       issue("Canciones sin categoría", "No aparecerán al explorar por momentos o temas.", missingCategory, "warning"),
+      issue("Cantos sin acordes detectables", "Detección orientativa: revisar manualmente antes de corregir.", chordReview, "info"),
+      issue("Solicitudes pendientes", "Abre Mensajes para revisar y responder las solicitudes.", pendingMessages, "warning"),
+      issue("URLs inválidas", "Enlaces con formato incorrecto o protocolo no permitido. La verificación de disponibilidad externa no se realiza automáticamente.", invalidUrls, "warning"),
       issue("Canciones sin tono", "Revisa si la canción necesita tono para músicos o coro.", missingTone, "info"),
       issue("Títulos posiblemente duplicados", "Se encontraron títulos iguales. Confirma si son versiones distintas o registros repetidos.", duplicateTitles, "warning"),
       issue("Relaciones de artista rotas", "Hay enlaces a artistas o canciones que ya no existen.", brokenArtistLinks, "critical"),
@@ -132,6 +139,9 @@
   }
 
   function formatItem(entry, item) {
+    if (entry.title.includes("Solicitudes")) return item.song_title || item.message_type || "Solicitud pendiente";
+    if (entry.title.includes("Cantos")) return titleFor(item);
+    if (entry.title.includes("URLs")) return item.url || "URL vacía";
     if (entry.title.includes("Canciones") || entry.title.includes("Títulos")) return titleFor(item);
     if (entry.title.includes("Artistas")) return item.name || "Artista sin nombre";
     if (entry.title.includes("Categorías")) return item.name || "Categoría sin nombre";
@@ -152,8 +162,10 @@
       ? `<div class="jhd-audit-list">${data.issues.map((entry) => `<details class="jhd-audit-issue is-${entry.severity}" ${entry.severity === "critical" ? "open" : ""}><summary><span class="jhd-audit-badge">${entry.items.length}</span><span>${esc(entry.title)}</span></summary><div class="jhd-audit-detail"><p>${esc(entry.details)}</p>${sample(entry.items, (item) => formatItem(entry, item))}</div></details>`).join("")}</div>`
       : '<div class="jhd-audit-good"><strong>Todo se ve bien.</strong><br>No se detectaron registros pendientes en la revisión automática.</div>';
 
-    view.innerHTML = `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Mantenimiento</p><h2>Revisión del catálogo</h2></div><p class="admin-count">${data.attention ? `${data.attention} por revisar` : "Sin alertas"}</p></div><div class="jhd-audit-toolbar"><p>Busca canciones incompletas, relaciones rotas, duplicados y secciones vacías.</p><button class="song-btn small-btn" type="button" id="jhdRunCatalogAudit">Reanalizar</button></div><div class="jhd-audit-grid"><article class="jhd-audit-stat"><strong>${data.totals.songs}</strong><span>Canciones</span></article><article class="jhd-audit-stat"><strong>${data.totals.artists}</strong><span>Artistas</span></article><article class="jhd-audit-stat"><strong>${data.totals.categories}</strong><span>Categorías</span></article><article class="jhd-audit-stat"><strong>${data.totals.albums}</strong><span>Álbumes</span></article></div>${issueHtml}</section>`;
+    view.innerHTML = `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Mantenimiento</p><h2>Revisión del catálogo</h2></div><p class="admin-count">${data.attention ? `${data.attention} por revisar` : "Sin alertas"}</p></div><div class="jhd-audit-toolbar"><p>Detecta cantos incompletos, acordes por revisar, URLs inválidas, categorías vacías y solicitudes pendientes.</p><button class="song-btn small-btn" type="button" id="jhdRunCatalogAudit">Reanalizar</button></div><div class="jhd-audit-grid"><article class="jhd-audit-stat"><strong>${data.totals.songs}</strong><span>Canciones</span></article><article class="jhd-audit-stat"><strong>${data.totals.artists}</strong><span>Artistas</span></article><article class="jhd-audit-stat"><strong>${data.totals.categories}</strong><span>Categorías</span></article><article class="jhd-audit-stat"><strong>${data.totals.albums}</strong><span>Álbumes</span></article></div><div class="admin-actions"><button type="button" class="song-btn small-btn secondary" id="maintenanceSongs">Editar cantos</button><button type="button" class="song-btn small-btn secondary" id="maintenanceMessages">Ver solicitudes</button></div>${issueHtml}</section>`;
     document.getElementById("jhdRunCatalogAudit")?.addEventListener("click", openAudit);
+    document.getElementById("maintenanceSongs")?.addEventListener("click", () => document.querySelector('[data-admin-tab="songs"]')?.click());
+    document.getElementById("maintenanceMessages")?.addEventListener("click", () => document.getElementById("adminMessagesTab")?.click());
   }
 
   async function openAudit(event) {
@@ -176,7 +188,7 @@
     button.className = "admin-tab";
     button.type = "button";
     button.dataset.jhdAuditTab = "true";
-    button.textContent = "Revisión";
+    button.textContent = "Mantenimiento";
     button.addEventListener("click", openAudit);
     tabs.append(button);
     tabs.querySelectorAll(".admin-tab:not([data-jhd-audit-tab])").forEach((tab) => tab.addEventListener("click", () => button.classList.remove("active")));
