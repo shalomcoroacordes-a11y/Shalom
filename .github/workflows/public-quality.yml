@@ -54,6 +54,9 @@ jobs:
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
+      - name: Test Android catalog download timeout
+        run: node tests/mobile-sync-timeout.cjs
+
       - name: Test offline refresh and Android accessibility contracts
         run: node tests/offline-mobile-regression.cjs
 
