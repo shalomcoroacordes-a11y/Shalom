@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Repertorios de misa y ensayo | SHALOM</title>
+<meta name="description" content="Consulta los repertorios de misa y ensayo preparados para el coro SHALOM.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=5"><link rel="stylesheet" href="site-shell.css?v=2">
+<link rel="stylesheet" href="public-accessibility.css?v=2">
+<link rel="stylesheet" href="song-chords.css?v=3"><link rel="stylesheet" href="repertoires.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="Supabase.js?v=2" defer></script>
+<script src="song-chords.js?v=3" defer></script>
+<script src="repertoires-core.js?v=1" defer></script>
+<script src="repertoires.js?v=1" defer></script>
+</head><body>
+<header><nav class="navbar"><a class="brand" href="index.html"><span class="brand-icon" aria-hidden="true">🕊️</span><span>SHALOM</span></a><button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">☰</button>
+<div class="nav-menu" id="navMenu"><a href="index.html">Inicio</a><a href="canciones.html">Canciones</a><a href="artistas.html">Artistas</a><a href="categorias.html">Categorías</a><a href="albumes.html">Álbumes</a><a href="popurris.html">Popurrís</a><a class="active" href="repertorios.html" aria-current="page">Repertorios</a><a href="solicitar-canto.html">Solicitar canto</a></div></nav></header>
+<main class="rep-public-page">
+ <section class="rep-hero"><p class="hero-kicker">SHALOM · Misa y ensayo</p><h1>Repertorios</h1><p>Todos los cantos de una celebración o ensayo, en el orden en que se interpretarán. Un solo lugar para preparar al coro.</p></section>
+ <section id="repCatalog" aria-label="Repertorios disponibles">
+ <div class="rep-filters"><label>Buscar repertorio<input id="repSearch" type="search" placeholder="Misa, fecha, lugar…"></label><label>Tipo<select id="repType"><option value="">Todos</option><option value="misa">Misas</option><option value="ensayo">Ensayos</option></select></label></div>
+ <p id="repStatus" role="status" aria-live="polite">Cargando repertorios publicados…</p><div id="repCards" class="rep-public-grid"></div>
+ </section>
+ <section id="repReader" class="rep-reader" hidden aria-label="Lector de repertorios">
+ <button class="song-btn secondary rep-back" id="repBack" type="button">← Volver a repertorios</button>
+ <div class="rep-reader-header"><p class="hero-kicker" id="repReaderKind">Repertorio</p><h2 id="repReaderTitle">Repertorio</h2><p class="muted-text" id="repReaderMeta"></p><p id="repReaderNotes"></p></div>
+ <h3>Cantos preparados</h3><div id="repSongOrder" class="rep-song-order"></div>
+ <div class="rep-now-playing"><p class="hero-kicker" id="repCurrentMoment">Momento</p><h3 id="repCurrentTitle">Canto</h3><p id="repCurrentInfo" class="muted-text"></p>
+ <div class="rep-reader-lyrics" id="repCurrentLyrics"></div>
+ <a id="repCurrentLink" href="canciones.html" class="text-link">Abrir canto individual ↗</a>
+ </div>
+ <div class="rep-player-actions"><button class="song-btn secondary" type="button" id="repPrevious">← Anterior</button><span id="repProgress" aria-live="polite"></span><button class="song-btn" type="button" id="repNext">Siguiente →</button></div>
+ <button class="song-btn secondary" type="button" id="repPrint">Imprimir repertorio</button>
+ </section>
+</main>
+<footer><p>© 2026 SHALOM</p><p><a href="index.html">Inicio</a> · <a href="canciones.html">Canciones</a></p></footer>
+<script src="site-public-nav.js?v=2" defer></script>
+</body></html>
