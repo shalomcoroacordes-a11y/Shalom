@@ -301,7 +301,7 @@ function App() {
    title("Artistas destacados"),
    ...model.artists.slice(0,4).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:model.songsForArtist(a.id).length+" cantos",
-     onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}))
+     onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}}))
   );
  }
  function renderSongs(){
