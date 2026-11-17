@@ -113,6 +113,7 @@ function App() {
  const [requestEmail,setRequestEmail]=useState("");
  const [sending,setSending]=useState(false);
  const inFlight=useRef(false),prefRef=useRef(true),lastRef=useRef(null);
+ const autoRetryRef=useRef({lastAttempt:0,failures:0});
  const previousTabRef=useRef("Inicio");
  const detailHistoryRef=useRef([]);
  const model=useMemo(()=>buildCatalog(copy?.data||{}),[copy]);
@@ -171,21 +172,25 @@ function App() {
  },[]);
  const sync=useCallback(async(manual=false)=>{
   if(inFlight.current)return;
+  if(!manual)autoRetryRef.current.lastAttempt=Date.now();
   inFlight.current=true;setBusy(true);setError("");setProgress("Comprobando conexión…");
   try{
    const result=await syncAll({wifiOnly:prefRef.current,manual,onProgress:p=>
     setProgress("Descargando "+p.index+"/"+p.total+" · "+p.table.replace(/_/g," "))});
    if(result.skipped){setProgress(result.reason);return}
    const saved=await getCatalog();
-   lastRef.current=saved.syncedAt;setCopy(saved);
+   lastRef.current=saved.syncedAt;autoRetryRef.current.failures=0;setCopy(saved);
    setProgress(saved.data.songs.length+" cantos y sus carpetas guardados en el teléfono.");
   }catch(e){
+   if(!manual)autoRetryRef.current.failures=Math.min(autoRetryRef.current.failures+1,5);
    setError(e.message||"No se pudo descargar el cancionero.");
    setProgress("Si había una copia anterior, se conserva.");
   }finally{inFlight.current=false;setBusy(false)}
  },[]);
  const tryAuto=useCallback(async()=>{
   if(inFlight.current)return;
+  const retry=autoRetryRef.current;
+  if(retry.failures && Date.now()-retry.lastAttempt<20*60*1000*Math.pow(2,retry.failures))return;
   if(lastRef.current && Date.now()-new Date(lastRef.current).valueOf()<20*60*1000)return;
   const n=await networkState().catch(()=>({online:false,wifi:false}));
   if(n.online&&(!prefRef.current||n.wifi))await sync(false);
