@@ -290,8 +290,6 @@ function App() {
     ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
      label("♫",S.entityEmoji),label(song.title,S.listTitle),
      label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
-   title("Categorías","Católico, Cristiano, Mixto y General"),
-   h(Btn,{text:"▦ Explorar todas las categorías",secondary:true,onPress:()=>goTab("Categorías")}),
    title("Mi próxima misa"),
    (()=>{const today=new Date().toISOString().slice(0,10);
     const next=model.repertoires.filter(r=>r.kind==="misa"&&r.event_date&&r.event_date>=today)[0];
@@ -305,8 +303,6 @@ function App() {
        label("Consulta todos los repertorios o asigna una fecha desde el administrador.",S.smallMuted));
    })(),
    h(Btn,{text:"Ver todos los repertorios ("+model.repertoires.length+")",secondary:true,onPress:()=>goTab("Repertorios")}),
-   title("Popurrís de SHALOM","Varios cantos como uno solo"),
-   h(Btn,{text:"Explorar popurrís ("+model.medleys.length+")",secondary:true,onPress:()=>goTab("Popurrís")}),
    title("Artistas nuevos o actualizados","Últimos perfiles creados o modificados"),
    ...recentArtists.map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:model.songsForArtist(a.id).length+" cantos",
