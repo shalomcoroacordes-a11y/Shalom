@@ -120,13 +120,19 @@
    capture();let payload;
    try{payload=R.validate(state.active);}catch(err){notice(err.message,true);return;}
    state.saving=true;render();
+   let saved=false;
    try{
     if(state.active.id)payload.id=state.active.id;
     const {data,error}=await db.from("repertoires").upsert(payload,{onConflict:"id"}).select().single();
     if(error)throw error;
+    saved=true;
     state.active={...data,items:(data.items||[]).map(item=>({...item}))};
     await reload();state.message="Repertorio guardado. "+(data.is_published?"Visible para los integrantes.":"Sólo visible para administradores.");
-   }catch(err){state.message="Error al guardar: "+err.message;}
+   }catch(err){
+    state.message=saved
+     ?"El repertorio se guardó, pero no se pudo actualizar la lista. Recarga el administrador antes de volver a guardar."
+     :"No se pudo confirmar el guardado: "+(err?.message||"Error de conexión.")+" Revisa los repertorios antes de reintentarlo.";
+   }
    finally{state.saving=false;render();}
   });
   $("#repDelete")?.addEventListener("click",async()=>{
