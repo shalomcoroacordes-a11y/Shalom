@@ -42,3 +42,31 @@ No se encontraron vistas en el esquema `public` en la consulta a `pg_views`.
 ## Principio de seguridad
 
 **RLS y GRANT son controles complementarios.** Una política RLS restrictiva no compensa conceder operaciones que no están sujetas a RLS, como `TRUNCATE`. No confundir ausencia de advertencias automáticas con ausencia de riesgos.
+
+## Corrección aplicada — 17 de noviembre de 2026
+
+Con autorización explícita del responsable de SHALOM, se ejecutó en producción, dentro de una transacción:
+
+```sql
+begin;
+revoke all privileges on table public.medleys from anon, authenticated;
+grant select on table public.medleys to anon;
+grant select, insert, update, delete on table public.medleys to authenticated;
+commit;
+```
+
+**Verificación posterior con `has_table_privilege`:**
+
+| Privilegio | anon | authenticated |
+| --- | --- | --- |
+| SELECT | sí | sí |
+| INSERT | no | sí |
+| UPDATE | no | sí |
+| DELETE | no | sí |
+| TRUNCATE | no | no |
+| REFERENCES | no | no |
+| TRIGGER | no | no |
+
+La tabla continúa con RLS habilitado. Las políticas existentes de escritura siguen exigiendo `jhd_is_admin()`; los visitantes solo pueden leer registros publicados. El asesor de seguridad de Supabase sigue señalando únicamente la advertencia de protección de contraseñas filtradas deshabilitada.
+
+**Alcance:** se modificaron únicamente privilegios SQL de `public.medleys`; no se modificaron ni borraron registros, no se alteraron políticas RLS ni otras tablas. No se ejecutaron pruebas completas de la interfaz web/Android ni pruebas con cuentas reales, que permanecen pendientes.
