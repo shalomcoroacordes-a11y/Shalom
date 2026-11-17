@@ -1,0 +1,17 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const vm=require("node:vm");
+const src=fs.readFileSync("admin-pro.js","utf8");
+const start=src.indexOf("function apArtistDescription(");
+const end=src.indexOf("function apArtistsHTML()",start);
+assert.ok(start>=0&&end>start,"La limpieza debe vivir en el módulo principal");
+const context={};
+vm.runInNewContext(src.slice(start,end),context);
+const clean=context.apArtistDescription;
+assert.equal(clean("Biografía normal"),"Biografía normal");
+assert.equal(clean("  Biografía <!--JHD_ARTIST_META:{\"x\":1}-->  "),"Biografía");
+assert.equal(clean(""),"");
+assert.match(src,/apEsc\(apArtistDescription\(edit\.description\)\)/);
+const html=fs.readFileSync("admin.html","utf8");
+assert.doesNotMatch(html,/admin-artist-bio-fallback\.js/);
+console.log("Biografía de artista integrada al administrador.");
