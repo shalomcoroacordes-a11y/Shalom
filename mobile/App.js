@@ -40,13 +40,13 @@ const inputField=(name,value,onChangeText,more={})=>h(View,{style:S.field,key:na
   maxLength:more.maxLength||2500})
 );
 function Btn({text,onPress,small=false,secondary=false,disabled=false}){
- return h(Pressable,{onPress,disabled,accessibilityRole:"button",
+ return h(Pressable,{onPress,disabled,accessibilityRole:"button",accessibilityLabel:String(text),accessibilityState:{disabled},
    style:[S.button,secondary&&S.secondary,small&&S.smallBtn,disabled&&{opacity:.5}]},
   label(text,[S.buttonText,secondary&&S.secondaryText,small&&S.smallBtnText]));
 }
 function Card({children,style}){return h(View,{style:[S.card,style]},children)}
 function Chip({text,active=false,onPress}){
- return h(Pressable,{onPress,accessibilityRole:"button",style:[S.chip,active&&S.chipActive]},
+ return h(Pressable,{onPress,accessibilityRole:"button",accessibilityLabel:String(text),accessibilityState:{selected:active},style:[S.chip,active&&S.chipActive]},
  label(text,[S.chipText,active&&{color:"#03251a"}]));
 }
 function SongRow({song,onPress}) {
