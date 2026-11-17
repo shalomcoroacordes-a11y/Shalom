@@ -1,0 +1,12 @@
+const fs = require("node:fs");
+const assert = require("node:assert/strict");
+const names = ["site-shell.css","public-cards.css","public-accessibility.css","detalles.css","detail-visuals.css","song-feedback.css","song-reading-mode.css","song-preferences.css","song-reading-mobile-sheet.css","song-capo-mobile-grid.css","song-chords.css","song-print.css"];
+const html = fs.readFileSync("cancion.html", "utf8");
+const bundle = fs.readFileSync("song-detail-bundle.css", "utf8");
+const expected = names.map((name, i) => (i ? "\n\n/* ===== " + name + " (original order) ===== */\n" : "") + fs.readFileSync(name, "utf8")).join("");
+assert.equal(bundle, expected, "Bundle must match all original CSS rules byte-for-byte in order");
+assert.equal((html.match(/href="song-detail-bundle\.css\?v=1"/g) || []).length, 1);
+for (const name of names) assert.equal(html.includes('href="' + name + '?v='), false, name + " must not load twice");
+assert.ok(html.indexOf('href="style.css?v=5"') < html.indexOf('href="song-detail-bundle.css?v=1"'));
+assert.ok(bundle.startsWith('@import url("mobile-experience.css?v=1");'), "Keep the original CSS import first");
+console.log("Song detail CSS: byte-identical bundle, original order, no duplicate loads.");
