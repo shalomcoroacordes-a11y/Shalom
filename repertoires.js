@@ -35,30 +35,6 @@
    for(const s of data||[])songs.set(s.id,s);
   }
  }
- function loadLine(){
-  if(!current)return;
-  const items=current.items||[];
-  if(!items.length)return;
-  position=Math.min(Math.max(position,0),items.length-1);
-  const item=items[position],song=songs.get(item.song_id);
-  $("repCurrentMoment").textContent=item.moment||"Canto "+(position+1);
-  $("repCurrentTitle").textContent=song?.title||"Canto no disponible";
-  $("repCurrentInfo").textContent=[song?.tone?"Tono "+song.tone:"",item.notes].filter(Boolean).join(" · ");
-  $("repCurrentLyrics").innerHTML=song?(window.ShalomChords?.render
-    ?window.ShalomChords.render(song.lyrics||"Todavía no hay letra disponible.")
-    :'<pre>'+esc(song.lyrics||"Sin letra")+'</pre>')
-    :'<p>Este canto ya no está disponible en el cancionero.</p>';
-  $("repCurrentLink").hidden=!song;
-  $("repCurrentLink").href=R.url(item.song_id);
-  $("repProgress").textContent=(position+1)+" / "+items.length;
-  $("repPrevious").disabled=position===0;
-  $("repNext").disabled=position>=items.length-1;
-  $("repSongOrder").querySelectorAll("[data-pos]").forEach(el=>{
-   const yes=Number(el.dataset.pos)===position;
-   el.classList.toggle("active",yes);
-   el.setAttribute("aria-current",yes?"step":"false");
-  });
- }
  function reader(rep){
   current=rep;position=0;
   $("repCatalog").hidden=true;$("repReader").hidden=false;
@@ -67,21 +43,28 @@
   $("repReaderMeta").textContent=[rep.event_date?friendlyDate(rep.event_date):"",rep.location,(rep.items||[]).length+" cantos"].filter(Boolean).join(" · ");
   $("repReaderNotes").textContent=rep.notes||"";
   $("repReaderNotes").hidden=!rep.notes;
-  $("repPrintAll").innerHTML=(rep.items||[]).map((item,i)=>{
+  const html=(rep.items||[]).map((item,i)=>{
    const song=songs.get(item.song_id);
-   const text=song?.lyrics||"Canto no disponible.";
-   const html=window.ShalomChords?.render ? window.ShalomChords.render(text) : "<pre>"+esc(text)+"</pre>";
-   return '<article class="rep-print-song"><h3>'+(i+1)+'. '+esc(item.moment||"Canto")+' — '+esc(song?.title||"Canto no disponible")+'</h3>'+
+   const lyrics=song?.lyrics||"Canto no disponible.";
+   const content=window.ShalomChords?.render?window.ShalomChords.render(lyrics):"<pre>"+esc(lyrics)+"</pre>";
+   return '<article class="rep-print-song rep-continuous-song" id="rep-song-'+i+'">'+
+    '<h3>'+(i+1)+'. '+esc(item.moment||"Canto")+' — '+esc(song?.title||"Canto no disponible")+'</h3>'+
+    (song?.tone?'<p class="muted-text">Tono '+esc(song.tone)+'</p>':"")+
     (item.notes?'<p>'+esc(item.notes)+'</p>':"")+
-    '<div class="rep-reader-lyrics">'+html+'</div></article>';
+    '<div class="rep-reader-lyrics">'+content+'</div></article>';
   }).join("");
+  $("repPrintAll").innerHTML=html;
+  $("repPrintAll").hidden=false;
+  $("repPrintAll").setAttribute("aria-hidden","false");
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
-   '<button type="button" class="rep-order-button" data-pos="'+i+'"><strong>'+(i+1)+'. '+esc(item.moment||"Canto")+
-   '</strong><span>'+esc(songs.get(item.song_id)?.title||"Canto no disponible")+'</span></button>').join("");
-  $("repSongOrder").querySelectorAll("[data-pos]").forEach(btn=>btn.addEventListener("click",()=>{
-   position=Number(btn.dataset.pos);loadLine();
-  }));
-  loadLine();
+   '<a class="rep-order-button" href="#rep-song-'+i+'"><strong>'+(i+1)+'. '+esc(item.moment||"Canto")+
+   '</strong><span>'+esc(songs.get(item.song_id)?.title||"Canto no disponible")+'</span></a>').join("");
+  // Lector continuo: no se necesita avanzar canto por canto ni desplazamiento automático.
+  const player=document.querySelector(".rep-now-playing");
+  if(player)player.hidden=true;
+  const actions=document.querySelector(".rep-player-actions");
+  if(actions)actions.hidden=true;
+  $("repCurrentLink").hidden=true;
   document.title=rep.title+" | SHALOM Repertorios";
   window.scrollTo({top:0,behavior:"instant"});
  }
@@ -121,8 +104,7 @@
  $("repSearch")?.addEventListener("input",catalog);
  $("repType")?.addEventListener("change",catalog);
  $("repBack")?.addEventListener("click",back);
- $("repPrevious")?.addEventListener("click",()=>{position--;loadLine();});
- $("repNext")?.addEventListener("click",()=>{position++;loadLine();});
+
  $("repPrint")?.addEventListener("click",()=>window.print());
  window.addEventListener("popstate",()=>{if(current)back();});
  init();
