@@ -213,6 +213,13 @@
     });
   };
 
+  const findDuplicateCategory = (payload, editingId) => (AP.categories || []).find((category) =>
+    String(category.id) !== String(editingId || "") &&
+    String(category.slug || "") === payload.slug &&
+    String(category.parent_id || "") === String(payload.parent_id || "") &&
+    normalizeType(category.song_type) === payload.song_type
+  );
+
   let saveInProgress = false;
   document.addEventListener("submit", async (event) => {
     const form = event.target;
@@ -257,12 +264,7 @@
       }
     }
 
-    const duplicate = (AP.categories || []).find((category) =>
-      String(category.id) !== String(editingId || "") &&
-      String(category.slug || "") === payload.slug &&
-      String(category.parent_id || "") === String(payload.parent_id || "") &&
-      normalizeType(category.song_type) === payload.song_type
-    );
+    const duplicate = findDuplicateCategory(payload, editingId);
 
     if (duplicate) {
       openDuplicate(duplicate);
@@ -280,12 +282,7 @@
 
       if (result.error) {
         if (String(result.error.message || "").includes("categories_slug_parent_type_unique")) {
-          const existing = (AP.categories || []).find((category) =>
-            String(category.id) !== String(editingId || "") &&
-            String(category.slug || "") === payload.slug &&
-            String(category.parent_id || "") === String(payload.parent_id || "") &&
-            normalizeType(category.song_type) === payload.song_type
-          );
+          const existing = findDuplicateCategory(payload, editingId);
           if (existing) {
             openDuplicate(existing);
             return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Se abrió para editarla.", true);
