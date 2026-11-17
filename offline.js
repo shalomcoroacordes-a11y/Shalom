@@ -14,7 +14,7 @@
   const WIFI_PREF_KEY = "shalom-offline-auto-wifi-v1";
   const AUTO_INTERVAL_MS = 20 * 60 * 1000;
   const $ = (selector) => document.querySelector(selector);
-  const state = { snapshot: null, songs: [], activeId: "", shift: 0, busy: false, limit: 80, lastAuto: 0 };
+  const state = { snapshot: null, songs: [], activeId: "", shift: 0, busy: false, limit: 80, lastAuto: 0, autoFailures: 0 };
 
   const normalize = (value) => String(value || "").toLocaleLowerCase("es")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -163,6 +163,7 @@
         data
       };
       await saveComplete(snapshot);
+      state.autoFailures = 0;
       state.snapshot = snapshot;
       prepareData();
       savedSummary();
@@ -174,6 +175,7 @@
         try { await navigator.storage.persist(); } catch (_) { /* No todos los navegadores permiten persistencia. */ }
       }
     } catch (error) {
+      if (!manual) state.autoFailures = Math.min(state.autoFailures + 1, 5);
       setMessage("No se completó la actualización: " + (error?.message || "error desconocido") +
         ". La copia anterior se conserva.", true);
     } finally {
@@ -410,7 +412,8 @@
 
   function tryAuto(force = false) {
     if (!navigator.onLine || state.busy || !state.snapshot) return;
-    if (!force && Date.now() - state.lastAuto < AUTO_INTERVAL_MS) return;
+    const wait = AUTO_INTERVAL_MS * Math.pow(2, state.autoFailures);
+    if (!force && Date.now() - state.lastAuto < wait) return;
     if ($("#wifiOnly").checked && connectionType() !== "wifi") return;
     state.lastAuto = Date.now();
     downloadCatalog();
