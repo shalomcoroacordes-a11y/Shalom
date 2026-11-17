@@ -45,8 +45,9 @@ function SongRow({song,onPress}) {
   label("›",S.rowArrow));
 }
 function EntityRow({item,onPress,description,kind}) {
+ const categoryIcon=kind==="folder"?(/misa|liturg/i.test(item.name||"")?"⛪":/adoraci/i.test(item.name||"")?"✦":/alabanza/i.test(item.name||"")?"♫":/navidad/i.test(item.name||"")?"★":/pascua/i.test(item.name||"")?"☀":"📁"):null;
  return h(Pressable,{onPress,style:S.listRow,accessibilityRole:"button",key:item.id},
-  h(View,{style:S.entityIcon},label(kind==="artist"?"♪":kind==="folder"?"📁":"▣",S.entityEmoji)),
+  h(View,{style:S.entityIcon},label(kind==="artist"?"♪":kind==="folder"?categoryIcon:"▣",S.entityEmoji)),
   h(View,{style:{flex:1}},
    label(item.name||item.title||"Sin nombre",S.listTitle),
    label(description||"Abrir detalles",S.rowMeta)),
@@ -76,6 +77,8 @@ function App() {
  const [error,setError]=useState("");
  const [tab,setTab]=useState("Inicio");
  const [detail,setDetail]=useState(null);
+ const [lastRead,setLastRead]=useState(null);
+ const [settingsOpen,setSettingsOpen]=useState(false);
  const [immersive,setImmersive]=useState(false);
  const isReader=detail?.type==="song"||detail?.type==="medley";
  const immersiveActive=Platform.OS==="android"&&isReader&&immersive;
@@ -111,12 +114,14 @@ function App() {
   if(!term)return true;
   return normalize([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)].join(" ")).includes(term);
  }),[model,typeFilter,categoryId,query]);
- function goTab(next){setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
+ function goTab(next){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
- function selectSong(song){openDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
- function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);}
+ function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
+ function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");}
+ function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function back(){
   if(immersiveActive){setImmersive(false);return true;}
+  if(settingsOpen){setSettingsOpen(false);return true;}
   if(detail){setDetail(detailHistoryRef.current.pop()||null);return true;}
   if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current);return true;}
   if(tab==="Categorías"&&folderId){
@@ -131,7 +136,7 @@ function App() {
   if(Platform.OS!=="android")return;
   const subscription=BackHandler.addEventListener("hardwareBackPress",back);
   return()=>subscription.remove();
- },[detail,tab,folderId,folderType,model,immersiveActive]);
+ },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);
@@ -188,12 +193,12 @@ function App() {
   let enabled=true;
   (async()=>{
    try{
-    const [snapshot,pref,n]=await Promise.all([
-     getCatalog(),getMetadata("wifi_only","true"),networkState()
+    const [snapshot,pref,n,last]=await Promise.all([
+     getCatalog(),getMetadata("wifi_only","true"),networkState(),getMetadata("last_read","")
     ]);
     if(!enabled)return;
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
-    setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);setLoaded(true);
+    setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);if(last){try{setLastRead(JSON.parse(last))}catch(_){}}setLoaded(true);
     if(!snapshot.syncedAt && n.online && n.wifi) sync(false);
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
   })();
@@ -229,51 +234,74 @@ function App() {
    ...songs.slice(0,limit).map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
    songs.length>limit?h(Btn,{text:"Mostrar más cantos",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null);
  }
+ function renderSettings(){
+  return h(View,null,
+   title("Configuración","Preferencias de SHALOM Android"),
+   h(Card,null,
+    label("Biblioteca y sincronización",S.listTitle),
+    label(copy?.syncedAt?"Última actualización: "+new Date(copy.syncedAt).toLocaleString("es-MX"):"Todavía no has descargado la biblioteca.",S.rowMeta),
+    h(View,{style:S.metrics},metric("Cantos",model.songs.length),metric("Artistas",model.artists.length),metric("Categorías",model.categories.length)),
+    h(View,{style:S.switchRow},
+     h(View,{style:{flex:1}},label("Preferir Wi-Fi",S.listTitle),label("Sincronización automática al abrir la aplicación.",S.smallMuted)),
+     h(Switch,{value:wifiOnly,onValueChange:changeWifi,trackColor:{false:C.border,true:"#1f8f60"},thumbColor:C.pale})),
+    h(Btn,{text:busy?"Actualizando…":"Actualizar cancionero",onPress:manualSync,disabled:busy}),
+    busy?h(ActivityIndicator,{color:C.green,style:{marginTop:8}}):null,
+    progress?label(progress,S.info):null,error?label(error,S.error):null),
+   title("Información de SHALOM"),
+   h(Btn,{text:"Acerca de SHALOM ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")}),
+   h(View,{style:{height:10}}),
+   h(Btn,{text:"Donaciones ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")}),
+   h(View,{style:{height:12}}),
+   h(Btn,{text:"← Regresar a Inicio",secondary:true,onPress:()=>setSettingsOpen(false)})
+  );
+ }
  function renderHome(){
   const newest=[...model.songs].sort((a,b)=>
     new Date(b.created_at||0).valueOf()-new Date(a.created_at||0).valueOf()).slice(0,6);
-  const featured=model.categories.filter(c=>!c.parent_id&&["catolico","cristiano"].includes(c.song_type)).slice(0,8);
+  const featured=model.categories.filter(c=>!c.parent_id&&["catolico","cristiano"].includes(c.song_type)).slice(0,6);
+  const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
+  const lastMedley=lastRead?.type==="medley"?model.medleys.find(x=>String(x.id)===String(lastRead.id)):null;
   return h(View,null,
    h(View,{style:S.hero},
     label("CANCIONERO PARA EL CORO",S.eyebrow),
-    label("Cantos para preparar, tocar y compartir en comunidad.",S.heroTitle),
-    label("Tus letras, acordes, artistas y categorías desde SHALOM, incluso sin señal.",S.info),
+    label("Tus cantos, siempre contigo.",S.heroTitle),
+    label("Letras y acordes para ensayar y compartir.",S.info),
     h(View,{style:S.rowWrap},
-     h(Btn,{text:"♫ Ver canciones",onPress:()=>goTab("Canciones")}),
-      h(Btn,{text:"♬ Popurrís",secondary:true,onPress:()=>goTab("Popurrís")}),
-     h(Btn,{text:"Solicitar un canto",secondary:true,onPress:()=>requestForm("song")})
-    )
+     h(Btn,{text:"♫ Canciones",small:true,onPress:()=>goTab("Canciones")}),
+     h(Btn,{text:"♬ Popurrís",small:true,secondary:true,onPress:()=>goTab("Popurrís")}),
+     h(Btn,{text:"+ Solicitar",small:true,secondary:true,onPress:()=>requestForm("song")}))
    ),
-   h(Card,null,
-    title("Biblioteca descargada",copy?.syncedAt?
-     "Actualizada "+new Date(copy.syncedAt).toLocaleString("es-MX"):"Descarga inicial pendiente"),
-    h(View,{style:S.metrics},
-     metric("Cantos",model.songs.length),metric("Artistas",model.artists.length),
-     metric("Categorías",model.categories.length)),
-    h(View,{style:S.switchRow},
-     h(View,{style:{flex:1}},label("Sincronizar preferentemente por Wi-Fi",S.listTitle),
-      label("Comprobar cambios al abrir la app o volver a primer plano.",S.smallMuted)),
-     h(Switch,{value:wifiOnly,onValueChange:changeWifi,trackColor:{false:C.border,true:"#1f8f60"},thumbColor:C.pale})),
-    h(Btn,{text:busy?"Descargando cancionero…":copy?.syncedAt?"Actualizar cancionero":"Descargar cancionero completo",disabled:busy,onPress:manualSync}),
-    busy?h(ActivityIndicator,{color:C.green,style:{marginTop:9}}):null,
-    Boolean(progress)?label(progress,S.info):null,Boolean(error)?label(error,S.error):null),
-   title("Novedades","Los últimos cantos agregados al cancionero"),
-   previewSongs(newest,6),
+   h(Pressable,{style:S.syncCompact,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
+    h(View,{style:{flex:1}},
+     label(copy?.syncedAt?"✓ Biblioteca actualizada":"↓ Biblioteca pendiente",S.listTitle),
+     label(model.songs.length+" cantos · "+model.artists.length+" artistas · "+model.categories.length+" categorías",S.rowMeta)),
+    label("⚙ ›",S.rowArrow)),
+   busy?label("Sincronizando… "+progress,S.info):null,
+   error?label(error,S.error):null,
+   lastSong||lastMedley?title("Continuar donde me quedé"):null,
+   lastSong?h(SongRow,{song:lastSong,onPress:()=>selectSong(lastSong)}):null,
+   lastMedley?h(Pressable,{style:S.listRow,onPress:()=>selectMedley(lastMedley)},
+    h(View,{style:{flex:1}},label(lastMedley.title,S.listTitle),label("Retomar popurrí",S.rowMeta)),label("›",S.rowArrow)):null,
+   title("Novedades","Últimos cantos agregados"),
+   newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
+    contentContainerStyle:{gap:10,paddingVertical:3}},
+    ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
+     label("♫",S.entityEmoji),label(song.title,S.listTitle),
+     label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
    title("Explorar por categorías"),
    ...featured.map(c=>h(EntityRow,{key:c.id,item:c,kind:"folder",
      description:type(c.song_type)+" · "+model.songsForCategory(c.id).length+" cantos",
      onPress:()=>{setTab("Categorías");setFolderType(c.song_type);setFolderId(c.id)}})),
    h(Btn,{text:"Todas las categorías",secondary:true,onPress:()=>goTab("Categorías")}),
-   title("Conoce SHALOM"),
-   h(View,{style:S.rowWrap},
-    h(Btn,{text:"Acerca de ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")}),
-    h(Btn,{text:"Donaciones ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")})),
+   title("Mi próxima misa"),
+   h(Card,null,label("Aún no hay un repertorio de misa asignado.",S.info),
+    label("Cuando los repertorios estén conectados con Android, aquí verás la próxima celebración y sus cantos.",S.smallMuted)),
    title("Popurrís de SHALOM","Varios cantos como uno solo"),
    h(Btn,{text:"Explorar popurrís ("+model.medleys.length+")",secondary:true,onPress:()=>goTab("Popurrís")}),
    title("Artistas destacados"),
    ...model.artists.slice(0,4).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:model.songsForArtist(a.id).length+" cantos",
-     onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}}))
+     onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}))
   );
  }
  function renderSongs(){
@@ -534,13 +562,13 @@ function App() {
  return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive?h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
-   h(Pressable,{onPress:()=>requestForm("song"),style:S.headerAction},label("Solicitar +",S.headerActionText)),
+   h(Pressable,{onPress:()=>setSettingsOpen(v=>!v),style:S.headerAction},label(settingsOpen?"Cerrar":"⚙ Ajustes",S.headerActionText)),
    label(network.online?(network.wifi?"Wi-Fi":"Online"):"Offline",[S.net,network.online?{color:C.pale}:{color:C.gold}])):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},contentContainerStyle:S.page,
    keyboardShouldPersistTaps:"handled"},
-   page,h(View,{style:{height:27}})),
-  !immersiveActive?h(View,{style:S.nav},
+   settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
+  !immersiveActive&&!settingsOpen?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:tab===name&&!detail},
      onPress:()=>goTab(name),style:[S.navItem,tab===name&&!detail&&S.navSelected]},
     label(icon,[S.navIcon,tab===name&&!detail&&{color:C.green}]),
@@ -554,9 +582,11 @@ const S=StyleSheet.create({
  page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
  readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
  capoNote:{fontSize:12,color:C.pale,fontWeight:"800",marginTop:7},
- hero:{padding:16,backgroundColor:"#12271f",borderWidth:1,borderColor:"#236d4f",borderRadius:19,marginBottom:16},
+ hero:{padding:13,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:16,marginBottom:10},
+ syncCompact:{backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:13,padding:13,flexDirection:"row",alignItems:"center",marginBottom:9},
+ newCard:{width:190,minHeight:125,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:14,padding:13,justifyContent:"center",gap:6},
  eyebrow:{fontSize:11,letterSpacing:1.5,color:C.green,fontWeight:"850",marginBottom:10},
- heroTitle:{fontSize:26,lineHeight:33,fontWeight:"900",color:C.text,marginBottom:10},
+ heroTitle:{fontSize:22,lineHeight:28,fontWeight:"900",color:C.text,marginBottom:7},
  title:{fontSize:20,color:C.text,fontWeight:"850",marginBottom:6},
  sectionHeading:{marginTop:17,marginBottom:11},
  info:{fontSize:13,lineHeight:20,color:C.muted,marginBottom:9},smallMuted:{fontSize:11,color:C.muted,lineHeight:16},
