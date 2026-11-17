@@ -34,6 +34,9 @@ jobs:
       - name: Test supported category types in admin editor
         run: node tests/category-editor-types-regression.cjs
 
+      - name: Test category parent hierarchy validation
+        run: node tests/category-hierarchy-regression.cjs
+
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
