@@ -4,12 +4,12 @@
   const idOf = (value) => apId(value);
   const normType = (value) => {
     const type = apNorm(value || "");
-    return type === "catolico" || type === "cristiano" || type === "mixto" ? type : "general";
+    return type === "catolico" || type === "cristiano" ? type : "general";
   };
-  const typeName = (type) => ({ all: "Todas", catolico: "Católico", cristiano: "Cristiano", mixto: "Mixto", general: "General" }[type] || "General");
+  const typeName = (type) => ({ all: "Todas", catolico: "Católico", cristiano: "Cristiano", general: "General" }[type] || "General");
 
   AP.categoryBrowser = AP.categoryBrowser || {};
-  if (!["all", "catolico", "cristiano", "mixto", "general"].includes(AP.categoryBrowser.type)) AP.categoryBrowser.type = "all";
+  if (!["all", "catolico", "cristiano", "general"].includes(AP.categoryBrowser.type)) AP.categoryBrowser.type = "all";
   AP.categoryBrowser.parentId = AP.categoryBrowser.parentId || null;
   AP.categoryBrowser.limit = AP.categoryBrowser.limit || 8;
   AP.categoryBrowser.orderDirty = Boolean(AP.categoryBrowser.orderDirty);
@@ -80,7 +80,7 @@
     }
     const parents = apFlatCategories().filter((row) => !blocked.has(idOf(row.id)));
     const selectedParent = apOptions(parents, "id", (row) => apCategoryPath(row)).replace(`value=\"${apEsc(defaultParent)}\"`, `value=\"${apEsc(defaultParent)}\" selected`);
-    const types = `<option value="" ${normType(defaultType) === "general" ? "selected" : ""}>General</option><option value="catolico" ${normType(defaultType) === "catolico" ? "selected" : ""}>Católico</option><option value="cristiano" ${normType(defaultType) === "cristiano" ? "selected" : ""}>Cristiano</option><option value="mixto" ${normType(defaultType) === "mixto" ? "selected" : ""}>Mixto</option>`;
+    const types = `<option value="" ${normType(defaultType) === "general" ? "selected" : ""}>General</option><option value="catolico" ${normType(defaultType) === "catolico" ? "selected" : ""}>Católico</option><option value="cristiano" ${normType(defaultType) === "cristiano" ? "selected" : ""}>Cristiano</option>`;
     const fixed = !editing;
     return `<div class="admin-card"><div class="admin-editor-head"><h3>${editing ? "Editar categoría" : "Agregar categoría"}</h3>${editing ? `<button class="song-btn small-btn secondary" type="button" data-cat2-cancel>Cancelar</button>` : ""}</div><form class="admin-form" id="categoryAdminForm"><label>Nombre<input name="name" required value="${apEsc(source.name || "")}" placeholder="Ejemplo: Adviento, María, Alabanza"></label>${fixed ? `<input type="hidden" name="parent_id" value="${apEsc(defaultParent)}"><input type="hidden" name="song_type" value="${apEsc(defaultType)}"><div class="admin-category-form-location">Se agregará dentro de: <strong>${apEsc(placeName(defaultParent))}</strong></div>` : `<div class="admin-form-grid"><label>Tipo<select name="song_type">${types}</select></label><label>Dentro de<select name="parent_id"><option value="">Categoría principal</option>${selectedParent}</select></label></div>`}<label>Orden<input name="sort_order" type="number" min="0" value="${apEsc(sort)}"></label><label>Descripción<textarea name="description" rows="4" placeholder="Breve descripción">${apEsc(source.description || "")}</textarea></label><button class="song-btn" type="submit">${editing ? "Guardar cambios" : "Guardar categoría"}</button></form></div>`;
   }
