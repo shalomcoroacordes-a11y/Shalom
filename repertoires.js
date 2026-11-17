@@ -67,6 +67,14 @@
   $("repReaderMeta").textContent=[rep.event_date?friendlyDate(rep.event_date):"",rep.location,(rep.items||[]).length+" cantos"].filter(Boolean).join(" · ");
   $("repReaderNotes").textContent=rep.notes||"";
   $("repReaderNotes").hidden=!rep.notes;
+  $("repPrintAll").innerHTML=(rep.items||[]).map((item,i)=>{
+   const song=songs.get(item.song_id);
+   const text=song?.lyrics||"Canto no disponible.";
+   const html=window.ShalomChords?.render ? window.ShalomChords.render(text) : "<pre>"+esc(text)+"</pre>";
+   return '<article class="rep-print-song"><h3>'+(i+1)+'. '+esc(item.moment||"Canto")+' — '+esc(song?.title||"Canto no disponible")+'</h3>'+
+    (item.notes?'<p>'+esc(item.notes)+'</p>':"")+
+    '<div class="rep-reader-lyrics">'+html+'</div></article>';
+  }).join("");
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
    '<button type="button" class="rep-order-button" data-pos="'+i+'"><strong>'+(i+1)+'. '+esc(item.moment||"Canto")+
    '</strong><span>'+esc(songs.get(item.song_id)?.title||"Canto no disponible")+'</span></button>').join("");
