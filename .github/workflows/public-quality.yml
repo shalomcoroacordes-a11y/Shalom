@@ -54,6 +54,9 @@ jobs:
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
+      - name: Test backup import preflight and recovery notices
+        run: node tests/backup-import-safety-regression.cjs
+
       - name: Test category deletion navigation
         run: node tests/category-delete-navigation-regression.cjs
 
