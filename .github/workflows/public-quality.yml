@@ -25,6 +25,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Test all admin section tabs
+        run: node tests/admin-tabs-regression.cjs
+
       - name: Validate HTML and local assets
         shell: bash
         run: |
