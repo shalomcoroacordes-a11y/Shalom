@@ -63,3 +63,16 @@ No reejecutar `supabase-rls.sql` a ciegas: podría **reemplazar** una definició
 ## Regla para futuros programadores
 
 **No ejecutar SQL histórico por el nombre del archivo.** Primero contrastar con el estado real, respaldar, preparar migración revisada y probarla en entorno de desarrollo.
+
+## Verificación de producción — 17 de noviembre de 2026
+
+Se consultó **directamente y en modo de solo lectura** el proyecto Supabase SHALOM `ehpvsasyzlrlypjjpzuk`:
+
+- Se observaron **19 tablas** en el esquema `public`; **las 19 tienen RLS habilitado** y al menos una política declarada.
+- Además de las 11 tablas sincronizadas por Android, se encontraron: `admin_trash`, `artist_featured_songs`, `contact_messages`, `donation_settings`, `home_recommendations`, `jhd_admin_users`, `site_content` y `song_versions`.
+- La función **vigente** `public.jhd_is_admin()` **no** compara un correo fijo: comprueba si `auth.uid()` pertenece a `public.jhd_admin_users`. Por tanto, la definición de `supabase-rls.sql` es **histórica y peligrosa de reejecutar**; reemplazaría la función actual.
+- La tabla `jhd_admin_users` tiene una política de lectura para que cada usuario autenticado consulte su propia pertenencia (`user_id = auth.uid()`).
+- Las políticas de `medleys` y `repertoires` permiten lectura pública de elementos publicados y reservan la edición y los borradores a usuarios que cumplen `jhd_is_admin()`.
+- El asesor de seguridad de Supabase reportó **una advertencia**: protección contra contraseñas filtradas deshabilitada. Referencia: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+
+**Límites de esta comprobación:** no se auditaron aún todas las condiciones de las 19 tablas, ni la exposición de vistas/funciones, ni la eficacia de las políticas mediante sesiones de prueba. Tener RLS activado no garantiza por sí solo permisos correctos. No se consultaron datos personales, no se cambiaron permisos y no se ejecutó ningún SQL de modificación.
