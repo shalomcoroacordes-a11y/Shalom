@@ -1,6 +1,7 @@
 name: Public quality
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -48,6 +49,9 @@ jobs:
 
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
+
+      - name: Check admin diagnostic contract
+        run: node tests/admin-diagnostic-contract.cjs
 
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
