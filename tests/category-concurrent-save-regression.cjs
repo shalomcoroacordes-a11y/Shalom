@@ -44,7 +44,11 @@ async function scenario(throws) {
   }
   await Promise.all([first, second]);
   assert.equal(button.disabled, false, "re-enable after request");
-  if (throws) assert.match(note, /network unavailable/);
+  if (throws) {
+    assert.match(note, /No se pudo confirmar el guardado/);
+    assert.match(note, /network unavailable/);
+    assert.match(note, /Revisa la lista antes de reintentarlo/);
+  }
   const third = handler(event);
   assert.equal(calls, 2, "allow retry after completion");
   resolveRequest({ error: null });
