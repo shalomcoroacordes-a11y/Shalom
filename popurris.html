@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Popurrís | SHALOM</title>
+<meta name="description" content="Popurrís de cantos católicos y cristianos, con letras y acordes para tocar varios cantos como uno solo.">
+<meta name="theme-color" content="#0f1117">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="manifest" href="site.webmanifest">
+<link rel="stylesheet" href="style.css?v=5"><link rel="stylesheet" href="site-shell.css?v=2">
+<link rel="stylesheet" href="public-accessibility.css?v=2"><link rel="stylesheet" href="song-chords.css?v=3"><link rel="stylesheet" href="medleys.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="Supabase.js?v=2" defer></script>
+<script src="song-chords.js?v=3" defer></script><script src="medley-core.js?v=1" defer></script><script src="popurris.js?v=1" defer></script>
+</head><body>
+<header><nav class="navbar"><a class="brand" href="index.html"><span class="brand-icon" aria-hidden="true">🕊️</span><span>SHALOM</span></a><button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú">☰</button>
+<div class="nav-menu" id="navMenu"><a href="index.html">Inicio</a><a href="canciones.html">Canciones</a><a href="artistas.html">Artistas</a><a href="categorias.html">Categorías</a><a href="albumes.html">Álbumes</a><a class="active" href="popurris.html" aria-current="page">Popurrís</a><a href="solicitar-canto.html">Solicitar canto</a></div></nav></header>
+<main class="medley-public-page">
+<section class="medley-public-hero"><p class="hero-kicker">Cantos unidos por la fe</p><h1>Popurrís SHALOM</h1><p>Varios cantos en una sola lectura. Conservamos sus fragmentos, acordes y transiciones en el orden preparado por el coro.</p></section>
+<div id="medleyCatalog"><label for="medleySearch" class="sr-only">Buscar popurrí</label><input type="search" id="medleySearch" class="medley-search" placeholder="Buscar popurrí o celebración…">
+<p id="medleyCatalogStatus" aria-live="polite">Cargando popurrís publicados…</p>
+<div id="medleyCards" class="medley-grid"></div></div>
+<section id="medleyReader" class="medley-reader" hidden>
+<a class="text-link medley-back" href="popurris.html">← Volver a todos los popurrís</a>
+<p class="hero-kicker" id="medleyReaderType">SHALOM</p><h2 id="medleyReaderTitle">Popurrí</h2>
+<p id="medleyReaderInfo" class="muted-text"></p>
+<div class="medley-reader-toolbar"><button id="medleyDown" aria-label="Bajar tono">− Semitono</button>
+<output id="medleyCurrentTone" aria-live="polite">Tono original</output>
+<button id="medleyUp" aria-label="Subir tono">+ Semitono</button>
+<button id="medleyReset">Original</button>
+<label for="medleyCapo">Capo</label><select id="medleyCapo" aria-label="Posición del capo"><option value="0">Sin capo</option>
+<option value="1">Traste 1</option><option value="2">Traste 2</option><option value="3">Traste 3</option>
+<option value="4">Traste 4</option><option value="5">Traste 5</option><option value="6">Traste 6</option><option value="7">Traste 7</option></select>
+<button id="medleyPrint">Imprimir</button></div>
+<div id="medleyReaderParts"></div>
+</section>
+</main><footer><p>© 2026 SHALOM</p><p><a href="index.html">Inicio</a> · <a href="canciones.html">Canciones</a></p></footer>
+</body></html>
