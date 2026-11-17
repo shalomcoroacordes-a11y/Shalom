@@ -21,7 +21,7 @@
     const lines=String(lyrics||"").replace(/\r\n?/g,"\n").split("\n");
     const out=[];
     let title="Inicio",block=[];
-    const flush=()=>{if(block.join("").trim())out.push({index:out.length,title,text:block.join("\n").trim()});block=[]};
+    const flush=()=>{if(block.join("").trim())out.push({index:out.length,title,text:block.join("\n").replace(/^\\n+|\\n+$/g,"")});block=[]};
     for(const line of lines) {
       const heading=line.trim().match(/^\[([^\]]+)\]$/);
       if(heading){flush();title=heading[1].trim();block.push(line);}
@@ -34,9 +34,9 @@
     if(!Array.isArray(parts))throw new Error("Los fragmentos del popurrí no son válidos.");
     if(parts.length<1||parts.length>30)throw new Error("Agrega entre 1 y 30 fragmentos al popurrí.");
     return parts.map((part,index)=>{
-      const lyrics=String(part.lyrics||"").trim();
+      const lyrics=String(part.lyrics||"").replace(/^\\n+|\\n+$/g,"");
       const song_id=String(part.song_id||"");
-      if(!lyrics||lyrics.length>25000||!song_id)throw new Error("El fragmento "+(index+1)+" debe tener un canto y una letra.");
+      if(!lyrics.trim()||lyrics.length>25000||!song_id)throw new Error("El fragmento "+(index+1)+" debe tener un canto y una letra.");
       return {
         id:String(part.id||("parte-"+index)).slice(0,100),
         song_id,
