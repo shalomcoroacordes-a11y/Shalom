@@ -52,6 +52,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Verify legacy admin cleanup and active dependencies
+        run: node tests/legacy-admin-cleanup-regression.cjs
+
       - name: Verify informational page CSS equivalence
         run: node tests/public-info-bundle-regression.cjs
 
