@@ -106,6 +106,7 @@
       if (result.error) {
         if (String(result.error.message || "").includes("categories_slug_parent_type_unique")) {
           const existing = (AP.categories || []).find((category) =>
+            String(category.id) !== String(editingId || "") &&
             String(category.slug || "") === payload.slug &&
             String(category.parent_id || "") === String(payload.parent_id || "") &&
             normalizeType(category.song_type) === payload.song_type
