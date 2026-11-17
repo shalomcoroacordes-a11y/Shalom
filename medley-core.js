@@ -1,0 +1,62 @@
+/* Funciones compartidas entre el editor y el lector de popurrís SHALOM. */
+(function (root, make) {
+  const api = make();
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  if (root) root.ShalomMedleys = api;
+})(typeof window !== "undefined" ? window : null, function () {
+  const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const FLATS = {Db:"C#",Eb:"D#",Gb:"F#",Ab:"G#",Bb:"A#"};
+  const html = text => String(text ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  const slug = text => String(text||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,140)||"popurri";
+  const clampShift = n => Math.max(-11,Math.min(11,Number.isFinite(Number(n))?Math.trunc(Number(n)):0));
+  function transposeChord(value, semitones=0) {
+    const move = note => {
+      const i=NOTES.indexOf(FLATS[note]||note);
+      return i<0?note:NOTES[(i+clampShift(semitones)+120)%12];
+    };
+    return String(value||"").replace(/^([A-G](?:#|b)?)(.*)$/, (_,n,rest)=>
+      move(n)+rest.replace(/\/([A-G](?:#|b)?)/g,(_,bass)=>"/"+move(bass)));
+  }
+  function sections(lyrics) {
+    const lines=String(lyrics||"").replace(/\r\n?/g,"\n").split("\n");
+    const out=[];
+    let title="Inicio",block=[];
+    const flush=()=>{if(block.join("").trim())out.push({index:out.length,title,text:block.join("\n").trim()});block=[]};
+    for(const line of lines) {
+      const heading=line.trim().match(/^\[([^\]]+)\]$/);
+      if(heading){flush();title=heading[1].trim();block.push(line);}
+      else block.push(line);
+    }
+    flush();
+    return out.length?out:[{index:0,title:"Canto completo",text:String(lyrics||"").trim()}];
+  }
+  function normalizeParts(parts) {
+    if(!Array.isArray(parts))throw new Error("Los fragmentos del popurrí no son válidos.");
+    if(parts.length<1||parts.length>30)throw new Error("Agrega entre 1 y 30 fragmentos al popurrí.");
+    return parts.map((part,index)=>{
+      const lyrics=String(part.lyrics||"").trim();
+      const song_id=String(part.song_id||"");
+      if(!lyrics||lyrics.length>25000||!song_id)throw new Error("El fragmento "+(index+1)+" debe tener un canto y una letra.");
+      return {
+        id:String(part.id||("parte-"+index)).slice(0,100),
+        song_id,
+        song_title:String(part.song_title||"Canto").slice(0,160),
+        title:String(part.title||part.song_title||"Canto").slice(0,160),
+        tone:String(part.tone||"").slice(0,24),
+        lyrics,
+        shift:clampShift(part.shift)
+      };
+    });
+  }
+  function renderPartsHTML(parts, globalShift, capo=0) {
+    if(!Array.isArray(parts))return "";
+    return parts.map((p,i)=>'<section class="medley-song">'+
+      '<div class="medley-song-head"><span class="medley-step">'+(i+1)+'</span><h3>'+html(p.title||p.song_title||"Canto")+'</h3><span class="medley-song-tone">'+html(p.tone||"")+'</span></div>'+
+      '<div class="admin-preview-lyrics medley-lyrics">'+(typeof window!=="undefined" && window.ShalomChords
+        ? window.ShalomChords.render(p.lyrics||"",{transpose:chord=>transposeChord(chord,clampShift(p.shift)+clampShift(globalShift)-Math.max(0,Math.min(12,Number(capo)||0)))})
+        : html(p.lyrics||""))+'</div>'+
+      (p.song_id?'<a class="medley-original-link" href="cancion.html?id='+encodeURIComponent(p.song_id)+'">Ver canto original</a>':"")+
+      '</section>').join("");
+  }
+  return {html,slug,clampShift,transposeChord,sections,normalizeParts,renderPartsHTML};
+});
