@@ -25,6 +25,9 @@ jobs:
       - name: Inventory HTML script and stylesheet dependencies
         run: python3 scripts/audit_html_dependencies.py > /tmp/shalom-html-inventory.md
 
+      - name: Inventory JavaScript imports and require dependencies
+        run: python3 scripts/audit_js_dependencies.py > /tmp/shalom-js-inventory.md
+
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
