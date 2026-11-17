@@ -1,0 +1,11 @@
+const fs=require("node:fs");
+const assert=require("node:assert/strict");
+const source=fs.readFileSync("admin-category-browser-v2.js","utf8");
+const handler=source.match(/document\.querySelectorAll\("\[data-cat2-delete\]"\)[\s\S]*?document\.querySelectorAll\("\[data-cat2-move\]"/);
+assert.ok(handler,"Category delete handler must exist");
+const code=handler[0];
+const deleteIndex=code.indexOf("await originalDelete(id)");
+const selectionIndex=code.indexOf("state().parentId = row?.parent_id || null");
+assert.ok(deleteIndex>=0&&selectionIndex>deleteIndex,"Folder selection must not change before delete completes");
+assert.match(code,/!\(AP\.categories \|\| \[\]\)\.some\(\(category\) => idOf\(category\.id\) === idOf\(id\)\)/,"Must confirm category is absent before navigating");
+console.log("ADM-07: cancelled or failed category deletion retains current folder.");
