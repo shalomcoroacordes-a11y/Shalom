@@ -52,6 +52,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Verify song detail CSS bundle against original files
+        run: node tests/song-detail-bundle-regression.cjs
+
       - name: Verify consolidated admin CSS and cascade order
         run: node tests/admin-css-consolidation.cjs
 
