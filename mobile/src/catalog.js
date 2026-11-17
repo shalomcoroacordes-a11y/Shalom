@@ -60,6 +60,7 @@ function buildCatalog(data={}) {
  const categoryRows=[...categories.values()].sort((a,b)=>
   categoryPath(a).localeCompare(categoryPath(b),"es"));
  const albumRows=[...albums.values()].sort(byTitle);
+ const medleys=(data.medleys||[]).filter(x=>x.is_published===true&&Array.isArray(x.parts)).sort(byTitle);
  function songsForArtist(id) {
   return songs.filter(song=>song._artists.some(a=>String(a.id)===String(id)));
  }
@@ -76,7 +77,7 @@ function buildCatalog(data={}) {
    (!type||(normalize(category.song_type)||"general")===normalize(type))
   ).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||byTitle(a,b));
  }
- return {songs,artists:artistRows,categories:categoryRows,albums:albumRows,
+ return {songs,artists:artistRows,categories:categoryRows,albums:albumRows,medleys,
   artistMap:artists,categoryMap:categories,albumMap:albums,
   names,normalize,typeLabel,categoryPath,ancestors,children,descendants,
   songsForArtist,songsForCategory,songsForAlbum};
