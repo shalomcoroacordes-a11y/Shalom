@@ -46,6 +46,13 @@ assert.match(repertoireAdmin,/Hay cambios sin guardar en este repertorio/);
 assert.match(repertoireAdmin,/!canDiscard\(\)\)return;state\.active=R\.blank/);
 assert.match(repertoireAdmin,/if\(!rep\|\|!canDiscard\(\)\)return/);
 assert.match(repertoireAdmin,/state\.baseline=snapshot\(state\.active\)/);
+assert.match(repertoireAdmin,/function busy\(\)\{return state\.saving\|\|state\.deleting;\}/);
+for(const action of ["repKind","repAddSong"]){
+ assert.match(repertoireAdmin,new RegExp('\\$\\("#'+action+'"\\)\\?\\.addEventListener\\("[^"]+",[^]*?if\\(busy\\(\\)\\)return;'));
+}
+for(const action of ["data-move","data-remove"]){
+ assert.match(repertoireAdmin,new RegExp('querySelectorAll\\("\\['+action+'\\]"\\)[^]*?if\\(busy\\(\\)\\)return;'));
+}
 const adminPage=fs.readFileSync("admin.html","utf8");
 assert.match(adminPage,/admin-repertoires.js/);
 console.log("SHALOM: repertorios de misa y ensayo comprobados.");
