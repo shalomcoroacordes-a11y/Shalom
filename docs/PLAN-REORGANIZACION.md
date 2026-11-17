@@ -1,0 +1,75 @@
+# Plan de reorganización segura de SHALOM
+
+**Meta:** que una persona nueva pueda entender el proyecto, localizar funciones y realizar cambios sin depender de conversaciones anteriores.
+
+## Fase 0 — Inventario y documentación (iniciada)
+
+- [x] Identificar zonas: web pública, administración, app móvil, Supabase, pruebas y workflows.
+- [x] Crear `docs/ARQUITECTURA.md` con un mapa inicial.
+- [ ] Inventariar dependencias HTML → JS/CSS, importaciones, scripts globales y referencias a rutas.
+- [ ] Identificar código realmente sin uso mediante búsqueda de referencias y pruebas.
+- [ ] Auditar workflows duplicados y documentar qué publica cada uno.
+- [ ] Registrar versión estable y una lista de comprobación funcional.
+
+## Fase 1 — Seguridad y pruebas
+
+- [ ] Validar pruebas existentes y agregar cobertura a flujos críticos.
+- [ ] Probar inicio de sesión y autorización de administrador, guardado de cantos y repertorios.
+- [ ] Probar lectores de cantos, popurrís y repertorios con acordes y desplazamiento manual.
+- [ ] Probar descarga offline, sincronización, actualización Android y restauración ante fallo.
+- [ ] Crear lista de verificación para publicación y reversión.
+
+## Fase 2 — Documentación para aprender y colaborar
+
+- [ ] Escribir `docs/DESARROLLO.md`: requisitos, ejecución local, pruebas y publicación.
+- [ ] Escribir `docs/BASE-DE-DATOS.md`: tablas, permisos, relaciones y orden confirmado de migraciones.
+- [ ] Escribir `docs/GUIA-PARA-APRENDER.md`: conceptos básicos, recorrido del código y ejercicios.
+- [ ] Explicar contratos de datos entre web, Supabase y Android.
+- [ ] Actualizar `mobile/README.md` según el código actual.
+
+## Fase 3 — Refactorización por módulos
+
+- [ ] Extraer componentes de `mobile/App.js` de uno en uno, con pruebas.
+- [ ] Consolidar lógica repetida de búsqueda, navegación y lectores sin alterar el resultado.
+- [ ] Revisar scripts `*-fix.js`, `*-v2.js` y estilos superpuestos: conservar o fusionar **solo con evidencia**.
+- [ ] Definir convenciones de nombres, comentarios y carpetas.
+- [ ] Reducir dependencias del orden de scripts del administrador donde sea seguro.
+
+## Fase 4 — Carpetas y despliegue
+
+Estructura objetivo **propuesta**, no aplicada:
+
+```text
+SHALOM/
+  web/                 # sitio público
+  admin/               # panel administrativo
+  mobile/              # app React Native / Expo
+  database/migrations/ # migraciones verificadas
+  shared/              # solo módulos que realmente compartan entornos
+  tests/
+  docs/
+  .github/workflows/
+```
+
+**Precaución:** GitHub Pages sirve actualmente HTML/JS/CSS desde la raíz. Antes de mover `web/` o `admin/`, cambiar y probar el proceso de publicación, rutas relativas, enlaces y caché. No mover todo en un solo commit.
+
+## Fase 5 — Entrega a terceros
+
+- [ ] Mapa definitivo de archivos y responsables.
+- [ ] Instrucciones para levantar el sitio y la app desde cero.
+- [ ] Guía de tareas frecuentes (agregar una sección, modificar una pantalla, agregar tabla).
+- [ ] Lista de variables públicas y privadas, sin incluir secretos.
+- [ ] Historial de migraciones y procedimiento de respaldo.
+- [ ] Validación de publicación web y APK, con versión de recuperación.
+
+## Criterios de aceptación
+
+La limpieza se considera terminada cuando:
+1. Una persona nueva puede localizar una función en menos de unos minutos usando la documentación.
+2. Las pruebas automáticas pasan y los flujos manuales críticos están comprobados.
+3. La web conserva URLs y funciones; el administrador conserva permisos y guardado.
+4. La app conserva canciones offline, acordes, transposición, popurrís y repertorios.
+5. Se puede volver a una versión estable si una publicación falla.
+6. No se eliminan datos de Supabase ni se modifica el repositorio original.
+
+**Política:** evitar borrados y movimientos irreversibles antes de tener pruebas y copia estable.
