@@ -28,6 +28,9 @@ jobs:
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
 
+      - name: Test rehearsal and mass repertories
+        run: node tests/repertoires-regression.cjs
+
       - name: Validate HTML and local assets
         shell: bash
         run: |
