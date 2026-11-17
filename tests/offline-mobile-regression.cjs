@@ -1,0 +1,13 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const offline=fs.readFileSync("offline.js","utf8");
+const mobile=fs.readFileSync("mobile/App.js","utf8");
+assert.match(offline,/autoFailures: 0/);
+assert.match(offline,/state\.autoFailures = 0;\s*state\.snapshot = snapshot/);
+assert.match(offline,/if \(!manual\) state\.autoFailures = Math\.min\(state\.autoFailures \+ 1, 5\)/);
+assert.match(offline,/AUTO_INTERVAL_MS \* Math\.pow\(2, state\.autoFailures\)/);
+assert.match(offline,/await saveComplete\(snapshot\);\s*state\.autoFailures = 0;\s*state\.snapshot = snapshot/,"Persist complete catalog before replacing in-memory copy");
+assert.match(offline,/La copia anterior se conserva/);
+assert.match(mobile,/accessibilityLabel:String\(text\),accessibilityState:\{disabled\}/);
+assert.match(mobile,/accessibilityLabel:String\(text\),accessibilityState:\{selected:active\}/);
+console.log("Offline automatic backoff, atomic snapshot and Android accessibility contracts verified.");
