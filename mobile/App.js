@@ -647,10 +647,11 @@ function App() {
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen?h(View,{style:S.nav},
-   ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:(isSelectedTab(tab,name))&&!detail},
-     onPress:()=>goTab(name),style:[S.navItem,(isSelectedTab(tab,name))&&!detail&&S.navSelected]},
-    label(icon,[S.navIcon,(isSelectedTab(tab,name))&&!detail&&{color:C.green}]),
-    label(name,[S.navText,(isSelectedTab(tab,name))&&!detail&&{color:C.green}])))) : null
+   ...tabs.map(([name,icon])=>{const selected=isSelectedTab(tab,name)&&!detail;
+    return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
+     onPress:()=>goTab(name),style:[S.navItem,selected&&S.navSelected]},
+    label(icon,[S.navIcon,selected&&{color:C.green}]),
+    label(name,[S.navText,selected&&{color:C.green}]));})) : null
  ));
 }
 const S=StyleSheet.create({
