@@ -1,7 +1,7 @@
 /* Panel de repertorios SHALOM: sólo se carga después del acceso admin existente. */
 (()=>{
  const db=window.supabaseClient,R=window.ShalomRepertoires;
- const state={root:null,songs:[],rows:[],active:R.blank(),search:"",message:"",loading:false,saving:false,deleting:false,ready:false};
+ const state={root:null,songs:[],rows:[],active:R.blank(),search:"",message:"",loading:false,saving:false,deleting:false,ready:false,baseline:null};
  const $=selector=>state.root?.querySelector(selector);
  const esc=R.html;
  const songBy=id=>state.songs.find(s=>String(s.id)===String(id));
@@ -82,8 +82,13 @@
   if(error)throw error;
   state.rows=data||[];
  }
+ function snapshot(d){return JSON.stringify({title:d.title||"",kind:d.kind,event_date:d.event_date||null,location:d.location||"",notes:d.notes||"",is_published:!!d.is_published,items:d.items});}
+ function canDiscard(){
+  capture();
+  return snapshot(state.active)===state.baseline||confirm("Hay cambios sin guardar en este repertorio. ¿Quieres descartarlos?");
+ }
  function bind(){
-  $("#repNew")?.addEventListener("click",()=>{if(state.saving||state.deleting)return;state.active=R.blank();state.message="";state.search="";render();});
+  $("#repNew")?.addEventListener("click",()=>{if(state.saving||state.deleting||!canDiscard())return;state.active=R.blank();state.baseline=snapshot(state.active);state.message="";state.search="";render();});
   $("#repKind")?.addEventListener("change",e=>{
    capture();state.active.kind=e.target.value;
    // Mantener cantos; actualizar sólo los momentos cuando corresponda.
@@ -112,8 +117,9 @@
   }));
   state.root.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
    if(state.saving||state.deleting)return;
-   const rep=state.rows.find(r=>r.id===btn.dataset.edit);if(!rep)return;
+   const rep=state.rows.find(r=>r.id===btn.dataset.edit);if(!rep||!canDiscard())return;
    state.active={...rep,items:(rep.items||[]).map(item=>({...item}))};
+   state.baseline=snapshot(state.active);
    state.message="";state.search="";render();
   }));
   $("#repForm")?.addEventListener("submit",async e=>{
@@ -128,6 +134,7 @@
     if(error)throw error;
     saved=true;
     state.active={...data,items:(data.items||[]).map(item=>({...item}))};
+    state.baseline=snapshot(state.active);
     await reload();state.message="Repertorio guardado. "+(data.is_published?"Visible para los integrantes.":"Sólo visible para administradores.");
    }catch(err){
     state.message=saved
@@ -144,7 +151,7 @@
    try{
     const {error}=await db.from("repertoires").delete().eq("id",deletingId);
     if(error)throw error;
-    state.active=R.blank();
+    state.active=R.blank();state.baseline=snapshot(state.active);
     try{
      await reload();
      state.message="Repertorio eliminado.";
@@ -161,6 +168,7 @@
   state.root=root;
   state.songs=(songs||[]).slice().sort((a,b)=>String(a.title||"").localeCompare(String(b.title||""),"es"));
   if(!state.ready){state.ready=true;try{await reload();state.message="";}catch(e){state.message="Error al cargar repertorios: "+e.message;}}
+  if(state.baseline===null)state.baseline=snapshot(state.active);
   if(state.root!==root)return;render();
  }
  window.ShalomRepertoireAdmin={mount};
