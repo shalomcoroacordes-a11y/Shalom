@@ -38,7 +38,11 @@ async function scenario(rejectRefresh) {
   finishRefresh();
   await first;
   assert.equal(button.disabled, false, "button unlocks after refresh");
-  if (rejectRefresh) assert.match(message, /refresh unavailable/);
+  if (rejectRefresh) {
+    assert.match(message, /La categoría se guardó/);
+    assert.match(message, /Recarga el administrador/);
+    assert.doesNotMatch(message, /No se pudo confirmar el guardado/);
+  }
 }
 
 (async () => {
