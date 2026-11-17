@@ -15,7 +15,7 @@ const h=React.createElement;
 const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
  text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const tabs=[["Inicio","⌂"],["Canciones","♫"],["Popurrís","♬"],["Artistas","♩"],["Categorías","▦"],["Álbumes","▣"]];
+const tabs=[["Inicio","⌂"],["Canciones","♫"],["Repertorios","☷"],["Artistas","♩"],["Categorías","▦"],["Más","•••"]];
 const label=(value,style)=>h(Text,{style:style||S.info},String(value??""));
 const type=val=>typeLabel(val);
 const inputField=(name,value,onChangeText,more={})=>h(View,{style:S.field,key:name},
@@ -83,6 +83,7 @@ function App() {
  const isReader=detail?.type==="song"||detail?.type==="medley"||detail?.type==="repertoire";
  const immersiveActive=Platform.OS==="android"&&isReader&&immersive;
  const [query,setQuery]=useState("");
+ const [homeSearch,setHomeSearch]=useState("");
  const [typeFilter,setTypeFilter]=useState("");
  const [categoryId,setCategoryId]=useState("");
  const [folderType,setFolderType]=useState("");
@@ -260,8 +261,7 @@ function App() {
  function renderHome(){
   const recentDate=item=>Date.parse(item.updated_at||item.created_at||"")||Date.parse(item.created_at||"")||0;
   const newest=[...model.songs].sort((a,b)=>recentDate(b)-recentDate(a)).slice(0,6);
-  const recentArtists=[...model.artists].sort((a,b)=>recentDate(b)-recentDate(a)).slice(0,4);
-  const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
+   const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
   const lastMedley=lastRead?.type==="medley"?model.medleys.find(x=>String(x.id)===String(lastRead.id)):null;
   return h(View,null,
    h(View,{style:S.hero},
@@ -280,16 +280,6 @@ function App() {
     label("⚙ ›",S.rowArrow)),
    busy?label("Sincronizando… "+progress,S.info):null,
    error?label(error,S.error):null,
-   lastSong||lastMedley?title("Continuar donde me quedé"):null,
-   lastSong?h(SongRow,{song:lastSong,onPress:()=>selectSong(lastSong)}):null,
-   lastMedley?h(Pressable,{style:S.listRow,onPress:()=>selectMedley(lastMedley)},
-    h(View,{style:{flex:1}},label(lastMedley.title,S.listTitle),label("Retomar popurrí",S.rowMeta)),label("›",S.rowArrow)):null,
-   title("Canciones recientes","Últimos cantos agregados o actualizados"),
-   newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
-    contentContainerStyle:{gap:10,paddingVertical:3}},
-    ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
-     label("♫",S.entityEmoji),label(song.title,S.listTitle),
-     label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
    title("Mi próxima misa"),
    (()=>{const today=new Date().toISOString().slice(0,10);
     const next=model.repertoires.filter(r=>r.kind==="misa"&&r.event_date&&r.event_date>=today)[0];
@@ -303,10 +293,29 @@ function App() {
        label("Consulta todos los repertorios o asigna una fecha desde el administrador.",S.smallMuted));
    })(),
    h(Btn,{text:"Ver todos los repertorios ("+model.repertoires.length+")",secondary:true,onPress:()=>goTab("Repertorios")}),
-   title("Artistas nuevos o actualizados","Últimos perfiles creados o modificados"),
-   ...recentArtists.map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
-     description:model.songsForArtist(a.id).length+" cantos",
-     onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}}))
+   lastSong||lastMedley?title("Continuar donde me quedé"):null,
+   lastSong?h(SongRow,{song:lastSong,onPress:()=>selectSong(lastSong)}):null,
+   lastMedley?h(Pressable,{style:S.listRow,onPress:()=>selectMedley(lastMedley)},
+    h(View,{style:{flex:1}},label(lastMedley.title,S.listTitle),label("Retomar popurrí",S.rowMeta)),label("›",S.rowArrow)):null,
+   title("Buscar canto rápidamente"),
+   h(TextInput,{style:S.input,value:homeSearch,onChangeText:setHomeSearch,
+    placeholder:"Buscar por nombre, letra o artista…",placeholderTextColor:C.muted,
+    accessibilityLabel:"Buscar canto en Inicio"}),
+   homeSearch.trim()?(()=>{
+    const q=normalize(homeSearch.trim());
+    const found=model.songs.filter(song=>normalize([song.title,song.lyrics,names(song._artists)].join(" ")).includes(q)).slice(0,6);
+    return h(View,{style:S.list},
+     ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
+     !found.length?label("No se encontraron cantos.",S.empty):null,
+     h(Btn,{text:"Buscar en todas las canciones",secondary:true,onPress:()=>{goTab("Canciones");setQuery(homeSearch)}}));
+   })():null,
+   title("Canciones recientes","Últimos cantos agregados o actualizados"),
+   newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
+    contentContainerStyle:{gap:10,paddingVertical:3}},
+    ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
+     label("♫",S.entityEmoji),label(song.title,S.listTitle),
+     label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
+
   );
  }
  function renderSongs(){
@@ -363,6 +372,21 @@ function App() {
    current?previewSongs(subs):null,
    !children.length&&!current?label("Todavía no hay carpetas en esta sección.",S.empty):null
   );
+ }
+ function renderMore(){
+  return h(View,null,title("Más opciones","Otras secciones de SHALOM"),
+   h(Pressable,{style:S.listRow,onPress:()=>goTab("Popurrís")},
+    h(View,{style:{flex:1}},label("♬ Popurrís",S.listTitle),
+     label("Varios cantos unidos en una lectura · "+model.medleys.length+" disponibles",S.rowMeta)),
+    label("›",S.rowArrow)),
+   h(Pressable,{style:S.listRow,onPress:()=>goTab("Álbumes")},
+    h(View,{style:{flex:1}},label("▣ Álbumes",S.listTitle),
+     label("Colecciones musicales · "+model.albums.length+" disponibles",S.rowMeta)),
+    label("›",S.rowArrow)),
+   h(Pressable,{style:S.listRow,onPress:()=>requestForm("song")},
+    h(View,{style:{flex:1}},label("+ Solicitar canto o corrección",S.listTitle),
+     label("Enviar una solicitud al administrador",S.rowMeta)),
+    label("›",S.rowArrow)));
  }
  function renderRepertoires(){
   const list=model.repertoires.filter(r=>normalize([r.title,r.kind,r.location,r.notes,r.event_date].join(" ")).includes(normalize(query)));
@@ -609,7 +633,7 @@ function App() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
-  :tab==="Solicitar"?renderRequest():renderHome();
+  :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive?h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
@@ -620,10 +644,10 @@ function App() {
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen?h(View,{style:S.nav},
-   ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:tab===name&&!detail},
-     onPress:()=>goTab(name),style:[S.navItem,tab===name&&!detail&&S.navSelected]},
-    label(icon,[S.navIcon,tab===name&&!detail&&{color:C.green}]),
-    label(name,[S.navText,tab===name&&!detail&&{color:C.green}])))) : null
+   ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail},
+     onPress:()=>goTab(name),style:[S.navItem,(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail&&S.navSelected]},
+    label(icon,[S.navIcon,(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail&&{color:C.green}]),
+    label(name,[S.navText,(tab===name||(name==="Más"&&["Popurrís","Álbumes"].includes(tab)))&&!detail&&{color:C.green}])))) : null
  ));
 }
 const S=StyleSheet.create({
