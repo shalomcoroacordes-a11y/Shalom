@@ -16,7 +16,7 @@ function validSnapshot(data) {
   return Boolean(data && typeof data === "object" &&
     typeof data.syncedAt === "string" &&
     Number.isFinite(Date.parse(data.syncedAt)) &&
-    data.data && TABLES.every(table => Array.isArray(data.data[table])));
+    data.data && TABLES.every(table => table === "medleys" && data.data[table] == null ? true : Array.isArray(data.data[table])));
 }
 async function readSlot(slot) {
   try {
@@ -34,7 +34,7 @@ async function readSnapshot() {
   if (!a && !b) return { data: emptyData(), syncedAt: null, storage: "archivo-local" };
   const latest = !a ? b : !b ? a
     : Date.parse(a.syncedAt) >= Date.parse(b.syncedAt) ? a : b;
-  return { data: latest.data, syncedAt: latest.syncedAt, storage: "archivo-local", slot: latest.slot };
+  return { data: {...emptyData(),...latest.data}, syncedAt: latest.syncedAt, storage: "archivo-local", slot: latest.slot };
 }
 
 async function saveSnapshot(data) {
