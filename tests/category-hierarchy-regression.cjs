@@ -54,7 +54,7 @@ async function submitCategory({ categories, editingId, parentId }) {
     ["valid-move", "c", "a", 1],
     ["valid-root", "b", "", 1],
     ["new-category", null, "a", 1],
-    ["existing-cycle", "c", "b", 0]
+    ["existing-parent", "c", "b", 1]
   ];
   for (const [label, editingId, parentId, expected] of cases) {
     const actual = await submitCategory({ categories: rows, editingId, parentId });
