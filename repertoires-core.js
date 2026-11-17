@@ -8,7 +8,13 @@
  ];
  const html=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
  const clean=s=>String(s??"").trim();
- const formatDate=s=>s?new Date(s+"T12:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"}):"Sin fecha";
+ const validDate=s=>{
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
+  const [year,month,day]=s.split("-").map(Number);
+  const date=new Date(Date.UTC(year,month-1,day));
+  return year>=1000&&date.getUTCFullYear()===year&&date.getUTCMonth()===month-1&&date.getUTCDate()===day;
+ };
+ const formatDate=s=>s&&validDate(s)?new Date(s+"T12:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"}):"Sin fecha";
  const blank=(kind="misa")=>({title:"",kind,event_date:null,location:"",notes:"",items:[],is_published:false});
  function normalizeItems(items) {
   if(!Array.isArray(items)||items.length>45)throw Error("El repertorio admite hasta 45 cantos.");
@@ -28,7 +34,7 @@
   const items=normalizeItems(d.items);
   if(d.is_published&&!items.length)throw Error("Agrega al menos un canto antes de publicar.");
   if(clean(d.location).length>180||clean(d.notes).length>3000)throw Error("Las notas o el lugar son demasiado largos.");
-  if(d.event_date&&!/^\d{4}-\d{2}-\d{2}$/.test(d.event_date))throw Error("La fecha debe tener formato válido.");
+  if(d.event_date&&!validDate(d.event_date))throw Error("La fecha debe ser una fecha real con formato AAAA-MM-DD.");
   return {title,kind:d.kind,event_date:d.event_date||null,location:clean(d.location),
     notes:clean(d.notes),items,is_published:!!d.is_published,updated_at:new Date().toISOString()};
  }
