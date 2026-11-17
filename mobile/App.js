@@ -76,6 +76,9 @@ function App() {
  const [error,setError]=useState("");
  const [tab,setTab]=useState("Inicio");
  const [detail,setDetail]=useState(null);
+ const [immersive,setImmersive]=useState(false);
+ const isReader=detail?.type==="song"||detail?.type==="medley";
+ const immersiveActive=Platform.OS==="android"&&isReader&&immersive;
  const [query,setQuery]=useState("");
  const [typeFilter,setTypeFilter]=useState("");
  const [categoryId,setCategoryId]=useState("");
@@ -109,11 +112,12 @@ function App() {
   if(!term)return true;
   return normalize([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)].join(" ")).includes(term);
  }),[model,typeFilter,categoryId,query]);
- function goTab(next){detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
+ function goTab(next){setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);setMedleyCapo(0);}
  function back(){
+  if(immersiveActive){setImmersive(false);return true;}
   if(detail){setDetail(detailHistoryRef.current.pop()||null);return true;}
   if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current);return true;}
   if(tab==="Categorías"&&folderId){
@@ -128,7 +132,7 @@ function App() {
   if(Platform.OS!=="android")return;
   const subscription=BackHandler.addEventListener("hardwareBackPress",back);
   return()=>subscription.remove();
- },[detail,tab,folderId,folderType,model]);
+ },[detail,tab,folderId,folderType,model,immersiveActive]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);
@@ -137,6 +141,7 @@ function App() {
   setRequestLink("");
   setRequestDetails("");
   previousTabRef.current=tab;
+  setImmersive(false);
   detailHistoryRef.current=[];
   setTab("Solicitar");
   setDetail(null);
@@ -343,7 +348,9 @@ function App() {
  function renderMedleyDetail(medley){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   return h(View,null,
-   h(Btn,{text:"← Volver a Popurrís",secondary:true,onPress:back}),
+   h(View,{style:S.readerActions},
+    h(Btn,{text:"← Volver a Popurrís",secondary:true,onPress:()=>{setImmersive(false);back()}}),
+    Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
    label(type(medley.song_type).toUpperCase(),S.eyebrow),
    label(medley.title,S.readerTitle),
    label(parts.length+" fragmentos"+(medley.base_tone?" · Tono "+medley.base_tone:""),S.info),
@@ -451,7 +458,9 @@ function App() {
    ["Tutorial de guitarra",song.tutorial_guitar],["Tutorial de piano",song.tutorial_piano]]
    .filter(x=>safeWebUrl(x[1]));
   return h(View,null,
-   h(Btn,{text:"← Volver",secondary:true,onPress:back}),
+   h(View,{style:S.readerActions},
+    h(Btn,{text:"← Volver",secondary:true,onPress:()=>{setImmersive(false);back()}}),
+    Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
    label(type(song.song_type).toUpperCase(),S.eyebrow),
    label(song.title||"Sin título",S.readerTitle),
    label([names(song._artists),song.tone?"Tono "+song.tone:"",song.difficulty].filter(Boolean).join(" · "),S.info),
@@ -521,20 +530,20 @@ function App() {
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums()
   :tab==="Solicitar"?renderRequest():renderHome();
- return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:["top","bottom","left","right"]},
-  h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg}),
-  h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
+ return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
+  h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
+  !immersiveActive?h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
    h(Pressable,{onPress:()=>requestForm("song"),style:S.headerAction},label("Solicitar +",S.headerActionText)),
-   label(network.online?(network.wifi?"Wi-Fi":"Online"):"Offline",[S.net,network.online?{color:C.pale}:{color:C.gold}])),
+   label(network.online?(network.wifi?"Wi-Fi":"Online"):"Offline",[S.net,network.online?{color:C.pale}:{color:C.gold}])):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},contentContainerStyle:S.page,
    keyboardShouldPersistTaps:"handled"},
    page,h(View,{style:{height:27}})),
-  h(View,{style:S.nav},
+  !immersiveActive?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected:tab===name&&!detail},
      onPress:()=>goTab(name),style:[S.navItem,tab===name&&!detail&&S.navSelected]},
     label(icon,[S.navIcon,tab===name&&!detail&&{color:C.green}]),
-    label(name,[S.navText,tab===name&&!detail&&{color:C.green}]))))
+    label(name,[S.navText,tab===name&&!detail&&{color:C.green}])))) : null
  ));
 }
 const S=StyleSheet.create({
@@ -542,6 +551,7 @@ const S=StyleSheet.create({
  logo:{fontSize:19,fontWeight:"900",color:C.green,flex:1},headerAction:{borderWidth:1,borderColor:C.green,borderRadius:99,padding:7},
  headerActionText:{color:C.pale,fontSize:11,fontWeight:"750"},net:{fontSize:11,fontWeight:"750"},
  page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
+ readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
  hero:{padding:16,backgroundColor:"#12271f",borderWidth:1,borderColor:"#236d4f",borderRadius:19,marginBottom:16},
  eyebrow:{fontSize:11,letterSpacing:1.5,color:C.green,fontWeight:"850",marginBottom:10},
  heroTitle:{fontSize:26,lineHeight:33,fontWeight:"900",color:C.text,marginBottom:10},
