@@ -52,6 +52,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Verify four public page CSS bundles and import order
+        run: node tests/public-page-bundles-regression.cjs
+
       - name: Verify catalog CSS bundles and import ordering
         run: node tests/catalog-css-bundles-regression.cjs
 
