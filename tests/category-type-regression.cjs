@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
 
-const source = fs.readFileSync(path.join(__dirname, "..", "admin-category-save-fix.js"), "utf8");
+const source = fs.readFileSync(path.join(__dirname, "..", "admin-category-browser-v2.js"), "utf8").split("// Guardado y validación de categorías: un solo módulo, sin parche externo.\n")[1];
 
 async function saveWithType(songType) {
   let submit;
