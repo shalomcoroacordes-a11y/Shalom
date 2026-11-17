@@ -87,9 +87,11 @@
   capture();
   return snapshot(state.active)===state.baseline||confirm("Hay cambios sin guardar en este repertorio. ¿Quieres descartarlos?");
  }
+ function busy(){return state.saving||state.deleting;}
  function bind(){
   $("#repNew")?.addEventListener("click",()=>{if(state.saving||state.deleting||!canDiscard())return;state.active=R.blank();state.baseline=snapshot(state.active);state.message="";state.search="";render();});
   $("#repKind")?.addEventListener("change",e=>{
+   if(busy())return;
    capture();state.active.kind=e.target.value;
    // Mantener cantos; actualizar sólo los momentos cuando corresponda.
    const defaultMoment=e.target.value==="misa"?"Entrada":"Ensayo";
@@ -102,17 +104,20 @@
    if(select)select.innerHTML=songOptions().map(s=>'<option value="'+esc(s.id)+'">'+esc(s.title)+'</option>').join("");
   });
   $("#repAddSong")?.addEventListener("click",()=>{
+   if(busy())return;
    const id=$("#repSongSelect")?.value; if(!songBy(id))return notice("Selecciona un canto válido.",true);
    if(state.active.items.length>=45)return notice("Máximo de 45 cantos.",true);
    capture();state.active.items.push({song_id:id,moment:state.active.kind==="misa"?"Entrada":"Ensayo",notes:""});render();
   });
   state.root.querySelectorAll("[data-move]").forEach(btn=>btn.addEventListener("click",()=>{
+   if(busy())return;
    capture();const i=Number(btn.dataset.move),j=i+Number(btn.dataset.dir);
    if(j<0||j>=state.active.items.length)return;
    [state.active.items[i],state.active.items[j]]=[state.active.items[j],state.active.items[i]];
    render();
   }));
   state.root.querySelectorAll("[data-remove]").forEach(btn=>btn.addEventListener("click",()=>{
+   if(busy())return;
    capture();state.active.items.splice(Number(btn.dataset.remove),1);render();
   }));
   state.root.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
