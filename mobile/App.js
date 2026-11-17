@@ -2,7 +2,7 @@ const React=require("react");
 const {useEffect,useMemo,useState,useRef,useCallback}=React;
 const {
  View,Text,TextInput,Pressable,ScrollView,StatusBar,StyleSheet,
- Switch,Alert,AppState,Platform,Linking,Image,ActivityIndicator
+ Switch,Alert,AppState,BackHandler,Platform,Linking,Image,ActivityIndicator
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView}=require("react-native-safe-area-context");
@@ -95,6 +95,8 @@ function App() {
  const [requestEmail,setRequestEmail]=useState("");
  const [sending,setSending]=useState(false);
  const inFlight=useRef(false),prefRef=useRef(true),lastRef=useRef(null);
+ const previousTabRef=useRef("Inicio");
+ const detailHistoryRef=useRef([]);
  const model=useMemo(()=>buildCatalog(copy?.data||{}),[copy]);
  const active=detail?.type==="song"?model.songs.find(s=>s.id===detail.id):null;
  const focusedArtist=detail?.type==="artist"?model.artistMap.get(detail.id):null;
@@ -107,10 +109,26 @@ function App() {
   if(!term)return true;
   return normalize([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)].join(" ")).includes(term);
  }),[model,typeFilter,categoryId,query]);
- function goTab(next){setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
- function selectSong(song){setDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
- function selectMedley(medley){setDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);setMedleyCapo(0);}
- function back(){if(detail){setDetail(null);return;}goTab("Inicio");}
+ function goTab(next){detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
+ function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
+ function selectSong(song){openDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
+ function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);setMedleyCapo(0);}
+ function back(){
+  if(detail){setDetail(detailHistoryRef.current.pop()||null);return true;}
+  if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current);return true;}
+  if(tab==="Categorías"&&folderId){
+   const parent=model.categoryMap.get(folderId)?.parent_id;
+   setFolderId(parent&&model.categoryMap.has(parent)?parent:"");return true;
+  }
+  if(tab==="Categorías"&&folderType){setFolderType("");return true;}
+  if(tab!=="Inicio"){goTab("Inicio");return true;}
+  return false;
+ }
+ useEffect(()=>{
+  if(Platform.OS!=="android")return;
+  const subscription=BackHandler.addEventListener("hardwareBackPress",back);
+  return()=>subscription.remove();
+ },[detail,tab,folderId,folderType,model]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);
@@ -118,6 +136,8 @@ function App() {
   setRequestArtist(names(song?._artists)||"");
   setRequestLink("");
   setRequestDetails("");
+  previousTabRef.current=tab;
+  detailHistoryRef.current=[];
   setTab("Solicitar");
   setDetail(null);
  }
@@ -249,7 +269,7 @@ function App() {
    title("Artistas destacados"),
    ...model.artists.slice(0,4).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:model.songsForArtist(a.id).length+" cantos",
-     onPress:()=>{setTab("Artistas");setDetail({type:"artist",id:a.id})}}))
+     onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}}))
   );
  }
  function renderSongs(){
@@ -278,7 +298,7 @@ function App() {
     inputField("Buscar artista",query,setQuery,{placeholder:"Nombre del artista…"}),
     ...list.slice(0,countLimit).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:type(a.artist_type)+" · "+model.songsForArtist(a.id).length+" cantos",
-     onPress:()=>setDetail({type:"artist",id:a.id})})),
+     onPress:()=>openDetail({type:"artist",id:a.id})})),
     list.length>countLimit?h(Btn,{text:"Mostrar más artistas",secondary:true,onPress:()=>setCountLimit(n=>n+80)}):null,
     !list.length?label("No hay artistas que coincidan.",S.empty):null);
  }
@@ -374,7 +394,7 @@ function App() {
   return h(View,null,title("Álbumes","Colecciones de canciones y artistas"),
    ...model.albums.map(a=>h(EntityRow,{key:a.id,item:a,kind:"album",
     description:(a.description||"")+" · "+model.songsForAlbum(a.id).length+" cantos",
-    onPress:()=>setDetail({type:"album",id:a.id})})),
+    onPress:()=>openDetail({type:"album",id:a.id})})),
    !model.albums.length?label("Todavía no hay álbumes publicados. En cuanto se agreguen en el administrador aparecerán aquí después de sincronizar.",S.empty):null);
  }
  function renderArtistDetail(a){
@@ -404,7 +424,7 @@ function App() {
    h(Btn,{text:"← Volver a álbumes",secondary:true,onPress:back}),
    label("ÁLBUM",S.eyebrow),label(a.title,S.readerTitle),
    a.description?label(a.description,S.description):null,
-   owner?h(Btn,{text:"Artista: "+owner.name,secondary:true,onPress:()=>setDetail({type:"artist",id:owner.id})}):null,
+   owner?h(Btn,{text:"Artista: "+owner.name,secondary:true,onPress:()=>openDetail({type:"artist",id:owner.id})}):null,
    title("Cantos",songs.length+" canciones"),previewSongs(songs)
   );
  }
@@ -437,7 +457,7 @@ function App() {
    label([names(song._artists),song.tone?"Tono "+song.tone:"",song.difficulty].filter(Boolean).join(" · "),S.info),
    h(View,{style:S.chips},
     ...song._categories.map(c=>h(Chip,{key:c.id,text:c.name,onPress:()=>{
-     setDetail(null);setTab("Categorías");setFolderType(c.song_type);setFolderId(c.id)
+     detailHistoryRef.current=[];setDetail(null);setTab("Categorías");setFolderType(c.song_type);setFolderId(c.id)
     }}))),
    h(Card,{style:{marginTop:12}},
     label("Tono y acordes",S.listTitle),
@@ -472,7 +492,7 @@ function App() {
     h(Btn,{text:"Corregir acordes o tono",secondary:true,onPress:()=>requestForm("chords",song)})),
    model.albums.filter(a=>song._albums.some(x=>x.id===a.id)).length?title("Álbumes"):null,
    ...song._albums.map(a=>h(EntityRow,{key:a.id,item:a,kind:"album",
-     description:"Ver canciones",onPress:()=>setDetail({type:"album",id:a.id})}))
+     description:"Ver canciones",onPress:()=>openDetail({type:"album",id:a.id})}))
   );
  }
  function renderRequest(){
