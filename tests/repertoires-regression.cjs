@@ -28,7 +28,7 @@ const admin=fs.readFileSync("admin-pro.js","utf8");
 assert.match(admin,/\["repertoires", "Repertorios"\]/);
 assert.match(admin,/ShalomRepertoireAdmin/);
 const repertoireAdmin=fs.readFileSync("admin-repertoires.js","utf8");
-assert.match(repertoireAdmin,/if\(state\.saving\)return/);
+assert.match(repertoireAdmin,/if\(state\.saving\|\|state\.deleting\)return/);
 assert.match(repertoireAdmin,/let saved=false/);
 assert.match(repertoireAdmin,/saved=true;[\s\S]*?await reload\(\)/);
 assert.match(repertoireAdmin,/El repertorio se guardó, pero no se pudo actualizar la lista/);
