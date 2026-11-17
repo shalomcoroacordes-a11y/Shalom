@@ -12,7 +12,7 @@
   function transposeChord(value, semitones=0) {
     const move = note => {
       const i=NOTES.indexOf(FLATS[note]||note);
-      return i<0?note:NOTES[(i+clampShift(semitones)+120)%12];
+      return i<0?note:NOTES[((i+Math.trunc(Number(semitones)||0))%12+12)%12];
     };
     return String(value||"").replace(/^([A-G](?:#|b)?)(.*)$/, (_,n,rest)=>
       move(n)+rest.replace(/\/([A-G](?:#|b)?)/g,(_,bass)=>"/"+move(bass)));
