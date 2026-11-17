@@ -261,7 +261,7 @@ function App() {
  function renderHome(){
   const recentDate=item=>Date.parse(item.updated_at||item.created_at||"")||Date.parse(item.created_at||"")||0;
   const newest=[...model.songs].sort((a,b)=>recentDate(b)-recentDate(a)).slice(0,6);
-   const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
+  const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
   const lastMedley=lastRead?.type==="medley"?model.medleys.find(x=>String(x.id)===String(lastRead.id)):null;
   return h(View,null,
    h(View,{style:S.hero},
@@ -270,7 +270,6 @@ function App() {
     label("Letras y acordes para ensayar y compartir.",S.info),
     h(View,{style:S.rowWrap},
      h(Btn,{text:"♫ Canciones",small:true,onPress:()=>goTab("Canciones")}),
-     h(Btn,{text:"♬ Popurrís",small:true,secondary:true,onPress:()=>goTab("Popurrís")}),
      h(Btn,{text:"+ Solicitar",small:true,secondary:true,onPress:()=>requestForm("song")}))
    ),
    h(Pressable,{style:S.syncCompact,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
