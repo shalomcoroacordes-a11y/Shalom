@@ -46,9 +46,11 @@
 .rep-saved small{margin-top:5px;color:#b6d3c4}
 @media(max-width:850px){.rep-admin-layout{grid-template-columns:1fr}}
 @media(max-width:520px){.rep-public-page{padding:20px 12px 65px}.rep-player-actions button{min-width:90px}.rep-filters{flex-direction:column}.rep-part-title{flex-wrap:wrap}}
+.rep-print-all{display:none}
 @media print{
  header,footer,.rep-hero,.rep-filters,#repCatalog,.rep-back,.rep-song-order,.rep-player-actions,#repPrint,#repCurrentLink{display:none!important}
  #repReader{display:block!important}.rep-public-page{padding:0;margin:0;max-width:none}.rep-now-playing,.rep-reader-header{border:0;background:#fff;color:#000;box-shadow:none}
+ .rep-print-all{display:block!important}.rep-now-playing{display:none!important}.rep-print-song{break-inside:avoid-page;margin:12px 0 20px}.rep-print-song h3{color:#000!important;font-size:15pt}
  .rep-reader-lyrics,.rep-reader-lyrics .lyric-line,.rep-reader-lyrics .song-section-label{color:#000!important}
  .rep-reader-lyrics .chord-line{color:#333!important}
 }
