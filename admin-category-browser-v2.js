@@ -164,7 +164,7 @@
     document.querySelectorAll("[data-cat2-crumb]").forEach((button) => button.addEventListener("click", () => { setView(state().type, button.dataset.cat2Crumb); apRenderView(); }));
     document.querySelectorAll("[data-cat2-open]").forEach((button) => button.addEventListener("click", () => openFolder(button.dataset.cat2Open)));
     document.querySelectorAll("[data-cat2-edit]").forEach((button) => button.addEventListener("click", () => editFolder(button.dataset.cat2Edit)));
-    document.querySelectorAll("[data-cat2-delete]").forEach((button) => button.addEventListener("click", async () => { const id = button.dataset.cat2Delete; const row = byId(id); if (idOf(state().parentId) === idOf(id)) state().parentId = row?.parent_id || null; await originalDelete(id); }));
+    document.querySelectorAll("[data-cat2-delete]").forEach((button) => button.addEventListener("click", async () => { const id = button.dataset.cat2Delete; const row = byId(id); await originalDelete(id); if (idOf(state().parentId) === idOf(id) && !(AP.categories || []).some((category) => idOf(category.id) === idOf(id))) { state().parentId = row?.parent_id || null; apRenderView(); } }));
     document.querySelectorAll("[data-cat2-move]").forEach((button) => button.addEventListener("click", () => moveFolder(button.dataset.cat2Move, button.dataset.dir)));
     document.querySelector("[data-cat2-save-order]")?.addEventListener("click", saveOrder);
     document.querySelector("[data-cat2-more]")?.addEventListener("click", () => { state().limit += 8; apRenderView(); });
