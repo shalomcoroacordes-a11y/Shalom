@@ -2,6 +2,7 @@ const NetInfo = require("@react-native-community/netinfo").default;
 const { SUPABASE_URL, PUBLISHABLE_KEY, TABLES } = require("./config");
 const { commitCatalog } = require("./database");
 const PAGE_SIZE = 250;
+const REQUEST_TIMEOUT_MS = 30000;
 
 async function networkState() {
   const state = await NetInfo.fetch();
@@ -23,17 +24,28 @@ async function allRows(table, onBatch) {
       "limit=" + PAGE_SIZE,
       "offset=" + offset
     ].join("&");
-    const response = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + query, {
-      method: "GET",
-      headers: {
-        apikey: PUBLISHABLE_KEY,
-        accept: "application/json"
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let rows;
+    try {
+      const response = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + query, {
+        method: "GET",
+        signal: controller.signal,
+        headers: {
+          apikey: PUBLISHABLE_KEY,
+          accept: "application/json"
+        }
+      });
+      if (!response.ok) {
+        throw new Error("No se pudo descargar " + table + " (" + response.status + ").");
       }
-    });
-    if (!response.ok) {
-      throw new Error("No se pudo descargar " + table + " (" + response.status + ").");
+      rows = await response.json();
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error("La descarga de " + table + " tardó demasiado. Inténtalo de nuevo con una conexión estable.");
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
-    const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error("Respuesta incorrecta de " + table);
     collected.push(...rows);
     if (onBatch) onBatch(table, collected.length);
