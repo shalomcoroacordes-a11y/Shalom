@@ -28,6 +28,9 @@ jobs:
       - name: Inventory JavaScript imports and require dependencies
         run: python3 scripts/audit_js_dependencies.py > /tmp/shalom-js-inventory.md
 
+      - name: Check admin script dependency order
+        run: python3 scripts/check_admin_script_chain.py
+
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
