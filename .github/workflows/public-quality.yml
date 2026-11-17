@@ -52,6 +52,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Verify consolidated admin CSS and cascade order
+        run: node tests/admin-css-consolidation.cjs
+
       - name: Test artist biography rendering without fallback patch
         run: node tests/artist-description-regression.cjs
 
