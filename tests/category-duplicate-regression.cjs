@@ -61,8 +61,14 @@ async function scenario({ categories, editingId = null, parentId = "", type = ""
   assert.match(missing.note, /Actualiza el panel/);
   assert.doesNotMatch(missing.note, /Se abrió para editarla/);
 
+  // An update conflict must never identify the edited row itself as the duplicate.
+  const selfConflict = await scenario({ categories: [duplicate], editingId: "a", dbError: error });
+  assert.equal(selfConflict.writes, 1);
+  assert.equal(selfConflict.rendered, 0);
+  assert.match(selfConflict.note, /Actualiza el panel/);
+
   const generic = await scenario({ categories: [], dbError: { message: "permission denied" } });
   assert.equal(generic.refreshed, 0);
   assert.match(generic.note, /permission denied/);
-  console.log("OK: duplicate category handling and truthful feedback (6 cases).");
+  console.log("OK: duplicate category handling and truthful feedback (7 cases).");
 })().catch((error) => { console.error(error); process.exitCode = 1; });
