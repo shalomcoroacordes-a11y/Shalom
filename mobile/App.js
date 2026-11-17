@@ -256,9 +256,9 @@ function App() {
   );
  }
  function renderHome(){
-  const newest=[...model.songs].sort((a,b)=>
-    new Date(b.created_at||0).valueOf()-new Date(a.created_at||0).valueOf()).slice(0,6);
-  const featured=model.categories.filter(c=>!c.parent_id&&["catolico","cristiano"].includes(c.song_type)).slice(0,6);
+  const recentDate=item=>Date.parse(item.updated_at||item.created_at||"")||Date.parse(item.created_at||"")||0;
+  const newest=[...model.songs].sort((a,b)=>recentDate(b)-recentDate(a)).slice(0,6);
+  const recentArtists=[...model.artists].sort((a,b)=>recentDate(b)-recentDate(a)).slice(0,4);
   const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
   const lastMedley=lastRead?.type==="medley"?model.medleys.find(x=>String(x.id)===String(lastRead.id)):null;
   return h(View,null,
@@ -282,24 +282,21 @@ function App() {
    lastSong?h(SongRow,{song:lastSong,onPress:()=>selectSong(lastSong)}):null,
    lastMedley?h(Pressable,{style:S.listRow,onPress:()=>selectMedley(lastMedley)},
     h(View,{style:{flex:1}},label(lastMedley.title,S.listTitle),label("Retomar popurrí",S.rowMeta)),label("›",S.rowArrow)):null,
-   title("Novedades","Últimos cantos agregados"),
+   title("Canciones recientes","Últimos cantos agregados o actualizados"),
    newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
     contentContainerStyle:{gap:10,paddingVertical:3}},
     ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
      label("♫",S.entityEmoji),label(song.title,S.listTitle),
      label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
-   title("Explorar por categorías"),
-   ...featured.map(c=>h(EntityRow,{key:c.id,item:c,kind:"folder",
-     description:type(c.song_type)+" · "+model.songsForCategory(c.id).length+" cantos",
-     onPress:()=>{setTab("Categorías");setFolderType(c.song_type);setFolderId(c.id)}})),
-   h(Btn,{text:"Todas las categorías",secondary:true,onPress:()=>goTab("Categorías")}),
+   title("Categorías","Católico, Cristiano, Mixto y General"),
+   h(Btn,{text:"▦ Explorar todas las categorías",secondary:true,onPress:()=>goTab("Categorías")}),
    title("Mi próxima misa"),
    h(Card,null,label("Aún no hay un repertorio de misa asignado.",S.info),
     label("Cuando los repertorios estén conectados con Android, aquí verás la próxima celebración y sus cantos.",S.smallMuted)),
    title("Popurrís de SHALOM","Varios cantos como uno solo"),
    h(Btn,{text:"Explorar popurrís ("+model.medleys.length+")",secondary:true,onPress:()=>goTab("Popurrís")}),
-   title("Artistas destacados"),
-   ...model.artists.slice(0,4).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
+   title("Artistas nuevos o actualizados","Últimos perfiles creados o modificados"),
+   ...recentArtists.map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:model.songsForArtist(a.id).length+" cantos",
      onPress:()=>{setTab("Artistas");openDetail({type:"artist",id:a.id})}}))
   );
