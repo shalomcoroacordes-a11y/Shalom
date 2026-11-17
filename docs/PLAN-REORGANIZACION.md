@@ -27,7 +27,8 @@
 - [x] Escribir `docs/DESARROLLO.md`: requisitos, ejecución local, pruebas y publicación.
 - [x] Crear mapa inicial de tablas, almacenamiento y riesgos de permisos (`docs/BASE-DE-DATOS.md`).
 - [x] Verificar inventario de tablas y función de administración vigentes en Supabase (solo lectura).
-- [ ] Completar relaciones, políticas de todas las tablas y orden real de migraciones en Supabase.
+- [x] Documentar relaciones FK y políticas RLS de las 19 tablas (`docs/RELACIONES-Y-PERMISOS.md`).
+- [ ] Verificar GRANT, vistas, funciones, Storage, pruebas por rol y orden real de migraciones en Supabase.
 - [x] Escribir `docs/GUIA-PARA-APRENDER.md`: conceptos básicos, recorrido del código y ejercicios.
 - [ ] Explicar contratos de datos entre web, Supabase y Android.
 - [x] Actualizar `mobile/README.md` con las once tablas sincronizadas.
