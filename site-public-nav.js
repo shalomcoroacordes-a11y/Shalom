@@ -48,6 +48,7 @@
       "artistas.html": ["Artistas y ministerios | SHALOM", "Explora artistas, salmistas y ministerios con sus cantos, álbumes y recursos musicales."],
       "categorias.html": ["Categorías de cantos | SHALOM", "Encuentra cantos organizados por momentos, temas, usos litúrgicos y categorías pastorales."],
       "albumes.html": ["Álbumes de cantos | SHALOM", "Explora álbumes, proyectos y colecciones de cantos cristianos y católicos."],
+      "popurris.html": ["Popurrís de cantos | SHALOM", "Varios cantos reunidos en una sola lectura con acordes, capo y transposición."],
       "acerca.html": ["Acerca de | SHALOM", "Conoce el propósito de SHALOM, un cancionero para servir con música y fe."],
       "contacto.html": ["Contacto y correcciones | SHALOM", "Envía correcciones, sugerencias o comentarios para mejorar letras, acordes, tonos y datos del cancionero."],
       "solicitar-canto.html": ["Solicitar canto | SHALOM", "Solicita un canto para que sea revisado y agregado al cancionero SHALOM."],
@@ -80,6 +81,7 @@
   const addPublicLinks = () => {
     if (/(^|\/)admin\.html$/i.test(location.pathname)) return;
     document.querySelectorAll("#navMenu").forEach((menu) => {
+      ensureLink(menu, "popurris.html", "Popurrís", "solicitar-canto.html");
       ensureLink(menu, "solicitar-canto.html", "Solicitar canto", "donaciones.html");
       ensureLink(menu, "acerca.html", "Acerca de", "donaciones.html");
     });
