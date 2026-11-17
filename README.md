@@ -37,3 +37,7 @@ Cancionero web y aplicación móvil del coro SHALOM.
 6. Mantener documentación y pruebas al día.
 
 **Aviso:** la reorganización estructural está en curso. Los nombres de carpetas propuestos en el plan todavía no reflejan cambios aplicados. No modificar el repositorio original Juntos Hacia Dios.
+
+## Mantenimiento del administrador
+
+- [Dependencias y riesgos de los módulos de categorías](docs/MODULOS-CATEGORIAS-ADMIN.md)
