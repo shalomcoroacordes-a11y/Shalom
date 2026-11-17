@@ -49,6 +49,7 @@
       "categorias.html": ["Categorías de cantos | SHALOM", "Encuentra cantos organizados por momentos, temas, usos litúrgicos y categorías pastorales."],
       "albumes.html": ["Álbumes de cantos | SHALOM", "Explora álbumes, proyectos y colecciones de cantos cristianos y católicos."],
       "popurris.html": ["Popurrís de cantos | SHALOM", "Varios cantos reunidos en una sola lectura con acordes, capo y transposición."],
+      "repertorios.html": ["Repertorios de misa y ensayo | SHALOM", "Cantos organizados por celebración o ensayo, con letras y acordes en orden."],
       "acerca.html": ["Acerca de | SHALOM", "Conoce el propósito de SHALOM, un cancionero para servir con música y fe."],
       "contacto.html": ["Contacto y correcciones | SHALOM", "Envía correcciones, sugerencias o comentarios para mejorar letras, acordes, tonos y datos del cancionero."],
       "solicitar-canto.html": ["Solicitar canto | SHALOM", "Solicita un canto para que sea revisado y agregado al cancionero SHALOM."],
@@ -82,6 +83,7 @@
     if (/(^|\/)admin\.html$/i.test(location.pathname)) return;
     document.querySelectorAll("#navMenu").forEach((menu) => {
       ensureLink(menu, "popurris.html", "Popurrís", "solicitar-canto.html");
+      ensureLink(menu, "repertorios.html", "Repertorios", "solicitar-canto.html");
       ensureLink(menu, "solicitar-canto.html", "Solicitar canto", "donaciones.html");
       ensureLink(menu, "acerca.html", "Acerca de", "donaciones.html");
     });
