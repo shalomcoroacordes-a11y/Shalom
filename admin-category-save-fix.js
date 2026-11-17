@@ -97,37 +97,36 @@
     saveInProgress = true;
     const submitButton = form.querySelector?.('button[type="submit"]');
     if (submitButton) submitButton.disabled = true;
-    let result;
     try {
-      result = editingId
+      const result = editingId
         ? await AdminPro.from("categories").update(payload).eq("id", editingId)
         : await AdminPro.from("categories").insert([payload]);
+
+      if (result.error) {
+        if (String(result.error.message || "").includes("categories_slug_parent_type_unique")) {
+          const existing = (AP.categories || []).find((category) =>
+            String(category.slug || "") === payload.slug &&
+            String(category.parent_id || "") === String(payload.parent_id || "") &&
+            normalizeType(category.song_type) === payload.song_type
+          );
+          if (existing) {
+            openDuplicate(existing);
+            return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Se abrió para editarla.", true);
+          }
+          return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Actualiza el panel para localizarla.", true);
+        }
+        return apNote(`Error: ${result.error.message}`, true);
+      }
+
+      AP.edits.category = null;
+      AP.categoryNewParent = null;
+      await apRefresh(editingId ? "Categoría actualizada." : "Categoría guardada.");
     } catch (error) {
-      return apNote(`Error al guardar: ${error?.message || "Inténtalo de nuevo."}`, true);
+      apNote(`Error al guardar o actualizar la lista: ${error?.message || "Inténtalo de nuevo."}`, true);
     } finally {
       saveInProgress = false;
-      if (submitButton) submitButton.disabled = false;
+      if (submitButton?.isConnected !== false) submitButton && (submitButton.disabled = false);
     }
-
-    if (result.error) {
-      if (String(result.error.message || "").includes("categories_slug_parent_type_unique")) {
-        const existing = (AP.categories || []).find((category) =>
-          String(category.slug || "") === payload.slug &&
-          String(category.parent_id || "") === String(payload.parent_id || "") &&
-          normalizeType(category.song_type) === payload.song_type
-        );
-        if (existing) {
-          openDuplicate(existing);
-          return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Se abrió para editarla.", true);
-        }
-        return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Actualiza el panel para localizarla.", true);
-      }
-      return apNote(`Error: ${result.error.message}`, true);
-    }
-
-    AP.edits.category = null;
-    AP.categoryNewParent = null;
-    await apRefresh(editingId ? "Categoría actualizada." : "Categoría guardada.");
   }, true);
 })();
 
