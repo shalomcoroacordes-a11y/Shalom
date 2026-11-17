@@ -137,11 +137,3 @@
   }, true);
 })();
 
-(() => {
-  if (window.__jhdAdminBackupLoader) return;
-  window.__jhdAdminBackupLoader = true;
-  const script = document.createElement("script");
-  script.src = "admin-backup.js?v=1";
-  script.defer = true;
-  document.head.append(script);
-})();
