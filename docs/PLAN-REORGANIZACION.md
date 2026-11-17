@@ -29,7 +29,8 @@
 - [x] Verificar inventario de tablas y función de administración vigentes en Supabase (solo lectura).
 - [x] Documentar relaciones FK y políticas RLS de las 19 tablas (`docs/RELACIONES-Y-PERMISOS.md`).
 - [x] Auditar GRANT, funciones y vistas de `public`; documentar privilegios excesivos en `medleys` (`docs/AUDITORIA-SEGURIDAD-SUPABASE.md`).
-- [ ] Corregir de forma controlada los privilegios excesivos de `medleys` y volver a verificar.
+- [x] Corregir privilegios excesivos de `medleys` y verificar `has_table_privilege` (2026-11-17).
+- [ ] Probar flujos de popurrís desde web/Android con cuentas reales tras la corrección.
 - [ ] Revisar cuerpos de funciones, Storage, pruebas por rol y orden real de migraciones en Supabase.
 - [x] Escribir `docs/GUIA-PARA-APRENDER.md`: conceptos básicos, recorrido del código y ejercicios.
 - [ ] Explicar contratos de datos entre web, Supabase y Android.
