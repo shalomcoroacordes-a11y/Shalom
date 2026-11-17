@@ -12,6 +12,7 @@ Cancionero web y aplicación móvil del coro SHALOM.
 | Saber cómo nombrar y organizar código | [Convenciones](docs/CONVENCIONES.md) |
 | Comprender tablas y permisos | [Base de datos](docs/BASE-DE-DATOS.md) |
 | Revisar relaciones y políticas RLS verificadas | [Relaciones y permisos](docs/RELACIONES-Y-PERMISOS.md) |
+| Consultar riesgos de permisos SQL detectados | [Auditoría de seguridad Supabase](docs/AUDITORIA-SEGURIDAD-SUPABASE.md) |
 | Ver problemas detectados | [Auditoría](docs/AUDITORIA-REPOSITORIO.md) |
 | Consultar lo pendiente de reorganización | [Plan de reorganización](docs/PLAN-REORGANIZACION.md) |
 | Trabajar en Android | [Manual móvil](mobile/README.md) |
