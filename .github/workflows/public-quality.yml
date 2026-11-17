@@ -34,6 +34,9 @@ jobs:
       - name: Test supported category types in admin editor
         run: node tests/category-editor-types-regression.cjs
 
+      - name: Test duplicate category handling
+        run: node tests/category-duplicate-regression.cjs
+
       - name: Test category parent hierarchy validation
         run: node tests/category-hierarchy-regression.cjs
 
