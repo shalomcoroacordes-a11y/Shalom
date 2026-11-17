@@ -23,6 +23,10 @@ jobs:
             node --check "$file"
           done < <(find . -type f -name '*.js' -not -path './.git/*' -print0)
 
+      - name: Generate maintenance audit (informational)
+        shell: bash
+        run: python3 scripts/maintenance_audit.py > /tmp/shalom-maintenance-audit.json || { cat /tmp/shalom-maintenance-audit.json; echo 'Review audit warnings; existing quality checks remain authoritative.'; }
+
       - name: Inventory HTML script and stylesheet dependencies
         run: python3 scripts/audit_html_dependencies.py > /tmp/shalom-html-inventory.md
 
