@@ -190,7 +190,7 @@
     for (const table of TABLES) catalog[table] = await selectAll(table);
     downloadJson(
       { format: FORMAT, version: VERSION, created_at: new Date().toISOString(), catalog },
-      `juntos-hacia-dios-respaldo-antes-de-restaurar-${filenameDate()}.json`
+      `shalom-respaldo-antes-de-restaurar-${filenameDate()}.json`
     );
   }
 
@@ -241,12 +241,14 @@
     if (!accepted) return;
 
     importBusy = true;
+    let restorationStarted = false;
     setControlsDisabled(true);
     try {
       setStatus("Creando respaldo de seguridad del catálogo actual…");
       await createSafetyBackup();
 
       let restored = 0;
+      restorationStarted = true;
       for (const table of TABLES) {
         const rows = getRows(payload.catalog, table);
         if (!rows.length) continue;
@@ -259,7 +261,10 @@
       renderSelection();
       await window.apRefresh?.("Respaldo cargado correctamente.");
     } catch (error) {
-      setStatus(`No se pudo completar la restauración: ${error?.message || "Error desconocido."} Algunos registros pueden haberse restaurado; conserva la copia de seguridad descargada.`, "error");
+      const detail = error?.message || "Error desconocido.";
+      setStatus(restorationStarted
+        ? `No se pudo completar la restauración: ${detail} Algunos registros pueden haberse restaurado; conserva la copia de seguridad descargada.`
+        : `No se inició la restauración: ${detail} No se modificó ningún registro durante este intento.`, "error");
     } finally {
       importBusy = false;
       setControlsDisabled(false);
