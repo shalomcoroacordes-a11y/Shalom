@@ -1,0 +1,52 @@
+// Regression: SHALOM admin tabs must open all sections after clicking.
+const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
+const src=fs.readFileSync("admin-pro.js","utf8");
+const start=src.indexOf("function apRenderShell() {");
+const end=src.indexOf("function apSectionHead(",start);
+assert.ok(start>=0 && end>start,"Panel de pestañas presente");
+const ids=["artists","categories","albums","songs","medleys","donations"];
+const tabs=ids.map(id=>{
+  const listeners={};let active=id==="songs";
+  return {dataset:{adminTab:id},
+    addEventListener(name,fn){listeners[name]=fn},
+    click(){assert.equal(typeof listeners.click,"function","Pestaña "+id+" sin evento");listeners.click()},
+    classList:{toggle(name,on){if(name==="active")active=on},contains(){return active}}
+  };
+});
+const workspace={innerHTML:"",contains:true};
+const view={innerHTML:""};
+const state={tab:"songs",user:{email:"admin@example.test"},songs:[]};
+const bound=[];
+const scope={
+ AP:state,
+ ap$:selector=>selector==="#adminWorkspace"?workspace:selector==="#adminView"?view:selector==="#adminLogout"?{addEventListener(){}}:null,
+ ap$$:selector=>{
+   assert.equal(selector,"[data-admin-tab]");
+   return tabs;
+ },
+ apEsc:String,apCaptureSongDraft(){},apRememberEditorPosition(){},
+ apArtistsHTML:()=>"<p>ARTISTS</p>",
+ apCategoriesHTML:()=>"<p>CATEGORIES</p>",
+ apAlbumsHTML:()=>"<p>ALBUMS</p>",
+ apSongsHTML:()=>"<p>SONGS</p>",
+ apDonationsHTML:()=>"<p>DONATIONS</p>",
+ apBindArtists:()=>bound.push("artists"),
+ apBindCategories:()=>bound.push("categories"),
+ apBindAlbums:()=>bound.push("albums"),
+ apBindSongs:()=>bound.push("songs"),
+ apBindDonations:()=>bound.push("donations"),
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")}}
+};
+vm.createContext(scope);
+vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
+assert.ok(workspace.innerHTML.includes("Popurrís"),"Falta nueva pestaña");
+const displays=["ARTISTS","CATEGORIES","ALBUMS","SONGS","","DONATIONS"];
+ids.forEach((id,i)=>{
+ tabs[i].click();
+ assert.equal(state.tab,id,"No cambió a "+id);
+ if(displays[i])assert.ok(view.innerHTML.includes(displays[i]),"No pintó "+id);
+ else assert.equal(bound.at(-1),"medleys","No abrió editor de popurrís");
+ for(let k=0;k<tabs.length;k++)assert.equal(tabs[k].classList.contains("active"),k===i,"Activo incorrecto al pulsar "+id);
+});
+assert.ok(["artists","categories","albums","songs","donations","medleys"].every(id=>bound.includes(id)),"No todas las pestañas abrieron");
+console.log("SHALOM admin: Artistas, Categorías, Álbumes, Canciones, Popurrís y Donaciones responden.");
