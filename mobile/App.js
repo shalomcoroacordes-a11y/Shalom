@@ -86,7 +86,6 @@ function App() {
  const [folderId,setFolderId]=useState("");
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
- const [medleyCapo,setMedleyCapo]=useState(0);
  const [countLimit,setCountLimit]=useState(80);
  const [requestKind,setRequestKind]=useState("song");
  const [requestSong,setRequestSong]=useState(null);
@@ -115,7 +114,7 @@ function App() {
  function goTab(next){setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
- function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);setMedleyCapo(0);}
+ function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);}
  function back(){
   if(immersiveActive){setImmersive(false);return true;}
   if(detail){setDetail(detailHistoryRef.current.pop()||null);return true;}
@@ -361,21 +360,23 @@ function App() {
        h(Btn,{text:"− Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.max(-11,n-1))}),
        label(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
        h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.min(11,n+1))}),
-       h(Btn,{text:"Restablecer",small:true,secondary:true,onPress:()=>{setTranspose(0);setMedleyCapo(0)}})),
-     label("Capo para todo el popurrí",S.fieldTitle),
-     h(View,{style:S.chips},...[0,1,2,3,4,5,6,7].map(n=>h(Chip,{key:n,
-       text:n===0?"Sin capo":"Traste "+n,active:medleyCapo===n,onPress:()=>setMedleyCapo(n)})))
+       h(Btn,{text:"Restablecer",small:true,secondary:true,onPress:()=>setTranspose(0)})),
    ),
    ...parts.map((part,index)=>{
     const original=model.songs.find(song=>String(song.id)===String(part.song_id));
-    const delta=transpose+Number(part.shift||0)-medleyCapo;
+    const delta=transpose+Number(part.shift||0);
+    const capoPosition=Number(part.capo_position||original?.capo_position||0);
+    const capoKey=String(part.capo_key||original?.capo_key||"").trim();
+    const capoVersions=(original?._capos||[]).filter(v=>Number(v.capo_position)>0);
     const lines=parseSong(part.lyrics||"",delta);
     return h(Card,{key:part.id||index},
      h(View,{style:{flexDirection:"row",alignItems:"center",gap:9}},
       h(View,{style:S.entityIcon},label(String(index+1),S.entityEmoji)),
       h(View,{style:{flex:1}},
        label(part.title||part.song_title||"Canto "+(index+1),S.listTitle),
-       label([part.tone?"Tono "+part.tone:"",part.shift?"Ajuste "+part.shift+" semitonos":""].filter(Boolean).join(" · "),S.rowMeta))),
+       label([part.tone?"Tono "+part.tone:"",part.shift?"Ajuste "+part.shift+" semitonos":""].filter(Boolean).join(" · "),S.rowMeta),
+       capoPosition>0?label("🎸 Capo registrado: traste "+capoPosition+(capoKey?" · Figuras en "+capoKey:""),S.capoNote):null,
+       capoVersions.length?label("Otras versiones con capo: "+capoVersions.map(v=>"traste "+v.capo_position+(v.capo_key?" ("+v.capo_key+")":"")).join(" · "),S.smallMuted):null)),
      h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,
        contentContainerStyle:{padding:12,minWidth:"100%"}},
       h(View,null,...lines.map((r,i)=>{
@@ -475,9 +476,9 @@ function App() {
      label(transpose===0?"Tono original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
      h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(v=>Math.min(11,v+1))}),
      h(Btn,{text:"Original",small:true,secondary:true,onPress:()=>{setTranspose(0);setCapo("none")}})),
-    label("Opciones de capo",S.fieldTitle),
-    h(View,{style:S.chips},...choices.map(choice=>h(Chip,{key:choice.id,
-     text:choice.label,active:capo===choice.id,onPress:()=>setCapo(choice.id)}))),
+    choices.length>1?label("Versiones con capo registradas",S.fieldTitle):null,
+    choices.length>1?h(View,{style:S.chips},...choices.map(choice=>h(Chip,{key:choice.id,
+     text:choice.label,active:capo===choice.id,onPress:()=>setCapo(choice.id)}))):null,
     chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.smallMuted):null
    ),
    h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,
@@ -552,6 +553,7 @@ const S=StyleSheet.create({
  headerActionText:{color:C.pale,fontSize:11,fontWeight:"750"},net:{fontSize:11,fontWeight:"750"},
  page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
  readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
+ capoNote:{fontSize:12,color:C.pale,fontWeight:"800",marginTop:7},
  hero:{padding:16,backgroundColor:"#12271f",borderWidth:1,borderColor:"#236d4f",borderRadius:19,marginBottom:16},
  eyebrow:{fontSize:11,letterSpacing:1.5,color:C.green,fontWeight:"850",marginBottom:10},
  heroTitle:{fontSize:26,lineHeight:33,fontWeight:"900",color:C.text,marginBottom:10},
