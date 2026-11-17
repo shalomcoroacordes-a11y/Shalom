@@ -31,6 +31,9 @@ jobs:
       - name: Check admin script dependency order
         run: python3 scripts/check_admin_script_chain.py
 
+      - name: Test supported category types in admin editor
+        run: node tests/category-editor-types-regression.cjs
+
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
