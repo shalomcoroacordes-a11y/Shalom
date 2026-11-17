@@ -9,7 +9,7 @@ se almacenan en **SQLite**, dentro de los datos privados de la aplicación.
 - `App.js`: interfaz Android/iPhone, búsqueda, filtros, lectura y transposición.
 - `src/config.js`: conexión publicable del **Supabase propio de SHALOM**.
 - `src/database.js`: SQLite persistente, transacciones y última sincronización.
-- `src/sync.js`: descarga paginada de las nueve tablas públicas y control Wi-Fi.
+- `src/sync.js`: descarga paginada de las once tablas públicas y control Wi-Fi.
 - `src/chords.js`: intérprete local de acordes y letras.
 - `app.json`: identificadores nativos para Android e iPhone.
 - `eas.json`: perfiles de compilación.
@@ -18,7 +18,7 @@ se almacenan en **SQLite**, dentro de los datos privados de la aplicación.
 
 Todos los registros públicos de `songs`, `artists`, `categories`,
 `albums`, `song_artists`, `song_categories`, `album_songs`,
-`song_links` y `song_capo_versions`, incluidos textos y relaciones.
+`song_links`, `song_capo_versions`, `medleys` y `repertoires`, incluidos textos y relaciones.
 
 **No guarda** contraseñas, sesiones de administradores ni claves privadas.
 No descarga todavía las imágenes binarias ni vídeos externos; sus referencias
