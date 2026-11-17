@@ -46,7 +46,12 @@
 .rep-saved small{margin-top:5px;color:#b6d3c4}
 @media(max-width:850px){.rep-admin-layout{grid-template-columns:1fr}}
 @media(max-width:520px){.rep-public-page{padding:20px 12px 65px}.rep-player-actions button{min-width:90px}.rep-filters{flex-direction:column}.rep-part-title{flex-wrap:wrap}}
-.rep-print-all{display:none}
+.rep-print-all{display:block}
+.rep-continuous-song{background:#101d24;border:1px solid #385d51;border-radius:16px;padding:20px;margin:18px 0;scroll-margin-top:90px}
+.rep-continuous-song h3{font-size:1.25rem;color:#f4f9f7;margin:0 0 8px}
+.rep-continuous-song .rep-reader-lyrics{margin:10px 0 0}
+.rep-order-button{display:block;text-decoration:none!important}
+.rep-now-playing[hidden],.rep-player-actions[hidden]{display:none!important}
 @media print{
  header,footer,.rep-hero,.rep-filters,#repCatalog,.rep-back,.rep-song-order,.rep-player-actions,#repPrint,#repCurrentLink{display:none!important}
  #repReader{display:block!important}.rep-public-page{padding:0;margin:0;max-width:none}.rep-now-playing,.rep-reader-header{border:0;background:#fff;color:#000;box-shadow:none}
