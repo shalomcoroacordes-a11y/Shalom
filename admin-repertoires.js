@@ -1,7 +1,7 @@
 /* Panel de repertorios SHALOM: sólo se carga después del acceso admin existente. */
 (()=>{
  const db=window.supabaseClient,R=window.ShalomRepertoires;
- const state={root:null,songs:[],rows:[],active:R.blank(),search:"",message:"",loading:false,saving:false,ready:false};
+ const state={root:null,songs:[],rows:[],active:R.blank(),search:"",message:"",loading:false,saving:false,deleting:false,ready:false};
  const $=selector=>state.root?.querySelector(selector);
  const esc=R.html;
  const songBy=id=>state.songs.find(s=>String(s.id)===String(id));
@@ -51,7 +51,7 @@
    '<div class="admin-section-heading"><div><p class="hero-kicker">Organización musical</p><h2>Repertorios de misa y ensayo</h2></div>'+
    '<a class="song-btn secondary" href="repertorios.html" target="_blank" rel="noopener">Ver repertorios ↗</a></div>'+
    '<div class="rep-admin-layout"><div class="admin-card">'+
-    '<div class="admin-editor-head"><h3>'+(d.id?"Editar":"Nuevo")+' repertorio</h3><button type="button" class="song-btn secondary" id="repNew">+ Nuevo</button></div>'+
+    '<div class="admin-editor-head"><h3>'+(d.id?"Editar":"Nuevo")+' repertorio</h3><button type="button" class="song-btn secondary" id="repNew" '+(state.saving||state.deleting?"disabled":"")+'>+ Nuevo</button></div>'+
     '<form class="admin-form" id="repForm">'+
     '<label>Nombre del repertorio<input id="repTitle" maxlength="160" required placeholder="Ej. Misa del domingo, Ensayo del sábado" value="'+esc(d.title)+'"></label>'+
     '<div class="admin-form-grid"><label>Tipo<select id="repKind">'+
@@ -68,7 +68,7 @@
      songOptions().map(s=>'<option value="'+esc(s.id)+'">'+esc(s.title)+' · '+esc(s.tone||"Sin tono")+'</option>').join("")+
     '</select></label><button class="song-btn secondary" id="repAddSong" type="button">+ Agregar canto</button></div>'+
     '<div class="rep-actions"><button class="song-btn" type="submit" '+(state.saving?"disabled":"")+'>'+(state.saving?"Guardando…":"Guardar repertorio")+'</button>'+
-     (d.id?'<button type="button" class="song-btn secondary" id="repDelete">Eliminar</button>':"")+'</div>'+
+     (d.id?'<button type="button" class="song-btn secondary" id="repDelete" '+(state.saving||state.deleting?"disabled":"")+'>Eliminar</button>':"")+'</div>'+
     '<p id="repertoireNotice" class="admin-note" aria-live="polite">'+esc(state.message)+'</p>'+
    '</form></div>'+
    '<aside class="admin-preview-card"><h3>Repertorios guardados</h3>'+
@@ -83,7 +83,7 @@
   state.rows=data||[];
  }
  function bind(){
-  $("#repNew")?.addEventListener("click",()=>{state.active=R.blank();state.message="";state.search="";render();});
+  $("#repNew")?.addEventListener("click",()=>{if(state.saving||state.deleting)return;state.active=R.blank();state.message="";state.search="";render();});
   $("#repKind")?.addEventListener("change",e=>{
    capture();state.active.kind=e.target.value;
    // Mantener cantos; actualizar sólo los momentos cuando corresponda.
@@ -111,12 +111,13 @@
    capture();state.active.items.splice(Number(btn.dataset.remove),1);render();
   }));
   state.root.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
+   if(state.saving||state.deleting)return;
    const rep=state.rows.find(r=>r.id===btn.dataset.edit);if(!rep)return;
    state.active={...rep,items:(rep.items||[]).map(item=>({...item}))};
    state.message="";state.search="";render();
   }));
   $("#repForm")?.addEventListener("submit",async e=>{
-   e.preventDefault();if(state.saving)return;
+   e.preventDefault();if(state.saving||state.deleting)return;
    capture();let payload;
    try{payload=R.validate(state.active);}catch(err){notice(err.message,true);return;}
    state.saving=true;render();
@@ -136,10 +137,24 @@
    finally{state.saving=false;render();}
   });
   $("#repDelete")?.addEventListener("click",async()=>{
-   if(!state.active.id||!confirm("¿Eliminar este repertorio? Los cantos originales se conservarán."))return;
-   const {error}=await db.from("repertoires").delete().eq("id",state.active.id);
-   if(error){notice("No se pudo eliminar: "+error.message,true);return}
-   state.active=R.blank();await reload();state.message="Repertorio eliminado.";render();
+   if(state.saving||state.deleting||!state.active.id)return;
+   const deletingId=state.active.id;
+   if(!confirm("¿Eliminar este repertorio? Los cantos originales se conservarán."))return;
+   state.deleting=true;render();
+   try{
+    const {error}=await db.from("repertoires").delete().eq("id",deletingId);
+    if(error)throw error;
+    state.active=R.blank();
+    try{
+     await reload();
+     state.message="Repertorio eliminado.";
+    }catch(err){
+     state.rows=state.rows.filter(row=>row.id!==deletingId);
+     state.message="Repertorio eliminado, pero no se pudo actualizar la lista. Recarga el administrador.";
+    }
+   }catch(err){
+    state.message="No se pudo confirmar la eliminación: "+(err?.message||"Error de conexión.")+" Revisa los repertorios antes de intentarlo de nuevo.";
+   }finally{state.deleting=false;render();}
   });
  }
  async function mount(root,songs){
