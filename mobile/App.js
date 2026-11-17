@@ -80,7 +80,7 @@ function App() {
  const [lastRead,setLastRead]=useState(null);
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [immersive,setImmersive]=useState(false);
- const isReader=detail?.type==="song"||detail?.type==="medley";
+ const isReader=detail?.type==="song"||detail?.type==="medley"||detail?.type==="repertoire";
  const immersiveActive=Platform.OS==="android"&&isReader&&immersive;
  const [query,setQuery]=useState("");
  const [typeFilter,setTypeFilter]=useState("");
@@ -107,6 +107,7 @@ function App() {
  const focusedArtist=detail?.type==="artist"?model.artistMap.get(detail.id):null;
  const focusedAlbum=detail?.type==="album"?model.albumMap.get(detail.id):null;
  const focusedMedley=detail?.type==="medley"?model.medleys.find(x=>x.id===detail.id):null;
+ const focusedRepertoire=detail?.type==="repertoire"?model.repertoires.find(x=>x.id===detail.id):null;
  const eligible=useMemo(()=>model.songs.filter(s=>{
   if(typeFilter&&s.song_type!==typeFilter)return false;
   if(categoryId&&!s._categories.some(c=>model.descendants(categoryId).has(c.id)))return false;
@@ -119,6 +120,7 @@ function App() {
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");}
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
+ function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
   if(immersiveActive){setImmersive(false);return true;}
   if(settingsOpen){setSettingsOpen(false);return true;}
@@ -291,8 +293,18 @@ function App() {
    title("Categorías","Católico, Cristiano, Mixto y General"),
    h(Btn,{text:"▦ Explorar todas las categorías",secondary:true,onPress:()=>goTab("Categorías")}),
    title("Mi próxima misa"),
-   h(Card,null,label("Aún no hay un repertorio de misa asignado.",S.info),
-    label("Cuando los repertorios estén conectados con Android, aquí verás la próxima celebración y sus cantos.",S.smallMuted)),
+   (()=>{const today=new Date().toISOString().slice(0,10);
+    const next=model.repertoires.filter(r=>r.kind==="misa"&&r.event_date&&r.event_date>=today)[0];
+    const undated=model.repertoires.find(r=>r.kind==="misa"&&!r.event_date);
+    const chosen=next||undated;
+    return chosen?h(Pressable,{style:S.listRow,onPress:()=>selectRepertoire(chosen)},
+      h(View,{style:{flex:1}},label(chosen.title,S.listTitle),
+       label([chosen.event_date||"Sin fecha",chosen.location,(chosen.items||[]).length+" cantos"].filter(Boolean).join(" · "),S.rowMeta)),
+      label("›",S.rowArrow))
+      :h(Card,null,label("No hay una próxima misa publicada con fecha futura.",S.info),
+       label("Consulta todos los repertorios o asigna una fecha desde el administrador.",S.smallMuted));
+   })(),
+   h(Btn,{text:"Ver todos los repertorios ("+model.repertoires.length+")",secondary:true,onPress:()=>goTab("Repertorios")}),
    title("Popurrís de SHALOM","Varios cantos como uno solo"),
    h(Btn,{text:"Explorar popurrís ("+model.medleys.length+")",secondary:true,onPress:()=>goTab("Popurrís")}),
    title("Artistas nuevos o actualizados","Últimos perfiles creados o modificados"),
@@ -355,6 +367,51 @@ function App() {
    current?previewSongs(subs):null,
    !children.length&&!current?label("Todavía no hay carpetas en esta sección.",S.empty):null
   );
+ }
+ function renderRepertoires(){
+  const list=model.repertoires.filter(r=>normalize([r.title,r.kind,r.location,r.notes,r.event_date].join(" ")).includes(normalize(query)));
+  return h(View,null,title("Repertorios","Misas y ensayos preparados desde SHALOM"),
+   inputField("Buscar repertorio",query,setQuery,{placeholder:"Misa, ensayo, fecha o lugar…"}),
+   ...list.map(rep=>h(Pressable,{key:rep.id,style:S.listRow,onPress:()=>selectRepertoire(rep)},
+    h(View,{style:{flex:1}},label(rep.title,S.listTitle),
+     label([(rep.kind==="misa"?"Misa":"Ensayo"),rep.event_date,rep.location,(rep.items||[]).length+" cantos"].filter(Boolean).join(" · "),S.rowMeta)),
+    label("›",S.rowArrow))),
+   !list.length?label("No hay repertorios publicados en la biblioteca descargada. Actualiza desde Ajustes.",S.empty):null);
+ }
+ function renderRepertoireDetail(rep){
+  const items=Array.isArray(rep.items)?rep.items:[];
+  return h(View,null,
+   h(View,{style:S.readerActions},
+    h(Btn,{text:"← Volver a repertorios",secondary:true,onPress:()=>{setImmersive(false);back()}}),
+    Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
+   label(rep.kind==="misa"?"REPERTORIO DE MISA":"REPERTORIO DE ENSAYO",S.eyebrow),
+   label(rep.title,S.readerTitle),
+   label([rep.event_date,rep.location,items.length+" cantos"].filter(Boolean).join(" · "),S.info),
+   rep.notes?label(rep.notes,S.description):null,
+   h(Card,null,label("Transposición de todos los cantos",S.listTitle),
+    h(View,{style:S.transpose},
+     h(Btn,{text:"− Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.max(-11,n-1))}),
+     label(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
+     h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.min(11,n+1))}),
+     h(Btn,{text:"Restablecer",small:true,secondary:true,onPress:()=>setTranspose(0)}))),
+   ...items.map((item,i)=>{
+    const song=model.songs.find(s=>String(s.id)===String(item.song_id));
+    const lines=parseSong(song?.lyrics||"Canto no disponible.",transpose);
+    return h(Card,{key:i,style:{marginTop:12}},
+     label((i+1)+". "+(item.moment||"Canto")+" — "+(song?.title||"Canto no disponible"),S.listTitle),
+     song?.tone?label("Tono "+song.tone,S.rowMeta):null,
+     item.notes?label(item.notes,S.info):null,
+     h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,contentContainerStyle:{padding:12,minWidth:"100%"}},
+      h(View,null,...lines.map((r,j)=>{
+       if(r.kind==="space")return h(View,{key:j,style:{height:14}});
+       if(r.kind==="section")return h(Text,{key:j,style:S.verse},r.text);
+       if(r.kind==="chords")return h(View,{key:j,style:{marginBottom:4}},
+        h(Text,{style:S.chordText},r.chordLine||" "),
+        h(Text,{style:S.lyricText},r.lyricLine||" "));
+       return h(Text,{key:j,style:r.kind==="chordsOnly"?S.chordText:S.lyricText},r.text||" ");
+      }))),
+     song?h(Btn,{text:"Ver canto individual",small:true,secondary:true,onPress:()=>selectSong(song)}):null);
+   }));
  }
  function renderMedleys(){
   const list=model.medleys.filter(m=>normalize([m.title,m.description,m.song_type].join(" ")).includes(normalize(query)));
@@ -549,12 +606,13 @@ function App() {
   );
  }
  function metric(name,n){return h(View,{style:S.metric,key:name},label(String(n),S.metricNumber),label(name,S.smallMuted))}
- const page=detail?.type==="medley"&&focusedMedley?renderMedleyDetail(focusedMedley)
+ const page=detail?.type==="repertoire"&&focusedRepertoire?renderRepertoireDetail(focusedRepertoire)
+  :detail?.type==="medley"&&focusedMedley?renderMedleyDetail(focusedMedley)
    :detail?.type==="song"&&active?renderSongDetail(active)
   :detail?.type==="artist"&&focusedArtist?renderArtistDetail(focusedArtist)
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
-  :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums()
+  :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
   :tab==="Solicitar"?renderRequest():renderHome();
  return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
