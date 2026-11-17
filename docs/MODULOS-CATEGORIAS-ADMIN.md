@@ -30,3 +30,9 @@ El orden de estos cuatro archivos se protege ahora en `scripts/check_admin_scrip
 - Hacer la consolidación en cambios pequeños y comprobar GitHub Actions y los flujos reales del navegador.
 
 **Este documento es un mapa de dependencias, no una declaración de que existan archivos prescindibles.**
+
+## Verificación de producción (2026-11-17)
+
+La restricción activa de Supabase es `categories_song_type_check`: `song_type IN ('', 'catolico', 'cristiano')`. La columna es `text NOT NULL` con valor predeterminado `''`. El recuento de categorías fue 11 generales (`''`) y 13 católicas (`catolico`); no se alteraron datos. Por tanto, la normalización actual de `admin-category-save-fix.js` coincide con los valores admitidos por la base de datos. La pestaña visual `mixto` no equivale a un tipo persistible; su significado y tratamiento en la interfaz requieren diseño explícito antes de añadir soporte en SQL.
+
+Se añadió `tests/category-type-regression.cjs`, prueba aislada del manejador de guardado con seis casos, ejecutada por el flujo de calidad. Esta prueba no utiliza credenciales ni guarda categorías reales.
