@@ -413,7 +413,7 @@
   function tryAuto(force = false) {
     if (!navigator.onLine || state.busy || !state.snapshot) return;
     const wait = AUTO_INTERVAL_MS * Math.pow(2, state.autoFailures);
-    if (!force && Date.now() - state.lastAuto < wait) return;
+    if ((!force || state.autoFailures > 0) && Date.now() - state.lastAuto < wait) return;
     if ($("#wifiOnly").checked && connectionType() !== "wifi") return;
     state.lastAuto = Date.now();
     downloadCatalog();
