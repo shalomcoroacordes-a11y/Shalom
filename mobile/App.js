@@ -15,7 +15,7 @@ const h=React.createElement;
 const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
  text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const tabs=[["Inicio","⌂"],["Canciones","♫"],["Artistas","♩"],["Categorías","▦"],["Álbumes","▣"]];
+const tabs=[["Inicio","⌂"],["Canciones","♫"],["Popurrís","♬"],["Artistas","♩"],["Categorías","▦"],["Álbumes","▣"]];
 const label=(value,style)=>h(Text,{style:style||S.info},String(value??""));
 const type=val=>typeLabel(val);
 const inputField=(name,value,onChangeText,more={})=>h(View,{style:S.field,key:name},
@@ -83,6 +83,7 @@ function App() {
  const [folderId,setFolderId]=useState("");
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
+ const [medleyCapo,setMedleyCapo]=useState(0);
  const [countLimit,setCountLimit]=useState(80);
  const [requestKind,setRequestKind]=useState("song");
  const [requestSong,setRequestSong]=useState(null);
@@ -98,6 +99,7 @@ function App() {
  const active=detail?.type==="song"?model.songs.find(s=>s.id===detail.id):null;
  const focusedArtist=detail?.type==="artist"?model.artistMap.get(detail.id):null;
  const focusedAlbum=detail?.type==="album"?model.albumMap.get(detail.id):null;
+ const focusedMedley=detail?.type==="medley"?model.medleys.find(x=>x.id===detail.id):null;
  const eligible=useMemo(()=>model.songs.filter(s=>{
   if(typeFilter&&s.song_type!==typeFilter)return false;
   if(categoryId&&!s._categories.some(c=>model.descendants(categoryId).has(c.id)))return false;
@@ -107,6 +109,7 @@ function App() {
  }),[model,typeFilter,categoryId,query]);
  function goTab(next){setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery("");setTypeFilter("");setCategoryId("");}
  function selectSong(song){setDetail({type:"song",id:song.id,from:tab});setTranspose(0);setCapo("none");}
+ function selectMedley(medley){setDetail({type:"medley",id:medley.id,from:tab});setTranspose(0);setMedleyCapo(0);}
  function back(){if(detail){setDetail(null);return;}goTab("Inicio");}
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
@@ -213,6 +216,7 @@ function App() {
     label("Tus letras, acordes, artistas y categorías desde SHALOM, incluso sin señal.",S.info),
     h(View,{style:S.rowWrap},
      h(Btn,{text:"♫ Ver canciones",onPress:()=>goTab("Canciones")}),
+      h(Btn,{text:"♬ Popurrís",secondary:true,onPress:()=>goTab("Popurrís")}),
      h(Btn,{text:"Solicitar un canto",secondary:true,onPress:()=>requestForm("song")})
     )
    ),
@@ -240,6 +244,8 @@ function App() {
    h(View,{style:S.rowWrap},
     h(Btn,{text:"Acerca de ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")}),
     h(Btn,{text:"Donaciones ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")})),
+   title("Popurrís de SHALOM","Varios cantos como uno solo"),
+   h(Btn,{text:"Explorar popurrís ("+model.medleys.length+")",secondary:true,onPress:()=>goTab("Popurrís")}),
    title("Artistas destacados"),
    ...model.artists.slice(0,4).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
      description:model.songsForArtist(a.id).length+" cantos",
@@ -299,6 +305,69 @@ function App() {
    current?title("Cantos en esta carpeta",subs.length+" cantos incluyendo subcarpetas"):null,
    current?previewSongs(subs):null,
    !children.length&&!current?label("Todavía no hay carpetas en esta sección.",S.empty):null
+  );
+ }
+ function renderMedleys(){
+  const list=model.medleys.filter(m=>normalize([m.title,m.description,m.song_type].join(" ")).includes(normalize(query)));
+  return h(View,null,
+   title("Popurrís","Varios cantos unidos en una sola lectura, con acordes y secciones"),
+   inputField("Buscar popurrí",query,setQuery,{placeholder:"Nombre o celebración…"}),
+   ...list.map(m=>h(Pressable,{key:m.id,style:S.listRow,accessibilityRole:"button",onPress:()=>selectMedley(m)},
+     h(View,{style:S.entityIcon},label("♬",S.entityEmoji)),
+     h(View,{style:{flex:1}},label(m.title,S.listTitle),
+       label((m.parts||[]).length+" fragmentos · "+type(m.song_type),S.rowMeta)),
+     label("›",S.rowArrow))),
+   !list.length?label(copy?.syncedAt?"Todavía no hay popurrís publicados o no coinciden con la búsqueda.":"Descarga o actualiza el cancionero desde Inicio para consultar los popurrís sin internet.",S.empty):null
+  );
+ }
+ function renderMedleyDetail(medley){
+  const parts=Array.isArray(medley.parts)?medley.parts:[];
+  return h(View,null,
+   h(Btn,{text:"← Volver a Popurrís",secondary:true,onPress:back}),
+   label(type(medley.song_type).toUpperCase(),S.eyebrow),
+   label(medley.title,S.readerTitle),
+   label(parts.length+" fragmentos"+(medley.base_tone?" · Tono "+medley.base_tone:""),S.info),
+   medley.description?label(medley.description,S.description):null,
+   h(Card,null,
+     label("Transposición de todo el popurrí",S.listTitle),
+     h(View,{style:S.transpose},
+       h(Btn,{text:"− Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.max(-11,n-1))}),
+       label(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
+       h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.min(11,n+1))}),
+       h(Btn,{text:"Restablecer",small:true,secondary:true,onPress:()=>{setTranspose(0);setMedleyCapo(0)}})),
+     label("Capo para todo el popurrí",S.fieldTitle),
+     h(View,{style:S.chips},...[0,1,2,3,4,5,6,7].map(n=>h(Chip,{key:n,
+       text:n===0?"Sin capo":"Traste "+n,active:medleyCapo===n,onPress:()=>setMedleyCapo(n)})))
+   ),
+   ...parts.map((part,index)=>{
+    const original=model.songs.find(song=>String(song.id)===String(part.song_id));
+    const delta=transpose+Number(part.shift||0)-medleyCapo;
+    const lines=parseSong(part.lyrics||"",delta);
+    return h(Card,{key:part.id||index},
+     h(View,{style:{flexDirection:"row",alignItems:"center",gap:9}},
+      h(View,{style:S.entityIcon},label(String(index+1),S.entityEmoji)),
+      h(View,{style:{flex:1}},
+       label(part.title||part.song_title||"Canto "+(index+1),S.listTitle),
+       label([part.tone?"Tono "+part.tone:"",part.shift?"Ajuste "+part.shift+" semitonos":""].filter(Boolean).join(" · "),S.rowMeta))),
+     h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,
+       contentContainerStyle:{padding:12,minWidth:"100%"}},
+      h(View,null,...lines.map((r,i)=>{
+       if(r.kind==="space")return h(View,{key:i,style:{height:14}});
+       if(r.kind==="section")return h(Text,{key:i,style:S.verse},r.text);
+       if(r.kind==="chords")return h(View,{key:i,style:{marginBottom:4}},
+         h(Text,{style:S.chordText},r.chordLine||" "),
+         h(Text,{style:S.lyricText},r.lyricLine||" "));
+       return h(Text,{key:i,style:r.kind==="chordsOnly"?S.chordText:S.lyricText},r.text||" ");
+      }))),
+     original?h(View,{style:S.rowWrap},
+      h(Btn,{text:"Ver canto original",small:true,secondary:true,onPress:()=>selectSong(original)}),
+      ...[...(original._links||[]).map(x=>({title:x.title||"Video",url:x.url})),
+        {title:"Tutorial guitarra",url:original.tutorial_guitar},
+        {title:"Tutorial piano",url:original.tutorial_piano}]
+        .filter(x=>safeWebUrl(x.url)).slice(0,3)
+        .map((x,i)=>h(Btn,{key:i,text:"▶ "+x.title,small:true,secondary:true,onPress:()=>openWeb(x.url)}))
+      ):null);
+   })
   );
  }
  function renderAlbums(){
@@ -425,10 +494,11 @@ function App() {
   );
  }
  function metric(name,n){return h(View,{style:S.metric,key:name},label(String(n),S.metricNumber),label(name,S.smallMuted))}
- const page=detail?.type==="song"&&active?renderSongDetail(active)
+ const page=detail?.type==="medley"&&focusedMedley?renderMedleyDetail(focusedMedley)
+   :detail?.type==="song"&&active?renderSongDetail(active)
   :detail?.type==="artist"&&focusedArtist?renderArtistDetail(focusedArtist)
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
-  :tab==="Canciones"?renderSongs():tab==="Artistas"?renderArtists()
+  :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums()
   :tab==="Solicitar"?renderRequest():renderHome();
  return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:["top","bottom","left","right"]},
@@ -500,6 +570,6 @@ const S=StyleSheet.create({
  nav:{backgroundColor:C.panel,borderTopWidth:1,borderColor:C.border,flexDirection:"row",justifyContent:"space-around",paddingVertical:8,minHeight:62},
  navItem:{alignItems:"center",justifyContent:"center",flex:1,paddingVertical:3},
  navSelected:{backgroundColor:"#143b2c",borderRadius:10},
- navIcon:{fontSize:22,color:C.muted,lineHeight:24},navText:{fontSize:10,fontWeight:"800",color:C.muted,marginTop:4}
+ navIcon:{fontSize:22,color:C.muted,lineHeight:24},navText:{fontSize:9,fontWeight:"800",color:C.muted,marginTop:4}
 });
 module.exports=App;
