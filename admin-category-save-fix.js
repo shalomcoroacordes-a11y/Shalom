@@ -103,8 +103,11 @@
           String(category.parent_id || "") === String(payload.parent_id || "") &&
           normalizeType(category.song_type) === payload.song_type
         );
-        if (existing) openDuplicate(existing);
-        return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Se abrió para editarla.", true);
+        if (existing) {
+          openDuplicate(existing);
+          return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Se abrió para editarla.", true);
+        }
+        return apNote("Ya existe una categoría con ese nombre dentro de esta carpeta y tipo. Actualiza el panel para localizarla.", true);
       }
       return apNote(`Error: ${result.error.message}`, true);
     }
