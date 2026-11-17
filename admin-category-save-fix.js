@@ -125,7 +125,7 @@
       apNote(`Error al guardar o actualizar la lista: ${error?.message || "Inténtalo de nuevo."}`, true);
     } finally {
       saveInProgress = false;
-      if (submitButton?.isConnected !== false) submitButton && (submitButton.disabled = false);
+      if (submitButton) submitButton.disabled = false;
     }
   }, true);
 })();
