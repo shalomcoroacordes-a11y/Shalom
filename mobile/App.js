@@ -267,31 +267,27 @@ function App() {
    h(View,{style:S.hero},
     label("CANCIONERO PARA EL CORO",S.eyebrow),
     label("Tus cantos, siempre contigo.",S.heroTitle),
-    label("Letras y acordes para ensayar y compartir.",S.info),
-    h(View,{style:S.rowWrap},
-     h(Btn,{text:"♫ Canciones",small:true,onPress:()=>goTab("Canciones")}),
-     h(Btn,{text:"+ Solicitar",small:true,secondary:true,onPress:()=>requestForm("song")}))
+    label("Letras y acordes para ensayar y compartir.",S.heroSubtitle)
    ),
    h(Pressable,{style:S.syncCompact,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
-    h(View,{style:{flex:1}},
-     label(copy?.syncedAt?"✓ Biblioteca actualizada":"↓ Biblioteca pendiente",S.listTitle),
-     label(model.songs.length+" cantos · "+model.artists.length+" artistas · "+model.categories.length+" categorías",S.rowMeta)),
-    label("⚙ ›",S.rowArrow)),
+    label(copy?.syncedAt?"✓":"↓",S.syncIcon),
+    h(View,{style:{flex:1}},label(model.songs.length+" cantos · "+(copy?.syncedAt?"Sincronizado":"Pendiente de sincronizar"),S.syncText)),
+    label("⚙",S.syncIcon)),
    busy?label("Sincronizando… "+progress,S.info):null,
    error?label(error,S.error):null,
    title("Mi próxima misa"),
    (()=>{const today=new Date().toISOString().slice(0,10);
-    const next=model.repertoires.filter(r=>r.kind==="misa"&&r.event_date&&r.event_date>=today)[0];
+    const next=[...model.repertoires].filter(r=>r.kind==="misa"&&r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0];
     const undated=model.repertoires.find(r=>r.kind==="misa"&&!r.event_date);
     const chosen=next||undated;
-    return chosen?h(Pressable,{style:S.listRow,onPress:()=>selectRepertoire(chosen)},
-      h(View,{style:{flex:1}},label(chosen.title,S.listTitle),
-       label([chosen.event_date||"Sin fecha",chosen.location,(chosen.items||[]).length+" cantos"].filter(Boolean).join(" · "),S.rowMeta)),
-      label("›",S.rowArrow))
+    return chosen?h(Pressable,{style:S.massCard,onPress:()=>selectRepertoire(chosen),accessibilityRole:"button"},
+      h(View,{style:{flex:1},children:[label(chosen.title,S.massTitle),
+       label([chosen.event_date||"Sin fecha",chosen.location,(chosen.items||[]).length+" cantos"].filter(Boolean).join(" · "),S.rowMeta)]}),
+      h(View,{style:S.massAction},label("Abrir repertorio  ›",S.massActionText)))
       :h(Card,null,label("No hay una próxima misa publicada con fecha futura.",S.info),
        label("Consulta todos los repertorios o asigna una fecha desde el administrador.",S.smallMuted));
    })(),
-   h(Btn,{text:"Ver todos los repertorios ("+model.repertoires.length+")",secondary:true,onPress:()=>goTab("Repertorios")}),
+   h(Pressable,{onPress:()=>goTab("Repertorios"),style:S.repertoireLink,accessibilityRole:"button"},label("Ver todos los repertorios ("+model.repertoires.length+")  ›",S.repertoireLinkText)),
    lastSong||lastMedley?title("Continuar donde me quedé"):null,
    lastSong?h(SongRow,{song:lastSong,onPress:()=>selectSong(lastSong)}):null,
    lastMedley?h(Pressable,{style:S.listRow,onPress:()=>selectMedley(lastMedley)},
@@ -308,11 +304,11 @@ function App() {
      !found.length?label("No se encontraron cantos.",S.empty):null,
      h(Btn,{text:"Buscar en todas las canciones",secondary:true,onPress:()=>{goTab("Canciones");setQuery(homeSearch)}}));
    })():null,
-   title("Canciones recientes","Últimos cantos agregados o actualizados"),
+   title("Últimos cantos actualizados","Nuevos o modificados recientemente"),
    newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
     contentContainerStyle:{gap:10,paddingVertical:3}},
     ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
-     label("♫",S.entityEmoji),label(song.title,S.listTitle),
+     label("♫",S.entityEmoji),h(Text,{style:S.newCardTitle,numberOfLines:2,ellipsizeMode:"tail"},song.title||"Sin título"),
      label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
 
   );
@@ -656,13 +652,23 @@ const S=StyleSheet.create({
  page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
  readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
  capoNote:{fontSize:12,color:C.pale,fontWeight:"800",marginTop:7},
- hero:{padding:13,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:16,marginBottom:10},
- syncCompact:{backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:13,padding:13,flexDirection:"row",alignItems:"center",marginBottom:9},
- newCard:{width:190,minHeight:125,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:14,padding:13,justifyContent:"center",gap:6},
- eyebrow:{fontSize:11,letterSpacing:1.5,color:C.green,fontWeight:"850",marginBottom:10},
- heroTitle:{fontSize:22,lineHeight:28,fontWeight:"900",color:C.text,marginBottom:7},
+ hero:{paddingHorizontal:15,paddingTop:13,paddingBottom:10,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:16,marginBottom:8},
+ heroSubtitle:{fontSize:12,color:C.muted,lineHeight:18,marginBottom:0},
+ syncIcon:{fontSize:18,color:C.green,fontWeight:"800"},
+ syncText:{fontSize:13,color:C.text,fontWeight:"750"},
+ massCard:{backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:15,padding:14,marginVertical:4,gap:13},
+ massTitle:{fontSize:18,color:C.text,fontWeight:"850"},
+ massAction:{backgroundColor:C.green,borderRadius:10,minHeight:40,alignItems:"center",justifyContent:"center"},
+ massActionText:{color:"#041b13",fontSize:13,fontWeight:"850"},
+ repertoireLink:{paddingVertical:10,alignItems:"center"},
+ repertoireLinkText:{color:C.pale,fontSize:13,fontWeight:"750"},
+ newCardTitle:{fontSize:14,lineHeight:19,fontWeight:"800",color:C.text,minHeight:38},
+ syncCompact:{backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:11,paddingHorizontal:12,paddingVertical:9,flexDirection:"row",alignItems:"center",gap:9,marginBottom:5},
+ newCard:{width:172,minHeight:104,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:14,padding:12,justifyContent:"center",gap:4},
+ eyebrow:{fontSize:10,letterSpacing:1.2,color:C.green,fontWeight:"850",marginBottom:5},
+ heroTitle:{fontSize:19,lineHeight:25,fontWeight:"900",color:C.text,marginBottom:4},
  title:{fontSize:20,color:C.text,fontWeight:"850",marginBottom:6},
- sectionHeading:{marginTop:17,marginBottom:11},
+ sectionHeading:{marginTop:13,marginBottom:8},
  info:{fontSize:13,lineHeight:20,color:C.muted,marginBottom:9},smallMuted:{fontSize:11,color:C.muted,lineHeight:16},
  empty:{fontSize:14,color:C.muted,marginVertical:14,lineHeight:21},
  description:{fontSize:14,color:C.text,lineHeight:22,marginVertical:12},
@@ -706,6 +712,6 @@ const S=StyleSheet.create({
  nav:{backgroundColor:C.panel,borderTopWidth:1,borderColor:C.border,flexDirection:"row",justifyContent:"space-around",paddingVertical:8,minHeight:62},
  navItem:{alignItems:"center",justifyContent:"center",flex:1,paddingVertical:3},
  navSelected:{backgroundColor:"#143b2c",borderRadius:10},
- navIcon:{fontSize:22,color:C.muted,lineHeight:24},navText:{fontSize:9,fontWeight:"800",color:C.muted,marginTop:4}
+ navIcon:{fontSize:23,color:C.muted,lineHeight:26,textAlign:"center"},navText:{fontSize:9,fontWeight:"800",color:C.muted,marginTop:4,textAlign:"center"}
 });
 module.exports=App;
