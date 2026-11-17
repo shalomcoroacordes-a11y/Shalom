@@ -6,9 +6,11 @@
 
 - [x] Identificar zonas: web pública, administración, app móvil, Supabase, pruebas y workflows.
 - [x] Crear `docs/ARQUITECTURA.md` con un mapa inicial.
-- [ ] Inventariar dependencias HTML → JS/CSS, importaciones, scripts globales y referencias a rutas.
+- [x] Incorporar inventario reproducible de referencias HTML → JS/CSS (`scripts/audit_html_dependencies.py`).
+- [ ] Completar inventario de importaciones, scripts globales, cargas dinámicas y referencias a rutas.
 - [ ] Identificar código realmente sin uso mediante búsqueda de referencias y pruebas.
-- [ ] Auditar workflows duplicados y documentar qué publica cada uno.
+- [x] Documentar los seis workflows y señalar tres publicadores históricos (`docs/AUDITORIA-REPOSITORIO.md`).
+- [ ] Verificar ejecuciones y retirar publicadores históricos solo tras confirmar que no se usan.
 - [ ] Registrar versión estable y una lista de comprobación funcional.
 
 ## Fase 1 — Seguridad y pruebas
@@ -21,11 +23,12 @@
 
 ## Fase 2 — Documentación para aprender y colaborar
 
-- [ ] Escribir `docs/DESARROLLO.md`: requisitos, ejecución local, pruebas y publicación.
+- [x] Escribir `docs/DESARROLLO.md`: requisitos, ejecución local, pruebas y publicación.
 - [ ] Escribir `docs/BASE-DE-DATOS.md`: tablas, permisos, relaciones y orden confirmado de migraciones.
-- [ ] Escribir `docs/GUIA-PARA-APRENDER.md`: conceptos básicos, recorrido del código y ejercicios.
+- [x] Escribir `docs/GUIA-PARA-APRENDER.md`: conceptos básicos, recorrido del código y ejercicios.
 - [ ] Explicar contratos de datos entre web, Supabase y Android.
-- [ ] Actualizar `mobile/README.md` según el código actual.
+- [x] Actualizar `mobile/README.md` con las once tablas sincronizadas.
+- [ ] Auditar el resto del README frente a los flujos actuales.
 
 ## Fase 3 — Refactorización por módulos
 
