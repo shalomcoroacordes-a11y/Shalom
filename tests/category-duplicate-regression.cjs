@@ -61,7 +61,8 @@ async function scenario({ categories, editingId = null, parentId = "", type = ""
   assert.match(missing.note, /Actualiza el panel/);
   assert.doesNotMatch(missing.note, /Se abrió para editarla/);
 
-  const known = await scenario({ categories: [], dbError: error });
-  assert.equal(known.refreshed, 0);
+  const generic = await scenario({ categories: [], dbError: { message: "permission denied" } });
+  assert.equal(generic.refreshed, 0);
+  assert.match(generic.note, /permission denied/);
   console.log("OK: duplicate category handling and truthful feedback (6 cases).");
 })().catch((error) => { console.error(error); process.exitCode = 1; });
