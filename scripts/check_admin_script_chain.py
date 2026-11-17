@@ -46,6 +46,7 @@ def main():
         ("supabase-js", "Supabase.js", "admin-auth-controller.js"),
         ("song-chords.js", "medley-core.js", "admin-medleys.js"),
         ("repertoires-core.js", "admin-repertoires.js"),
+        ("admin-pro.js", "admin-category-browser-v2.js", "admin-category-save-fix.js", "admin-song-category-picker.js"),
     ]
     for chain in chains:
         indexes = []
