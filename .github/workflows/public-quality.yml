@@ -52,6 +52,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Test artist biography rendering without fallback patch
+        run: node tests/artist-description-regression.cjs
+
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
 
