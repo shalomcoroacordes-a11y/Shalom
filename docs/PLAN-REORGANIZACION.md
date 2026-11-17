@@ -25,7 +25,8 @@
 ## Fase 2 — Documentación para aprender y colaborar
 
 - [x] Escribir `docs/DESARROLLO.md`: requisitos, ejecución local, pruebas y publicación.
-- [ ] Escribir `docs/BASE-DE-DATOS.md`: tablas, permisos, relaciones y orden confirmado de migraciones.
+- [x] Crear mapa inicial de tablas, almacenamiento y riesgos de permisos (`docs/BASE-DE-DATOS.md`).
+- [ ] Verificar esquema desplegado, relaciones y orden real de migraciones en Supabase.
 - [x] Escribir `docs/GUIA-PARA-APRENDER.md`: conceptos básicos, recorrido del código y ejercicios.
 - [ ] Explicar contratos de datos entre web, Supabase y Android.
 - [x] Actualizar `mobile/README.md` con las once tablas sincronizadas.
