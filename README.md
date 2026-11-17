@@ -11,6 +11,7 @@ Cancionero web y aplicación móvil del coro SHALOM.
 | Aprender programación con este proyecto | [Guía para aprender](docs/GUIA-PARA-APRENDER.md) |
 | Saber cómo nombrar y organizar código | [Convenciones](docs/CONVENCIONES.md) |
 | Comprender tablas y permisos | [Base de datos](docs/BASE-DE-DATOS.md) |
+| Revisar relaciones y políticas RLS verificadas | [Relaciones y permisos](docs/RELACIONES-Y-PERMISOS.md) |
 | Ver problemas detectados | [Auditoría](docs/AUDITORIA-REPOSITORIO.md) |
 | Consultar lo pendiente de reorganización | [Plan de reorganización](docs/PLAN-REORGANIZACION.md) |
 | Trabajar en Android | [Manual móvil](mobile/README.md) |
