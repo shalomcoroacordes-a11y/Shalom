@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const source=fs.readFileSync("admin-backup-import.js","utf8");
+assert.match(source,/shalom-respaldo-antes-de-restaurar-\$\{filenameDate\(\)\}\.json/);
+assert.doesNotMatch(source,/juntos-hacia-dios-respaldo-antes-de-restaurar/);
+const start=source.indexOf("async function importBackup()");
+const end=source.indexOf("function bindCard()",start);
+assert.ok(start>=0&&end>start);
+const body=source.slice(start,end);
+assert.match(body,/let restorationStarted = false/);
+assert.ok(body.indexOf("await createSafetyBackup()")<body.indexOf("restorationStarted = true"));
+assert.ok(body.indexOf("restorationStarted = true")<body.indexOf("await restoreTable(table, rows)"));
+assert.match(body,/No se inició la restauración:/);
+assert.match(body,/No se modificó ningún registro durante este intento/);
+assert.match(body,/Algunos registros pueden haberse restaurado/);
+console.log("ADM backup: SHALOM filename and distinct preflight/partial restore notices verified.");
