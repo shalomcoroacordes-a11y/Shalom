@@ -7,7 +7,8 @@
 - [x] Identificar zonas: web pública, administración, app móvil, Supabase, pruebas y workflows.
 - [x] Crear `docs/ARQUITECTURA.md` con un mapa inicial.
 - [x] Incorporar inventario reproducible de referencias HTML → JS/CSS (`scripts/audit_html_dependencies.py`).
-- [ ] Completar inventario de importaciones, scripts globales, cargas dinámicas y referencias a rutas.
+- [x] Añadir inventario estático de importaciones JS y require (`scripts/audit_js_dependencies.py`).
+- [ ] Completar análisis de scripts globales, cargas dinámicas y referencias a rutas.
 - [ ] Identificar código realmente sin uso mediante búsqueda de referencias y pruebas.
 - [x] Documentar los seis workflows y señalar tres publicadores históricos (`docs/AUDITORIA-REPOSITORIO.md`).
 - [ ] Verificar ejecuciones y retirar publicadores históricos solo tras confirmar que no se usan.
@@ -35,7 +36,7 @@
 - [ ] Extraer componentes de `mobile/App.js` de uno en uno, con pruebas.
 - [ ] Consolidar lógica repetida de búsqueda, navegación y lectores sin alterar el resultado.
 - [ ] Revisar scripts `*-fix.js`, `*-v2.js` y estilos superpuestos: conservar o fusionar **solo con evidencia**.
-- [ ] Definir convenciones de nombres, comentarios y carpetas.
+- [x] Definir convenciones de nombres, comentarios y carpetas (`docs/CONVENCIONES.md`).
 - [ ] Reducir dependencias del orden de scripts del administrador donde sea seguro.
 
 ## Fase 4 — Carpetas y despliegue
