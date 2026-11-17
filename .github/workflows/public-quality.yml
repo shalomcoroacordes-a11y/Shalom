@@ -54,6 +54,9 @@ jobs:
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
+      - name: Test category deletion navigation
+        run: node tests/category-delete-navigation-regression.cjs
+
       - name: Test admin deletion paths and error handling
         run: node tests/admin-delete-regression.cjs
 
