@@ -14,6 +14,11 @@ assert.equal(valid.items[0].song_id,id);
 assert.equal(valid.items[0].moment,"Entrada");
 assert.equal(valid.is_published,true);
 assert.equal(valid.event_date,"2026-11-22");
+for(const date of ["2026-02-30","2026-13-01","2026-00-10","2025-02-29","2026-11-31","not-a-date"]){
+ assert.throws(()=>R.validate({title:"Misa dominical",kind:"misa",items:[],event_date:date}),/fecha real/,date);
+ assert.equal(R.formatDate(date),"Sin fecha",date);
+}
+assert.equal(R.validate({title:"Misa dominical",kind:"misa",items:[],event_date:"2028-02-29"}).event_date,"2028-02-29");
 assert.equal(R.html("<img src=x onerror='bad'>"),"&lt;img src=x onerror=&#039;bad&#039;&gt;");
 const page=fs.readFileSync("repertorios.html","utf8");
 assert.match(page,/repertoires.js/);
