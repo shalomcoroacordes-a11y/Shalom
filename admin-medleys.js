@@ -86,6 +86,13 @@
   finally{state.saving=false;render();}
  }
  function bind(){
+  state.root.querySelectorAll("#popTitle,#popType,#popTone,#popDescription,[data-title],[data-shift],[data-lyrics]").forEach(input=>{
+    input.addEventListener("input",()=>{
+      capture();
+      const preview=get(".medley-preview");
+      if(preview)preview.innerHTML="<h3>"+esc(state.active.title||"Popurrí sin título")+"</h3>"+M.renderPartsHTML(state.active.parts,0);
+    });
+  });
   get("#popForm")?.addEventListener("submit",e=>{e.preventDefault();save();});
   get("#popNew")?.addEventListener("click",()=>{state.active=blank();state.message="";render();});
   get("#popSearch")?.addEventListener("input",e=>{state.query=e.target.value;get("#popSong").innerHTML=options();});
