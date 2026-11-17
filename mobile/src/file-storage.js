@@ -16,7 +16,7 @@ function validSnapshot(data) {
   return Boolean(data && typeof data === "object" &&
     typeof data.syncedAt === "string" &&
     Number.isFinite(Date.parse(data.syncedAt)) &&
-    data.data && TABLES.every(table => table === "medleys" && data.data[table] == null ? true : Array.isArray(data.data[table])));
+    data.data && TABLES.every(table => ["medleys","repertoires"].includes(table) && data.data[table] == null ? true : Array.isArray(data.data[table])));
 }
 async function readSlot(slot) {
   try {
