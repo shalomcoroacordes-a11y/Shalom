@@ -97,6 +97,7 @@
     saveInProgress = true;
     const submitButton = form.querySelector?.('button[type="submit"]');
     if (submitButton) submitButton.disabled = true;
+    let savedToDatabase = false;
     try {
       const result = editingId
         ? await AdminPro.from("categories").update(payload).eq("id", editingId)
@@ -118,11 +119,16 @@
         return apNote(`Error: ${result.error.message}`, true);
       }
 
+      savedToDatabase = true;
       AP.edits.category = null;
       AP.categoryNewParent = null;
       await apRefresh(editingId ? "Categoría actualizada." : "Categoría guardada.");
     } catch (error) {
-      apNote(`Error al guardar o actualizar la lista: ${error?.message || "Inténtalo de nuevo."}`, true);
+      if (savedToDatabase) {
+        apNote("La categoría se guardó, pero no se pudo actualizar la lista. Recarga el administrador antes de volver a guardar.", true);
+      } else {
+        apNote(`No se pudo confirmar el guardado: ${error?.message || "Error de conexión."} Revisa la lista antes de reintentarlo.`, true);
+      }
     } finally {
       saveInProgress = false;
       if (submitButton) submitButton.disabled = false;
