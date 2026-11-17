@@ -38,12 +38,14 @@
     });
   };
 
+  let saveInProgress = false;
   document.addEventListener("submit", async (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement) || form.id !== "categoryAdminForm") return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
+    if (saveInProgress) return;
 
     const data = Object.fromEntries(new FormData(form).entries());
     const name = String(data.name || "").trim();
@@ -92,9 +94,20 @@
       return apNote(`“${duplicate.name}” ya existe dentro de ${parentLabel(payload.parent_id)}. Se abrió para editarla.`, true);
     }
 
-    const result = editingId
-      ? await AdminPro.from("categories").update(payload).eq("id", editingId)
-      : await AdminPro.from("categories").insert([payload]);
+    saveInProgress = true;
+    const submitButton = form.querySelector?.('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    let result;
+    try {
+      result = editingId
+        ? await AdminPro.from("categories").update(payload).eq("id", editingId)
+        : await AdminPro.from("categories").insert([payload]);
+    } catch (error) {
+      return apNote(`Error al guardar: ${error?.message || "Inténtalo de nuevo."}`, true);
+    } finally {
+      saveInProgress = false;
+      if (submitButton) submitButton.disabled = false;
+    }
 
     if (result.error) {
       if (String(result.error.message || "").includes("categories_slug_parent_type_unique")) {
