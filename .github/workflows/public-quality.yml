@@ -72,6 +72,9 @@ jobs:
       - name: Verify consistent SHALOM library section design
         run: node tests/mobile-section-theme-regression.cjs
 
+      - name: Verify Cantos-style medley and misa readers
+        run: node tests/mobile-multi-reader-regression.cjs
+
       - name: Test backup import preflight and recovery notices
         run: node tests/backup-import-safety-regression.cjs
 
