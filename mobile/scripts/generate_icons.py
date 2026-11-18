@@ -29,6 +29,10 @@ render(adaptive, "adaptive-foreground.png")
 print("SHALOM: icono Android creado con la paloma original.")
 
 
+def render_ui(svg, filename, width, height):
+    cairosvg.svg2png(bytestring=svg.encode("utf-8"), write_to=str(assets / filename),
+                     output_width=width, output_height=height)
+
 # Recursos de Inicio. La paloma procede del MISMO contorno original
 # que se utiliza en el icono oficial Android, sin emojis sustitutos.
 home_logo = f"""<svg xmlns="http://www.w3.org/2000/svg" width="650" height="390" viewBox="0 0 650 390">
@@ -37,7 +41,7 @@ home_logo = f"""<svg xmlns="http://www.w3.org/2000/svg" width="650" height="390"
    fill="none" stroke="#27c98b" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M505 353 Q368 345 239 354" fill="none" stroke="#27c98b" stroke-width="10" stroke-linecap="round"/>
 </svg>"""
-render(home_logo, "home-logo.png")
+render_ui(home_logo, "home-logo.png", 650, 390)
 
 home_waves = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340">
 <defs><linearGradient id="wave" x1="0" x2="1" y1="0" y2=".2">
@@ -48,7 +52,7 @@ home_waves = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340
 <path d="M0 210 Q210 43 440 164 T900 156 T1200 114 L1200 208 Q948 251 778 211 T366 229 T0 282Z" fill="url(#wave)" opacity=".72"/>
 <path d="M0 271 Q222 188 417 245 T843 210 T1200 232" fill="none" stroke="#21c58a" stroke-width="8" opacity=".37"/>
 </svg>"""
-render(home_waves, "home-waves.png")
+render_ui(home_waves, "home-waves.png", 1200, 340)
 
 home_banner = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="350" viewBox="0 0 1200 350">
 <defs><linearGradient id="banner" x1="0" y1=".6" x2="1" y2="0">
@@ -69,7 +73,7 @@ C1073 228 1116 230 1123 197 C1130 161 1096 139 1061 155 V5"/>
 <ellipse cx="1017" cy="215" rx="27" ry="31"/><path d="M974 60 H1061"/>
 <path d="M997 0 V350 M1011 0 V350 M1025 0 V350 M1039 0 V350" stroke-width="3"/>
 </g></svg>"""
-render(home_banner, "home-banner.png")
+render_ui(home_banner, "home-banner.png", 1200, 350)
 
 # Iconos monocromos transparentes: tintColor en React Native puede resaltar el activo.
 icons = {
@@ -88,4 +92,4 @@ icons = {
 for name, drawing in icons.items():
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
     <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">{drawing}</g></svg>"""
-    render(svg, "home-" + name + ".png")
+    render_ui(svg, "home-" + name + ".png", 100, 100)
