@@ -60,6 +60,9 @@ jobs:
       - name: Test offline refresh and Android accessibility contracts
         run: node tests/offline-mobile-regression.cjs
 
+      - name: Test native SHALOM reader and private likes
+        run: node tests/mobile-song-reader-regression.cjs
+
       - name: Test backup import preflight and recovery notices
         run: node tests/backup-import-safety-regression.cjs
 
