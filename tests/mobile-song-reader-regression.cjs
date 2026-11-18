@@ -1,0 +1,24 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const app=fs.readFileSync("mobile/App.js","utf8");
+const database=fs.readFileSync("mobile/src/database.js","utf8");
+const favorites=fs.readFileSync("mobile/src/favorites.js","utf8");
+
+const reader=app.slice(app.indexOf(" function renderSongDetail(song){"),app.indexOf(" function renderRequest(){"));
+assert.ok(reader.includes("const parsed=parseSong(song.lyrics"),"The native reader must render the downloaded lyrics");
+assert.ok(reader.includes('row.kind==="section"'),"Section chips must reflect song structure");
+assert.ok(reader.includes("S.songChord")&&reader.includes("S.songLyric"),"Chords and lyrics must have distinct visual styles");
+assert.ok(reader.includes("fontFamily:MONO")||app.includes("songChord:{fontFamily:MONO"),"Fixed-width font preserves chord alignment");
+assert.ok(reader.includes("toggleLike(song.id)"),"The song reader must allow local likes");
+assert.ok(!/Editar|Reportar letra|Corregir acordes|requestForm\(/.test(reader),"No editor or correction requests inside the reader");
+assert.match(app,/setMetadata\(FAVORITES_KEY,payload\)/,"Likes must be written to local metadata");
+assert.match(app,/getMetadata\(FAVORITES_KEY,"\[\]"\)/,"Likes must be restored locally on startup");
+assert.match(app,/setOnlyLiked\(true\)/,"Users need to filter their liked songs");
+assert.match(app,/detail\?\.type!=="song"\?h\(View/,"Native bottom navigation is hidden in the reader");
+assert.match(app,/shareSong\(active\)/,"Sharing must remain available without editing");
+assert.match(app,/printSong\(active\)/,"Printing must use a real action");
+assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Supabase calls");
+assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
+assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
+assert.match(app,/readerFont\+7/,"Song text size must be adjustable");
+console.log("SHALOM Android reader: local-only likes, accessible controls and no editing verified.");
