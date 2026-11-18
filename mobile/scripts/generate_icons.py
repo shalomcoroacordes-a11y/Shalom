@@ -35,11 +35,10 @@ def render_ui(svg, filename, width, height):
 
 # Recursos de Inicio. La paloma procede del MISMO contorno original
 # que se utiliza en el icono oficial Android, sin emojis sustitutos.
+# El mismo contorno que el icono Android: SOLO paloma con ramita.
+# No agregar subrayado verde, nota musical ni trazo decorativo externo.
 home_logo = f"""<svg xmlns="http://www.w3.org/2000/svg" width="650" height="390" viewBox="0 0 650 390">
-  <path d="{path}" fill="white" transform="translate(-242 10) scale(.64)"/>
-  <path d="M540 194 L540 302 Q519 290 511 310 Q506 329 528 328 Q549 326 549 306 L549 211 Q570 219 570 236"
-   fill="none" stroke="#27c98b" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M505 353 Q368 345 239 354" fill="none" stroke="#27c98b" stroke-width="10" stroke-linecap="round"/>
+  <path d="{path}" fill="white" transform="translate(-180 10) scale(.64)"/>
 </svg>"""
 render_ui(home_logo, "home-logo.png", 650, 390)
 
