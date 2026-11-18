@@ -11,7 +11,7 @@ assert.match(app,/function SectionHero\(/,"Shared section hero");
 assert.match(app,/function SectionFilterBar\(/,"Shared section filter chips");
 assert.match(app,/function SectionListCard\(/,"Shared repertoire-style cards");
 assert.match(app,/function SectionEmpty\(/,"Shared empty state with original SHALOM logo");
-assert.match(app,/h\(View,\{style:S\.repCard\}/,"Shared cards must use repertoire visual proportions");
+assert.match(app,/h\(Pressable,\{style:S\.repCard/,"Shared cards must use repertoire visual proportions");
 const songs=section("renderSongs","renderArtists");
 const artists=section("renderArtists","renderCategories");
 const categories=section("renderCategories","renderMore");
