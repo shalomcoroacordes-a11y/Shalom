@@ -63,6 +63,9 @@ jobs:
       - name: Test native SHALOM reader and private likes
         run: node tests/mobile-song-reader-regression.cjs
 
+      - name: Test SHALOM repertoire layout, icons and real filters
+        run: node tests/mobile-repertoire-ui-regression.cjs
+
       - name: Test backup import preflight and recovery notices
         run: node tests/backup-import-safety-regression.cjs
 
