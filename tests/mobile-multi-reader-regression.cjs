@@ -13,7 +13,7 @@ const score=section("renderMultiReadingScore","renderRepertoireDetail");
 const controls=section("renderMultiReadingControls","renderMultiReadingScore");
 assert.doesNotMatch(rep,/h\(Card,|S\.lyricsArea|S\.listRow/,"No boxed lyrical cards in repertoire reader");
 assert.doesNotMatch(medley,/h\(Card,|S\.lyricsArea|S\.listRow/,"No boxed lyrical cards in popurri reader");
-assert.match(rep,/song\.lyrics/,"Repertoire reads saved original song lyrics");
+assert.match(rep,/song\?\.lyrics/,"Repertoire reads saved original song lyrics");
 assert.match(rep,/item\.moment/,"Mass moments must be distinguished");
 assert.match(rep,/song\?\.tone\?transposeOne\(song\.tone,transpose\)/,"Repertoire song tone is transposed");
 assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",transpose/);
