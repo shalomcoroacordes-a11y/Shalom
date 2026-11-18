@@ -276,54 +276,51 @@ function App() {
   );
  }
  function renderHome(){
-  const newest=[...model.songs].sort(byMostRecent).slice(0,6);
-  const lastSong=lastRead?.type==="song"?model.songs.find(x=>String(x.id)===String(lastRead.id)):null;
-  const lastMedley=lastRead?.type==="medley"?model.medleys.find(x=>String(x.id)===String(lastRead.id)):null;
-  return h(View,null,
-   h(View,{style:S.hero},
-    label("CANCIONERO PARA EL CORO",S.eyebrow),
-    label("Tus cantos, siempre contigo.",S.heroTitle),
-    label("Letras y acordes para ensayar y compartir.",S.heroSubtitle)
-   ),
-   h(Pressable,{style:S.syncCompact,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
-    label(copy?.syncedAt?"✓":"↓",S.syncIcon),
-    h(View,{style:{flex:1}},label(model.songs.length+" cantos · "+(copy?.syncedAt?"Sincronizado":"Pendiente de sincronizar"),S.syncText)),
-    label("⚙",S.syncIcon)),
+  const shortcuts=[
+   ["Cancionero","Todos los cantos","♫","Canciones"],
+   ["Repertorios","Misa y ensayos","▱","Repertorios"],
+   ["Artistas","Conoce sus cantos","♧","Artistas"],
+   ["Categorías","Organiza por tema","▢","Categorías"],
+   ["Popurrís","Varios cantos","☷","Popurrís"],
+   ["Álbumes","Colecciones de cantos","▣","Álbumes"]
+  ];
+  const homeTile=([name,subtitle,icon,destination])=>h(Pressable,{
+   key:name,onPress:()=>goTab(destination),accessibilityRole:"button",
+   accessibilityLabel:name+", "+subtitle,style:S.homeTile},
+   h(View,{style:S.homeTileIcon},label(icon,S.homeTileSymbol)),
+   h(View,{style:{flex:1}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)),
+   label("›",S.homeTileArrow));
+  const term=normalize(homeSearch.trim());
+  const results=term?model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term)).slice(0,6):[];
+  return h(View,{style:S.homeContainer},
+   h(View,{style:S.homeBrand},
+    label("🕊",S.homeDove),
+    label("SHALOM",S.homeBrandName),
+    label("—  CORO Y ALABANZA  —",S.homeBrandSub)),
+   h(View,{style:S.homeSearchWrap},
+    label("⌕",S.homeSearchIcon),
+    h(TextInput,{style:S.homeSearch,value:homeSearch,onChangeText:setHomeSearch,
+     placeholder:"Buscar canto, artista o tema…",placeholderTextColor:C.muted,
+     accessibilityLabel:"Buscar canto, artista o tema",returnKeyType:"search",
+     onSubmitEditing:()=>{if(homeSearch.trim())goTab("Canciones",{search:homeSearch})}})),
+   term?h(View,{style:S.homeResults},
+    ...results.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
+    !results.length?label("No se encontraron cantos.",S.empty):null,
+    h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
+   h(View,{style:S.homeGrid},...shortcuts.map(homeTile)),
+   h(Pressable,{onPress:()=>goTab("Repertorios"),accessibilityRole:"button",
+    accessibilityLabel:"Ver repertorios de Misa y Ensayo",style:S.homeFeature},
+    h(View,{style:S.homeFeatureIcon},label("♧",S.homeFeatureSymbol)),
+    h(View,{style:{flex:1}},
+     label("Repertorios de",S.homeFeatureKicker),
+     label("Misa y Ensayo",S.homeFeatureTitle),
+     label("Ver repertorios  ›",S.homeFeatureLink))),
+   h(Pressable,{style:S.homeSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button",
+    accessibilityLabel:"Estado de sincronización y ajustes"},
+    label(copy?.syncedAt?"✓ Biblioteca sincronizada":"↓ Descargar cancionero",S.homeSyncText),
+    label("⚙",S.homeSyncText)),
    busy?label("Sincronizando… "+progress,S.info):null,
-   error?label(error,S.error):null,
-   title("Mi próxima misa"),
-   (()=>{const chosen=upcomingMass(model.repertoires,new Date().toISOString().slice(0,10));
-    return chosen?h(Pressable,{style:S.massCard,onPress:()=>selectRepertoire(chosen),accessibilityRole:"button"},
-      h(View,{style:{flex:1},children:[label(chosen.title,S.massTitle),
-       label([chosen.event_date||"Sin fecha",chosen.location,(chosen.items||[]).length+" cantos"].filter(Boolean).join(" · "),S.rowMeta)]}),
-      h(View,{style:S.massAction},label("Abrir repertorio  ›",S.massActionText)))
-      :h(Card,null,label("No hay una próxima misa publicada con fecha futura.",S.info),
-       label("Consulta todos los repertorios o asigna una fecha desde el administrador.",S.smallMuted));
-   })(),
-   h(Pressable,{onPress:()=>goTab("Repertorios"),style:S.repertoireLink,accessibilityRole:"button"},label("Ver todos los repertorios ("+model.repertoires.length+")  ›",S.repertoireLinkText)),
-   lastSong||lastMedley?title("Continuar donde me quedé"):null,
-   lastSong?h(SongRow,{song:lastSong,onPress:()=>selectSong(lastSong)}):null,
-   lastMedley?h(Pressable,{style:S.listRow,onPress:()=>selectMedley(lastMedley)},
-    h(View,{style:{flex:1}},label(lastMedley.title,S.listTitle),label("Retomar popurrí",S.rowMeta)),label("›",S.rowArrow)):null,
-   title("Buscar canto rápidamente"),
-   h(TextInput,{style:S.input,value:homeSearch,onChangeText:setHomeSearch,
-    placeholder:"Buscar por nombre, letra o artista…",placeholderTextColor:C.muted,
-    accessibilityLabel:"Buscar canto en Inicio"}),
-   homeSearch.trim()?(()=>{
-    const q=normalize(homeSearch.trim());
-    const found=model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists)],q)).slice(0,6);
-    return h(View,{style:S.list},
-     ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
-     !found.length?label("No se encontraron cantos.",S.empty):null,
-     h(Btn,{text:"Buscar en todas las canciones",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})}));
-   })():null,
-   title("Últimos cantos actualizados","Nuevos o modificados recientemente"),
-   newest.length?h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,style:{marginBottom:6},
-    contentContainerStyle:{gap:10,paddingVertical:3}},
-    ...newest.map(song=>h(Pressable,{key:song.id,style:S.newCard,onPress:()=>selectSong(song),accessibilityRole:"button"},
-     label("♫",S.entityEmoji),h(Text,{style:S.newCardTitle,numberOfLines:2,ellipsizeMode:"tail"},song.title||"Sin título"),
-     label([names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||"Canto",S.rowMeta)))):label("Aún no hay novedades descargadas.",S.empty),
-
+   error?label(error,S.error):null
   );
  }
  function renderSongs(){
@@ -644,6 +641,9 @@ function App() {
   :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
+  !immersiveActive&&tab==="Inicio"&&!detail&&!settingsOpen?h(View,{style:S.homeTopBar},
+   h(Pressable,{onPress:()=>goTab("Más"),accessibilityRole:"button",accessibilityLabel:"Abrir menú",style:S.homeTopButton},label("☰",S.homeTopIcon)),
+   h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Abrir ajustes y sincronización",style:S.homeTopButton},label("♧",S.homeTopIcon))):
   !immersiveActive?h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
    h(Pressable,{onPress:()=>setSettingsOpen(v=>!v),style:S.headerAction},label(settingsOpen?"Cerrar":"⚙ Ajustes",S.headerActionText)),
    label(network.online?(network.wifi?"Wi-Fi":"Online"):"Offline",[S.net,network.online?{color:C.pale}:{color:C.gold}])):null,
@@ -652,7 +652,7 @@ function App() {
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen?h(View,{style:S.nav},
-   ...tabs.map(([name,icon])=>{const selected=isSelectedTab(tab,name)&&!detail;
+   ...(tab==="Inicio"&&!detail?[["Inicio","⌂"],["Canciones","♫"],["Repertorios","▱"],["Artistas","♧"],["Más","•••"]]:tabs).map(([name,icon])=>{const selected=isSelectedTab(tab,name)&&!detail;
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(name),style:[S.navItem,selected&&S.navSelected]},
     label(icon,[S.navIcon,selected&&{color:C.green}]),
@@ -660,7 +660,35 @@ function App() {
  ));
 }
 const S=StyleSheet.create({
- root:{flex:1,backgroundColor:C.bg},header:{backgroundColor:C.panel,paddingHorizontal:13,paddingVertical:12,flexDirection:"row",alignItems:"center",gap:9,borderBottomWidth:1,borderColor:C.border,minHeight:56},
+ root:{flex:1,backgroundColor:C.bg},
+ homeTopBar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingHorizontal:20,paddingTop:7,paddingBottom:0,backgroundColor:C.bg},
+ homeTopButton:{minWidth:44,minHeight:44,justifyContent:"center",alignItems:"center"},
+ homeTopIcon:{fontSize:27,color:C.text},
+ homeContainer:{paddingBottom:4},
+ homeBrand:{alignItems:"center",paddingTop:0,paddingBottom:24},
+ homeDove:{fontSize:56,color:C.pale,lineHeight:67},
+ homeBrandName:{fontSize:38,fontWeight:"900",color:C.text,letterSpacing:2},
+ homeBrandSub:{fontSize:12,fontWeight:"700",color:C.pale,letterSpacing:2,marginTop:4},
+ homeSearchWrap:{flexDirection:"row",alignItems:"center",backgroundColor:C.sub,borderColor:"#54716f",borderWidth:1,borderRadius:25,paddingHorizontal:14,minHeight:52,marginBottom:22},
+ homeSearchIcon:{fontSize:31,color:C.text,marginRight:10},
+ homeSearch:{flex:1,color:C.text,fontSize:14,minHeight:48,paddingVertical:8},
+ homeResults:{gap:5,marginBottom:17},
+ homeGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:12,marginBottom:24},
+ homeTile:{width:"48.5%",minHeight:93,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:17,padding:10,flexDirection:"row",alignItems:"center",gap:8},
+ homeTileIcon:{height:45,width:42,backgroundColor:"#126749",borderRadius:12,justifyContent:"center",alignItems:"center"},
+ homeTileSymbol:{fontSize:25,color:C.pale,fontWeight:"800"},
+ homeTileName:{fontSize:14,fontWeight:"850",color:C.text},
+ homeTileSubtitle:{fontSize:10,lineHeight:14,color:C.muted,marginTop:4},
+ homeTileArrow:{fontSize:23,color:C.text},
+ homeFeature:{backgroundColor:"#12382f",borderColor:C.green,borderWidth:1,borderRadius:20,minHeight:116,padding:16,flexDirection:"row",alignItems:"center",gap:14},
+ homeFeatureIcon:{width:76,borderRightWidth:1,borderRightColor:C.green,alignItems:"center",justifyContent:"center",minHeight:75},
+ homeFeatureSymbol:{fontSize:44,color:C.pale},
+ homeFeatureKicker:{fontSize:14,color:C.text},
+ homeFeatureTitle:{fontSize:20,fontWeight:"900",color:C.text,marginVertical:4},
+ homeFeatureLink:{fontSize:12,fontWeight:"800",color:C.pale,marginTop:5},
+ homeSync:{flexDirection:"row",justifyContent:"space-between",paddingHorizontal:12,paddingVertical:15,marginTop:15,alignItems:"center"},
+ homeSyncText:{fontSize:11,color:C.muted},
+header:{backgroundColor:C.panel,paddingHorizontal:13,paddingVertical:12,flexDirection:"row",alignItems:"center",gap:9,borderBottomWidth:1,borderColor:C.border,minHeight:56},
  logo:{fontSize:19,fontWeight:"900",color:C.green,flex:1},headerAction:{borderWidth:1,borderColor:C.green,borderRadius:99,padding:7},
  headerActionText:{color:C.pale,fontSize:11,fontWeight:"750"},net:{fontSize:11,fontWeight:"750"},
  page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
