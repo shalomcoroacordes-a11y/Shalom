@@ -597,6 +597,24 @@ function AppScreen() {
    label("Sugerir repertorio",S.repSuggestCaption)
   );
  }
+ async function shareMultiReading(){
+  const medley=detail?.type==="medley"?focusedMedley:null;
+  const rep=detail?.type==="repertoire"?focusedRepertoire:null;
+  const item=medley||rep;
+  if(!item)return;
+  const lines=medley?(medley.parts||[]).map((p,i)=>
+   (i+1)+". "+(p.title||p.song_title||"Fragmento")):
+   (rep.items||[]).map((p,i)=>{
+    const song=model.songs.find(s=>String(s.id)===String(p.song_id));
+    return (i+1)+". "+(p.moment||"Canto")+" — "+(song?.title||"Canto");
+   });
+  try{
+   await Share.share({title:item.title||"SHALOM",message:(item.title||"SHALOM")+
+    "\n"+lines.join("\n")+"\nCoro SHALOM"});
+  }catch(e){
+   Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");
+  }
+ }
  function renderMultiReadingControls(){
   return h(View,{style:S.multiControlArea},
    h(View,{style:S.songControls},
@@ -799,7 +817,8 @@ function AppScreen() {
   );
  }
  function showSongToneMenu(){
-  Alert.alert("Transponer acordes","El cambio se aplica solo a tu lectura de este canto.",[
+  const scope=detail?.type==="medley"?"popurrí":detail?.type==="repertoire"?"repertorio":"canto";
+  Alert.alert("Transponer acordes","El cambio se aplica solo a tu lectura de este "+scope+".",[
    {text:"− Semitono",onPress:()=>setTranspose(v=>Math.max(-11,v-1))},
    {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
    {text:"+ Semitono",onPress:()=>setTranspose(v=>Math.min(11,v+1))}
@@ -989,6 +1008,16 @@ function AppScreen() {
     ["▤","Imprimir",()=>printSong(active)],
     ["↗","Compartir",()=>shareSong(active)],
     ["▶","YouTube",()=>openSongVideo(active)]
+   ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
+    onPress,accessibilityRole:"button",accessibilityLabel:name},
+    label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
+  !immersiveActive&&!settingsOpen&&isReader&&detail?.type!=="song"?h(View,{style:S.songActionBar},
+   ...[
+    ["↕","Transponer",showSongToneMenu],
+    ["↗","Compartir",shareMultiReading],
+    ["⛶","Pantalla",()=>setImmersive(true)],
+    ["A−","Letra −",()=>setReaderFont(v=>Math.max(13,v-1))],
+    ["A+","Letra +",()=>setReaderFont(v=>Math.min(22,v+1))]
    ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
     onPress,accessibilityRole:"button",accessibilityLabel:name},
     label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
