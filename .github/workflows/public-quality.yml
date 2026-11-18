@@ -69,6 +69,9 @@ jobs:
       - name: Verify Android safe area and uniform secondary screen headers
         run: node tests/mobile-header-safe-area-regression.cjs
 
+      - name: Verify consistent SHALOM library section design
+        run: node tests/mobile-section-theme-regression.cjs
+
       - name: Test backup import preflight and recovery notices
         run: node tests/backup-import-safety-regression.cjs
 
