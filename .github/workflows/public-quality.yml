@@ -66,6 +66,9 @@ jobs:
       - name: Test SHALOM repertoire layout, icons and real filters
         run: node tests/mobile-repertoire-ui-regression.cjs
 
+      - name: Verify Android safe area and uniform secondary screen headers
+        run: node tests/mobile-header-safe-area-regression.cjs
+
       - name: Test backup import preflight and recovery notices
         run: node tests/backup-import-safety-regression.cjs
 
