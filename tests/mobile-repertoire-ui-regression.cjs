@@ -19,7 +19,7 @@ assert.match(app,/\["ensayo","Ensayo","artists"\]/);
 assert.match(app,/\["otras","Otras","calendar"\]/);
 assert.match(app,/const count=Array\.isArray\(rep\.items\)\?rep\.items\.length:0/);
 assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.repTopLogo/);
-assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.globalBrandDove/);
+assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.sectionHeaderLogo/);
 assert.match(app,/setRepertoireSearchOpen\(v=>!v\)/);
 assert.match(app,/accessibilityLabel:"Sugerir un repertorio al administrador"/);
 assert.match(app,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
