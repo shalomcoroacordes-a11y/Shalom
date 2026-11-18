@@ -502,23 +502,23 @@ function AppScreen() {
      label("‹  "+(typeNames[folderType]||"Categorías"),S.categoryBackText)),
     label(model.categoryPath(current),S.categoryPathText)):null,
    h(View,{style:S.repCards},
-    !folderType&&!term?...rootTypes.map(code=>h(SectionListCard,{key:code,
+    ...(!folderType&&!term?rootTypes.map(code=>h(SectionListCard,{key:code,
      title:typeNames[code],subtitle:countFolders(code)+" "+(countFolders(code)===1?"carpeta":"carpetas"),
-     icon:"categories",onPress:()=>{setFolderType(code);setFolderId("");setQuery("")}})):null,
-    !folderType&&term?...allMatches.map(c=>h(SectionListCard,{key:c.id,title:c.name,
+     icon:"categories",onPress:()=>{setFolderType(code);setFolderId("");setQuery("")}})):[]),
+    ...(!folderType&&term?allMatches.map(c=>h(SectionListCard,{key:c.id,title:c.name,
      subtitle:(typeNames[normalize(c.song_type)]||"General")+" · "+
       model.songsForCategory(c.id).length+" cantos",icon:"categories",
-     onPress:()=>{setFolderType(normalize(c.song_type)||"general");setFolderId(c.id);setQuery("")}})):null,
-    folderType?...visibleChildren.map(c=>h(SectionListCard,{key:c.id,title:c.name,
+     onPress:()=>{setFolderType(normalize(c.song_type)||"general");setFolderId(c.id);setQuery("")}})):[]),
+    ...(folderType?visibleChildren.map(c=>h(SectionListCard,{key:c.id,title:c.name,
      subtitle:model.songsForCategory(c.id).length+" cantos · "+
       model.children(c.id).length+" subcarpetas",icon:"categories",
-     onPress:()=>{setFolderId(c.id);setQuery("")}})):null,
+     onPress:()=>{setFolderId(c.id);setQuery("")}})):[]),
     current?h(View,{style:S.categorySongHeading},
      label("Cantos de "+current.name,S.categorySongTitle),
      label(visibleSongs.length+" cantos",S.sectionSupporting)):null,
-    current?...visibleSongs.map(song=>h(SectionListCard,{key:song.id,title:song.title,
+    ...(current?visibleSongs.map(song=>h(SectionListCard,{key:song.id,title:song.title,
      subtitle:names(song._artists)||type(song.song_type),meta:song.tone?"Tono "+song.tone:null,
-     icon:"song",onPress:()=>selectSong(song)})):null,
+     icon:"song",onPress:()=>selectSong(song)})):[]),
     ((folderType&&!visibleChildren.length&&!current)||
      (term&&!allMatches.length&&!folderType)||
      (current&&!visibleChildren.length&&!visibleSongs.length))
