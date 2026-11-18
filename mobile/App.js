@@ -8,7 +8,7 @@ const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView}=require("react-native-safe-area-context");
 const {getCatalog,getMetadata,setMetadata}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
-const {parseSong}=require("./src/chords");
+const {parseSong,transposeOne}=require("./src/chords");
 const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
 const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
@@ -112,6 +112,7 @@ function App() {
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
  const [readerFont,setReaderFont]=useState(16);
+ const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [onlyLiked,setOnlyLiked]=useState(false);
  const [countLimit,setCountLimit]=useState(80);
@@ -160,7 +161,7 @@ function App() {
    Alert.alert("No se guardó Me gusta",(e?.message||"Revisa el almacenamiento del teléfono.")+" No se modificó el catálogo.");
   });
  }
- function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");}
+ function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
@@ -581,10 +582,41 @@ function App() {
    title("Cantos",songs.length+" canciones"),previewSongs(songs)
   );
  }
+ function showSongToneMenu(){
+  Alert.alert("Transponer acordes","El cambio se aplica solo a tu lectura de este canto.",[
+   {text:"− Semitono",onPress:()=>setTranspose(v=>Math.max(-11,v-1))},
+   {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
+   {text:"+ Semitono",onPress:()=>setTranspose(v=>Math.min(11,v+1))}
+  ]);
+ }
+ function songPermalink(song){
+  return "https://shalomcoroacordes-a11y.github.io/Shalom/cancion.html?id="+encodeURIComponent(String(song.id));
+ }
+ async function shareSong(song){
+  try{
+   await Share.share({title:song.title||"Canto de SHALOM",
+    message:(song.title||"Canto")+" — SHALOM\n"+songPermalink(song)});
+  }catch(e){Alert.alert("No se pudo compartir",e?.message||"Inténtalo nuevamente.")}
+ }
+ function printSong(song){
+  if(!network.online)return Alert.alert("Requiere conexión","Para imprimir, abre el canto en SHALOM web cuando tengas internet.");
+  Alert.alert("Imprimir canto","Se abrirá la versión web. Allí utiliza su opción Imprimir.",[
+   {text:"Cancelar",style:"cancel"},
+   {text:"Abrir SHALOM web",onPress:()=>openWeb(songPermalink(song))}
+  ]);
+ }
+ function openSongVideo(song){
+  const videos=[...(song._links||[]).map(link=>link.url),song.tutorial_guitar,song.tutorial_piano]
+   .map(safeWebUrl).filter(Boolean);
+  const found=videos.find(link=>/youtube\.com|youtu\.be/i.test(link));
+  if(!found)return Alert.alert("Sin video registrado","Este canto todavía no tiene un enlace de YouTube.");
+  if(!network.online)return Alert.alert("Requiere internet","Conéctate para abrir el video.");
+  openWeb(found);
+ }
  function renderSongDetail(song){
   const choices=[{id:"none",label:"Sin capo",position:0,key:""}];
-  if(song.capo_position>0)choices.push({id:"main",label:"Capo "+song.capo_position,
-    position:song.capo_position,key:song.capo_key||""});
+  if(Number(song.capo_position)>0)choices.push({id:"main",label:"Capo "+song.capo_position,
+   position:Number(song.capo_position),key:song.capo_key||""});
   for(const item of song._capos||[])choices.push({
    id:item.id,label:item.label||"Capo "+item.capo_position,
    position:Number(item.capo_position||0),key:item.capo_key||""});
@@ -600,54 +632,60 @@ function App() {
    capoOffset=from>=0&&to>=0?((to-from+12)%12):(-chosen.position||0);
    if(capoOffset>6)capoOffset-=12;
   }
-  const resources=[...(song._links||[]).map(link=>[link.title||link.platform||"Abrir enlace",link.url]),
-   ["Tutorial de guitarra",song.tutorial_guitar],["Tutorial de piano",song.tutorial_piano]]
-   .filter(x=>safeWebUrl(x[1]));
-  return h(View,null,
-   h(View,{style:S.readerActions},
-    h(Btn,{text:"← Volver",secondary:true,onPress:()=>{setImmersive(false);back()}}),
-    Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
-   label(type(song.song_type).toUpperCase(),S.eyebrow),
-   label(song.title||"Sin título",S.readerTitle),
-   label([names(song._artists),song.tone?"Tono "+song.tone:"",song.difficulty].filter(Boolean).join(" · "),S.info),
-   h(View,{style:S.chips},
-    ...song._categories.map(c=>h(Chip,{key:c.id,text:c.name,onPress:()=>{
-     detailHistoryRef.current=[];setDetail(null);setTab("Categorías");setFolderType(c.song_type);setFolderId(c.id)
-    }}))),
-   h(Card,{style:{marginTop:12}},
-    label("Tono y acordes",S.listTitle),
-    h(View,{style:S.transpose},
-     h(Btn,{text:"− Semitono",small:true,secondary:true,onPress:()=>setTranspose(v=>Math.max(-11,v-1))}),
-     label(transpose===0?"Tono original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
-     h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(v=>Math.min(11,v+1))}),
-     h(Btn,{text:"Original",small:true,secondary:true,onPress:()=>{setTranspose(0);setCapo("none")}})),
-    choices.length>1?label("Versiones con capo registradas",S.fieldTitle):null,
-    choices.length>1?h(View,{style:S.chips},...choices.map(choice=>h(Chip,{key:choice.id,
-     text:choice.label,active:capo===choice.id,onPress:()=>setCapo(choice.id)}))):null,
-    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.smallMuted):null
-   ),
-   h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,
-    contentContainerStyle:{padding:14,minWidth:"100%"}},
-    h(View,null,...parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset).map((r,i)=>{
-     if(r.kind==="space")return h(View,{key:i,style:{height:16}});
-     if(r.kind==="section")return h(Text,{key:i,style:S.verse},r.text);
-     if(r.kind==="chords")return h(View,{key:i,style:{marginBottom:5}},
-       h(Text,{style:S.chordText},r.chordLine||" "),
-       h(Text,{style:S.lyricText},r.lyricLine||" "));
-     return h(Text,{key:i,style:r.kind==="chordsOnly"?S.chordText:S.lyricText},r.text||" ");
-    }))),
-   resources.length?title("Videos y tutoriales","Los enlaces se abren con internet"):null,
-   ...resources.map(([txt,url],index)=>h(Btn,{key:index,text:"▶ "+txt+" ↗",secondary:true,onPress:()=>{
-    if(!network.online)Alert.alert("Necesitas internet","Conéctate para abrir videos o enlaces externos.");
-    else openWeb(url);
-   }})),
-   title("¿Algo está mal en el canto?"),
-   h(View,{style:S.rowWrap},
-    h(Btn,{text:"Reportar letra",secondary:true,onPress:()=>requestForm("lyrics",song)}),
-    h(Btn,{text:"Corregir acordes o tono",secondary:true,onPress:()=>requestForm("chords",song)})),
-   model.albums.filter(a=>song._albums.some(x=>x.id===a.id)).length?title("Álbumes"):null,
-   ...song._albums.map(a=>h(EntityRow,{key:a.id,item:a,kind:"album",
-     description:"Ver canciones",onPress:()=>openDetail({type:"album",id:a.id})}))
+  const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
+  const liked=hasFavorite(likedIds,song.id);
+  const isChorus=txt=>/\bcoro\b|estribillo|refr[aá]n/i.test(txt||"");
+  const section=(name,i)=>{
+   const chorus=isChorus(name);
+   return h(View,{key:"section-"+i,style:S.songSectionRow},
+    h(View,{style:[S.songSectionPill,chorus&&S.songChorusPill]},
+     label(name,[S.songSectionText,chorus&&S.songChorusText])),
+    h(View,{style:S.songSectionRule}));
+  };
+  const chordStyle=[S.songChord,{fontSize:readerFont,lineHeight:readerFont+5}];
+  const lyricStyle=[S.songLyric,{fontSize:readerFont,lineHeight:readerFont+7}];
+  const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset);
+  return h(View,{style:S.songReader},
+   h(View,{style:S.songMetaRow},
+    h(View,{style:S.songMetaIcon},
+     h(Image,{source:HOME_IMAGES.song,resizeMode:"contain",style:S.songMetaIconImage})),
+    h(View,{style:{flex:1,minWidth:0}},
+     h(Text,{style:S.songHeading},song.title||"Sin título"),
+     label(names(song._artists)||"SHALOM",S.songArtist),
+     h(View,{style:S.songTypeBadge},label(type(song.song_type),S.songTypeText))),
+    h(Pressable,{onPress:()=>toggleLike(song.id),accessibilityRole:"button",
+     accessibilityLabel:liked?"Quitar Me gusta":"Marcar Me gusta",
+     accessibilityState:{selected:liked},style:S.songLikeButton},
+     h(Text,{style:[S.songHeart,liked&&S.songHeartActive]},liked?"♥":"♡"))),
+   h(View,{style:S.songControls},
+    h(Pressable,{style:S.songToneControl,onPress:showSongToneMenu,
+     accessibilityRole:"button",accessibilityLabel:"Cambiar tono. Tono "+toned},
+     label("♫  Tono: "+toned+"  ▾",S.songControlText)),
+    h(Pressable,{style:S.songToneControl,onPress:()=>{
+      if(choices.length>1)setCapoExpanded(v=>!v);
+      else Alert.alert("Capo","No hay variantes de capo registradas para este canto.");
+     },accessibilityRole:"button",accessibilityLabel:"Seleccionar capo"},
+     label("Capo: "+(chosen.id==="none"?"—":chosen.position)+"  ▾",S.songControlText)),
+    h(View,{style:S.songFontControl},
+     h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),accessibilityRole:"button",
+      accessibilityLabel:"Reducir tamaño de letra",style:S.songFontButton},label("A−",S.songFontText)),
+     h(Pressable,{onPress:()=>setReaderFont(v=>Math.min(22,v+1)),accessibilityRole:"button",
+      accessibilityLabel:"Aumentar tamaño de letra",style:S.songFontButton},label("A+",S.songFontText)))),
+   capoExpanded&&choices.length>1?h(View,{style:S.songCapoVariants},
+    ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
+     active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
+   chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
+   h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
+    style:S.songScoreScroll,contentContainerStyle:S.songScoreContent},
+    h(View,{style:{minWidth:"100%"}},
+     ...parsed.map((row,i)=>{
+      if(row.kind==="space")return h(View,{key:i,style:{height:readerFont*.8}});
+      if(row.kind==="section")return section(row.text,i);
+      if(row.kind==="chords")return h(View,{key:i,style:S.songPair},
+       h(Text,{style:chordStyle,selectable:true},row.chordLine||" "),
+       h(Text,{style:lyricStyle,selectable:true},row.lyricLine||" "));
+      return h(Text,{key:i,style:row.kind==="chordsOnly"?chordStyle:lyricStyle,selectable:true},row.text||" ");
+     })))
   );
  }
  function renderRequest(){
