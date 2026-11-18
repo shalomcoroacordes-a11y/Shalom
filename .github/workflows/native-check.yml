@@ -25,6 +25,7 @@ jobs:
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
+          node tests/favorites.test.js
           node tests/catalog.test.js
           node tests/requests.test.js
           node tests/medleys.test.js
