@@ -5,7 +5,7 @@ const {
  Switch,Alert,AppState,BackHandler,Platform,Linking,Image,ActivityIndicator,Share
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
-const {SafeAreaProvider,SafeAreaView}=require("react-native-safe-area-context");
+const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const {getCatalog,getMetadata,setMetadata}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
 const {parseSong,transposeOne}=require("./src/chords");
@@ -91,7 +91,24 @@ function Photo({url,labelText}) {
    label((labelText||"♪").trim().slice(0,2).toUpperCase(),S.photoLetter));
  return h(Image,{source:{uri},style:S.photo,onError:()=>setFailed(true)});
 }
-function App() {
+function AppSectionHeader({section,onBack,onSettings}){
+ return h(View,{style:S.sectionTopBar},
+  onBack?h(Pressable,{style:S.sectionHeaderSide,onPress:onBack,accessibilityRole:"button",accessibilityLabel:"Volver"},
+   label("←",S.sectionHeaderArrow)):h(View,{style:S.sectionHeaderSide}),
+  h(View,{style:S.sectionHeaderIdentity},
+   h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.sectionHeaderLogo,accessibilityLabel:"Logo oficial de SHALOM"}),
+   h(View,{style:{flexShrink:1,minWidth:0}},
+    label("SHALOM",S.sectionHeaderBrand),
+    h(Text,{style:S.sectionHeaderSubtitle,numberOfLines:1},section||"Coro y Alabanza"))),
+  onSettings?h(Pressable,{style:S.sectionHeaderSide,onPress:onSettings,accessibilityRole:"button",accessibilityLabel:"Abrir configuración"},
+   label("⚙",S.sectionHeaderGear)):h(View,{style:S.sectionHeaderSide})
+ );
+}
+function AppDetailHeader(props){return h(AppSectionHeader,{...props})}
+function AppScreen() {
+ const insets=useSafeAreaInsets();
+ // Android edge-to-edge: reserve the status-bar area exactly once.
+ const topInset=Platform.OS==="android"?Math.max(insets.top||0,StatusBar.currentHeight||0):Math.max(0,insets.top||0);
  const [copy,setCopy]=useState(null);
  const [loaded,setLoaded]=useState(false);
 
@@ -309,8 +326,6 @@ function App() {
    h(Btn,{text:"Acerca de SHALOM ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")}),
    h(View,{style:{height:10}}),
    h(Btn,{text:"Donaciones ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")}),
-   h(View,{style:{height:12}}),
-   h(Btn,{text:"← Regresar a Inicio",secondary:true,onPress:()=>setSettingsOpen(false)})
   );
  }
  function renderHome(){
@@ -506,7 +521,6 @@ function App() {
   const items=Array.isArray(rep.items)?rep.items:[];
   return h(View,null,
    h(View,{style:S.readerActions},
-    h(Btn,{text:"← Volver a repertorios",secondary:true,onPress:()=>{setImmersive(false);back()}}),
     Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
    label(rep.kind==="misa"?"REPERTORIO DE MISA":"REPERTORIO DE ENSAYO",S.eyebrow),
    label(rep.title,S.readerTitle),
@@ -554,7 +568,6 @@ function App() {
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   return h(View,null,
    h(View,{style:S.readerActions},
-    h(Btn,{text:"← Volver a Popurrís",secondary:true,onPress:()=>{setImmersive(false);back()}}),
     Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
    label(type(medley.song_type).toUpperCase(),S.eyebrow),
    label(medley.title,S.readerTitle),
@@ -616,7 +629,6 @@ function App() {
   const urls=[["YouTube",a.youtube_url],["Spotify",a.spotify_url],
    ["Instagram",a.instagram_url],["Facebook",a.facebook_url]].filter(x=>safeWebUrl(x[1]));
   return h(View,null,
-   h(Btn,{text:"← Volver a artistas",secondary:true,onPress:back}),
    h(View,{style:S.profileHeader},
     h(Photo,{url:network.online?a.avatar_url:null,labelText:a.name}),
     h(View,{style:{flex:1}},label(a.name,S.readerTitle),label(type(a.artist_type),S.eyebrow))),
@@ -635,7 +647,6 @@ function App() {
   const songs=model.songsForAlbum(a.id);
   const owner=model.artistMap.get(a.artist_id);
   return h(View,null,
-   h(Btn,{text:"← Volver a álbumes",secondary:true,onPress:back}),
    label("ÁLBUM",S.eyebrow),label(a.title,S.readerTitle),
    a.description?label(a.description,S.description):null,
    owner?h(Btn,{text:"Artista: "+owner.name,secondary:true,onPress:()=>openDetail({type:"artist",id:owner.id})}):null,
@@ -775,7 +786,7 @@ function App() {
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
   :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
- return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
+ return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive&&detail?.type==="song"&&!settingsOpen?h(View,{style:S.songTopBar},
    h(Pressable,{style:S.songBackButton,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Volver a las canciones"},
@@ -808,12 +819,16 @@ function App() {
    h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Estado y ajustes del cancionero",style:S.homeTopButton},
     h(Image,{source:HOME_IMAGES.bell,style:S.homeTopIcon,resizeMode:"contain"}),
     h(View,{style:S.homeBellDot}))):
-  !immersiveActive?h(View,{style:S.header},
-   h(View,{style:S.globalBrand},
-    h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.globalBrandDove}),
-    label("SHALOM",S.globalBrandName)),
-   h(Pressable,{onPress:()=>setSettingsOpen(v=>!v),style:S.headerAction},label(settingsOpen?"Cerrar":"⚙ Ajustes",S.headerActionText)),
-   label(network.online?(network.wifi?"Wi-Fi":"Online"):"Offline",[S.net,network.online?{color:C.pale}:{color:C.gold}])):null,
+  !immersiveActive&&settingsOpen?h(AppSectionHeader,{section:"Configuración",onBack:()=>setSettingsOpen(false)}):
+  !immersiveActive&&detail&&detail.type!=="song"?h(AppDetailHeader,{
+   section:detail.type==="artist"?"Artista":detail.type==="album"?"Álbum":
+    detail.type==="medley"?"Popurrí":detail.type==="repertoire"?"Repertorio":"Detalle",
+   onBack:back
+  }):
+  !immersiveActive?h(AppSectionHeader,{
+   section:tab==="Solicitar"?"Solicitudes":tab,
+   onSettings:()=>setSettingsOpen(true)
+  }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},contentContainerStyle:S.page,
    keyboardShouldPersistTaps:"handled"},
@@ -836,10 +851,21 @@ function App() {
      homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
       label(icon,[S.navIcon,selected&&{color:C.green}]),
      label(name,[S.navText,selected&&{color:C.green}]));})) : null
- ));
+ );
 }
+function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 const S=StyleSheet.create({
  root:{flex:1,backgroundColor:C.bg},
+ sectionTopBar:{backgroundColor:C.bg,minHeight:62,paddingHorizontal:10,flexDirection:"row",alignItems:"center",
+  borderBottomWidth:1,borderBottomColor:"#24363e"},
+ sectionHeaderSide:{width:48,height:50,alignItems:"center",justifyContent:"center"},
+ sectionHeaderArrow:{fontSize:30,color:C.text,fontWeight:"600",lineHeight:36},
+ sectionHeaderGear:{fontSize:24,color:C.pale,lineHeight:30},
+ sectionHeaderIdentity:{flex:1,minWidth:0,flexDirection:"row",justifyContent:"center",alignItems:"center",gap:6},
+ sectionHeaderLogo:{width:53,height:44},
+ sectionHeaderBrand:{fontSize:20,fontWeight:"900",letterSpacing:.5,color:C.text},
+ sectionHeaderSubtitle:{fontSize:11,color:C.muted,marginTop:1},
+
  globalBrand:{flex:1,flexDirection:"row",alignItems:"center",gap:7},
  globalBrandDove:{width:48,height:38},
  globalBrandName:{fontSize:19,fontWeight:"900",color:C.text,letterSpacing:.7},
