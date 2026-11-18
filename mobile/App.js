@@ -421,6 +421,13 @@ function App() {
  }
  function renderMore(){
   return h(View,null,title("Más opciones","Otras secciones de SHALOM"),
+   h(Pressable,{style:S.listRow,onPress:()=>goTab("Categorías"),accessibilityRole:"button"},
+    h(View,{style:S.entityIcon},
+     h(Image,{source:HOME_IMAGES.categories,resizeMode:"contain",style:S.homeTileImage})),
+    h(View,{style:{flex:1}},label("Categorías",S.listTitle),
+     label("Explorar cantos por tema o celebración",S.rowMeta)),
+    label("›",S.rowArrow)),
+
    h(Pressable,{style:S.listRow,onPress:()=>goTab("Canciones",{liked:true}),accessibilityRole:"button"},
     h(View,{style:{flex:1}},label("♥ Mis Me gusta",S.listTitle),
      label(likedIds.length+" cantos marcados · Guardados solo en este dispositivo",S.rowMeta)),
