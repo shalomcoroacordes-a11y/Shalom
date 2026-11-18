@@ -14,6 +14,14 @@ const {sendRequest,TYPES}=require("./src/requests");
 const h=React.createElement;
 const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
  text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
+const HOME_IMAGES={
+ logo:require("./assets/home-logo.png"),waves:require("./assets/home-waves.png"),
+ banner:require("./assets/home-banner.png"),song:require("./assets/home-song.png"),
+ repertoires:require("./assets/home-repertoires.png"),artists:require("./assets/home-artists.png"),
+ categories:require("./assets/home-categories.png"),medleys:require("./assets/home-medleys.png"),
+ albums:require("./assets/home-albums.png"),home:require("./assets/home-home.png"),
+ more:require("./assets/home-more.png"),bell:require("./assets/home-bell.png"),
+ menu:require("./assets/home-menu.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const tabs=[["Inicio","⌂"],["Canciones","♫"],["Repertorios","☷"],["Artistas","♩"],["Categorías","▦"],["Más","•••"]];
 const moreTabs=new Set(["Popurrís","Álbumes"]);
@@ -276,25 +284,28 @@ function App() {
   );
  }
  function renderHome(){
-  const shortcuts=[
-   ["Cancionero","Todos los cantos","♫","Canciones"],
-   ["Repertorios","Misa y ensayos","▱","Repertorios"],
-   ["Artistas","Conoce sus cantos","♧","Artistas"],
-   ["Categorías","Organiza por tema","▢","Categorías"],
-   ["Popurrís","Varios cantos","☷","Popurrís"],
-   ["Álbumes","Colecciones de cantos","▣","Álbumes"]
+  const links=[
+   ["Cancionero","Todos los cantos","song","Canciones"],
+   ["Repertorios","Misa y ensayos","repertoires","Repertorios"],
+   ["Artistas","Conoce sus cantos","artists","Artistas"],
+   ["Categorías","Organiza por tema","categories","Categorías"],
+   ["Popurrís","Varios cantos","medleys","Popurrís"],
+   ["Álbumes","Colecciones de cantos","albums","Álbumes"]
   ];
-  const homeTile=([name,subtitle,icon,destination])=>h(Pressable,{
+  const tile=([name,subtitle,icon,destination])=>h(Pressable,{
    key:name,onPress:()=>goTab(destination),accessibilityRole:"button",
-   accessibilityLabel:name+", "+subtitle,style:S.homeTile},
-   h(View,{style:S.homeTileIcon},label(icon,S.homeTileSymbol)),
-   h(View,{style:{flex:1}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)),
+   accessibilityLabel:name+". "+subtitle,style:S.homeTile},
+   h(View,{style:S.homeTileIcon},h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
+   h(View,{style:{flex:1,minWidth:0}},
+    h(Text,{style:S.homeTileName,numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.72},name),
+    h(Text,{style:S.homeTileSubtitle,numberOfLines:2},subtitle)),
    label("›",S.homeTileArrow));
   const term=normalize(homeSearch.trim());
-  const results=term?model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term)).slice(0,6):[];
+  const found=term?model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term)).slice(0,6):[];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.homeBrand},
-    label("🕊",S.homeDove),
+    h(Image,{source:HOME_IMAGES.waves,style:S.homeWaves,resizeMode:"stretch"}),
+    h(Image,{source:HOME_IMAGES.logo,style:S.homeLogo,resizeMode:"contain",accessibilityLabel:"Paloma original de SHALOM"}),
     label("SHALOM",S.homeBrandName),
     label("—  CORO Y ALABANZA  —",S.homeBrandSub)),
    h(View,{style:S.homeSearchWrap},
@@ -304,24 +315,20 @@ function App() {
      accessibilityLabel:"Buscar canto, artista o tema",returnKeyType:"search",
      onSubmitEditing:()=>{if(homeSearch.trim())goTab("Canciones",{search:homeSearch})}})),
    term?h(View,{style:S.homeResults},
-    ...results.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
-    !results.length?label("No se encontraron cantos.",S.empty):null,
+    ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
+    !found.length?label("No se encontraron cantos.",S.empty):null,
     h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
-   h(View,{style:S.homeGrid},...shortcuts.map(homeTile)),
+   h(View,{style:S.homeGrid},...links.map(tile)),
    h(Pressable,{onPress:()=>goTab("Repertorios"),accessibilityRole:"button",
-    accessibilityLabel:"Ver repertorios de Misa y Ensayo",style:S.homeFeature},
-    h(View,{style:S.homeFeatureIcon},label("♧",S.homeFeatureSymbol)),
-    h(View,{style:{flex:1}},
+    accessibilityLabel:"Ver repertorios de misa y ensayo",style:S.homeFeature},
+    h(Image,{source:HOME_IMAGES.banner,style:S.homeFeatureBackground,resizeMode:"stretch"}),
+    h(View,{style:S.homeFeatureText},
      label("Repertorios de",S.homeFeatureKicker),
      label("Misa y Ensayo",S.homeFeatureTitle),
-     label("Ver repertorios  ›",S.homeFeatureLink))),
-   h(Pressable,{style:S.homeSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button",
-    accessibilityLabel:"Estado de sincronización y ajustes"},
-    label(copy?.syncedAt?"✓ Biblioteca sincronizada":"↓ Descargar cancionero",S.homeSyncText),
-    label("⚙",S.homeSyncText)),
-   busy?label("Sincronizando… "+progress,S.info):null,
-   error?label(error,S.error):null
-  );
+     h(View,{style:S.homeFeatureButton},label("Ver repertorios   ›",S.homeFeatureLink)))),
+   !copy?.syncedAt?h(Pressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
+    label("↓ Descargar cancionero sin conexión  ›",S.homeSyncText)):null,
+   busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
  }
  function renderSongs(){
   return h(View,null,title("Canciones","Buscar letras, acordes, tonos o palabras"),
@@ -642,8 +649,11 @@ function App() {
  return h(SafeAreaProvider,null,h(SafeAreaView,{style:S.root,edges:immersiveActive?["bottom","left","right"]:["top","bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive&&tab==="Inicio"&&!detail&&!settingsOpen?h(View,{style:S.homeTopBar},
-   h(Pressable,{onPress:()=>goTab("Más"),accessibilityRole:"button",accessibilityLabel:"Abrir menú",style:S.homeTopButton},label("☰",S.homeTopIcon)),
-   h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Abrir ajustes y sincronización",style:S.homeTopButton},label("♧",S.homeTopIcon))):
+   h(Pressable,{onPress:()=>goTab("Más"),accessibilityRole:"button",accessibilityLabel:"Abrir menú",style:S.homeTopButton},
+    h(Image,{source:HOME_IMAGES.menu,style:S.homeTopIcon,resizeMode:"contain"})),
+   h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Estado y ajustes del cancionero",style:S.homeTopButton},
+    h(Image,{source:HOME_IMAGES.bell,style:S.homeTopIcon,resizeMode:"contain"}),
+    h(View,{style:S.homeBellDot}))):
   !immersiveActive?h(View,{style:S.header},label("🕊️ SHALOM",S.logo),
    h(Pressable,{onPress:()=>setSettingsOpen(v=>!v),style:S.headerAction},label(settingsOpen?"Cerrar":"⚙ Ajustes",S.headerActionText)),
    label(network.online?(network.wifi?"Wi-Fi":"Online"):"Offline",[S.net,network.online?{color:C.pale}:{color:C.gold}])):null,
@@ -651,47 +661,51 @@ function App() {
   h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},contentContainerStyle:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
-  !immersiveActive&&!settingsOpen?h(View,{style:S.nav},
-   ...(tab==="Inicio"&&!detail?[["Inicio","⌂"],["Canciones","♫"],["Repertorios","▱"],["Artistas","♧"],["Más","•••"]]:tabs).map(([name,icon])=>{const selected=isSelectedTab(tab,name)&&!detail;
+  !immersiveActive&&!settingsOpen?h(View,{style:[S.nav,tab==="Inicio"&&!detail&&S.homeNav]},
+   ...(tab==="Inicio"&&!detail?[["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Más","more"]]:tabs).map(([name,icon])=>{
+    const selected=isSelectedTab(tab,name)&&!detail;
+    const homeIcon=tab==="Inicio"&&!detail&&HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(name),style:[S.navItem,selected&&S.navSelected]},
-    label(icon,[S.navIcon,selected&&{color:C.green}]),
-    label(name,[S.navText,selected&&{color:C.green}]));})) : null
+     homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
+      label(icon,[S.navIcon,selected&&{color:C.green}]),
+     label(name,[S.navText,selected&&{color:C.green}]));})) : null
  ));
 }
 const S=StyleSheet.create({
  root:{flex:1,backgroundColor:C.bg},
- homeTopBar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingHorizontal:20,paddingTop:7,paddingBottom:0,backgroundColor:C.bg},
- homeTopButton:{minWidth:44,minHeight:44,justifyContent:"center",alignItems:"center"},
- homeTopIcon:{fontSize:27,color:C.text},
- homeContainer:{paddingBottom:4},
- homeBrand:{alignItems:"center",paddingTop:0,paddingBottom:24},
- homeDove:{fontSize:56,color:C.pale,lineHeight:67},
- homeBrandName:{fontSize:38,fontWeight:"900",color:C.text,letterSpacing:2},
- homeBrandSub:{fontSize:12,fontWeight:"700",color:C.pale,letterSpacing:2,marginTop:4},
- homeSearchWrap:{flexDirection:"row",alignItems:"center",backgroundColor:C.sub,borderColor:"#54716f",borderWidth:1,borderRadius:25,paddingHorizontal:14,minHeight:52,marginBottom:22},
- homeSearchIcon:{fontSize:31,color:C.text,marginRight:10},
- homeSearch:{flex:1,color:C.text,fontSize:14,minHeight:48,paddingVertical:8},
+ homeTopBar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingHorizontal:20,paddingTop:3,backgroundColor:C.bg},
+ homeTopButton:{width:46,height:46,justifyContent:"center",alignItems:"center",position:"relative"},
+ homeTopIcon:{height:27,width:27,tintColor:C.text},
+ homeBellDot:{position:"absolute",right:6,top:7,width:9,height:9,borderRadius:5,backgroundColor:C.green},
+ homeContainer:{paddingBottom:6},
+ homeBrand:{alignItems:"center",justifyContent:"center",paddingTop:3,paddingBottom:22,minHeight:210,overflow:"hidden"},
+ homeWaves:{position:"absolute",width:"120%",height:155,top:22,left:"-10%",opacity:.55},
+ homeLogo:{width:186,height:112},
+ homeBrandName:{fontSize:35,fontWeight:"900",color:C.text,letterSpacing:2,marginTop:-3},
+ homeBrandSub:{fontSize:11,fontWeight:"800",color:C.pale,letterSpacing:2,marginTop:3},
+ homeSearchWrap:{flexDirection:"row",alignItems:"center",backgroundColor:C.sub,borderColor:"#557575",borderWidth:1,borderRadius:28,paddingHorizontal:14,minHeight:53,marginBottom:21},
+ homeSearchIcon:{fontSize:30,color:C.text,marginRight:9},
+ homeSearch:{flex:1,color:C.text,fontSize:13,minHeight:49,paddingVertical:8},
  homeResults:{gap:5,marginBottom:17},
  homeGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:12,marginBottom:24},
- homeTile:{width:"48.5%",minHeight:93,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:17,padding:10,flexDirection:"row",alignItems:"center",gap:8},
- homeTileIcon:{height:45,width:42,backgroundColor:"#126749",borderRadius:12,justifyContent:"center",alignItems:"center"},
- homeTileSymbol:{fontSize:25,color:C.pale,fontWeight:"800"},
- homeTileName:{fontSize:14,fontWeight:"850",color:C.text},
- homeTileSubtitle:{fontSize:10,lineHeight:14,color:C.muted,marginTop:4},
- homeTileArrow:{fontSize:23,color:C.text},
- homeFeature:{backgroundColor:"#12382f",borderColor:C.green,borderWidth:1,borderRadius:20,minHeight:116,padding:16,flexDirection:"row",alignItems:"center",gap:14},
- homeFeatureIcon:{width:76,borderRightWidth:1,borderRightColor:C.green,alignItems:"center",justifyContent:"center",minHeight:75},
- homeFeatureSymbol:{fontSize:44,color:C.pale},
+ homeTile:{width:"48.6%",minHeight:91,backgroundColor:C.panel,borderWidth:1,borderColor:"#405761",borderRadius:17,paddingHorizontal:7,paddingVertical:12,flexDirection:"row",alignItems:"center",gap:5},
+ homeTileIcon:{height:39,width:36,backgroundColor:"#08704f",borderRadius:11,justifyContent:"center",alignItems:"center"},
+ homeTileImage:{height:26,width:26,tintColor:"#effff8"},
+ homeTileName:{fontSize:13.3,fontWeight:"800",color:C.text},
+ homeTileSubtitle:{fontSize:10.1,lineHeight:13.5,color:C.muted,marginTop:3},
+ homeTileArrow:{fontSize:19,color:C.text,marginRight:1},
+ homeFeature:{borderColor:C.green,borderWidth:1,borderRadius:21,minHeight:116,overflow:"hidden",justifyContent:"center"},
+ homeFeatureBackground:{position:"absolute",width:"100%",height:"100%",left:0,top:0},
+ homeFeatureText:{marginLeft:"29%",paddingVertical:12,paddingRight:12},
  homeFeatureKicker:{fontSize:14,color:C.text},
- homeFeatureTitle:{fontSize:20,fontWeight:"900",color:C.text,marginVertical:4},
- homeFeatureLink:{fontSize:12,fontWeight:"800",color:C.pale,marginTop:5},
- homeSync:{flexDirection:"row",justifyContent:"space-between",paddingHorizontal:12,paddingVertical:15,marginTop:15,alignItems:"center"},
- homeSyncText:{fontSize:11,color:C.muted},
-header:{backgroundColor:C.panel,paddingHorizontal:13,paddingVertical:12,flexDirection:"row",alignItems:"center",gap:9,borderBottomWidth:1,borderColor:C.border,minHeight:56},
- logo:{fontSize:19,fontWeight:"900",color:C.green,flex:1},headerAction:{borderWidth:1,borderColor:C.green,borderRadius:99,padding:7},
- headerActionText:{color:C.pale,fontSize:11,fontWeight:"750"},net:{fontSize:11,fontWeight:"750"},
- page:{paddingHorizontal:14,paddingTop:19,paddingBottom:20},
+ homeFeatureTitle:{fontSize:20,fontWeight:"900",color:C.text,marginVertical:2},
+ homeFeatureButton:{borderWidth:1,borderColor:C.green,borderRadius:99,alignSelf:"flex-start",marginTop:6,paddingHorizontal:11,paddingVertical:5,backgroundColor:"#103a31"},
+ homeFeatureLink:{fontSize:11,fontWeight:"800",color:C.pale},
+ homeNeedsSync:{alignItems:"center",paddingVertical:12},
+ homeSyncText:{fontSize:12,color:C.pale},
+ homeNav:{marginHorizontal:14,marginBottom:7,borderRadius:18,borderWidth:1,borderColor:C.border,paddingVertical:6,minHeight:64,overflow:"hidden"},
+ homeNavIcon:{height:25,width:25},
  readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
  capoNote:{fontSize:12,color:C.pale,fontWeight:"800",marginTop:7},
  hero:{paddingHorizontal:15,paddingTop:13,paddingBottom:10,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:16,marginBottom:8},
