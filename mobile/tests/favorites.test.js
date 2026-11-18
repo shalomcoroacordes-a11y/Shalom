@@ -1,0 +1,17 @@
+const assert=require("node:assert/strict");
+const {FAVORITES_KEY,parseFavorites,toggleFavorite,hasFavorite}=require("../src/favorites");
+assert.match(FAVORITES_KEY,/local/);
+assert.deepEqual(parseFavorites(null),[]);
+assert.deepEqual(parseFavorites("not json"),[]);
+assert.deepEqual(parseFavorites("{}"),[]);
+assert.deepEqual(parseFavorites('["a","b","a",null,42]'),["a","b"]);
+assert.deepEqual(toggleFavorite([],"song-1"),["song-1"]);
+const a=toggleFavorite([],"song-1");
+const b=toggleFavorite(a,"song-2");
+assert.deepEqual(a,["song-1"],"Existing arrays are not mutated");
+assert.deepEqual(b,["song-1","song-2"]);
+assert.equal(hasFavorite(b,"song-2"),true);
+assert.deepEqual(toggleFavorite(b,"song-1"),["song-2"]);
+assert.deepEqual(toggleFavorite(b,""),b);
+assert.deepEqual(parseFavorites(JSON.stringify(toggleFavorite(b,"song-2"))),["song-1"]);
+console.log("Likes remain per-installation and can be toggled offline.");
