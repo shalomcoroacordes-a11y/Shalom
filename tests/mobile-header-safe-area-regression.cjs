@@ -11,7 +11,7 @@ assert.match(app,/edges:\["bottom","left","right"\]/,"Do not apply the top inset
 assert.match(app,/function AppSectionHeader\(/);
 assert.match(app,/function AppDetailHeader\(/);
 assert.match(app,/section:"Configuración",onBack:/);
-assert.match(app,/detail&&detail\.type!=="song"\?h\(AppDetailHeader/);
+assert.match(app,/detail&&!isReader\?h\(AppDetailHeader/,"Single-song and multi-song readers share their own header");
 assert.match(app,/onSettings:\(\)=>setSettingsOpen\(true\)/);
 assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.sectionHeaderLogo/);
 assert.match(app,/sectionHeaderIdentity:\{flex:1,minWidth:0/);
