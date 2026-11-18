@@ -597,39 +597,87 @@ function AppScreen() {
    label("Sugerir repertorio",S.repSuggestCaption)
   );
  }
+ function renderMultiReadingControls(){
+  return h(View,{style:S.multiControlArea},
+   h(View,{style:S.songControls},
+    h(Pressable,{style:S.songToneControl,onPress:showSongToneMenu,
+     accessibilityRole:"button",accessibilityLabel:"Transponer todo el repertorio o popurrí"},
+     label("♫  "+(transpose===0?"Tono original":(transpose>0?"+":"")+transpose+" semitonos")+"  ▾",S.songControlText)),
+    h(View,{style:S.songFontControl},
+     h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),
+      accessibilityRole:"button",accessibilityLabel:"Reducir letras",style:S.songFontButton},
+      label("A−",S.songFontText)),
+     h(Pressable,{onPress:()=>setReaderFont(v=>Math.min(22,v+1)),
+      accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
+      label("A+",S.songFontText)))),
+   h(View,{style:S.multiControlFooter},
+    h(Pressable,{onPress:()=>setTranspose(0),accessibilityRole:"button",
+     accessibilityLabel:"Restablecer transposición",style:S.multiTextAction},
+     label("Restablecer tono",S.multiTextActionLabel)),
+    Platform.OS==="android"?h(Pressable,{onPress:()=>setImmersive(v=>!v),
+     accessibilityRole:"button",accessibilityLabel:immersiveActive?"Salir de pantalla completa":"Pantalla completa",
+     style:S.multiTextAction},label(immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",S.multiTextActionLabel)):null));
+ }
+ function renderMultiReadingScore(lyrics,delta,keyPrefix){
+  const parsed=parseSong(lyrics,delta);
+  const chordStyle=[S.songChord,{fontSize:readerFont,lineHeight:readerFont+5}];
+  const lyricStyle=[S.songLyric,{fontSize:readerFont,lineHeight:readerFont+7}];
+  return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
+   style:S.songScoreScroll,contentContainerStyle:S.songScoreContent},
+   h(View,{style:{minWidth:"100%"}},
+    ...parsed.map((row,i)=>{
+     const key=keyPrefix+"-"+i;
+     if(row.kind==="space")return h(View,{key,style:{height:readerFont*.8}});
+     if(row.kind==="section"){
+      const chorus=String(row.text||"").toLowerCase().includes("coro");
+      return h(View,{key,style:S.songSectionRow},
+       h(View,{style:[S.songSectionPill,chorus&&S.songChorusPill]},
+        label(row.text,[S.songSectionText,chorus&&S.songChorusText])),
+       h(View,{style:S.songSectionRule}));
+     }
+     if(row.kind==="chords")return h(View,{key,style:S.songPair},
+      h(Text,{style:chordStyle,selectable:true},row.chordLine||" "),
+      h(Text,{style:lyricStyle,selectable:true},row.lyricLine||" "));
+     return h(Text,{key,style:row.kind==="chordsOnly"?chordStyle:lyricStyle,
+      selectable:true},row.text||" ");
+    })));
+ }
  function renderRepertoireDetail(rep){
   const items=Array.isArray(rep.items)?rep.items:[];
-  return h(View,null,
-   h(View,{style:S.readerActions},
-    Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
-   label(rep.kind==="misa"?"REPERTORIO DE MISA":"REPERTORIO DE ENSAYO",S.eyebrow),
-   label(rep.title,S.readerTitle),
-   label([rep.event_date,rep.location,items.length+" cantos"].filter(Boolean).join(" · "),S.info),
-   rep.notes?label(rep.notes,S.description):null,
-   h(Card,null,label("Transposición de todos los cantos",S.listTitle),
-    h(View,{style:S.transpose},
-     h(Btn,{text:"− Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.max(-11,n-1))}),
-     label(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
-     h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.min(11,n+1))}),
-     h(Btn,{text:"Restablecer",small:true,secondary:true,onPress:()=>setTranspose(0)}))),
-   ...items.map((item,i)=>{
+  const kind=repertoireType(rep);
+  return h(View,{style:S.multiReader},
+   h(View,{style:S.songMetaRow},
+    h(View,{style:S.songMetaIcon},h(Image,{source:HOME_IMAGES[kind==="misa"?"mass":"repertoires"],
+     resizeMode:"contain",style:S.songMetaIconImage})),
+    h(View,{style:{flex:1,minWidth:0}},
+     h(Text,{style:S.songHeading},rep.title||"Repertorio"),
+     label(items.length+" "+(items.length===1?"canto":"cantos")+
+      (rep.event_date?" · "+rep.event_date:""),S.songArtist),
+     h(View,{style:S.songTypeBadge},
+      label(kind==="misa"?"Misa":kind==="ensayo"?"Ensayo":"Repertorio",S.songTypeText)))),
+   (rep.location||rep.notes)?h(Text,{style:S.multiDescription},[rep.location,rep.notes].filter(Boolean).join(" · ")):null,
+   renderMultiReadingControls(),
+   ...items.map((item,index)=>{
     const song=model.songs.find(s=>String(s.id)===String(item.song_id));
-    const lines=parseSong(song?.lyrics||"Canto no disponible.",transpose);
-    return h(Card,{key:i,style:{marginTop:12}},
-     label((i+1)+". "+(item.moment||"Canto")+" — "+(song?.title||"Canto no disponible"),S.listTitle),
-     song?.tone?label("Tono "+song.tone,S.rowMeta):null,
-     item.notes?label(item.notes,S.info):null,
-     h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,contentContainerStyle:{padding:12,minWidth:"100%"}},
-      h(View,null,...lines.map((r,j)=>{
-       if(r.kind==="space")return h(View,{key:j,style:{height:14}});
-       if(r.kind==="section")return h(Text,{key:j,style:S.verse},r.text);
-       if(r.kind==="chords")return h(View,{key:j,style:{marginBottom:4}},
-        h(Text,{style:S.chordText},r.chordLine||" "),
-        h(Text,{style:S.lyricText},r.lyricLine||" "));
-       return h(Text,{key:j,style:r.kind==="chordsOnly"?S.chordText:S.lyricText},r.text||" ");
-      }))),
-     song?h(Btn,{text:"Ver canto individual",small:true,secondary:true,onPress:()=>selectSong(song)}):null);
-   }));
+    const title=String(song?.title||item.song_title||"Canto no disponible");
+    const moment=String(item.moment||"Canto "+(index+1));
+    const tone=song?.tone?transposeOne(song.tone,transpose):"";
+    return h(View,{key:item.id||index,style:[S.multiPart,index>0&&S.multiPartDivider]},
+     h(View,{style:S.multiPartHeading},
+      h(View,{style:S.multiPartNumber},label(String(index+1),S.multiPartNumberText)),
+      h(View,{style:{flex:1,minWidth:0}},
+       h(View,{style:S.multiMomentPill},label(moment,S.multiMomentText)),
+       h(Text,{style:S.multiPartTitle},title),
+       tone?label("Tono "+tone,S.multiPartDetail):null)),
+     item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
+     renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose,"rep-"+index),
+     song?h(Pressable,{onPress:()=>selectSong(song),accessibilityRole:"button",
+       accessibilityLabel:"Abrir "+title+" como canto individual",style:S.multiOriginalLink},
+       label("Ver canto individual  ›",S.multiOriginalText)):null
+    );
+   }),
+   !items.length?h(SectionEmpty,{message:"Este repertorio todavía no tiene cantos."}):null
+  );
  }
  function renderMedleys(){
   const filtered=model.medleys.filter(m=>
@@ -656,55 +704,41 @@ function AppScreen() {
  }
  function renderMedleyDetail(medley){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
-  return h(View,null,
-   h(View,{style:S.readerActions},
-    Platform.OS==="android"?h(Btn,{text:immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",small:true,secondary:!immersiveActive,onPress:()=>setImmersive(v=>!v)}):null),
-   label(type(medley.song_type).toUpperCase(),S.eyebrow),
-   label(medley.title,S.readerTitle),
-   label(parts.length+" fragmentos"+(medley.base_tone?" · Tono "+medley.base_tone:""),S.info),
-   medley.description?label(medley.description,S.description):null,
-   h(Card,null,
-     label("Transposición de todo el popurrí",S.listTitle),
-     h(View,{style:S.transpose},
-       h(Btn,{text:"− Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.max(-11,n-1))}),
-       label(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos",S.smallMuted),
-       h(Btn,{text:"+ Semitono",small:true,secondary:true,onPress:()=>setTranspose(n=>Math.min(11,n+1))}),
-       h(Btn,{text:"Restablecer",small:true,secondary:true,onPress:()=>setTranspose(0)})),
-   ),
+  const generalTone=String(medley.base_tone||"");
+  return h(View,{style:S.multiReader},
+   h(View,{style:S.songMetaRow},
+    h(View,{style:S.songMetaIcon},
+     h(Image,{source:HOME_IMAGES.medleys,resizeMode:"contain",style:S.songMetaIconImage})),
+    h(View,{style:{flex:1,minWidth:0}},
+     h(Text,{style:S.songHeading},medley.title||"Popurrí"),
+     label(parts.length+" "+(parts.length===1?"fragmento":"fragmentos")+
+      (generalTone?" · Tono "+transposeOne(generalTone,transpose):""),S.songArtist),
+     h(View,{style:S.songTypeBadge},label(type(medley.song_type),S.songTypeText)))),
+   medley.description?h(Text,{style:S.multiDescription},medley.description):null,
+   renderMultiReadingControls(),
    ...parts.map((part,index)=>{
     const original=model.songs.find(song=>String(song.id)===String(part.song_id));
-    const delta=transpose+Number(part.shift||0);
+    const fragmentTitle=part.title||part.song_title||original?.title||"Canto "+(index+1);
+    const shift=Number(part.shift||0);
+    const delta=transpose+(Number.isFinite(shift)?shift:0);
+    const tone=part.tone||original?.tone||"";
     const capoPosition=Number(part.capo_position||original?.capo_position||0);
     const capoKey=String(part.capo_key||original?.capo_key||"").trim();
-    const capoVersions=(original?._capos||[]).filter(v=>Number(v.capo_position)>0);
-    const lines=parseSong(part.lyrics||"",delta);
-    return h(Card,{key:part.id||index},
-     h(View,{style:{flexDirection:"row",alignItems:"center",gap:9}},
-      h(View,{style:S.entityIcon},label(String(index+1),S.entityEmoji)),
-      h(View,{style:{flex:1}},
-       label(part.title||part.song_title||"Canto "+(index+1),S.listTitle),
-       label([part.tone?"Tono "+part.tone:"",part.shift?"Ajuste "+part.shift+" semitonos":""].filter(Boolean).join(" · "),S.rowMeta),
-       capoPosition>0?label("🎸 Capo registrado: traste "+capoPosition+(capoKey?" · Figuras en "+capoKey:""),S.capoNote):null,
-       capoVersions.length?label("Otras versiones con capo: "+capoVersions.map(v=>"traste "+v.capo_position+(v.capo_key?" ("+v.capo_key+")":"")).join(" · "),S.smallMuted):null)),
-     h(ScrollView,{horizontal:true,nestedScrollEnabled:true,style:S.lyricsArea,
-       contentContainerStyle:{padding:12,minWidth:"100%"}},
-      h(View,null,...lines.map((r,i)=>{
-       if(r.kind==="space")return h(View,{key:i,style:{height:14}});
-       if(r.kind==="section")return h(Text,{key:i,style:S.verse},r.text);
-       if(r.kind==="chords")return h(View,{key:i,style:{marginBottom:4}},
-         h(Text,{style:S.chordText},r.chordLine||" "),
-         h(Text,{style:S.lyricText},r.lyricLine||" "));
-       return h(Text,{key:i,style:r.kind==="chordsOnly"?S.chordText:S.lyricText},r.text||" ");
-      }))),
-     original?h(View,{style:S.rowWrap},
-      h(Btn,{text:"Ver canto original",small:true,secondary:true,onPress:()=>selectSong(original)}),
-      ...[...(original._links||[]).map(x=>({title:x.title||"Video",url:x.url})),
-        {title:"Tutorial guitarra",url:original.tutorial_guitar},
-        {title:"Tutorial piano",url:original.tutorial_piano}]
-        .filter(x=>safeWebUrl(x.url)).slice(0,3)
-        .map((x,i)=>h(Btn,{key:i,text:"▶ "+x.title,small:true,secondary:true,onPress:()=>openWeb(x.url)}))
-      ):null);
-   })
+    return h(View,{key:part.id||index,style:[S.multiPart,index>0&&S.multiPartDivider]},
+     h(View,{style:S.multiPartHeading},
+      h(View,{style:S.multiPartNumber},label(String(index+1),S.multiPartNumberText)),
+      h(View,{style:{flex:1,minWidth:0}},
+       h(Text,{style:S.multiPartTitle},fragmentTitle),
+       tone?label("Tono "+transposeOne(tone,delta),S.multiPartDetail):null,
+       capoPosition>0?label("Capo: traste "+capoPosition+
+        (capoKey?" · Figuras en "+capoKey:""),S.multiPartCapo):null)),
+     renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta,"medley-"+index),
+     original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
+       accessibilityLabel:"Abrir "+original.title+" como canto individual",style:S.multiOriginalLink},
+       label("Ver canto original  ›",S.multiOriginalText)):null
+    );
+   }),
+   !parts.length?h(SectionEmpty,{message:"Este popurrí todavía no tiene fragmentos."}):null
   );
  }
  function renderAlbums(){
@@ -887,7 +921,7 @@ function AppScreen() {
   :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
-  !immersiveActive&&detail?.type==="song"&&!settingsOpen?h(View,{style:S.songTopBar},
+  !immersiveActive&&isReader&&!settingsOpen?h(View,{style:S.songTopBar},
    h(Pressable,{style:S.songBackButton,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Volver a las canciones"},
     label("‹",S.songBackSymbol)),
    h(View,{style:S.songTopBrand},
@@ -923,7 +957,7 @@ function AppScreen() {
     h(Image,{source:HOME_IMAGES.bell,style:S.homeTopIcon,resizeMode:"contain"}),
     h(View,{style:S.homeBellDot}))):
   !immersiveActive&&settingsOpen?h(AppSectionHeader,{section:"Configuración",onBack:()=>setSettingsOpen(false)}):
-  !immersiveActive&&detail&&detail.type!=="song"?h(AppDetailHeader,{
+  !immersiveActive&&detail&&!isReader?h(AppDetailHeader,{
    section:detail.type==="artist"?"Artista":detail.type==="album"?"Álbum":
     detail.type==="medley"?"Popurrí":detail.type==="repertoire"?"Repertorio":"Detalle",
    onBack:back
@@ -933,7 +967,8 @@ function AppScreen() {
    onSettings:()=>setSettingsOpen(true)
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
-  h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},contentContainerStyle:S.page,
+  h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
+   contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&detail?.type==="song"&&active?h(View,{style:S.songActionBar},
@@ -945,7 +980,7 @@ function AppScreen() {
    ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
     onPress,accessibilityRole:"button",accessibilityLabel:name},
     label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
-  !immersiveActive&&!settingsOpen&&detail?.type!=="song"?h(View,{style:[S.nav,tab==="Inicio"&&!detail&&S.homeNav]},
+  !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:[S.nav,tab==="Inicio"&&!detail&&S.homeNav]},
    ...tabs.map(([name,icon])=>{
     const selected=isSelectedTab(tab,name)&&!detail;
     const homeIcon=HOME_IMAGES[icon];
@@ -1091,6 +1126,26 @@ const S=StyleSheet.create({
  songActionItem:{flex:1,alignItems:"center",justifyContent:"center",minHeight:56},
  songActionIcon:{fontSize:24,color:C.text,lineHeight:30,fontWeight:"800"},
  songActionLabel:{fontSize:11,color:C.text,fontWeight:"800",marginTop:3},
+ multiPage:{paddingHorizontal:18,paddingTop:15,paddingBottom:28},
+ multiReader:{paddingBottom:14},
+ multiDescription:{fontSize:13,color:C.muted,lineHeight:19,marginTop:-2,marginBottom:9},
+ multiControlArea:{marginBottom:16},
+ multiControlFooter:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingVertical:6,gap:8},
+ multiTextAction:{minHeight:38,justifyContent:"center",paddingHorizontal:5},
+ multiTextActionLabel:{fontSize:12,color:C.pale,fontWeight:"750"},
+ multiPart:{paddingTop:6,paddingBottom:23},
+ multiPartDivider:{borderTopWidth:1,borderTopColor:"#334e4b",paddingTop:24,marginTop:10},
+ multiPartHeading:{flexDirection:"row",alignItems:"center",gap:12,paddingBottom:5},
+ multiPartNumber:{width:37,height:37,alignItems:"center",justifyContent:"center",backgroundColor:"#106849",borderRadius:11},
+ multiPartNumberText:{fontSize:17,fontWeight:"900",color:C.pale},
+ multiPartTitle:{fontSize:19,lineHeight:25,fontWeight:"850",color:C.text},
+ multiMomentPill:{borderColor:C.green,borderWidth:1,borderRadius:8,alignSelf:"flex-start",paddingHorizontal:9,paddingVertical:3,backgroundColor:"#133b31",marginBottom:7},
+ multiMomentText:{fontSize:12,fontWeight:"850",color:C.pale},
+ multiPartDetail:{fontSize:12,color:C.muted,marginTop:5},
+ multiPartCapo:{fontSize:12,color:C.pale,marginTop:5},
+ multiPartNote:{fontSize:12,color:C.muted,marginTop:8,lineHeight:17},
+ multiOriginalLink:{alignSelf:"flex-start",paddingVertical:9,paddingHorizontal:2,marginTop:5},
+ multiOriginalText:{fontSize:12,fontWeight:"750",color:C.pale},
  readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
  capoNote:{fontSize:12,color:C.pale,fontWeight:"800",marginTop:7},
  hero:{paddingHorizontal:15,paddingTop:13,paddingBottom:10,backgroundColor:C.panel,borderWidth:1,borderColor:C.border,borderRadius:16,marginBottom:8},
