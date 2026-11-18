@@ -13,7 +13,7 @@ assert.ok(reader.includes("toggleLike(song.id)"),"The song reader must allow loc
 assert.ok(!/Editar|Reportar letra|Corregir acordes|requestForm\(/.test(reader),"No editor or correction requests inside the reader");
 assert.match(app,/setMetadata\(FAVORITES_KEY,payload\)/,"Likes must be written to local metadata");
 assert.match(app,/getMetadata\(FAVORITES_KEY,"\[\]"\)/,"Likes must be restored locally on startup");
-assert.match(app,/setOnlyLiked\(true\)/,"Users need to filter their liked songs");
+assert.match(app,/setOnlyLiked\(val==="liked"\)/,"Users need to filter their liked songs");
 assert.match(app,/detail\?\.type!=="song"\?h\(View/,"Native bottom navigation is hidden in the reader");
 assert.match(app,/shareSong\(active\)/,"Sharing must remain available without editing");
 assert.match(app,/printSong\(active\)/,"Printing must use a real action");
