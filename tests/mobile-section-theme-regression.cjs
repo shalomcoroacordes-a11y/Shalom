@@ -3,7 +3,7 @@ const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
 const section=(start,end)=>{
  const i=app.indexOf(" function "+start+"(){");
- const j=app.indexOf(" function "+end+"(){",i+1);
+ const j=app.indexOf(" function "+end+"(",i+1);
  assert.ok(i>=0&&j>i,"Missing section: "+start);
  return app.slice(i,j);
 };
