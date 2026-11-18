@@ -724,6 +724,12 @@ function AppScreen() {
     const tone=part.tone||original?.tone||"";
     const capoPosition=Number(part.capo_position||original?.capo_position||0);
     const capoKey=String(part.capo_key||original?.capo_key||"").trim();
+    const otherCapos=(original?._capos||[]).filter(v=>Number(v.capo_position)>0);
+    const tutorials=[
+     ...(original?._links||[]).map(x=>({title:x.title||"Video",url:x.url})),
+     {title:"Tutorial guitarra",url:original?.tutorial_guitar},
+     {title:"Tutorial piano",url:original?.tutorial_piano}
+    ].filter(x=>safeWebUrl(x.url)).slice(0,3);
     return h(View,{key:part.id||index,style:[S.multiPart,index>0&&S.multiPartDivider]},
      h(View,{style:S.multiPartHeading},
       h(View,{style:S.multiPartNumber},label(String(index+1),S.multiPartNumberText)),
@@ -731,11 +737,17 @@ function AppScreen() {
        h(Text,{style:S.multiPartTitle},fragmentTitle),
        tone?label("Tono "+transposeOne(tone,delta),S.multiPartDetail):null,
        capoPosition>0?label("Capo: traste "+capoPosition+
-        (capoKey?" · Figuras en "+capoKey:""),S.multiPartCapo):null)),
+        (capoKey?" · Figuras en "+capoKey:""),S.multiPartCapo):null,
+       otherCapos.length?label("Otros capos: "+otherCapos.map(c=>"traste "+c.capo_position+
+        (c.capo_key?" · "+c.capo_key:"")).join(" / "),S.multiPartCapo):null)),
      renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta,"medley-"+index),
-     original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
+     h(View,{style:S.multiQuickLinks},
+      original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+original.title+" como canto individual",style:S.multiOriginalLink},
-       label("Ver canto original  ›",S.multiOriginalText)):null
+       label("Ver canto original  ›",S.multiOriginalText)):null,
+      ...tutorials.map((x,i)=>h(Pressable,{key:"video-"+i,onPress:()=>openWeb(x.url),
+       accessibilityRole:"button",accessibilityLabel:"Abrir "+x.title,style:S.multiOriginalLink},
+       label("▶ "+x.title,S.multiOriginalText))))
     );
    }),
    !parts.length?h(SectionEmpty,{message:"Este popurrí todavía no tiene fragmentos."}):null
@@ -1144,6 +1156,7 @@ const S=StyleSheet.create({
  multiPartDetail:{fontSize:12,color:C.muted,marginTop:5},
  multiPartCapo:{fontSize:12,color:C.pale,marginTop:5},
  multiPartNote:{fontSize:12,color:C.muted,marginTop:8,lineHeight:17},
+ multiQuickLinks:{flexDirection:"row",flexWrap:"wrap",columnGap:14,rowGap:0,alignItems:"center"},
  multiOriginalLink:{alignSelf:"flex-start",paddingVertical:9,paddingHorizontal:2,marginTop:5},
  multiOriginalText:{fontSize:12,fontWeight:"750",color:C.pale},
  readerActions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8},
