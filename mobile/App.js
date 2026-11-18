@@ -105,6 +105,49 @@ function AppSectionHeader({section,onBack,onSettings}){
  );
 }
 function AppDetailHeader(props){return h(AppSectionHeader,{...props})}
+
+function SectionHero({title,subtitle,icon}){
+ return h(View,{style:S.repHeading},
+  h(Image,{source:HOME_IMAGES[icon]||HOME_IMAGES.song,resizeMode:"contain",style:S.repHeadingIcon}),
+  h(View,{style:{flex:1,minWidth:0}},
+   h(Text,{style:S.repTitle,numberOfLines:2,adjustsFontSizeToFit:true,minimumFontScale:.8},title),
+   h(Text,{style:S.repSubtitle,numberOfLines:2},subtitle||"")));
+}
+function SectionFilterBar({options,value,onChange,compact=false}){
+ return h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,
+  contentContainerStyle:[S.repFilters,compact&&S.sectionFiltersCompact]},
+  ...options.map(([code,text,icon])=>{
+   const selected=value===code;
+   return h(Pressable,{key:String(code),onPress:()=>onChange(code),
+    accessibilityRole:"button",accessibilityLabel:"Filtrar: "+text,
+    accessibilityState:{selected},style:[S.repFilterChip,selected&&S.repFilterActive]},
+    icon?h(Image,{source:HOME_IMAGES[icon]||HOME_IMAGES.song,resizeMode:"contain",
+     style:[S.repFilterIcon,{tintColor:selected?"#05271d":C.text}]}):null,
+    label(text,[S.repFilterText,selected&&S.repFilterTextActive]));
+  }));
+}
+function SectionSearch({value,onChangeText,placeholder}){
+ return h(TextInput,{style:S.repSearchInput,value,onChangeText,
+  placeholder,placeholderTextColor:C.muted,autoCorrect:false,
+  accessibilityLabel:placeholder,returnKeyType:"search"});
+}
+function SectionListCard({title,subtitle,meta,icon,onPress}){
+ return h(Pressable,{style:S.repCard,onPress,accessibilityRole:"button",
+  accessibilityLabel:[title,subtitle].filter(Boolean).join(", ")},
+  h(View,{style:S.repCardIconWrap},
+   h(Image,{source:HOME_IMAGES[icon]||HOME_IMAGES.song,resizeMode:"contain",style:S.repCardIcon})),
+  h(View,{style:{flex:1,minWidth:0}},
+   h(Text,{style:S.repCardTitle,numberOfLines:2},title||"Sin título"),
+   subtitle?h(Text,{style:S.repCardCount,numberOfLines:2},subtitle):null,
+   meta?h(Text,{style:S.repCardMeta,numberOfLines:1},meta):null),
+  label("›",S.repArrow));
+}
+function SectionEmpty({message}){
+ return h(View,{style:S.repEmptyCard},
+  h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.repEmptyLogo}),
+  label(message,S.repEmptyText));
+}
+const SONG_TYPES=[["","Todos"],["catolico","Católico"],["cristiano","Cristiano"],["mixto","Mixto"],["general","General"]];
 function AppScreen() {
  const insets=useSafeAreaInsets();
  // Android edge-to-edge: reserve the status-bar area exactly once.
@@ -130,6 +173,9 @@ function AppScreen() {
  const [categoryId,setCategoryId]=useState("");
  const [repertoireFilter,setRepertoireFilter]=useState("todos");
  const [repertoireSearchOpen,setRepertoireSearchOpen]=useState(false);
+ const [sectionSearchOpen,setSectionSearchOpen]=useState(false);
+ const [artistTypeFilter,setArtistTypeFilter]=useState("");
+ const [medleyTypeFilter,setMedleyTypeFilter]=useState("");
  const [folderType,setFolderType]=useState("");
  const [folderId,setFolderId]=useState("");
  const [transpose,setTranspose]=useState(0);
@@ -169,7 +215,7 @@ function AppScreen() {
   if(!term)return true;
   return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
- function goTab(next,options={}){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setCategoryId("");setOnlyLiked(Boolean(options.liked));}
+ function goTab(next,options={}){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function toggleLike(songId){
@@ -376,89 +422,123 @@ function AppScreen() {
    busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
  }
  function renderSongs(){
-  return h(View,null,title("Canciones","Buscar letras, acordes, tonos o palabras"),
+  const typeChoices=SONG_TYPES.map(([key,name])=>[key,name,null]);
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Canciones",subtitle:"Busca letras, acordes, tonos o palabras",icon:"song"}),
    !copy?.syncedAt?h(Card,null,
-     label("Primero descarga el cancionero",S.listTitle),
-     label("La app todavía no tiene cantos guardados. Con Wi-Fi, pulsa Descargar para recibirlos desde SHALOM.",S.info),
-     h(Btn,{text:busy?"Descargando…":"Descargar mis cantos",onPress:manualSync,disabled:busy}),
-     busy?h(ActivityIndicator,{color:C.green,style:{marginTop:10}}):null,
-     Boolean(error)?label(error,S.error):null,
-     Boolean(progress)?label(progress,S.info):null):null,
-   inputField("Buscar canto",query,v=>{setQuery(v);setCountLimit(80)},{placeholder:"Nombre, letra o artista…"}),
-   h(View,{style:S.chips},
-    h(Chip,{text:"Todas",active:!onlyLiked,onPress:()=>{setOnlyLiked(false);setCountLimit(80)}}),
-    h(Chip,{text:"♥ Mis Me gusta ("+likedIds.length+")",active:onlyLiked,onPress:()=>{setOnlyLiked(true);setCountLimit(80)}})),
-   h(View,{style:S.chips},
-    ...[["","Todos los tipos"],["catolico","Católico"],["cristiano","Cristiano"],["mixto","Mixto"]]
-     .map(([val,text])=>h(Chip,{key:val,text,active:typeFilter===val,onPress:()=>{
-      setTypeFilter(val);setCountLimit(80)
-     }}))),
-   onlyLiked?label("Tus Me gusta solo se guardan en este teléfono. No afectan a otros usuarios.",S.smallMuted):null,
-   categoryId?h(View,{style:S.rowWrap},label("Filtro: "+model.categoryPath(model.categoryMap.get(categoryId)),S.info),
+    label("Primero descarga el cancionero",S.listTitle),
+    label("La biblioteca aún no está guardada en el teléfono.",S.info),
+    h(Btn,{text:busy?"Descargando…":"Descargar mis cantos",onPress:manualSync,disabled:busy}),
+    busy?h(ActivityIndicator,{color:C.green}):null,
+    error?label(error,S.error):null):null,
+   h(SectionFilterBar,{options:[["all","Todas","song"],["liked","♥ Mis Me gusta ("+likedIds.length+")",null]],
+    value:onlyLiked?"liked":"all",compact:true,
+    onChange:val=>{setOnlyLiked(val==="liked");setCountLimit(80)}}),
+   h(SectionFilterBar,{options:typeChoices,value:typeFilter,
+    onChange:val=>{setTypeFilter(val);setCountLimit(80)}}),
+   sectionSearchOpen?h(SectionSearch,{value:query,
+    onChangeText:v=>{setQuery(v);setCountLimit(80)},placeholder:"Buscar nombre, letra o artista…"}):null,
+   onlyLiked?label("Tus Me gusta se guardan solo en este teléfono.",S.sectionSupporting):null,
+   categoryId?h(View,{style:S.rowWrap},
+    label("Filtro: "+model.categoryPath(model.categoryMap.get(categoryId)),S.info),
     h(Btn,{text:"Quitar filtro",small:true,secondary:true,onPress:()=>setCategoryId("")})):null,
-   label(eligible.length+" resultados",S.smallMuted),
-   !copy?.syncedAt?label("Aún no se ha descargado la biblioteca. No significa que las canciones hayan desaparecido de Supabase.",S.info):previewSongs(eligible));
+   label(eligible.length+" "+(eligible.length===1?"resultado":"resultados"),S.sectionResults),
+   h(View,{style:S.repCards},
+    ...eligible.slice(0,countLimit).map(song=>h(SectionListCard,{key:song.id,
+     title:song.title||"Sin título",
+     subtitle:[names(song._artists),song.tone?"Tono "+song.tone:""].filter(Boolean).join(" · ")||type(song.song_type),
+     meta:likedSet.has(String(song.id))?"♥ En mis Me gusta":null,
+     icon:"song",onPress:()=>selectSong(song)})),
+    eligible.length>countLimit?h(Btn,{text:"Mostrar más cantos",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null,
+    !eligible.length?h(SectionEmpty,{message:copy?.syncedAt?
+     "No hay cantos que coincidan con estos filtros.":"Descarga la biblioteca desde Ajustes para ver los cantos."}):null)
+  );
  }
  function renderArtists(){
-  const list=model.artists.filter(a=>matchesSearch([a.name,a.description,a.artist_type],query));
-  return h(View,null,title("Artistas","Descubre ministerios, coros y músicos"),
-    inputField("Buscar artista",query,setQuery,{placeholder:"Nombre del artista…"}),
-    ...list.slice(0,countLimit).map(a=>h(EntityRow,{key:a.id,item:a,kind:"artist",
-     description:type(a.artist_type)+" · "+model.songsForArtist(a.id).length+" cantos",
-     onPress:()=>openDetail({type:"artist",id:a.id})})),
-    list.length>countLimit?h(Btn,{text:"Mostrar más artistas",secondary:true,onPress:()=>setCountLimit(n=>n+80)}):null,
-    !list.length?label("No hay artistas que coincidan.",S.empty):null);
+  const filtered=model.artists.filter(a=>
+   (!artistTypeFilter||normalize(type(a.artist_type))===artistTypeFilter)
+   &&matchesSearch([a.name,a.description,a.artist_type],query));
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Artistas",subtitle:"Descubre ministerios, coros y músicos",icon:"artists"}),
+   h(SectionFilterBar,{options:SONG_TYPES.map(([code,name])=>[code,name,null]),
+    value:artistTypeFilter,onChange:val=>{setArtistTypeFilter(val);setCountLimit(80)}}),
+   sectionSearchOpen?h(SectionSearch,{value:query,onChangeText:v=>{setQuery(v);setCountLimit(80)},
+    placeholder:"Buscar artista o ministerio…"}):null,
+   label(filtered.length+" "+(filtered.length===1?"artista":"artistas"),S.sectionResults),
+   h(View,{style:S.repCards},
+    ...filtered.slice(0,countLimit).map(a=>{
+     const count=model.songsForArtist(a.id).length;
+     return h(SectionListCard,{key:a.id,title:a.name||"Artista",
+      subtitle:type(a.artist_type)+" · "+count+" "+(count===1?"canto":"cantos"),
+      icon:"artists",onPress:()=>openDetail({type:"artist",id:a.id})});
+    }),
+    filtered.length>countLimit?h(Btn,{text:"Mostrar más artistas",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null,
+    !filtered.length?h(SectionEmpty,{message:"No hay artistas que coincidan con tu búsqueda."}):null)
+  );
  }
  function renderCategories(){
   const current=model.categoryMap.get(folderId);
-  if(!folderType)return h(View,null,title("Categorías","Elige una sección para navegar por carpetas"),
-   ...[["catolico","Católico"],["cristiano","Cristiano"],["mixto","Mixto"],["general","General"]]
-    .map(([code,name])=>h(Pressable,{key:code,style:S.listRow,onPress:()=>setFolderType(code)},
-     label("📁 "+name,S.listTitle),label("›",S.rowArrow))));
-  let roots=model.children("",folderType);
-  const children=current?model.children(current.id):roots;
-  const subs=current?model.songsForCategory(current.id):[];
-  return h(View,null,
-   h(View,{style:S.breadcrumb},
-    h(Btn,{text:"‹ Categorías",small:true,secondary:true,onPress:()=>{setFolderType("");setFolderId("")}}),
-    h(Btn,{text:type(folderType),small:true,secondary:true,onPress:()=>setFolderId("")}),
-    ...(current?model.ancestors(current).map(c=>h(Btn,{key:c.id,text:c.name,small:true,secondary:c.id!==current.id,
-      onPress:()=>setFolderId(c.id)})):[])),
-   title(current?.name||type(folderType),
-    current?.description||"Abre una carpeta para encontrar sus cantos"),
-   ...children.map(c=>h(EntityRow,{key:c.id,item:c,kind:"folder",
-    description:model.songsForCategory(c.id).length+" cantos · "+model.children(c.id).length+" subcarpetas",
-    onPress:()=>setFolderId(c.id)})),
-   current?title("Cantos en esta carpeta",subs.length+" cantos incluyendo subcarpetas"):null,
-   current?previewSongs(subs):null,
-   !children.length&&!current?label("Todavía no hay carpetas en esta sección.",S.empty):null
+  const typeChoices=[["","Todas",null],["catolico","Católico",null],
+   ["cristiano","Cristiano",null],["mixto","Mixto",null],["general","General",null]];
+  const term=normalize(query.trim());
+  const countFolders=code=>model.categories.filter(c=>(normalize(c.song_type)||"general")===code).length;
+  const typeNames={catolico:"Católico",cristiano:"Cristiano",mixto:"Mixto",general:"General"};
+  const rootTypes=["catolico","cristiano","mixto","general"];
+  const allMatches=model.categories.filter(c=>
+   matchesSearch([c.name,c.description],query)&&
+   (!folderType||(normalize(c.song_type)||"general")===folderType));
+  const children=current?model.children(current.id):model.children("",folderType);
+  const visibleChildren=term?children.filter(c=>matchesSearch([c.name,c.description],query)):children;
+  const songs=current?model.songsForCategory(current.id):[];
+  const visibleSongs=term?songs.filter(song=>matchesSearch([song.title,names(song._artists)],query)):songs;
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Categorías",subtitle:"Explora por tema o celebración",icon:"categories"}),
+   h(SectionFilterBar,{options:typeChoices,value:folderType,
+    onChange:val=>{setFolderType(val);setFolderId("");setQuery("")}}),
+   sectionSearchOpen?h(SectionSearch,{value:query,onChangeText:setQuery,placeholder:"Buscar carpetas o temas…"}):null,
+   current?h(View,{style:S.categoryPath},
+    h(Pressable,{onPress:()=>setFolderId(""),accessibilityRole:"button",
+     accessibilityLabel:"Volver a categorías principales",style:S.categoryBack},
+     label("‹  "+(typeNames[folderType]||"Categorías"),S.categoryBackText)),
+    label(model.categoryPath(current),S.categoryPathText)):null,
+   h(View,{style:S.repCards},
+    !folderType&&!term?...rootTypes.map(code=>h(SectionListCard,{key:code,
+     title:typeNames[code],subtitle:countFolders(code)+" "+(countFolders(code)===1?"carpeta":"carpetas"),
+     icon:"categories",onPress:()=>{setFolderType(code);setFolderId("");setQuery("")}})):null,
+    !folderType&&term?...allMatches.map(c=>h(SectionListCard,{key:c.id,title:c.name,
+     subtitle:(typeNames[normalize(c.song_type)]||"General")+" · "+
+      model.songsForCategory(c.id).length+" cantos",icon:"categories",
+     onPress:()=>{setFolderType(normalize(c.song_type)||"general");setFolderId(c.id);setQuery("")}})):null,
+    folderType?...visibleChildren.map(c=>h(SectionListCard,{key:c.id,title:c.name,
+     subtitle:model.songsForCategory(c.id).length+" cantos · "+
+      model.children(c.id).length+" subcarpetas",icon:"categories",
+     onPress:()=>{setFolderId(c.id);setQuery("")}})):null,
+    current?h(View,{style:S.categorySongHeading},
+     label("Cantos de "+current.name,S.categorySongTitle),
+     label(visibleSongs.length+" cantos",S.sectionSupporting)):null,
+    current?...visibleSongs.map(song=>h(SectionListCard,{key:song.id,title:song.title,
+     subtitle:names(song._artists)||type(song.song_type),meta:song.tone?"Tono "+song.tone:null,
+     icon:"song",onPress:()=>selectSong(song)})):null,
+    ((folderType&&!visibleChildren.length&&!current)||
+     (term&&!allMatches.length&&!folderType)||
+     (current&&!visibleChildren.length&&!visibleSongs.length))
+     ?h(SectionEmpty,{message:"No se encontraron categorías o cantos en esta sección."}):null)
   );
  }
  function renderMore(){
-  return h(View,null,title("Más opciones","Otras secciones de SHALOM"),
-   h(Pressable,{style:S.listRow,onPress:()=>goTab("Categorías"),accessibilityRole:"button"},
-    h(View,{style:S.entityIcon},
-     h(Image,{source:HOME_IMAGES.categories,resizeMode:"contain",style:S.homeTileImage})),
-    h(View,{style:{flex:1}},label("Categorías",S.listTitle),
-     label("Explorar cantos por tema o celebración",S.rowMeta)),
-    label("›",S.rowArrow)),
-
-   h(Pressable,{style:S.listRow,onPress:()=>goTab("Canciones",{liked:true}),accessibilityRole:"button"},
-    h(View,{style:{flex:1}},label("♥ Mis Me gusta",S.listTitle),
-     label(likedIds.length+" cantos marcados · Guardados solo en este dispositivo",S.rowMeta)),
-    label("›",S.rowArrow)),
-   h(Pressable,{style:S.listRow,onPress:()=>goTab("Popurrís")},
-    h(View,{style:{flex:1}},label("♬ Popurrís",S.listTitle),
-     label("Varios cantos unidos en una lectura · "+model.medleys.length+" disponibles",S.rowMeta)),
-    label("›",S.rowArrow)),
-   h(Pressable,{style:S.listRow,onPress:()=>goTab("Álbumes")},
-    h(View,{style:{flex:1}},label("▣ Álbumes",S.listTitle),
-     label("Colecciones musicales · "+model.albums.length+" disponibles",S.rowMeta)),
-    label("›",S.rowArrow)),
-   h(Pressable,{style:S.listRow,onPress:()=>requestForm("song")},
-    h(View,{style:{flex:1}},label("+ Solicitar canto o corrección",S.listTitle),
-     label("Enviar una solicitud al administrador",S.rowMeta)),
-    label("›",S.rowArrow)));
+  const cards=[
+   ["Categorías","Explora por tema o celebración","categories",()=>goTab("Categorías")],
+   ["Mis Me gusta",likedIds.length+" cantos guardados en este teléfono","song",
+    ()=>goTab("Canciones",{liked:true})],
+   ["Popurrís",model.medleys.length+" disponibles · Varios cantos unidos","medleys",()=>goTab("Popurrís")],
+   ["Álbumes",model.albums.length+" colecciones musicales","albums",()=>goTab("Álbumes")],
+   ["Solicitar canto o corrección","Envía una solicitud al administrador","song",()=>requestForm("song")]
+  ];
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Más opciones",subtitle:"Otras secciones de SHALOM",icon:"more"}),
+   h(View,{style:S.repCards},
+    ...cards.map(([name,subtitle,icon,action])=>h(SectionListCard,{key:name,title:name,
+     subtitle,icon,onPress:action}))));
  }
  function renderRepertoires(){
   const sections=[
@@ -552,16 +632,26 @@ function AppScreen() {
    }));
  }
  function renderMedleys(){
-  const list=model.medleys.filter(m=>normalize([m.title,m.description,m.song_type].join(" ")).includes(normalize(query)));
-  return h(View,null,
-   title("Popurrís","Varios cantos unidos en una sola lectura, con acordes y secciones"),
-   inputField("Buscar popurrí",query,setQuery,{placeholder:"Nombre o celebración…"}),
-   ...list.map(m=>h(Pressable,{key:m.id,style:S.listRow,accessibilityRole:"button",onPress:()=>selectMedley(m)},
-     h(View,{style:S.entityIcon},label("♬",S.entityEmoji)),
-     h(View,{style:{flex:1}},label(m.title,S.listTitle),
-       label((m.parts||[]).length+" fragmentos · "+type(m.song_type),S.rowMeta)),
-     label("›",S.rowArrow))),
-   !list.length?label(copy?.syncedAt?"Todavía no hay popurrís publicados o no coinciden con la búsqueda.":"Descarga o actualiza el cancionero desde Inicio para consultar los popurrís sin internet.",S.empty):null
+  const filtered=model.medleys.filter(m=>
+   (!medleyTypeFilter||normalize(type(m.song_type))===medleyTypeFilter)
+   &&matchesSearch([m.title,m.description,m.song_type],query));
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Popurrís",subtitle:"Varios cantos unidos en una sola lectura",icon:"medleys"}),
+   h(SectionFilterBar,{options:SONG_TYPES.map(([code,name])=>[code,name,null]),
+    value:medleyTypeFilter,onChange:setMedleyTypeFilter}),
+   sectionSearchOpen?h(SectionSearch,{value:query,onChangeText:setQuery,
+    placeholder:"Buscar popurrí o celebración…"}):null,
+   label(filtered.length+" "+(filtered.length===1?"popurrí":"popurrís"),S.sectionResults),
+   h(View,{style:S.repCards},
+    ...filtered.map(m=>{
+     const fragments=Array.isArray(m.parts)?m.parts.length:0;
+     return h(SectionListCard,{key:m.id,title:m.title||"Popurrí",
+      subtitle:fragments+" "+(fragments===1?"fragmento":"fragmentos")+" · "+type(m.song_type),
+      icon:"medleys",onPress:()=>selectMedley(m)});
+    }),
+    !filtered.length?h(SectionEmpty,{message:copy?.syncedAt?
+     "Todavía no hay popurrís publicados con estos filtros.":
+     "Actualiza el cancionero para consultar los popurrís."}):null)
   );
  }
  function renderMedleyDetail(medley){
@@ -618,11 +708,20 @@ function AppScreen() {
   );
  }
  function renderAlbums(){
-  return h(View,null,title("Álbumes","Colecciones de canciones y artistas"),
-   ...model.albums.map(a=>h(EntityRow,{key:a.id,item:a,kind:"album",
-    description:(a.description||"")+" · "+model.songsForAlbum(a.id).length+" cantos",
-    onPress:()=>openDetail({type:"album",id:a.id})})),
-   !model.albums.length?label("Todavía no hay álbumes publicados. En cuanto se agreguen en el administrador aparecerán aquí después de sincronizar.",S.empty):null);
+  const filtered=model.albums.filter(a=>
+   matchesSearch([a.title,a.description,model.artistMap.get(a.artist_id)?.name],query));
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Álbumes",subtitle:"Colecciones de canciones y artistas",icon:"albums"}),
+   sectionSearchOpen?h(SectionSearch,{value:query,onChangeText:setQuery,
+    placeholder:"Buscar álbum o artista…"}):null,
+   label(filtered.length+" "+(filtered.length===1?"álbum":"álbumes"),S.sectionResults),
+   h(View,{style:S.repCards},
+    ...filtered.map(a=>h(SectionListCard,{key:a.id,title:a.title,
+     subtitle:model.songsForAlbum(a.id).length+" cantos",
+     meta:model.artistMap.get(a.artist_id)?.name||a.description,
+     icon:"albums",onPress:()=>openDetail({type:"album",id:a.id})})),
+    !filtered.length?h(SectionEmpty,{message:"No hay álbumes que coincidan con tu búsqueda."}):null)
+  );
  }
  function renderArtistDetail(a){
   const songs=model.songsForArtist(a.id);
@@ -799,7 +898,7 @@ function AppScreen() {
      {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
      {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
-  !immersiveActive&&tab==="Repertorios"&&!detail&&!settingsOpen?h(View,{style:S.repTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Más"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>goTab("Inicio"),accessibilityRole:"button",accessibilityLabel:"Volver a Inicio"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
@@ -807,12 +906,16 @@ function AppScreen() {
     h(View,{style:{flex:1,minWidth:0}},
      label("SHALOM",S.repTopName),
      label("Coro y Alabanza",S.repTopSub))),
-   h(Pressable,{style:S.repTopAction,onPress:()=>setRepertoireSearchOpen(v=>!v),
-    accessibilityRole:"button",accessibilityLabel:repertoireSearchOpen?"Ocultar búsqueda":"Buscar repertorios"},
-    h(Image,{source:HOME_IMAGES.search,resizeMode:"contain",style:S.repTopActionIcon})),
-   h(Pressable,{style:S.repTopAction,onPress:()=>goTab("Más"),
-    accessibilityRole:"button",accessibilityLabel:"Más opciones"},
-    h(Image,{source:HOME_IMAGES.more,resizeMode:"contain",style:S.repTopActionIcon}))):
+   tab!=="Más"?h(Pressable,{style:S.repTopAction,onPress:()=>{
+     if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v)}
+     else{setSectionSearchOpen(v=>!v)}
+     setQuery("");
+    },accessibilityRole:"button",accessibilityLabel:(tab==="Repertorios"?repertoireSearchOpen:sectionSearchOpen)?"Ocultar búsqueda":"Buscar en "+tab},
+    h(Image,{source:HOME_IMAGES.search,resizeMode:"contain",style:S.repTopActionIcon})):h(View,{style:S.repTopAction}),
+   h(Pressable,{style:S.repTopAction,onPress:()=>tab==="Más"?setSettingsOpen(true):goTab("Más"),
+    accessibilityRole:"button",accessibilityLabel:tab==="Más"?"Abrir configuración":"Más opciones"},
+    tab==="Más"?label("⚙",S.sectionHeaderGear):
+     h(Image,{source:HOME_IMAGES.more,resizeMode:"contain",style:S.repTopActionIcon}))):
   !immersiveActive&&tab==="Inicio"&&!detail&&!settingsOpen?h(View,{style:S.homeTopBar},
    h(Pressable,{onPress:()=>goTab("Más"),accessibilityRole:"button",accessibilityLabel:"Abrir menú",style:S.homeTopButton},
     h(Image,{source:HOME_IMAGES.menu,style:S.homeTopIcon,resizeMode:"contain"})),
@@ -891,6 +994,15 @@ const S=StyleSheet.create({
  repFilterTextActive:{color:"#05271d"},
  repSearchInput:{backgroundColor:C.sub,borderColor:C.border,borderWidth:1,borderRadius:14,paddingHorizontal:14,minHeight:46,color:C.text,fontSize:14,marginBottom:16},
  repCards:{gap:13},
+ sectionFiltersCompact:{marginBottom:4},
+ sectionResults:{fontSize:12,color:C.muted,marginBottom:12,marginTop:3},
+ sectionSupporting:{fontSize:12,lineHeight:17,color:C.muted,marginBottom:10},
+ categoryPath:{marginBottom:14,gap:4},
+ categoryBack:{alignSelf:"flex-start",paddingVertical:9,paddingHorizontal:12,borderWidth:1,borderColor:C.border,borderRadius:12,backgroundColor:C.sub},
+ categoryBackText:{fontSize:13,color:C.pale,fontWeight:"800"},
+ categoryPathText:{fontSize:11,color:C.muted,lineHeight:17},
+ categorySongHeading:{marginTop:12,marginBottom:3,gap:4},
+ categorySongTitle:{fontSize:18,fontWeight:"850",color:C.text},
  repCard:{minHeight:104,backgroundColor:"#20313b",borderColor:"#334b51",borderWidth:1,borderRadius:18,flexDirection:"row",alignItems:"center",gap:13,paddingVertical:14,paddingHorizontal:13},
  repCardIconWrap:{height:68,width:68,borderRadius:15,backgroundColor:"#14664a",alignItems:"center",justifyContent:"center"},
  repCardIcon:{height:43,width:43,tintColor:"#61ffb3"},
