@@ -89,7 +89,8 @@ icons = {
  "menu": '<path d="M10 22h60 M10 40h60 M10 58h60"/>',
  "church": '<path d="M9 65h62 M16 65V34L40 13l24 21v31 M33 65V48q7-9 14 0v17 M40 3v13 M32 9h16"/>',
  "mass": '<path d="M12 17 H68 L61 35 Q56 48 40 48 Q24 48 19 35 Z M40 48V66 M22 68H58 M40 3V19 M31 11H49"/>',
- "calendar": '<rect x="10" y="18" width="60" height="54" rx="7"/><path d="M10 33H70 M26 8V26 M54 8V26 M40 43L44 51L54 52L47 59L49 68L40 64L31 68L33 59L26 52L36 51Z"/>'
+ "calendar": '<rect x="10" y="18" width="60" height="54" rx="7"/><path d="M10 33H70 M26 8V26 M54 8V26 M40 43L44 51L54 52L47 59L49 68L40 64L31 68L33 59L26 52L36 51Z"/>',
+ "search": '<circle cx="34" cy="33" r="20"/><path d="M48 48L69 69"/>'
 }
 for name, drawing in icons.items():
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
