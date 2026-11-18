@@ -395,7 +395,7 @@ function AppScreen() {
   const found=term?model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term)).slice(0,6):[];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.homeBrand},
-    h(Image,{source:HOME_IMAGES.waves,style:S.homeWaves,resizeMode:"stretch"}),
+
     h(Image,{source:HOME_IMAGES.logo,style:S.homeLogo,resizeMode:"contain",accessibilityLabel:"Paloma original de SHALOM"}),
     label("SHALOM",S.homeBrandName),
     label("—  CORO Y ALABANZA  —",S.homeBrandSub)),
@@ -618,9 +618,7 @@ function AppScreen() {
  function renderMultiReadingControls(){
   return h(View,{style:S.multiControlArea},
    h(View,{style:S.songControls},
-    h(Pressable,{style:S.songToneControl,onPress:showSongToneMenu,
-     accessibilityRole:"button",accessibilityLabel:"Transponer todo el repertorio o popurrí"},
-     label("♫  "+(transpose===0?"Tono original":(transpose>0?"+":"")+transpose+" semitonos")+"  ▾",S.songControlText)),
+    renderToneStepper(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos"),
     h(View,{style:S.songFontControl},
      h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),
       accessibilityRole:"button",accessibilityLabel:"Reducir letras",style:S.songFontButton},
@@ -629,7 +627,7 @@ function AppScreen() {
       accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
       label("A+",S.songFontText)))),
    h(View,{style:S.multiControlFooter},
-    h(Pressable,{onPress:()=>setTranspose(0),accessibilityRole:"button",
+    h(Pressable,{onPress:resetTone,accessibilityRole:"button",
      accessibilityLabel:"Restablecer transposición",style:S.multiTextAction},
      label("Restablecer tono",S.multiTextActionLabel)),
     Platform.OS==="android"?h(Pressable,{onPress:()=>setImmersive(v=>!v),
@@ -816,13 +814,21 @@ function AppScreen() {
    title("Cantos",songs.length+" canciones"),previewSongs(songs)
   );
  }
- function showSongToneMenu(){
-  const scope=detail?.type==="medley"?"popurrí":detail?.type==="repertoire"?"repertorio":"canto";
-  Alert.alert("Transponer acordes","El cambio se aplica solo a tu lectura de este "+scope+".",[
-   {text:"− Semitono",onPress:()=>setTranspose(v=>Math.max(-11,v-1))},
-   {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
-   {text:"+ Semitono",onPress:()=>setTranspose(v=>Math.min(11,v+1))}
-  ]);
+ // El tono cambia inmediatamente, sin mostrar menús ni enviar datos a la nube.
+ function adjustTone(step){setTranspose(v=>Math.max(-11,Math.min(11,v+step)));}
+ function resetTone(){setTranspose(0);setCapo("none");}
+ function renderToneStepper(text){
+  return h(View,{style:S.songToneStepper},
+   h(Pressable,{style:S.songToneStepButton,onPress:()=>adjustTone(-1),
+    accessibilityRole:"button",accessibilityLabel:"Bajar un semitono",disabled:transpose<=-11,
+    accessibilityState:{disabled:transpose<=-11}},
+    label("−",S.songToneStepText)),
+   h(Text,{style:S.songToneCurrent,numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.7},text),
+   h(Pressable,{style:S.songToneStepButton,onPress:()=>adjustTone(1),
+    accessibilityRole:"button",accessibilityLabel:"Subir un semitono",disabled:transpose>=11,
+    accessibilityState:{disabled:transpose>=11}},
+    label("+",S.songToneStepText))
+  );
  }
  function songPermalink(song){
   return "https://shalomcoroacordes-a11y.github.io/Shalom/cancion.html?id="+encodeURIComponent(String(song.id));
@@ -892,20 +898,25 @@ function AppScreen() {
      accessibilityLabel:liked?"Quitar Me gusta":"Marcar Me gusta",
      accessibilityState:{selected:liked},style:S.songLikeButton},
      h(Text,{style:[S.songHeart,liked&&S.songHeartActive]},liked?"♥":"♡"))),
-   h(View,{style:S.songControls},
-    h(Pressable,{style:S.songToneControl,onPress:showSongToneMenu,
-     accessibilityRole:"button",accessibilityLabel:"Cambiar tono. Tono "+toned},
-     label("♫  Tono: "+toned+"  ▾",S.songControlText)),
-    h(Pressable,{style:S.songToneControl,onPress:()=>{
-      if(choices.length>1)setCapoExpanded(v=>!v);
-      else Alert.alert("Capo","No hay variantes de capo registradas para este canto.");
-     },accessibilityRole:"button",accessibilityLabel:"Seleccionar capo"},
-     label("Capo: "+(chosen.id==="none"?"—":chosen.position)+"  ▾",S.songControlText)),
-    h(View,{style:S.songFontControl},
-     h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),accessibilityRole:"button",
-      accessibilityLabel:"Reducir tamaño de letra",style:S.songFontButton},label("A−",S.songFontText)),
-     h(Pressable,{onPress:()=>setReaderFont(v=>Math.min(22,v+1)),accessibilityRole:"button",
-      accessibilityLabel:"Aumentar tamaño de letra",style:S.songFontButton},label("A+",S.songFontText)))),
+   h(View,{style:S.songControlsStack},
+    h(View,{style:S.songControls},
+     renderToneStepper("Tono "+toned),
+     h(View,{style:S.songFontControl},
+      h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),
+       accessibilityRole:"button",accessibilityLabel:"Reducir tamaño de letra",style:S.songFontButton},
+       label("A−",S.songFontText)),
+      h(Pressable,{onPress:()=>setReaderFont(v=>Math.min(22,v+1)),
+       accessibilityRole:"button",accessibilityLabel:"Aumentar tamaño de letra",style:S.songFontButton},
+       label("A+",S.songFontText)))),
+    h(View,{style:S.songSecondaryControls},
+     h(Pressable,{style:S.songCapoButton,onPress:()=>{
+       if(choices.length>1)setCapoExpanded(v=>!v);
+       else Alert.alert("Capo","No hay variantes de capo registradas para este canto.");
+      },accessibilityRole:"button",accessibilityLabel:"Seleccionar capo"},
+      label("Capo: "+(chosen.id==="none"?"—":chosen.position)+"  ▾",S.songControlText)),
+     h(Pressable,{style:S.songResetButton,onPress:resetTone,
+      accessibilityRole:"button",accessibilityLabel:"Restablecer tono original"},
+      label("Restablecer tono",S.multiTextActionLabel)))),
    capoExpanded&&choices.length>1?h(View,{style:S.songCapoVariants},
     ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
@@ -1004,7 +1015,8 @@ function AppScreen() {
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&detail?.type==="song"&&active?h(View,{style:S.songActionBar},
    ...[
-    ["↕","Transponer",showSongToneMenu],
+    ["T−","Tono −",()=>adjustTone(-1)],
+    ["T+","Tono +",()=>adjustTone(1)],
     ["▤","Imprimir",()=>printSong(active)],
     ["↗","Compartir",()=>shareSong(active)],
     ["▶","YouTube",()=>openSongVideo(active)]
@@ -1013,9 +1025,9 @@ function AppScreen() {
     label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
   !immersiveActive&&!settingsOpen&&isReader&&detail?.type!=="song"?h(View,{style:S.songActionBar},
    ...[
-    ["↕","Transponer",showSongToneMenu],
+    ["T−","Tono −",()=>adjustTone(-1)],
+    ["T+","Tono +",()=>adjustTone(1)],
     ["↗","Compartir",shareMultiReading],
-    ["⛶","Pantalla",()=>setImmersive(true)],
     ["A−","Letra −",()=>setReaderFont(v=>Math.max(13,v-1))],
     ["A+","Letra +",()=>setReaderFont(v=>Math.min(22,v+1))]
    ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
