@@ -75,6 +75,9 @@ jobs:
       - name: Verify Cantos-style medley and misa readers
         run: node tests/mobile-multi-reader-regression.cjs
 
+      - name: Verify instant tone, compact layouts and SHALOM original dove
+        run: node tests/mobile-tone-compact-logo-regression.cjs
+
       - name: Test backup import preflight and recovery notices
         run: node tests/backup-import-safety-regression.cjs
 
