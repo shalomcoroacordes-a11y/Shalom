@@ -13,6 +13,8 @@ const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog
 const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
+const PersonalCollectionsScreen=require("./src/personal-ui");
+const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
 const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
  text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
@@ -29,7 +31,7 @@ const HOME_IMAGES={
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const tabs=[["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Más","more"]];
-const moreTabs=new Set(["Popurrís","Álbumes","Categorías","Solicitar"]);
+const moreTabs=new Set(["Popurrís","Álbumes","Categorías","Solicitar","Mis colecciones"]);
 const isSelectedTab=(current,name)=>current===name||(name==="Más"&&moreTabs.has(current));
 const matchesSearch=(values,term)=>normalize(values.filter(v=>v!==null&&v!==undefined).join(" ")).includes(normalize(term.trim()));
 const byMostRecent=(a,b)=>{
@@ -183,6 +185,8 @@ function AppScreen() {
  const [readerFont,setReaderFont]=useState(16);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
+ const [personal,setPersonal]=useState(emptyStore());
+ const personalWriteRef=useRef(Promise.resolve());
  const [onlyLiked,setOnlyLiked]=useState(false);
  const [countLimit,setCountLimit]=useState(80);
  const [requestKind,setRequestKind]=useState("song");
@@ -218,6 +222,12 @@ function AppScreen() {
  function goTab(next,options={}){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
+ function savePersonal(next){
+  setPersonal(next);
+  const payload=JSON.stringify(next);
+  personalWriteRef.current=personalWriteRef.current.catch(()=>{}).then(()=>setMetadata(PERSONAL_KEY,payload));
+  personalWriteRef.current.catch(err=>Alert.alert("No se guardó la colección",(err?.message||"Revisa el espacio del teléfono.")+" Tus cantos oficiales no se modificaron."));
+ }
  function toggleLike(songId){
   const prev=likedRef.current;
   const next=toggleFavorite(prev,songId);
@@ -311,14 +321,15 @@ function AppScreen() {
   let enabled=true;
   (async()=>{
    try{
-    const [snapshot,pref,n,last,likedRaw]=await Promise.all([
+    const [snapshot,pref,n,last,likedRaw,personalRaw]=await Promise.all([
      getCatalog(),getMetadata("wifi_only","true"),networkState(),getMetadata("last_read",""),
-     getMetadata(FAVORITES_KEY,"[]")
+     getMetadata(FAVORITES_KEY,"[]"),getMetadata(PERSONAL_KEY,"")
     ]);
     if(!enabled)return;
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);
     likedRef.current=parseFavorites(likedRaw);setLikedIds(likedRef.current);
+    setPersonal(parseStore(personalRaw));
     if(last){try{setLastRead(JSON.parse(last))}catch(_){}}setLoaded(true);
     if(!snapshot.syncedAt && n.online && n.wifi) sync(false);
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
@@ -381,7 +392,9 @@ function AppScreen() {
    ["Artistas","Conoce sus cantos","artists","Artistas"],
    ["Categorías","Organiza por tema","categories","Categorías"],
    ["Popurrís","Varios cantos","medleys","Popurrís"],
-   ["Álbumes","Colecciones de cantos","albums","Álbumes"]
+   ["Álbumes","Colecciones de cantos","albums","Álbumes"],
+    ["Mis colecciones","Misas y popurrís personales","repertoires","Mis colecciones"],
+    ["Solicitar canto","Proponer una canción","song","Solicitar"]
   ];
   const tile=([name,subtitle,icon,destination])=>h(Pressable,{
    key:name,onPress:()=>goTab(destination),accessibilityRole:"button",
@@ -528,7 +541,8 @@ function AppScreen() {
  function renderMore(){
   const cards=[
    ["Categorías","Explora por tema o celebración","categories",()=>goTab("Categorías")],
-   ["Mis Me gusta",likedIds.length+" cantos guardados en este teléfono","song",
+   ["Mis colecciones",personal.collections.length+" carpetas personales","repertoires",()=>goTab("Mis colecciones")],
+    ["Mis Me gusta",likedIds.length+" cantos guardados en este teléfono","song",
     ()=>goTab("Canciones",{liked:true})],
    ["Popurrís",model.medleys.length+" disponibles · Varios cantos unidos","medleys",()=>goTab("Popurrís")],
    ["Álbumes",model.albums.length+" colecciones musicales","albums",()=>goTab("Álbumes")],
@@ -634,16 +648,16 @@ function AppScreen() {
      accessibilityRole:"button",accessibilityLabel:immersiveActive?"Salir de pantalla completa":"Pantalla completa",
      style:S.multiTextAction},label(immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",S.multiTextActionLabel)):null));
  }
- function renderMultiReadingScore(lyrics,delta,keyPrefix){
+ function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
   const parsed=parseSong(lyrics,delta);
-  const chordStyle=[S.songChord,{fontSize:readerFont,lineHeight:readerFont+5}];
-  const lyricStyle=[S.songLyric,{fontSize:readerFont,lineHeight:readerFont+7}];
+  const chordStyle=[S.songChord,{fontSize:fontOverride,lineHeight:fontOverride+5}];
+  const lyricStyle=[S.songLyric,{fontSize:fontOverride,lineHeight:fontOverride+7}];
   return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
    style:S.songScoreScroll,contentContainerStyle:S.songScoreContent},
    h(View,{style:{minWidth:"100%"}},
     ...parsed.map((row,i)=>{
      const key=keyPrefix+"-"+i;
-     if(row.kind==="space")return h(View,{key,style:{height:readerFont*.8}});
+     if(row.kind==="space")return h(View,{key,style:{height:fontOverride*.8}});
      if(row.kind==="section"){
       const chorus=String(row.text||"").toLowerCase().includes("coro");
       return h(View,{key,style:S.songSectionRow},
@@ -960,7 +974,8 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
-  :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong})
+   :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive&&isReader&&!settingsOpen?h(View,{style:S.songTopBar},
@@ -974,7 +989,7 @@ function AppScreen() {
      {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
      {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
-  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Más"].includes(tab)?h(View,{style:S.repTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>goTab("Inicio"),accessibilityRole:"button",accessibilityLabel:"Volver a Inicio"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
@@ -982,7 +997,7 @@ function AppScreen() {
     h(View,{style:{flex:1,minWidth:0}},
      label("SHALOM",S.repTopName),
      label("Coro y Alabanza",S.repTopSub))),
-   tab!=="Más"?h(Pressable,{style:S.repTopAction,onPress:()=>{
+   (tab!=="Más"&&tab!=="Mis colecciones")?h(Pressable,{style:S.repTopAction,onPress:()=>{
      if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v)}
      else{setSectionSearchOpen(v=>!v)}
      setQuery("");
