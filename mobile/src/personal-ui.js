@@ -31,7 +31,7 @@ function modify(store,folderId,entryId,apply){
  });
  return {...store,collections};
 }
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong}){
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,filterKind=null,onClearFilter=()=>{}}){
  const [folderId,setFolderId]=useState(null);
  const [entryId,setEntryId]=useState(null);
  const [view,setView]=useState("folders");
@@ -366,9 +366,31 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    }),
    action("Compartir código",()=>shareEntry(entry),true));
  }
+ function filteredEntriesView(){
+  const name=filterKind==="misa"?"Mis misas":"Mis popurrís";
+  const entries=store.collections.flatMap(c=>c.entries.filter(e=>e.kind===filterKind)
+   .map(e=>({folder:c,entry:e})));
+  return h(View,{style:styles.container},
+   action("← Mis colecciones",onClearFilter,true),
+   label(name,styles.pageTitle),
+   label("Tus "+(filterKind==="misa"?"misas":"popurrís")+" personales. Guardados solo en este celular.",styles.description),
+   ...entries.map(({folder:c,entry:item})=>h(View,{key:c.id+"-"+item.id,style:styles.entryCard},
+    label(c.name,styles.tag),
+    label(item.title,styles.cardTitle),
+    label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
+    h(View,{style:styles.actions},
+     action("Abrir",()=>{setFolderId(c.id);setEntryId(item.id);setView("reading");setReaderShift(0)},false,item.parts.length===0),
+     action("Editar",()=>{setFolderId(c.id);editEntry(item)},true),
+     action("Compartir",()=>shareEntry(item),true,item.parts.length===0)))),
+   !entries.length?h(View,{style:styles.folderEmpty},
+    label("Todavía no tienes "+(filterKind==="misa"?"misas":"popurrís")+" personales.",styles.emptyTitle),
+    label("Crea una colección y añade tu primera composición, o importa un código SHALOM.",styles.description),
+    action("Ir a mis colecciones",onClearFilter)):null);
+ }
  if(view==="reading")return readingView();
  if(view==="editing")return editView();
  if(view==="folder")return folderView();
+ if(filterKind)return filteredEntriesView();
  return foldersView();
 }
 const styles=StyleSheet.create({
