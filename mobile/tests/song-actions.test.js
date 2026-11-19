@@ -59,7 +59,7 @@ const profile=fs.readFileSync("src/profile-ui.js","utf8");
 assert.match(app,/h\(SongActionsSheet,/,"Existe panel nativo");
 assert.match(app,/onPress:\(\)=>active\?setActionSongId/,"Tres puntos abren acciones del canto");
 const gridUI=fs.readFileSync("src/aligned-score-ui.js","utf8");
-assert.match(app,/h\(AlignedScore,/,"Lector usa cuadrícula de columnas medidas");
+assert.match(app,/h\(AlignedScore,/,"Lector muestra renglones completos compartidos entre pantallas");
 assert.match(gridUI,/horizontal:true,scrollEnabled:true,nestedScrollEnabled:true/,"El lector conserva scroll horizontal");
 assert.match(app,/Print\.printAsync\(\{html:buildPrintableSong\(song,readerShiftForPrint\(song,transpose,capo\)\)\}\)/,"Impresión nativa sin navegador y con capo");
 assert.match(sheet,/onRequestClose:back/,"El botón nativo cierra panel o retrocede dentro de él");
