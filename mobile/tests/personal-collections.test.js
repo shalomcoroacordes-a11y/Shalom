@@ -26,11 +26,11 @@ assert.equal(decoded.kind,"popurri");
 assert.deepEqual(decoded.parts.map(p=>[p.songId,p.sectionIndex,p.shift,p.moment]),
  [["s1",1,2,""],["s2",null,-3,"Comunión"]]);
 assert.equal(importCode(exportCode({...obj,kind:"misa"})).kind,"misa");
-assert.throws(()=>importCode(code.slice(0,-1)+"0"),/incompleto|modificado/);
+assert.throws(()=>importCode(code.slice(0,-1)+(code.endsWith("0")?"1":"0")),/incompleto|modificado/);
 assert.throws(()=>importCode("ABC1-SHALOM-OTHER"),/código de SHALOM/);
 assert.throws(()=>exportCode({...obj,parts:[]}),/al menos un canto/);
 assert.throws(()=>exportCode({...obj,parts:Array.from({length:31},()=>piece)}),/hasta 30/);
-assert.throws(()=>importCode(code.repeat(12)),/demasiado largo/);
+assert.throws(()=>importCode("A".repeat(20001)),/demasiado largo/);
 const parsed=parseStore(JSON.stringify({version:1,collections:[{...col,entries:[obj]}]}));
 assert.equal(parsed.collections[0].entries[0].parts[0].songId,"s1");
 assert.equal(parseStore("not-json").collections.length,0);
