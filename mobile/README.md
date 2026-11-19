@@ -160,3 +160,16 @@ No modifica ni utiliza el proyecto Juntos Hacia Dios.
 - Se preserva la interacción del lector, incluyendo tamaño de letra, impresión, compartir, Me gusta y el botón nativo de regresar.
 - Las pruebas comparan posiciones de columnas concretas del ejemplo «Ahí en la Eucaristía», además de anchuras calibradas y tamaños distintos.
 - **Actualizar encima de la versión anterior sin desinstalar**: los datos personales permanecen privados en el teléfono.
+
+
+## SHALOM Android 0.4.5 — Letra continua como en la web
+
+En 0.4.4 los acordes y palabras se dividían en tokens colocados de forma absoluta a partir de una medición aproximada; esto generaba espacios muy exagerados y una lectura entrecortada. La web pública y el administrador, en cambio, dibujan cada línea **completa** con una fuente monoespaciada y `white-space: pre`.
+
+- Reemplazado el posicionamiento individual de palabras/acordes por **un renglón completo de texto** para cada línea de letra y cada línea de acordes, sin alterar espacios ni columnas del editor.
+- Acordes y letra usan **exactamente la misma fuente, tamaño, peso y espaciado**; solo cambia el color. Ya no hay mediciones independientes de posiciones, conversión a espacios no separables ni separación artificial de palabras.
+- Interlineado compacto como en la web (1.22), espaciado de 3 puntos entre parejas de acordes/letra y tamaño de letra inicial de 15 puntos; los controles de aumento/disminución siguen disponibles.
+- Cada línea sigue sin saltos automáticos, con desplazamiento horizontal si es más larga que la pantalla.
+- Se utiliza el mismo componente para cantos, misas, repertorios y popurrís; no se modifican las letras, los acordes guardados ni Supabase.
+- Tests de regresión comprueban que nunca se dividan las palabras, se preserve la cadena íntegra y que Android lea las mismas parejas que el parser web.
+- Instalar esta APK encima de la anterior, **sin desinstalar** para conservar favoritos, fotografías y colecciones personales.
