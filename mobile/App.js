@@ -197,7 +197,7 @@ function AppScreen() {
  const [folderId,setFolderId]=useState("");
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
- const [readerFont,setReaderFont]=useState(16);
+ const [readerFont,setReaderFont]=useState(15);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
