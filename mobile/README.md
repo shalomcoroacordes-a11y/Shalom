@@ -149,3 +149,14 @@ No modifica ni utiliza el proyecto Juntos Hacia Dios.
 - El mismo renderizador se reutiliza para **Cantos, Misas, Repertorios y Popurrís**; la impresión y los códigos de composición siguen usando el texto original.
 - Pruebas nuevas comparan casos reales de estrofas, coros, saltos de línea y cambios de tono con el parser de la propia web/admin.
 - **Actualizar sin desinstalar**, para conservar perfil, fotografías, favoritos y colecciones privadas.
+
+
+## SHALOM Android 0.4.4 — Corrección física de columnas de acordes
+
+- La versión anterior 0.4.3 ya comparaba el **texto** del parser con el administrador, pero Android podía medir espacios y espacios no separables de manera distinta a letras. Como resultado, el acorde D podía verse demasiado a la izquierda en «Ahí en la Eucaristía» aunque tuviese el índice correcto.
+- Ahora `src/chord-grid.js` extrae la **columna exacta de cada acorde y palabra** directamente de las cadenas originales; `src/aligned-score-ui.js` coloca cada token con una coordenada horizontal `columna × ancho real de celda`.
+- Cada dispositivo **mide una muestra corta de caracteres de la misma fuente monoespaciada** y aplica una única cuadrícula para acordes y letra. No se dibujan espacios NBSP cuya anchura pueda variar o que Android pueda comprimir.
+- Este render se utiliza en canciones, misas, repertorios y popurrís. Respeta transposición, tipos de sección y desplazamiento horizontal de líneas largas.
+- Se preserva la interacción del lector, incluyendo tamaño de letra, impresión, compartir, Me gusta y el botón nativo de regresar.
+- Las pruebas comparan posiciones de columnas concretas del ejemplo «Ahí en la Eucaristía», además de anchuras calibradas y tamaños distintos.
+- **Actualizar encima de la versión anterior sin desinstalar**: los datos personales permanecen privados en el teléfono.
