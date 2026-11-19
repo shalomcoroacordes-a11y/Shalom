@@ -1,6 +1,6 @@
 {
   "name": "shalom-offline-native",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "react-native-safe-area-context": "~5.11.1",
     "expo-image-picker": "~58.0.10",
     "expo-image-manipulator": "~58.0.16",
-    "expo-linear-gradient": "~58.0.4"
+    "expo-linear-gradient": "~58.0.4",
+    "expo-print": "~58.0.9"
   }
 }
