@@ -320,6 +320,43 @@ function AppScreen() {
   showLocalNotice(next.includes(String(songId))?"Agregado a Mis me gusta":"Quitado de Mis me gusta",
    ()=>setFavoritesLocal(prev));
  }
+ async function exportMyPersonalBackup(){
+  await Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]);
+  return exportPersonalBackup({
+   profile:profileRef.current,personal:personalRef.current,
+   likedIds:likedRef.current,lastRead
+  });
+ }
+ async function restoreMyPersonalBackup(parsed){
+  await Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]);
+  const old={profile:profileRef.current,personal:personalRef.current,
+   likedIds:likedRef.current,lastRead};
+  const staged=await stageRestoredPhotos(parsed);
+  const next=staged.data;
+  try{
+   await setMetadata(PERSONAL_KEY,JSON.stringify(next.personal));
+   await setMetadata(PROFILE_KEY,JSON.stringify(next.profile));
+   await setMetadata(FAVORITES_KEY,JSON.stringify(next.likedIds));
+   await setMetadata("last_read",next.lastRead?JSON.stringify(next.lastRead):"");
+  }catch(err){
+   const rolled=await Promise.allSettled([
+    setMetadata(PERSONAL_KEY,JSON.stringify(old.personal)),
+    setMetadata(PROFILE_KEY,JSON.stringify(old.profile)),
+    setMetadata(FAVORITES_KEY,JSON.stringify(old.likedIds)),
+    setMetadata("last_read",old.lastRead?JSON.stringify(old.lastRead):"")
+   ]);
+   staged.cleanup();
+   if(rolled.some(result=>result.status==="rejected"))
+    throw new Error("La restauración falló y no fue posible recuperar completamente las preferencias anteriores. Conserva tu archivo y vuelve a importarlo: "+err.message);
+   throw err;
+  }
+  clearLocalNotice();
+  personalRef.current=next.personal;profileRef.current=next.profile;
+  likedRef.current=next.likedIds;
+  setPersonal(next.personal);setProfile(next.profile);setLikedIds(next.likedIds);
+  setLastRead(next.lastRead);
+  showLocalNotice("Respaldo personal restaurado");
+ }
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
