@@ -67,9 +67,9 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const folder=store.collections.find(c=>c.id===folderId);
  const entry=folder?.entries.find(e=>e.id===entryId);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
- const commit=next=>onChange(next);
+ const commit=(next,options)=>onChange(next,options);
  const updateFolder=fn=>commit(modify(store,folderId,null,fn));
- const updateEntry=fn=>commit(modify(store,folderId,entryId,fn));
+ const updateEntry=(fn,options)=>commit(modify(store,folderId,entryId,fn),options);
  function back(){
   if(view==="reading"){setView("editing");return;}
   if(view==="editing"){setEntryId(null);setSearch("");setAdding(false);setView("folder");return;}
@@ -117,8 +117,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function saveTitle(){
   const value=nameDraft.trim();
   if(!value)return Alert.alert("Nombre obligatorio","Escribe un nombre para guardar.");
-  updateEntry(e=>({...e,title:value.slice(0,120)}));
-  Alert.alert("Guardado","El nombre se guardó únicamente en este teléfono.");
+  updateEntry(e=>({...e,title:value.slice(0,120)}),{notice:"Nombre actualizado"});
  }
  function changePart(id,fn){updateEntry(e=>({...e,parts:e.parts.map(p=>p.id===id?fn(p):p)}));}
  function movePart(index,delta){
