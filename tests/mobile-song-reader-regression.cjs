@@ -23,7 +23,9 @@ assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Su
 assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
 assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
 assert.match(app,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is applied to every aligned column");
-assert.match(grid,/left:5\+token\.column\*cell/,"Chord positions are exact grid columns, independent of Android whitespace");
+assert.doesNotMatch(grid,/anchoredTokens\(|token\.column\*cell/,"Do not space lyric words with a guessed pixel width");
+assert.match(grid,/fullLine\(row\.chordLine\|\|" ",C\.green/,"One complete chord line");
+assert.match(grid,/fullLine\(row\.lyricLine\|\|" ",C\.text/,"One complete continuous lyric line");
 assert.match(grid,/allowFontScaling:false/,"System font scaling cannot break paired chord columns");
 assert.match(grid,/scrollEnabled:true/,"Long lines scroll instead of wrapping at a narrower width");
 console.log("SHALOM Android reader: local-only likes, accessible controls and no editing verified.");
