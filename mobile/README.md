@@ -124,3 +124,15 @@ No modifica ni utiliza el proyecto Juntos Hacia Dios.
 - Canciones y repertorios usan recuadros con iniciales y colores deterministas en vez de fotografías. Artistas muestra tarjetas en **dos columnas**, con nombre/tipo/cantidad real de cantos.
 - Mis colecciones, lectores, acordes, códigos SHALOM1 y álbumes/categorías permanecen accesibles. Las colecciones de Android 0.3.8 y 0.3.9 no se migran a Supabase.
 - Para no perder datos locales, actualizar la APK encima de la versión anterior **sin desinstalar**. La galería y las fotos deben probarse en un dispositivo real.
+
+
+## SHALOM Android 0.4.2 — Avisos con deshacer y respaldo personal
+
+- Al marcar o quitar un canto de **Mis me gusta**, guardar el perfil, crear una colección, renombrar o agregar un canto a una composición personal, aparece un aviso pequeño con botón **Deshacer** durante aproximadamente cinco segundos. No modifica la apariencia del lector de letras/acordes.
+- **Más > Respaldo personal** o **Perfil > ⋯ > Respaldo y restauración** abre la pantalla para exportar o importar.
+- **Exportar** genera un único archivo `SHALOM-respaldo-AAAA-MM-DD.shalom.json` con perfil, foto, portada, banner, favoritos, repertorios/misas/popurrís personales, colecciones, estrofas, tonos, orden y último canto consultado. Las fotografías se incluyen como datos JPEG reales y no solo como rutas del teléfono.
+- El archivo se crea localmente y abre el selector de compartir de Android, para que el usuario **elija dónde guardarlo**. SHALOM no lo sube a Supabase, GitHub ni a ningún servidor; enviarlo a otra aplicación mediante compartir queda bajo decisión del usuario.
+- **Importar** usa el selector de archivos de Android. Primero valida formato, versión, tamaño, integridad, IDs y todas las fotos. Muestra un resumen y pide confirmación antes de **reemplazar** los datos personales existentes. Guarda las fotografías reconstruidas en el directorio privado y solo entonces cambia las preferencias; si falla una escritura intenta recuperar las preferencias anteriores.
+- Los cantos y repertorios **oficiales** publicados no se exportan ni se modifican; en un teléfono nuevo deben descargarse de SHALOM.
+- **Privacidad:** el archivo JSON no está cifrado; puede contener fotografías y nombres personales. No compartir públicamente. Límite aproximado: 42 MB por respaldo. La opción Deshacer se aplica a cambios rápidos, no a una restauración completa.
+- **Actualización:** instalar 0.4.2 sobre la APK anterior sin desinstalar, para conservar el almacenamiento local y las portadas ya existentes.
