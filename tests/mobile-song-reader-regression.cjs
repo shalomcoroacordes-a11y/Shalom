@@ -6,9 +6,11 @@ const favorites=fs.readFileSync("mobile/src/favorites.js","utf8");
 
 const reader=app.slice(app.indexOf(" function renderSongDetail(song){"),app.indexOf(" function renderRequest(){"));
 assert.ok(reader.includes("const parsed=parseSong(song.lyrics"),"The native reader must render the downloaded lyrics");
-assert.match(app,/row\.kind==="section"/,"Shared reader uses saved verse and chorus sections");
-assert.ok(app.includes("S.songChord")&&app.includes("S.songLyric"),"Chords and lyrics use separate colors within the same monospaced Text");
-assert.match(app,/songScoreText:\{fontFamily:MONO/,"Chords and lyrics inherit the same fixed-width font");
+const grid=fs.readFileSync("mobile/src/aligned-score-ui.js","utf8");
+assert.match(grid,/row\.kind==="section"/,"Shared reader uses saved verse and chorus sections");
+assert.match(grid,/row\.chordLine\|\|/,"Chord tokens are preserved");
+assert.match(grid,/row\.lyricLine\|\|/,"Lyric tokens are preserved");
+assert.match(grid,/fontFamily:MONO/,"Chords and lyrics share exactly the same fixed-width font");
 assert.ok(reader.includes("toggleLike(song.id)"),"The song reader must allow local likes");
 assert.ok(!/Editar|Reportar letra|Corregir acordes|requestForm\(/.test(reader),"No editor or correction requests inside the reader");
 assert.match(app,/setMetadata\(FAVORITES_KEY,payload\)/,"Likes must be written to local metadata");
@@ -21,7 +23,7 @@ assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Su
 assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
 assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
 assert.match(app,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is applied to every aligned column");
-assert.match(app,/preserveColumns\(row\.chordLine/,"Chord spaces are preserved as literal columns");
-assert.match(app,/allowFontScaling:false/,"System font scaling cannot break paired chord columns");
-assert.match(app,/minWidth:scoreWidth\(rows,fontSize\)/,"Long lines scroll instead of wrapping at a narrower width");
+assert.match(grid,/left:5\+token\.column\*cell/,"Chord positions are exact grid columns, independent of Android whitespace");
+assert.match(grid,/allowFontScaling:false/,"System font scaling cannot break paired chord columns");
+assert.match(grid,/scrollEnabled:true/,"Long lines scroll instead of wrapping at a narrower width");
 console.log("SHALOM Android reader: local-only likes, accessible controls and no editing verified.");
