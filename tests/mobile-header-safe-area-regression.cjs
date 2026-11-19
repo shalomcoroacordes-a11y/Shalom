@@ -21,5 +21,7 @@ for(const label of ['← Volver a artistas','← Volver a álbumes','← Volver 
  assert.ok(!app.includes(label),"Duplicate in-content back control removed: "+label);
 }
 assert.match(app,/if\(settingsOpen\)\{setSettingsOpen\(false\);return true;\}/);
-assert.match(app,/if\(detail\)\{setDetail\(detailHistoryRef\.current\.pop\(\)\|\|null\);return true;\}/);
+assert.match(app,/if\(detail\)\{/,"Back must handle nested song details");
+assert.match(app,/setDetail\(detailHistoryRef\.current\.pop\(\)\|\|null\);return true/,"Back returns to previous detail");
+assert.match(app,/if\(nestedBackRef\.current\?\.\(\)\)return true/,"Back respects nested collection and profile screens");
 console.log("SHALOM Android safe-area, consistent headers and detail navigation verified.");
