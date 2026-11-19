@@ -27,7 +27,7 @@ function CoverArt({preset="dove",photo=null,color="#27c98b",height=140,compact=f
     h(Text,{style:[S.decoration,{fontSize:compact?18:29}]},options.symbol)),
   h(LinearGradient,{colors:["transparent","rgba(0,0,0,0.35)"],style:S.shade}),
   h(View,{style:[S.roundIcon,{backgroundColor:color,width:compact?24:33,height:compact?24:33,bottom:compact?5:9,left:compact?6:10}]},
-   h(Text,{style:{color:"#ffffff",fontSize:compact?13:19,fontWeight:"900"}},options.symbol));
+   h(Text,{style:{color:"#ffffff",fontSize:compact?13:19,fontWeight:"900"}},options.symbol)));
 }
 function ColorChoices({value,onChange}){
  return h(View,{style:S.palette},...COLORS.map(c=>h(Pressable,{
