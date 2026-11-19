@@ -14,6 +14,10 @@ const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const PersonalCollectionsScreen=require("./src/personal-ui");
+const SongActionsSheet=require("./src/song-actions-ui");
+const {addToPersonal}=require("./src/song-actions-core");
+const {buildPrintableSong}=require("./src/song-print");
+const Print=require("expo-print");
 const {ProfileScreen,ACTION_LABEL}=require("./src/profile-ui");
 const {PROFILE_KEY,defaults:profileDefaults,parseProfile}=require("./src/profile-core");
 const {InitialCover}=require("./src/visual-ui");
@@ -192,6 +196,13 @@ function AppScreen() {
  const [personal,setPersonal]=useState(emptyStore());
  const [personalFilter,setPersonalFilter]=useState(null);
  const [profile,setProfile]=useState(profileDefaults());
+ const [actionSongId,setActionSongId]=useState(null);
+ const nestedBackRef=useRef(null);
+ const personalNavRef=useRef(null);
+ const registerNestedBack=useCallback(handler=>{
+  nestedBackRef.current=handler;
+  return()=>{if(nestedBackRef.current===handler)nestedBackRef.current=null;};
+ },[]);
  const [profileEditNonce,setProfileEditNonce]=useState(0);
  const profileWriteRef=useRef(Promise.resolve());
  const personalWriteRef=useRef(Promise.resolve());
@@ -219,6 +230,7 @@ function AppScreen() {
  const focusedMedley=detail?.type==="medley"?model.medleys.find(x=>x.id===detail.id):null;
  const focusedRepertoire=detail?.type==="repertoire"?model.repertoires.find(x=>x.id===detail.id):null;
  const likedSet=useMemo(()=>new Set(likedIds),[likedIds]);
+ const actionSong=actionSongId?model.songs.find(song=>String(song.id)===String(actionSongId)):null;
  const eligible=useMemo(()=>model.songs.filter(s=>{
   if(onlyLiked&&!likedSet.has(String(s.id)))return false;
   if(typeFilter&&s.song_type!==typeFilter)return false;
@@ -227,7 +239,7 @@ function AppScreen() {
   if(!term)return true;
   return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
- function goTab(next,options={}){setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
+ function goTab(next,options={}){if(next==="Mis colecciones"&&tab!=="Mis colecciones")personalNavRef.current=null;setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function savePersonal(next){
@@ -265,9 +277,14 @@ function AppScreen() {
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
+  if(actionSongId){setActionSongId(null);return true;}
   if(immersiveActive){setImmersive(false);return true;}
   if(settingsOpen){setSettingsOpen(false);return true;}
-  if(detail){setDetail(detailHistoryRef.current.pop()||null);return true;}
+  if(detail){
+   if(detail.type==="song"&&capoExpanded){setCapoExpanded(false);return true;}
+   setDetail(detailHistoryRef.current.pop()||null);return true;
+  }
+  if(nestedBackRef.current?.())return true;
   if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current);return true;}
   if(tab==="Categorías"&&folderId){
    const parent=model.categoryMap.get(folderId)?.parent_id;
@@ -281,7 +298,7 @@ function AppScreen() {
   if(Platform.OS!=="android")return;
   const subscription=BackHandler.addEventListener("hardwareBackPress",back);
   return()=>subscription.remove();
- },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen]);
+ },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);
@@ -902,12 +919,24 @@ function AppScreen() {
     message:(song.title||"Canto")+" — SHALOM\n"+songPermalink(song)});
   }catch(e){Alert.alert("No se pudo compartir",e?.message||"Inténtalo nuevamente.")}
  }
- function printSong(song){
-  if(!network.online)return Alert.alert("Requiere conexión","Para imprimir, abre el canto en SHALOM web cuando tengas internet.");
-  Alert.alert("Imprimir canto","Se abrirá la versión web. Allí utiliza su opción Imprimir.",[
-   {text:"Cancelar",style:"cancel"},
-   {text:"Abrir SHALOM web",onPress:()=>openWeb(songPermalink(song))}
-  ]);
+ async function printSong(song){
+  try{
+   await Print.printAsync({html:buildPrintableSong(song,transpose)});
+  }catch(e){
+   Alert.alert("No se pudo abrir la impresión",e?.message||"Revisa el servicio de impresión del teléfono.");
+  }
+ }
+ async function checkSongOffline(song){
+  if(copy?.syncedAt&&model.songs.some(s=>String(s.id)===String(song.id))){
+   return Alert.alert("Disponible sin conexión",
+    "Este canto ya está guardado en la biblioteca de SHALOM. Puedes abrirlo sin internet.");
+  }
+  return manualSync();
+ }
+ function addSongLocally(song,kind,choice){
+  const result=addToPersonal(personal,String(song.id),kind,choice);
+  if(result.added)savePersonal(result.store);
+  return result;
  }
  function openSongVideo(song){
   const videos=[...(song._links||[]).map(link=>link.url),song.tutorial_guitar,song.tutorial_piano]
