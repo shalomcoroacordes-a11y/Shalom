@@ -260,36 +260,65 @@ function AppScreen() {
  function goTab(next,options={}){if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){personalNavRef.current=null;setPersonalFilter(options.personalKind||null);}else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
- function savePersonal(next){
-  setPersonal(next);
+ function personalTotals(value){
+  const groups=value?.collections||[];
+  return {folders:groups.length,entries:groups.reduce((n,c)=>n+c.entries.length,0)};
+ }
+ function savePersonal(next,options={}){
+  const prev=personalRef.current;
+  personalRef.current=next;setPersonal(next);
   const payload=JSON.stringify(next);
   personalWriteRef.current=personalWriteRef.current.catch(()=>{}).then(()=>setMetadata(PERSONAL_KEY,payload));
-  personalWriteRef.current.catch(err=>Alert.alert("No se guardó la colección",(err?.message||"Revisa el espacio del teléfono.")+" Tus cantos oficiales no se modificaron."));
+  personalWriteRef.current.catch(err=>{
+   if(personalRef.current===next){personalRef.current=prev;setPersonal(prev);}
+   clearLocalNotice();
+   Alert.alert("No se guardó la colección",(err?.message||"Revisa el espacio del teléfono.")+" Tus cantos oficiales no se modificaron.");
+  });
+  if(!options.quiet){
+   const old=personalTotals(prev),current=personalTotals(next);
+   const msg=options.notice||(current.folders>old.folders?"Colección creada":
+    current.entries>old.entries?"Composición guardada":null);
+   if(msg)showLocalNotice(msg,()=>savePersonal(prev,{quiet:true}));
+  }
  }
- function saveProfile(next){
+ function saveProfile(next,options={}){
+  const prev=profileRef.current;
   const clean=parseProfile(JSON.stringify(next));
-  setProfile(clean);
+  profileRef.current=clean;setProfile(clean);
   profileWriteRef.current=profileWriteRef.current.catch(()=>{}).then(()=>setMetadata(PROFILE_KEY,JSON.stringify(clean)));
-  profileWriteRef.current.catch(e=>Alert.alert("No se pudo guardar el perfil",(e?.message||"Revisa el almacenamiento privado del teléfono.")));
+  profileWriteRef.current.catch(e=>{
+   if(profileRef.current===clean){profileRef.current=prev;setProfile(prev);}
+   clearLocalNotice();
+   Alert.alert("No se guardó el perfil",(e?.message||"Revisa el almacenamiento privado del teléfono."));
+  });
+  if(!options.quiet)showLocalNotice("Perfil guardado",()=>saveProfile(prev,{quiet:true}));
  }
  function openProfileMenu(){
   Alert.alert("Opciones del perfil","Elige qué quieres hacer.",[
    {text:"Editar perfil",onPress:()=>setProfileEditNonce(n=>n+1)},
    {text:"Mis colecciones",onPress:()=>goTab("Mis colecciones")},
+   {text:"Respaldo y restauración",onPress:()=>goTab("Respaldo")},
    {text:"Más opciones",onPress:()=>goTab("Más")},
    {text:"Cancelar",style:"cancel"}]);
  }
- function toggleLike(songId){
+ function setFavoritesLocal(next){
   const prev=likedRef.current;
-  const next=toggleFavorite(prev,songId);
   likedRef.current=next;setLikedIds(next);
   const payload=JSON.stringify(next);
   const write=likedWriteRef.current.catch(()=>{}).then(()=>setMetadata(FAVORITES_KEY,payload));
   likedWriteRef.current=write;
   write.catch(e=>{
-   if(JSON.stringify(likedRef.current)===payload){likedRef.current=prev;setLikedIds(prev)}
+   if(likedRef.current===next){likedRef.current=prev;setLikedIds(prev);}
+   clearLocalNotice();
    Alert.alert("No se guardó Me gusta",(e?.message||"Revisa el almacenamiento del teléfono.")+" No se modificó el catálogo.");
   });
+ }
+ function toggleLike(songId){
+  const prev=likedRef.current;
+  const next=toggleFavorite(prev,songId);
+  setFavoritesLocal(next);
+  showLocalNotice(next.includes(String(songId))?"Agregado a Mis me gusta":"Quitado de Mis me gusta",
+   ()=>setFavoritesLocal(prev));
  }
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
@@ -385,8 +414,9 @@ function AppScreen() {
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);
     likedRef.current=parseFavorites(likedRaw);setLikedIds(likedRef.current);
-    setPersonal(parseStore(personalRaw));
-     setProfile(parseProfile(profileRaw));
+    const savedPersonal=parseStore(personalRaw),savedProfile=parseProfile(profileRaw);
+    personalRef.current=savedPersonal;profileRef.current=savedProfile;
+    setPersonal(savedPersonal);setProfile(savedProfile);
     if(last){try{setLastRead(JSON.parse(last))}catch(_){}}setLoaded(true);
     if(!snapshot.syncedAt && n.online && n.wifi) sync(false);
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
