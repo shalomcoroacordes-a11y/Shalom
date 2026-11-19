@@ -190,6 +190,7 @@ function AppScreen() {
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
+ const [personalFilter,setPersonalFilter]=useState(null);
  const [profile,setProfile]=useState(profileDefaults());
  const [profileEditNonce,setProfileEditNonce]=useState(0);
  const profileWriteRef=useRef(Promise.resolve());
@@ -1022,9 +1023,9 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong})
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null)})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
-     personal,openSong:selectSong,onLiked:toggleLike,onCollections:()=>goTab("Mis colecciones"),
+     personal,openSong:selectSong,onLiked:toggleLike,onCollections:kind=>{setPersonalFilter(kind||null);goTab("Mis colecciones");},
      onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce})
    :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
