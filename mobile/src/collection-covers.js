@@ -14,9 +14,11 @@ function photoUri(name){
   return file&&file.exists?file.uri:null;
  }catch(_){return null;}
 }
-async function chooseCover(){
+async function chooseCover(options={}){
+ const aspect=Array.isArray(options.aspect)&&options.aspect.length===2?options.aspect:[4,3];
+ const width=Number(options.width)>0?Math.min(1600,Math.round(options.width)):960;
  const selection=await ImagePicker.launchImageLibraryAsync({
-  mediaTypes:["images"],allowsEditing:true,aspect:[4,3],quality:.9,
+  mediaTypes:["images"],allowsEditing:true,aspect,quality:.9,
   allowsMultipleSelection:false
  });
  if(selection.canceled||!selection.assets?.length)return null;
@@ -24,7 +26,7 @@ async function chooseCover(){
  if(!asset.uri)throw new Error("No se pudo leer la fotografía seleccionada.");
  // Miniatura JPEG de 960 px: no conservamos EXIF ni el original pesado.
  const ctx=ImageManipulator.manipulate(asset.uri);
- ctx.resize({width:960});
+ ctx.resize({width});
  const image=await ctx.renderAsync();
  const saved=await image.saveAsync({format:SaveFormat.JPEG,compress:.78});
  const folder=new Directory(Paths.document,DIR);
