@@ -1052,10 +1052,11 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null)})
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+    registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:kind=>{setPersonalFilter(kind||null);goTab("Mis colecciones");},
-     onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce})
+     onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce,registerBack:registerNestedBack})
    :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
@@ -1065,13 +1066,14 @@ function AppScreen() {
    h(View,{style:S.songTopBrand},
     h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.songTopLogo}),
     label("SHALOM",S.songTopName)),
-   h(Pressable,{style:S.songTopMore,onPress:()=>Alert.alert("Opciones de lectura","Elige una acción para este canto.",[
-     {text:"Pantalla completa",onPress:()=>setImmersive(true)},
-     {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
-     {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:"Opciones de lectura"},
+   h(Pressable,{style:S.songTopMore,onPress:()=>active?setActionSongId(String(active.id)):
+     Alert.alert("Opciones de lectura","Elige una acción.",[
+      {text:"Pantalla completa",onPress:()=>setImmersive(true)},
+      {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
+      {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:active?"Opciones de canción":"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
   !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil"].includes(tab)?h(View,{style:S.repTopBar},
-   h(Pressable,{style:S.repTopBack,onPress:()=>goTab("Inicio"),accessibilityRole:"button",accessibilityLabel:"Volver a Inicio"},
+   h(Pressable,{style:S.repTopBack,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Regresar"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
     h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.repTopLogo}),
@@ -1143,7 +1145,13 @@ function AppScreen() {
        h(View,{style:[S.profileNavBody,{borderColor:selected?C.green:C.text}]})):
       homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
       label(icon,[S.navIcon,selected&&{color:C.green}]),
-     label(name,[S.navText,selected&&{color:C.green}]));})) : null
+     label(name,[S.navText,selected&&{color:C.green}]));})) : null,
+  actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
+   liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
+   store:personal,onDismiss:()=>setActionSongId(null),
+   onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
+   onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
+   onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null
  );
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
