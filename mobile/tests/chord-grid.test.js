@@ -33,14 +33,18 @@ assert.deepEqual(anchoredTokens("  C     Am        D"),[
 assert.deepEqual(anchoredTokens("(G)   D"),[{column:0,text:"(G)"},{column:6,text:"D"}]);
 const ui=fs.readFileSync("src/aligned-score-ui.js","utf8");
 const app=fs.readFileSync("App.js","utf8");
-assert.match(ui,/onLayout:handleMeasure/,"Medir el ancho real de una celda en el dispositivo");
-assert.match(ui,/SAMPLE\.length/,"Calibración mediante una cadena de caracteres iguales");
-assert.match(ui,/anchoredTokens\(value\)/,"No interpretar los espacios como glifos");
-assert.match(ui,/left:5\+token\.column\*cell/,"Colocación absoluta en la columna guardada");
+assert.match(ui,/const fullLine=\(value,color,key\)=>h\(Text/,"Texto de renglón completo, sin separar palabras");
+assert.match(ui,/columnCount\(rows\)\*size\*\.72/,"Sólo reservar anchura para el scroll, no posicionar acordes por píxeles");
+assert.doesNotMatch(ui,/anchoredTokens\(/,"Nunca dibujar las palabras como bloques absolutos");
+assert.match(ui,/fullLine\(row\.chordLine\|\|" ",C\.green/,"Renglón de acordes original sin cambios");
+assert.match(ui,/fullLine\(row\.lyricLine\|\|" ",C\.text/,"Renglón de letra original sin cambios");
 assert.match(ui,/fontFamily:MONO/,"Misma fuente monoespaciada para acordes y letra");
 assert.match(ui,/allowFontScaling:false/,"Sin escalado desigual entre renglones");
 assert.match(ui,/scrollEnabled:true/,"Las líneas largas se desplazan en vez de alterarse");
-assert.doesNotMatch(ui,/\u00a0|preserveColumns/,"No crear espacios no separables con anchura variable");
+assert.doesNotMatch(ui,/\u00a0|preserveColumns|position:"absolute"|token\.column\*cell/,"Sin espacios artificiales ni tokenización de letras");
+assert.match(ui,/fontWeight:"400",/,"Acordes y letra usan exactamente el mismo peso de fuente");
+assert.match(ui,/lineHeight=Math\.ceil\(size\*1\.22\)/,"Interlineado como web");
+assert.match(ui,/numberOfLines:1/,"No dividir una línea escrita en el editor");
 assert.match(app,/return h\(AlignedScore,\{rows,fontSize,variant:keyPrefix\}\)/,
  "Cantos, misas, repertorios y popurrís usan el mismo render de columnas");
 assert.match(app,/renderAlignedScoreRows\(parsed,readerFont/);
