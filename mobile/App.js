@@ -407,32 +407,46 @@ function AppScreen() {
   );
  }
  function renderHome(){
-  const links=[
-   ["Cancionero","Todos los cantos","song","Canciones"],
-   ["Repertorios","Misa y ensayos","repertoires","Repertorios"],
-   ["Artistas","Conoce sus cantos","artists","Artistas"],
-   ["Categorías","Organiza por tema","categories","Categorías"],
-   ["Popurrís","Varios cantos","medleys","Popurrís"],
-   ["Álbumes","Colecciones de cantos","albums","Álbumes"],
-    ["Mis colecciones","Misas y popurrís personales","repertoires","Mis colecciones"],
-    ["Solicitar canto","Proponer una canción","song","Solicitar"]
-  ];
-  const tile=([name,subtitle,icon,destination])=>h(Pressable,{
-   key:name,onPress:()=>goTab(destination),accessibilityRole:"button",
-   accessibilityLabel:name+". "+subtitle,style:S.homeTile},
-   h(View,{style:S.homeTileIcon},h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
-   h(View,{style:{flex:1,minWidth:0}},
-    h(Text,{style:S.homeTileName,numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.72},name),
-    h(Text,{style:S.homeTileSubtitle,numberOfLines:2},subtitle)),
-   label("›",S.homeTileArrow));
   const term=normalize(homeSearch.trim());
   const found=term?model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term)).slice(0,6):[];
+  const likes=model.songs.filter(song=>likedSet.has(String(song.id)));
+  const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
+  function goBanner(){
+   switch(profile.bannerAction){
+    case "repertorios":return goTab("Repertorios");
+    case "favoritos":return goTab("Canciones",{liked:true});
+    case "popurris":return goTab("Mis colecciones");
+    case "recientes":return recent?selectSong(recent):goTab("Canciones");
+    default:return goTab("Canciones");
+   }
+  }
+  const shortcuts=[
+   ["♥","Mis me gusta","guitar",()=>goTab("Canciones",{liked:true})],
+   ["♫","Mis popurrís","choir",()=>goTab("Mis colecciones")],
+   ["♧","Mis misas","sunrise",()=>goTab("Mis colecciones")],
+   ["▣","Colecciones","dove",()=>goTab("Mis colecciones")]
+  ];
   return h(View,{style:S.homeContainer},
-   h(View,{style:S.homeBrand},
-
-    h(Image,{source:HOME_IMAGES.logo,style:S.homeLogo,resizeMode:"contain",accessibilityLabel:"Paloma original de SHALOM"}),
-    label("SHALOM",S.homeBrandName),
-    label("—  CORO Y ALABANZA  —",S.homeBrandSub)),
+   h(View,{style:S.spotifyWelcome},
+    label("Hola, "+(profile.name==="Mi perfil"?"bienvenido":profile.name),S.spotifyWelcomeTitle),
+    label("Bienvenido a SHALOM 💚",S.spotifyWelcomeText)),
+   h(View,{style:S.spotifyBanner},
+    h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,color:C.green,height:214}),
+    h(LinearGradient,{colors:["rgba(0,12,13,.62)","rgba(0,20,17,.1)","rgba(0,0,0,.72)"],
+     style:S.spotifyBannerOverlay}),
+    h(View,{style:S.spotifyBannerContent},
+     label("♫  DESTACADO",S.spotifyBannerEyebrow),
+     h(Text,{style:S.spotifyBannerTitle,numberOfLines:2},profile.bannerTitle),
+     label("Cantos y acordes para acompañar tu alabanza",S.spotifyBannerSubtitle),
+     h(Pressable,{onPress:goBanner,style:S.spotifyBannerButton,accessibilityRole:"button",
+      accessibilityLabel:ACTION_LABEL[profile.bannerAction]||"Explorar cantos"},
+      label((ACTION_LABEL[profile.bannerAction]||"Explorar cantos")+"  ›",S.spotifyBannerButtonLabel)))),
+   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([symbol,name,preset,onPress])=>
+    h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,style:S.spotifyShortcut},
+     h(CoverArt,{preset,color:C.green,height:112}),
+     h(LinearGradient,{colors:["transparent","rgba(0,0,0,.82)"],style:S.spotifyShortcutShade}),
+     h(View,{style:S.spotifyShortcutText},label(symbol,S.spotifyShortcutIcon),
+      label(name,S.spotifyShortcutName))))),
    h(View,{style:S.homeSearchWrap},
     label("⌕",S.homeSearchIcon),
     h(TextInput,{style:S.homeSearch,value:homeSearch,onChangeText:setHomeSearch,
@@ -443,14 +457,26 @@ function AppScreen() {
     ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
     !found.length?label("No se encontraron cantos.",S.empty):null,
     h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
-   h(View,{style:S.homeGrid},...links.map(tile)),
-   h(Pressable,{onPress:()=>goTab("Repertorios"),accessibilityRole:"button",
-    accessibilityLabel:"Ver repertorios de misa y ensayo",style:S.homeFeature},
-    h(Image,{source:HOME_IMAGES.banner,style:S.homeFeatureBackground,resizeMode:"stretch"}),
-    h(View,{style:S.homeFeatureText},
-     label("Repertorios de",S.homeFeatureKicker),
-     label("Misa y Ensayo",S.homeFeatureTitle),
-     h(View,{style:S.homeFeatureButton},label("Ver repertorios   ›",S.homeFeatureLink)))),
+   recent?h(View,{style:S.spotifyBlock},
+    label("Recientes",S.spotifyHeading),
+    h(SectionListCard,{title:recent.title,subtitle:names(recent._artists)||"Último canto consultado",
+     onPress:()=>selectSong(recent)})):null,
+   likes.length?h(View,{style:S.spotifyBlock},
+    label("Mis me gusta",S.spotifyHeading),
+    ...likes.slice(0,3).map(song=>h(SectionListCard,{key:song.id,title:song.title,
+     subtitle:names(song._artists)||"Canto SHALOM",onPress:()=>selectSong(song)}))):null,
+   h(View,{style:S.spotifyBlock},
+    label("Descubre más en SHALOM",S.spotifyHeading),
+    h(View,{style:S.homeGrid},...[
+     ["Categorías","Explorar por tema","categories","Categorías"],
+     ["Álbumes","Colecciones oficiales","albums","Álbumes"],
+     ["Artistas","Coros y cantores","artists","Artistas"],
+     ["Más opciones","Solicitudes y ajustes","more","Más"]
+    ].map(([name,subtitle,icon,destination])=>h(Pressable,{
+     key:name,onPress:()=>goTab(destination),style:S.homeTile,accessibilityRole:"button"},
+     h(View,{style:S.homeTileIcon},
+      h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
+     h(View,{style:{flex:1,minWidth:0}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)))))),
    !copy?.syncedAt?h(Pressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
     label("↓ Descargar cancionero sin conexión  ›",S.homeSyncText)):null,
    busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
@@ -1087,6 +1113,26 @@ function AppScreen() {
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 const S=StyleSheet.create({
+ spotifyWelcome:{paddingVertical:8,gap:3},
+ spotifyWelcomeTitle:{fontSize:23,fontWeight:"900",color:C.text},
+ spotifyWelcomeText:{fontSize:13,color:C.muted},
+ spotifyBanner:{position:"relative",borderRadius:19,overflow:"hidden",borderWidth:1,borderColor:"#376c59",marginBottom:15},
+ spotifyBannerOverlay:{position:"absolute",top:0,left:0,right:0,bottom:0},
+ spotifyBannerContent:{position:"absolute",left:15,right:15,top:18,bottom:14,justifyContent:"space-between",alignItems:"flex-start"},
+ spotifyBannerEyebrow:{fontSize:10,color:"#9ffbca",fontWeight:"900",letterSpacing:1},
+ spotifyBannerTitle:{fontSize:22,color:C.text,fontWeight:"900",lineHeight:27,maxWidth:"95%"},
+ spotifyBannerSubtitle:{fontSize:12,color:"#f0f5f2",maxWidth:"92%"},
+ spotifyBannerButton:{paddingHorizontal:15,paddingVertical:9,borderRadius:99,backgroundColor:C.green,alignSelf:"flex-start"},
+ spotifyBannerButtonLabel:{fontSize:12,color:"#0c3022",fontWeight:"900"},
+ spotifyShortcuts:{flexDirection:"row",justifyContent:"space-between",gap:6,marginBottom:20},
+ spotifyShortcut:{flex:1,overflow:"hidden",borderRadius:14,borderWidth:1,borderColor:"#4b6659"},
+ spotifyShortcutShade:{position:"absolute",bottom:0,left:0,right:0,height:90},
+ spotifyShortcutText:{position:"absolute",bottom:7,left:0,right:0,alignItems:"center",gap:3},
+ spotifyShortcutIcon:{fontSize:22,color:"#fff",fontWeight:"900"},
+ spotifyShortcutName:{fontSize:10.5,color:"#fff",fontWeight:"850",textAlign:"center"},
+ spotifyBlock:{gap:7,marginTop:12,marginBottom:15},
+ spotifyHeading:{color:C.text,fontWeight:"900",fontSize:18},
+
  artistGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:12},
  artistGridCard:{width:"48%",padding:12,backgroundColor:"#19332d",borderWidth:1,borderColor:"#3e6757",
   borderRadius:15,alignItems:"center",justifyContent:"center",minHeight:175,gap:5},
