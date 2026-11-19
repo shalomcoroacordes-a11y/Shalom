@@ -25,7 +25,7 @@ function AlignedScore({rows=[],fontSize=18,variant="default"}){
    key:key+"-"+i,
    numberOfLines:1,allowFontScaling:false,selectable:true,
    style:[characterStyle,S.token,{color,left:5+token.column*cell}]},token.text)));
- return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
+ return h(ScrollView,{horizontal:true,scrollEnabled:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
   keyboardShouldPersistTaps:"handled",style:S.scroll,
   contentContainerStyle:{paddingVertical:3,paddingHorizontal:3}},
   h(View,{style:[S.score,{width}]},
