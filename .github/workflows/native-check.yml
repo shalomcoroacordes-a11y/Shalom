@@ -31,6 +31,10 @@ jobs:
           node --check src/personal-ui.js
           node --check src/personal-collections.js
           node --check src/profile-ui.js
+          node --check src/personal-backup-core.js
+          node --check src/personal-backup-io.js
+          node --check src/personal-backup-ui.js
+          node --check src/local-notice.js
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
@@ -43,3 +47,4 @@ jobs:
           node tests/personal-cover-ui.test.js
           node tests/local-profile.test.js
           node tests/song-actions.test.js
+          node tests/personal-backup.test.js
