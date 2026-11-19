@@ -113,3 +113,14 @@ No modifica ni utiliza el proyecto Juntos Hacia Dios.
 - Carpeta, misa, popurrí y código se gestionan **en almacenamiento privado del teléfono** usando la misma preferencia local SQLite/archivo que ya usa la aplicación. **No hay escrituras a Supabase**.
 - Los códigos pueden generarse sin conexión; para enviarlos por WhatsApp se requiere conexión cuando WhatsApp lo necesite. El destinatario debe tener la app y los cantos públicos descargados.
 - **Importante:** desinstalar o borrar los datos de la app elimina estas colecciones. Compartir códigos sirve para intercambiar composiciones; no es un respaldo completo automático de todas las carpetas.
+
+
+## Versión 0.4.0 — Perfil personal y banner editable
+
+- La quinta pestaña de Android es **Perfil**. El menú **⋯ > Editar perfil** permite cambiar nombre, subtítulo, foto circular y portada de perfil usando la galería del teléfono.
+- Desde el mismo editor se configura una imagen **independiente** para el destacado de Inicio, un título y el botón: Explorar cantos / Ver repertorios / Continuar leyendo / Mis me gusta / Mis popurrís.
+- Foto, portada y banner se guardan como JPEG privados en el teléfono. El perfil y sus rutas se almacenan en preferencias locales; **no hay escrituras a Supabase**.
+- Perfil muestra **cantidades reales** de Mis me gusta, misas, popurrís y colecciones locales, además de favoritos y accesos para abrirlos. No se muestran seguidores ni reproducciones ficticios.
+- Canciones y repertorios usan recuadros con iniciales y colores deterministas en vez de fotografías. Artistas muestra tarjetas en **dos columnas**, con nombre/tipo/cantidad real de cantos.
+- Mis colecciones, lectores, acordes, códigos SHALOM1 y álbumes/categorías permanecen accesibles. Las colecciones de Android 0.3.8 y 0.3.9 no se migran a Supabase.
+- Para no perder datos locales, actualizar la APK encima de la versión anterior **sin desinstalar**. La galería y las fotos deben probarse en un dispositivo real.
