@@ -286,7 +286,7 @@ function AppScreen() {
    setDetail(detailHistoryRef.current.pop()||null);return true;
   }
   if(nestedBackRef.current?.())return true;
-  if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current);return true;}
+  if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current,{replace:true});return true;}
   if(tab==="Categorías"&&folderId){
    const parent=model.categoryMap.get(folderId)?.parent_id;
    setFolderId(parent&&model.categoryMap.has(parent)?parent:"");return true;
