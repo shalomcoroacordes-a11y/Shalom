@@ -349,8 +349,11 @@ function AppScreen() {
     try{await setMetadata(key,value);rolled.push(true);}
     catch(_){rolled.push(false);}
    }
-   staged.cleanup();
-   if(rolled.some(result=>!result))
+   const rollbackFailed=rolled.some(result=>!result);
+   // Mantener las fotos importadas si la recuperación de metadatos fue parcial:
+   // las preferencias quizá las sigan referenciando. Nunca perder una foto a ciegas.
+   if(!rollbackFailed)staged.cleanup();
+   if(rollbackFailed)
     throw new Error("La restauración falló y no fue posible recuperar completamente las preferencias anteriores. Conserva tu archivo y vuelve a importarlo: "+err.message);
    throw err;
   }
