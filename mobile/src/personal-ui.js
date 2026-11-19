@@ -1,5 +1,5 @@
 const React=require("react");
-const {useState}=React;
+const {useState,useEffect}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Share,Alert,StyleSheet}=require("react-native");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
@@ -31,10 +31,10 @@ function modify(store,folderId,entryId,apply){
  });
  return {...store,collections};
 }
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,filterKind=null,onClearFilter=()=>{}}){
- const [folderId,setFolderId]=useState(null);
- const [entryId,setEntryId]=useState(null);
- const [view,setView]=useState("folders");
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
+ const [folderId,setFolderId]=useState(initialNav?.folderId||null);
+ const [entryId,setEntryId]=useState(initialNav?.entryId||null);
+ const [view,setView]=useState(initialNav?.view||"folders");
  const [newFolderName,setNewFolderName]=useState("");
  const [newColor,setNewColor]=useState(COLORS[0]);
  const [newCoverPreset,setNewCoverPreset]=useState("dove");
@@ -49,6 +49,21 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [shareInput,setShareInput]=useState("");
  const [readerShift,setReaderShift]=useState(0);
  const [readerFont,setReaderFont]=useState(16);
+ useEffect(()=>{onNavChange?.({folderId,entryId,view})},[folderId,entryId,view]);
+ useEffect(()=>{
+  if(!registerBack)return;
+  return registerBack(()=>{
+   if(shareOpen){setShareOpen(false);return true;}
+   if(showFolderForm&&view==="folders"){setShowFolderForm(false);return true;}
+   if(customize&&view==="folder"){setCustomize(false);return true;}
+   if(adding&&view==="editing"){setAdding(false);return true;}
+   if(view==="reading"){setView("editing");return true;}
+   if(view==="editing"){setEntryId(null);setAdding(false);setView("folder");return true;}
+   if(view==="folder"){setFolderId(null);setView("folders");return true;}
+   if(filterKind){onClearFilter();return true;}
+   return false;
+  });
+ },[registerBack,view,shareOpen,showFolderForm,customize,adding,filterKind,onClearFilter]);
  const folder=store.collections.find(c=>c.id===folderId);
  const entry=folder?.entries.find(e=>e.id===entryId);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
@@ -92,7 +107,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function createEntry(kind){
   if(!folder)return;
   if(folder.entries.length>=100)return Alert.alert("Límite","Esta colección ya tiene 100 composiciones.");
-  const item=newEntry(kind,kind==="misa"?"Mi misa":"Mi popurrí");
+  const item=newEntry(kind,kind==="misa"?"Mi misa":kind==="repertorio"?"Mi repertorio":"Mi popurrí");
   updateFolder(c=>({...c,entries:[...c.entries,item]}));
   setEntryId(item.id);setNameDraft(item.title);setSearch("");setAdding(true);setView("editing");
  }
@@ -145,7 +160,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   try{
    const code=exportCode(item);
    await Share.share({title:"SHALOM · "+item.title,
-    message:"🕊️ SHALOM · "+(item.kind==="misa"?"Misa":"Popurrí")+
+    message:"🕊️ SHALOM · "+(item.kind==="misa"?"Misa":item.kind==="repertorio"?"Repertorio":"Popurrí")+
      "\n"+item.title+"\n\n"+code+
      "\n\nPara usarlo: abre SHALOM > Mis colecciones > Importar código, pega este mensaje y guarda. No necesitas descargar archivos."});
   }catch(e){Alert.alert("No se pudo compartir",e.message||"Inténtalo de nuevo.");}
@@ -157,7 +172,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    const targetFolder=folder||store.collections.find(c=>c.name==="Recibidos");
    const newTarget=targetFolder||newCollection("Recibidos");
    if(newTarget.entries.length>=100)throw new Error("Esta colección ya tiene 100 composiciones.");
-   Alert.alert("Importar "+(imported.kind==="misa"?"misa":"popurrí"),
+   Alert.alert("Importar "+(imported.kind==="misa"?"misa":imported.kind==="repertorio"?"repertorio":"popurrí"),
     imported.title+"\n"+imported.parts.length+" fragmentos.\n"+
     (unavailable?"Hay "+unavailable+" cantos que no están descargados. Podrás revisar esos fragmentos al actualizar la biblioteca.":"Todos los cantos están en tu biblioteca local.")+
     "\nSe guardará solo en tu teléfono.",[
@@ -210,7 +225,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    h(View,{style:styles.collectionHeading},
     label("TU BIBLIOTECA PERSONAL",styles.eyebrow),
     label("Mis colecciones",styles.collectionTitle),
-    label("Organiza tus misas y popurrís con portadas y colores propios.",styles.collectionSubtitle)),
+    label("Organiza repertorios, misas y popurrís con portadas y colores propios.",styles.collectionSubtitle)),
    h(View,{style:styles.collectionTopActions},
     action("+ Crear colección",()=>{
       if(showFolderForm){setShowFolderForm(false);}else startNewFolder();
@@ -270,10 +285,11 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    h(View,{style:styles.actions},
     action("+ Misa",()=>createEntry("misa")),
     action("+ Popurrí",()=>createEntry("popurri")),
+    action("+ Repertorio",()=>createEntry("repertorio"),true),
     action("Importar código",()=>setShareOpen(v=>!v),true)),
    importPanel(),
    ...folder.entries.map(item=>h(View,{key:item.id,style:styles.entryCard},
-    label(item.kind==="misa"?"⛪ MISA PERSONAL":"♫ POPURRÍ PERSONAL",styles.tag),
+    label(item.kind==="misa"?"⛪ MISA PERSONAL":item.kind==="repertorio"?"▣ REPERTORIO PERSONAL":"♫ POPURRÍ PERSONAL",styles.tag),
     label(item.title,styles.cardTitle),
     label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
     h(View,{style:styles.actions},
@@ -294,7 +310,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     search.trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase())).slice(0,24):songs.slice(0,24);
   return h(View,{style:styles.container},
    action("← "+folder.name,back,true),
-   label(entry.kind==="misa"?"Editar misa personal":"Editar popurrí personal",styles.pageTitle),
+   label(entry.kind==="misa"?"Editar misa personal":entry.kind==="repertorio"?"Editar repertorio personal":"Editar popurrí personal",styles.pageTitle),
    label("Solo utiliza cantos publicados. Puedes repetir un canto y elegir una estrofa distinta cada vez.",styles.description),
    input(nameDraft,setNameDraft,"Nombre de la misa o popurrí"),
    action("Guardar nombre",saveTitle,true),
@@ -343,7 +359,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   return h(View,{style:styles.container},
    action("← Editar "+(entry.kind==="misa"?"misa":"popurrí"),back,true),
    label(entry.title,styles.pageTitle),
-   label((entry.kind==="misa"?"Misa":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description),
+   label((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description),
    h(View,{style:styles.toneRow},
     action("T−",()=>setReaderShift(v=>Math.max(-11,v-1)),true,readerShift<=-11),
     label(readerShift===0?"Tono original":(readerShift>0?"+":"")+readerShift+" semitonos",styles.meta),
