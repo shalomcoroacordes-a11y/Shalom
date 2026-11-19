@@ -36,9 +36,12 @@ jobs:
           node --check src/personal-backup-ui.js
           node --check src/local-notice.js
           node --check src/profile-options-menu.js
+          node --check src/chord-grid.js
+          node --check src/aligned-score-ui.js
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
+          node tests/chord-grid.test.js
           node tests/favorites.test.js
           node tests/repertoire-ui.test.js
           node tests/catalog.test.js
