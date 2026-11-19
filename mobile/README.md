@@ -136,3 +136,16 @@ No modifica ni utiliza el proyecto Juntos Hacia Dios.
 - Los cantos y repertorios **oficiales** publicados no se exportan ni se modifican; en un teléfono nuevo deben descargarse de SHALOM.
 - **Privacidad:** el archivo JSON no está cifrado; puede contener fotografías y nombres personales. No compartir públicamente. Límite aproximado: 42 MB por respaldo. La opción Deshacer se aplica a cambios rápidos, no a una restauración completa.
 - **Actualización:** instalar 0.4.2 sobre la APK anterior sin desinstalar, para conservar el almacenamiento local y las portadas ya existentes.
+
+
+## SHALOM Android 0.4.3 — Canciones/Artistas y acordes idénticos al administrador
+
+- **Canciones y Artistas** usan el mismo estilo: banner ilustrado verde, búsqueda visible, filtros redondeados y tarjetas con proporciones, color y espaciado coherentes.
+- Canciones mantiene **iniciales de colores (sin falsas fotografías)**, favoritas reales en carrusel horizontal, contadores del catálogo y acceso a **Me gusta** y al panel de **⋮** directamente desde cada lista.
+- Artistas conserva la **doble columna** con avatares circulares: muestra foto real cuando el catálogo proporciona un enlace válido y usa iniciales si no existe.
+- El lector de canción incorpora **tipo, título, tono y letra/acordes en panel oscuro**, inspirándose en la vista previa del administrador sin añadir editores.
+- **Alineación reparada:** `mobile/src/chords.js` reproduce las mismas reglas de parseo que `song-chords.js` de la web/admin, conserva las columnas y espacios originales y los transpone sin alterar las posiciones iniciales.
+- Android muestra la línea de acordes y la línea de letra en **el mismo componente de texto monoespaciado**, con tamaño y espaciado iguales, sin autoescalado y con espacios no separables. Las líneas largas se desplazan horizontalmente en vez de reacomodarse.
+- El mismo renderizador se reutiliza para **Cantos, Misas, Repertorios y Popurrís**; la impresión y los códigos de composición siguen usando el texto original.
+- Pruebas nuevas comparan casos reales de estrofas, coros, saltos de línea y cambios de tono con el parser de la propia web/admin.
+- **Actualizar sin desinstalar**, para conservar perfil, fotografías, favoritos y colecciones privadas.
