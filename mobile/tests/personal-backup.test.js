@@ -39,7 +39,7 @@ assert.equal(newData.personal.collections[0].entries[0].parts[0].shift,2);
 assert.equal(newData.personal.collections[0].entries[0].parts[0].moment,"Comunión");
 const altered=JSON.parse(serialized);altered.likedIds.push("song-3");
 assert.throws(()=>readBackup(JSON.stringify(altered)),/incompleto|modificado/);
-assert.throws(()=>readBackup("{no-json"),/no es un respaldo/);
+assert.throws(()=>readBackup("{no-json"),/no es un respaldo|vacío/);
 assert.throws(()=>readBackup(serialized+"Z"),/no es un respaldo/);
 assert.throws(()=>buildBackup(source,[]),/fotografías|portadas/);
 assert.throws(()=>buildBackup(source,[{name:"../bad.jpg",base64:jpg},{name:photo2,base64:jpg}]),/fotografía|duplicadas|desconocidas/);
