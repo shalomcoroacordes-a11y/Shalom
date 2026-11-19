@@ -94,6 +94,14 @@ Solo se comunica con `ehpvsasyzlrlypjjpzuk` (**SHALOM**).
 No modifica ni utiliza el proyecto Juntos Hacia Dios.
 
 
+## Portadas personales Android 0.3.9
+
+- **Mis colecciones** ahora usa tarjetas visuales de dos columnas con portadas, detalles de color y una galería de inspiración sin mostrar cantos ficticios.
+- En **Crear colección** y **Personalizar**, el usuario selecciona uno de ocho fondos prediseñados o una foto de la galería de Android. Puede cambiar la paleta de colores y la portada sin perder sus misas ni popurrís.
+- Las imágenes personales se convierten en miniaturas JPEG y se copian a **Documentos privados de SHALOM**, nunca a Supabase Storage ni GitHub. Solo se guarda el nombre del archivo en las preferencias locales.
+- Las colecciones que existían en 0.3.8 conservan sus misas y popurrís y reciben una portada prediseñada por defecto. **No borrar los datos de Android** al actualizar.
+- Al desinstalar se eliminan los documentos privados. Las fotografías de portada **no se incluyen en los códigos SHALOM1-**; los códigos solo transfieren las referencias musicales.
+
 ## Mis colecciones privadas: misas y popurrís flexibles
 
 - Desde **Más > Mis colecciones** se crean carpetas personales con color.
