@@ -24,9 +24,10 @@ function CoverArt({preset="dove",photo=null,color="#27c98b",height=140,compact=f
     h(View,{style:[S.halo,{backgroundColor:"rgba(255,255,255,0.12)",width:compact?55:105,height:compact?55:105,borderRadius:100}]}),
     h(Image,{source:options.image,resizeMode:"contain",
      style:{width:compact?40:82,height:compact?40:82,tintColor:"#FFF8E9",opacity:.94}}),
-    h(Text,{style:[S.decoration,{fontSize:compact?18:29}]},options.symbol)),
+    options.symbol==="🕊"?null:h(Text,{style:[S.decoration,{fontSize:compact?18:29}]},options.symbol)),
   h(LinearGradient,{colors:["transparent","rgba(0,0,0,0.35)"],style:S.shade}),
   h(View,{style:[S.roundIcon,{backgroundColor:color,width:compact?24:33,height:compact?24:33,bottom:compact?5:9,left:compact?6:10}]},
+   options.symbol==="🕊"?h(Image,{source:PRESETS.dove.image,resizeMode:"contain",style:{width:compact?16:23,height:compact?16:23,tintColor:"#ffffff"}}):
    h(Text,{style:{color:"#ffffff",fontSize:compact?13:19,fontWeight:"900"}},options.symbol)));
 }
 function ColorChoices({value,onChange}){
