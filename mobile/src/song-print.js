@@ -1,12 +1,12 @@
 // Impresión directa de los datos ya descargados: no necesita abrir SHALOM web.
-const {parseSong}=require("./chords");
+const {parseSong,transposeOne}=require("./chords");
 const esc=value=>String(value==null?"":value).replace(/&/g,"&amp;").replace(/</g,"&lt;")
  .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 function buildPrintableSong(song,shift=0){
  if(!song||!song.id)throw new Error("Selecciona un canto guardado.");
  const title=esc(song.title||"Canto de SHALOM");
  const artists=esc((song._artists||[]).map(a=>a.name).filter(Boolean).join(" · ")||"");
- const tone=esc(song.tone||"");
+ const tone=esc(song.tone?transposeOne(song.tone,shift):"");
  const rows=parseSong(song.lyrics||"",shift);
  const html=rows.map(row=>{
   if(row.kind==="space")return '<div class="space"></div>';
