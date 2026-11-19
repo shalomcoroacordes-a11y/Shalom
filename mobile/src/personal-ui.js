@@ -228,7 +228,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      action("Guardar colección",createFolder),
      action("Cancelar",()=>setShowFolderForm(false),true))):null,
    !empty?h(View,{style:styles.collectionGrid},...store.collections.map(collectionCard)):null,
-   empty?h(View,{style:styles.emptyVisual},
+   empty&&!showFolderForm?h(View,{style:styles.emptyVisual},
     h(View,{style:styles.emptyHeading},
      label("Dale personalidad a tus colecciones",styles.emptyTitle),
      label("Elige una portada de ejemplo o selecciona una fotografía de tu galería al crear tu colección.",
