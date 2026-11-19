@@ -221,6 +221,7 @@ function AppScreen() {
  const autoRetryRef=useRef({lastAttempt:0,failures:0});
  const previousTabRef=useRef("Inicio");
  const detailHistoryRef=useRef([]);
+ const tabHistoryRef=useRef([]);
  const likedRef=useRef([]);
  const likedWriteRef=useRef(Promise.resolve());
  const model=useMemo(()=>buildCatalog(copy?.data||{}),[copy]);
@@ -239,7 +240,7 @@ function AppScreen() {
   if(!term)return true;
   return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
- function goTab(next,options={}){if(next==="Mis colecciones"&&tab!=="Mis colecciones")personalNavRef.current=null;setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
+ function goTab(next,options={}){if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){personalNavRef.current=null;setPersonalFilter(options.personalKind||null);}else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function savePersonal(next){
@@ -291,7 +292,7 @@ function AppScreen() {
    setFolderId(parent&&model.categoryMap.has(parent)?parent:"");return true;
   }
   if(tab==="Categorías"&&folderType){setFolderType("");return true;}
-  if(tab!=="Inicio"){goTab("Inicio");return true;}
+  if(tab!=="Inicio"){const previous=tabHistoryRef.current.pop();goTab(previous||"Inicio",{replace:true});return true;}
   return false;
  }
  useEffect(()=>{
@@ -1055,7 +1056,7 @@ function AppScreen() {
   :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
-     personal,openSong:selectSong,onLiked:toggleLike,onCollections:kind=>{setPersonalFilter(kind||null);goTab("Mis colecciones");},
+     personal,openSong:selectSong,onLiked:toggleLike,onCollections:kind=>goTab("Mis colecciones",{personalKind:kind||null}),
      onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce,registerBack:registerNestedBack})
    :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
