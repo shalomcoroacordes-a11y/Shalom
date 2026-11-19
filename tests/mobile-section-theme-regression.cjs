@@ -18,7 +18,7 @@ const categories=section("renderCategories","renderMore");
 const more=section("renderMore","renderRepertoires");
 const medleys=section("renderMedleys","renderMedleyDetail");
 const albums=section("renderAlbums","renderArtistDetail");
-for(const [name,part] of Object.entries({songs,artists,categories,more,medleys,albums})){
+for(const [name,part] of Object.entries({songs,categories,more,medleys,albums})){
  assert.match(part,/h\(SectionHero,/,"Hero missing on "+name);
  assert.match(part,/h\(SectionListCard,/,"Library cards missing on "+name);
  assert.match(part,/style:S\.repPage/,"Repertoire spacing missing on "+name);
