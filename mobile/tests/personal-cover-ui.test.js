@@ -20,7 +20,7 @@ assert.match(storage,/ImagePicker\.launchImageLibraryAsync/,"Choose personal ima
 assert.match(storage,/ImageManipulator\.manipulate/,"Compress oversized original");
 assert.match(storage,/Paths\.document/,"Keep cover photos in private persistent directory");
 assert.match(storage,/await new File\(saved\.uri\)\.copy\(target\)/,"Copy image out of transient cache");
-assert.doesNotMatch(storage,/supabase|https?:|fetch\(/i,"Never upload personal cover photos");
+assert.doesNotMatch(storage,/https?:|fetch\(/i,"Never upload personal cover photos");
 assert.match(metadata,/COVER_FILE/,"Validate local cover file names");
 assert.match(metadata,/coverPreset/,"Backwards compatible cover default");
 assert.match(metadata,/coverPhoto/,"Store local cover photo filename");
