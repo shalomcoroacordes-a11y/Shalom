@@ -25,7 +25,7 @@ function partFrom(input,forceId=false){
   shift,moment:text(input.moment,60)};
 }
 function entryFrom(input,forceId=false){
- if(!input||!["misa","popurri"].includes(input.kind))throw new Error("Tipo de composición no válido.");
+ if(!input||!["misa","popurri","repertorio"].includes(input.kind))throw new Error("Tipo de composición no válido.");
  const title=text(input.title,120);
  if(!title)throw new Error("Escribe un nombre para la misa o el popurrí.");
  if(!Array.isArray(input.parts)||input.parts.length>LIMIT_PARTS)
