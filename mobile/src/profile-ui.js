@@ -15,10 +15,17 @@ const btn=(s,fn,outline=false,disabled=false)=>h(Pressable,{onPress:fn,disabled,
  style:[S.button,outline&&S.outline,disabled&&{opacity:.4}]},
  txt(s,[S.buttonText,outline&&S.outlineText]));
 function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
- editNonce=0}){
+ editNonce=0,registerBack}){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState(profile);
  const [loadingImage,setLoadingImage]=useState(false);
+ useEffect(()=>{
+  if(!registerBack)return;
+  return registerBack(()=>{
+   if(editing){setEditing(false);return true;}
+   return false;
+  });
+ },[registerBack,editing]);
  useEffect(()=>{if(editNonce>0){setDraft(profile);setEditing(true)}},[editNonce]);
  const change=(key,value)=>setDraft(v=>({...v,[key]:value}));
  const collections=personal?.collections||[];
