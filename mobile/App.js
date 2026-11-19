@@ -15,6 +15,9 @@ const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/f
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
+const LocalNotice=require("./src/local-notice");
+const PersonalBackupScreen=require("./src/personal-backup-ui");
+const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./src/personal-backup-io");
 const {addToPersonal}=require("./src/song-actions-core");
 const {buildPrintableSong,readerShiftForPrint}=require("./src/song-print");
 const Print=require("expo-print");
@@ -197,6 +200,10 @@ function AppScreen() {
  const [personalFilter,setPersonalFilter]=useState(null);
  const [profile,setProfile]=useState(profileDefaults());
  const [actionSongId,setActionSongId]=useState(null);
+ const [notice,setNotice]=useState(null);
+ const noticeTimerRef=useRef(null);
+ const personalRef=useRef(emptyStore());
+ const profileRef=useRef(profileDefaults());
  const nestedBackRef=useRef(null);
  const personalNavRef=useRef(null);
  const registerNestedBack=useCallback(handler=>{
@@ -224,6 +231,16 @@ function AppScreen() {
  const tabHistoryRef=useRef([]);
  const likedRef=useRef([]);
  const likedWriteRef=useRef(Promise.resolve());
+ function showLocalNotice(message,onUndo){
+  if(noticeTimerRef.current)clearTimeout(noticeTimerRef.current);
+  setNotice({id:Date.now()+Math.random(),message,onUndo});
+  noticeTimerRef.current=setTimeout(()=>{setNotice(null);noticeTimerRef.current=null;},5200);
+ }
+ function clearLocalNotice(){
+  if(noticeTimerRef.current)clearTimeout(noticeTimerRef.current);
+  noticeTimerRef.current=null;setNotice(null);
+ }
+ useEffect(()=>()=>{if(noticeTimerRef.current)clearTimeout(noticeTimerRef.current)},[]);
  const model=useMemo(()=>buildCatalog(copy?.data||{}),[copy]);
  const active=detail?.type==="song"?model.songs.find(s=>s.id===detail.id):null;
  const focusedArtist=detail?.type==="artist"?model.artistMap.get(detail.id):null;
