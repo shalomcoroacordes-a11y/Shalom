@@ -694,6 +694,7 @@ function AppScreen() {
   const cards=[
    ["Categorías","Explora por tema o celebración","categories",()=>goTab("Categorías")],
    ["Mis colecciones",personal.collections.length+" carpetas personales","repertoires",()=>goTab("Mis colecciones")],
+   ["Respaldo personal","Exportar o recuperar datos y fotografías","repertoires",()=>goTab("Respaldo")],
     ["Mis Me gusta",likedIds.length+" cantos guardados en este teléfono","song",
     ()=>goTab("Canciones",{liked:true})],
    ["Popurrís",model.medleys.length+" disponibles · Varios cantos unidos","medleys",()=>goTab("Popurrís")],
@@ -1142,6 +1143,9 @@ function AppScreen() {
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:kind=>goTab("Mis colecciones",{personalKind:kind||null}),
      onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce,registerBack:registerNestedBack})
+   :tab==="Respaldo"?h(PersonalBackupScreen,{
+      onExport:exportMyPersonalBackup,onPick:pickPersonalBackup,
+      onRestore:restoreMyPersonalBackup,onBack:back})
    :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
@@ -1157,7 +1161,7 @@ function AppScreen() {
       {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
       {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:active?"Opciones de canción":"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
-  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil"].includes(tab)?h(View,{style:S.repTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil","Respaldo"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Regresar"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
@@ -1165,7 +1169,7 @@ function AppScreen() {
     h(View,{style:{flex:1,minWidth:0}},
      label("SHALOM",S.repTopName),
      label("Coro y Alabanza",S.repTopSub))),
-   (tab!=="Más"&&tab!=="Mis colecciones"&&tab!=="Perfil")?h(Pressable,{style:S.repTopAction,onPress:()=>{
+   (tab!=="Más"&&tab!=="Mis colecciones"&&tab!=="Perfil"&&tab!=="Respaldo")?h(Pressable,{style:S.repTopAction,onPress:()=>{
      if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v)}
      else{setSectionSearchOpen(v=>!v)}
      setQuery("");
@@ -1237,7 +1241,14 @@ function AppScreen() {
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
    onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
    onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
-   onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null
+   onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
+   !immersiveActive?h(LocalNotice,{notice,
+    bottom:settingsOpen||tab==="Respaldo"?22:detail?96:tab==="Inicio"?91:86,
+    onUndo:()=>{
+     const undo=notice?.onUndo;
+     clearLocalNotice();
+     if(typeof undo==="function")undo();
+    }}):null
  );
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
