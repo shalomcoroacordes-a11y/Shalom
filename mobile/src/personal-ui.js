@@ -1,6 +1,8 @@
 const React=require("react");
 const {useState}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Share,Alert,StyleSheet}=require("react-native");
+const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
+const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,resolvePart,exportCode,importCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const h=React.createElement;
@@ -35,6 +37,10 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [view,setView]=useState("folders");
  const [newFolderName,setNewFolderName]=useState("");
  const [newColor,setNewColor]=useState(COLORS[0]);
+ const [newCoverPreset,setNewCoverPreset]=useState("dove");
+ const [newCoverPhoto,setNewCoverPhoto]=useState(null);
+ const [photoBusy,setPhotoBusy]=useState(false);
+ const [customize,setCustomize]=useState(false);
  const [showFolderForm,setShowFolderForm]=useState(false);
  const [nameDraft,setNameDraft]=useState("");
  const [search,setSearch]=useState("");
@@ -58,10 +64,30 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function createFolder(){
   try{
    if(store.collections.length>=100)throw new Error("Se alcanzó el máximo de colecciones.");
-   const collection=newCollection(newFolderName,newColor);
+   const collection={...newCollection(newFolderName,newColor,newCoverPreset),coverPhoto:newCoverPhoto};
    commit({...store,collections:[...store.collections,collection]});
-   setNewFolderName("");setShowFolderForm(false);setFolderId(collection.id);setView("folder");
+   setNewFolderName("");setNewCoverPhoto(null);setShowFolderForm(false);setCustomize(false);setFolderId(collection.id);setView("folder");
   }catch(e){Alert.alert("No se creó la colección",e.message);}
+ }
+ async function pickPhoto(isNew){
+  if(photoBusy)return;
+  setPhotoBusy(true);
+  try {
+   const filename=await chooseCover();
+   if(filename){
+    if(isNew){setNewCoverPhoto(filename);}
+    else if(folder){updateFolder(c=>({...c,coverPhoto:filename}));}
+   }
+  }catch(e){Alert.alert("No se pudo guardar la portada",e.message||"Inténtalo con otra fotografía.");}
+  finally{setPhotoBusy(false);}
+ }
+ function choosePreset(preset,isNew){
+  if(isNew){setNewCoverPreset(preset);setNewCoverPhoto(null);}
+  else if(folder){updateFolder(c=>({...c,coverPreset:preset,coverPhoto:null}));}
+ }
+ function startNewFolder(){
+  setNewFolderName("");setNewColor(COLORS[0]);setNewCoverPreset("dove");setNewCoverPhoto(null);
+  setShowFolderForm(true);setShareOpen(false);
  }
  function createEntry(kind){
   if(!folder)return;
@@ -110,7 +136,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    {text:"Cancelar",style:"cancel"},
    {text:"Eliminar",style:"destructive",onPress:()=>{
     commit({...store,collections:store.collections.filter(c=>c.id!==folderId)});
-    setFolderId(null);setEntryId(null);setView("folders");
+    removeCover(folder?.coverPhoto);
+    setCustomize(false);setFolderId(null);setEntryId(null);setView("folders");
    }}
   ]);
  }
@@ -155,44 +182,97 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    h(View,{style:styles.actions},action("Guardar en mis colecciones",pasteImport),
     action("Cancelar",()=>{setShareOpen(false);setShareInput("")},true)));
  }
+
+ function openFolder(c,custom=false){
+  setFolderId(c.id);setView("folder");setCustomize(custom);setShareOpen(false);
+ }
+ function collectionCard(c){
+  const compositions=c.entries.length;
+  const fragments=c.entries.reduce((acc,item)=>acc+(item.parts?.length||0),0);
+  return h(Pressable,{key:c.id,style:[styles.collectionCard,{borderBottomColor:c.color}],
+   accessibilityRole:"button",accessibilityLabel:"Abrir colección "+c.name,
+   onPress:()=>openFolder(c)},
+   h(CoverArt,{preset:c.coverPreset,photo:c.coverPhoto,color:c.color,height:124}),
+   h(View,{style:styles.collectionCardBody},
+    h(Text,{style:styles.collectionCardTitle,numberOfLines:2},c.name),
+    h(Text,{style:styles.collectionCardCount,numberOfLines:1},
+     compositions+" "+(compositions===1?"composición":"composiciones")+" · "+fragments+" fragmentos"),
+    h(View,{style:styles.collectionCardFoot},
+     h(View,{style:[styles.collectionColorDot,{backgroundColor:c.color}]}),
+     h(Text,{style:styles.collectionCardType},"Colección privada"),
+     h(Pressable,{onPress:e=>{e?.stopPropagation?.();openFolder(c,true);},
+      accessibilityRole:"button",accessibilityLabel:"Personalizar "+c.name,
+      style:styles.collectionCardMore},label("⋮",styles.moreIcon))))));
+ }
  function foldersView(){
-  return h(View,{style:styles.container},
-   label("Mis colecciones",styles.pageTitle),
-   label("Carpetas privadas con misas y popurrís. Se guardan únicamente en este celular.",styles.description),
-   h(View,{style:styles.actions},action("+ Nueva colección",()=>setShowFolderForm(v=>!v)),
-    action("Importar código",()=>setShareOpen(v=>!v),true)),
+  const empty=!store.collections.length;
+  return h(View,{style:styles.collectionRoot},
+   h(View,{style:styles.collectionHeading},
+    label("TU BIBLIOTECA PERSONAL",styles.eyebrow),
+    label("Mis colecciones",styles.collectionTitle),
+    label("Organiza tus misas y popurrís con portadas y colores propios.",styles.collectionSubtitle)),
+   h(View,{style:styles.collectionTopActions},
+    action("+ Crear colección",()=>{
+      if(showFolderForm){setShowFolderForm(false);}else startNewFolder();
+     }),
+    action("Importar código",()=>{setShareOpen(v=>!v);setShowFolderForm(false);},true)),
    importPanel(),
-   showFolderForm?h(View,{style:styles.card},
-    label("Nombre de tu colección",styles.cardTitle),
+   showFolderForm?h(View,{style:styles.customizerPanel},
+    label("Nueva colección",styles.customTitle),
+    label("Ponle un nombre y dale tu propio estilo.",styles.description),
     input(newFolderName,setNewFolderName,"Ej. Cantos para misa"),
-    label("Color de la colección",styles.description),
-    h(View,{style:styles.colors},...COLORS.map(color=>h(Pressable,{
-     key:color,onPress:()=>setNewColor(color),accessibilityRole:"button",
-     accessibilityLabel:"Elegir color "+color,style:[styles.color,{backgroundColor:color},newColor===color&&styles.colorActive]},
-     newColor===color?label("✓",styles.colorCheck):null))),
-    action("Crear colección",createFolder)):null,
-   ...store.collections.map(c=>h(Pressable,{key:c.id,onPress:()=>{
-    setFolderId(c.id);setView("folder");setShareOpen(false);
-   },accessibilityRole:"button",style:[styles.folderCard,{borderLeftColor:c.color}]},
-    label("▣",styles.folderIcon),
-    h(View,{style:{flex:1}},label(c.name,styles.cardTitle),
-     label(c.entries.length+" "+(c.entries.length===1?"composición":"composiciones"),styles.meta)),
-    label("›",styles.arrow))),
-   !store.collections.length?label("Crea tu primera carpeta para organizar misas y popurrís propios.",styles.empty):null);
+    h(CoverPicker,{preset:newCoverPreset,photo:newCoverPhoto,color:newColor,
+     onPreset:key=>choosePreset(key,true),onColor:setNewColor,
+     onChoosePhoto:()=>pickPhoto(true),onClearPhoto:()=>setNewCoverPhoto(null),busy:photoBusy}),
+    h(View,{style:styles.actions},
+     action("Guardar colección",createFolder),
+     action("Cancelar",()=>setShowFolderForm(false),true))):null,
+   !empty?h(View,{style:styles.collectionGrid},...store.collections.map(collectionCard)):null,
+   empty?h(View,{style:styles.emptyVisual},
+    h(View,{style:styles.emptyHeading},
+     label("Dale personalidad a tus colecciones",styles.emptyTitle),
+     label("Elige una portada de ejemplo o selecciona una fotografía de tu galería al crear tu colección.",
+      styles.description)),
+    h(View,{style:styles.inspirationGrid},
+     ...["sunrise","guitar","adoration","book"].map(key=>h(Pressable,{
+      key,accessibilityRole:"button",accessibilityLabel:"Elegir portada "+PRESETS[key].label,
+      onPress:()=>{startNewFolder();setNewCoverPreset(key);},
+      style:styles.inspirationCard},
+      h(CoverArt,{preset:key,color:COLORS[["sunrise","guitar","adoration","book"].indexOf(key)+1],height:103}),
+      label(PRESETS[key].label,styles.inspirationLabel)))),
+    label("Estas son portadas de muestra, no colecciones ni cantos creados.",styles.emptyHint),
+    action("+ Crear mi primera colección",()=>startNewFolder())):null,
+   h(View,{style:styles.privacyFooter},
+    label("⌂  Guardado solo en este dispositivo. Tus misas y popurrís no modifican los cantos oficiales.",styles.privateText)));
  }
  function folderView(){
   if(!folder)return foldersView();
   return h(View,{style:styles.container},
    action("← Mis colecciones",back,true),
-   h(View,{style:[styles.folderHeader,{borderLeftColor:folder.color}]},
-    label(folder.name,styles.pageTitle),
-    label("Solo en este teléfono · "+folder.entries.length+" composiciones",styles.description)),
+   h(View,{style:styles.folderHero},
+    h(CoverArt,{preset:folder.coverPreset,photo:folder.coverPhoto,color:folder.color,height:154}),
+    h(View,{style:styles.folderHeroBottom},
+     h(View,{style:{flex:1,minWidth:0}},
+      label(folder.name,styles.pageTitle),
+      label(folder.entries.length+" composiciones · Guardado en tu teléfono",styles.meta)),
+     h(Pressable,{onPress:()=>setCustomize(v=>!v),accessibilityRole:"button",
+      accessibilityLabel:"Editar portada y colores",style:styles.folderCustomize},
+      label("✎",styles.folderCustomizeIcon)))),
+   customize?h(View,{style:styles.customizerPanel},
+    h(View,{style:styles.actions},
+     label("Personalizar mi colección",styles.customTitle),
+     action("Listo",()=>setCustomize(false),true)),
+    h(CoverPicker,{preset:folder.coverPreset,photo:folder.coverPhoto,color:folder.color,
+     onPreset:key=>choosePreset(key,false),
+     onColor:color=>updateFolder(c=>({...c,color})),
+     onChoosePhoto:()=>pickPhoto(false),
+     onClearPhoto:()=>updateFolder(c=>({...c,coverPhoto:null})),busy:photoBusy})):null,
    h(View,{style:styles.actions},
     action("+ Misa",()=>createEntry("misa")),
     action("+ Popurrí",()=>createEntry("popurri")),
-    action("Importar",()=>setShareOpen(v=>!v),true)),
+    action("Importar código",()=>setShareOpen(v=>!v),true)),
    importPanel(),
-   ...folder.entries.map(item=>h(View,{key:item.id,style:styles.card},
+   ...folder.entries.map(item=>h(View,{key:item.id,style:styles.entryCard},
     label(item.kind==="misa"?"⛪ MISA PERSONAL":"♫ POPURRÍ PERSONAL",styles.tag),
     label(item.title,styles.cardTitle),
     label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
@@ -201,12 +281,11 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      action("Editar",()=>editEntry(item),true),
      action("Compartir",()=>shareEntry(item),true,item.parts.length===0)),
     action("Eliminar",()=>deleteEntry(item),true))),
-   !folder.entries.length?label("Aquí aparecerán tus misas y popurrís. Crea uno o importa un código recibido.",styles.empty):null,
-   h(View,{style:styles.colors},
-    ...COLORS.map(color=>h(Pressable,{key:color,onPress:()=>updateFolder(f=>({...f,color})),
-     style:[styles.color,{backgroundColor:color},folder.color===color&&styles.colorActive],
-     accessibilityRole:"button",accessibilityLabel:"Cambiar el color de la colección"},folder.color===color?label("✓",styles.colorCheck):null))),
-   action("Eliminar esta colección",deleteFolder,true));
+   !folder.entries.length?h(View,{style:styles.folderEmpty},
+    label("Esta colección ya tiene su portada 💚",styles.emptyTitle),
+    label("Ahora puedes crear una misa o un popurrí flexible usando los cantos descargados.",styles.description),
+    action("+ Crear mi primera misa",()=>createEntry("misa"))):null,
+   action("Eliminar colección",deleteFolder,true));
  }
  function editView(){
   if(!folder||!entry)return folderView();
@@ -293,6 +372,44 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  return foldersView();
 }
 const styles=StyleSheet.create({
+ collectionRoot:{gap:13,paddingBottom:25},
+ collectionHeading:{gap:4,paddingTop:5,marginBottom:2},
+ eyebrow:{fontSize:10,fontWeight:"900",letterSpacing:1.1,color:theme.green},
+ collectionTitle:{fontSize:25,color:theme.text,fontWeight:"900",lineHeight:33},
+ collectionSubtitle:{fontSize:12,color:theme.muted,lineHeight:18},
+ collectionTopActions:{flexDirection:"row",flexWrap:"wrap",gap:8,marginBottom:5},
+ collectionGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:13},
+ collectionCard:{width:"48.4%",overflow:"hidden",borderRadius:14,backgroundColor:"#19222d",borderWidth:1,
+  borderColor:"#43525B",borderBottomWidth:4},
+ collectionCardBody:{minHeight:112,padding:10,gap:4,justifyContent:"space-between"},
+ collectionCardTitle:{fontSize:14,fontWeight:"900",lineHeight:19,color:theme.text},
+ collectionCardCount:{fontSize:10.2,color:theme.muted},
+ collectionCardFoot:{flexDirection:"row",alignItems:"center",gap:5,minHeight:25},
+ collectionColorDot:{width:8,height:8,borderRadius:6},
+ collectionCardType:{fontSize:9,color:theme.muted,flex:1},
+ collectionCardMore:{minWidth:29,minHeight:33,justifyContent:"center",alignItems:"center"},
+ moreIcon:{fontSize:22,color:theme.text,fontWeight:"800"},
+ emptyVisual:{gap:11,marginTop:7},
+ emptyHeading:{marginBottom:4,gap:3},
+ emptyTitle:{fontSize:16,fontWeight:"850",color:theme.text,lineHeight:23},
+ inspirationGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:11},
+ inspirationCard:{width:"48%",borderRadius:14,overflow:"hidden",backgroundColor:theme.panel,
+  borderColor:theme.border,borderWidth:1},
+ inspirationLabel:{fontSize:12,fontWeight:"800",color:theme.text,padding:10},
+ emptyHint:{fontSize:11,color:theme.muted},
+ customizerPanel:{backgroundColor:theme.panel,padding:13,borderWidth:1,borderColor:theme.border,
+  borderRadius:16,gap:10,marginTop:4},
+ customTitle:{fontSize:17,fontWeight:"900",color:theme.text},
+ folderHero:{borderRadius:16,overflow:"hidden",backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border},
+ folderHeroBottom:{padding:11,flexDirection:"row",alignItems:"center",gap:7},
+ folderCustomize:{width:42,height:42,borderWidth:1,borderColor:theme.green,borderRadius:12,
+  justifyContent:"center",alignItems:"center"},
+ folderCustomizeIcon:{fontSize:22,color:theme.green},
+ privacyFooter:{padding:11,borderTopWidth:1,borderColor:theme.border,marginTop:9},
+ privateText:{fontSize:11,color:theme.muted,lineHeight:16},
+ entryCard:{padding:12,borderRadius:13,backgroundColor:theme.panel,borderWidth:1,
+  borderColor:theme.border,gap:9,marginVertical:3},
+ folderEmpty:{padding:16,backgroundColor:theme.panel,borderRadius:14,gap:9,marginVertical:13},
  container:{gap:9,paddingVertical:5,paddingBottom:22},
  pageTitle:{fontSize:20,color:theme.text,fontWeight:"900",marginBottom:1},
  text:{fontSize:13,color:theme.text},
