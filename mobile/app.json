@@ -3,7 +3,7 @@
     "name": "SHALOM",
     "slug": "shalom-offline",
     "scheme": "shalom",
-    "version": "0.3.8",
+    "version": "0.3.9",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -13,7 +13,7 @@
     "android": {
       "package": "com.shalomcoroacordes.cancionero",
       "edgeToEdgeEnabled": true,
-      "versionCode": 21,
+      "versionCode": 22,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#006D3B"
@@ -22,6 +22,16 @@
     "extra": {
       "source": "ehpvsasyzlrlypjjpzuk"
     },
-    "icon": "./assets/icon.png"
+    "icon": "./assets/icon.png",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite elegir fotografías para las portadas de tus colecciones personales. No se suben a internet.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }
