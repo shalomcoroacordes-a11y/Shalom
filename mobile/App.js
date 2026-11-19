@@ -8,7 +8,8 @@ const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const {getCatalog,getMetadata,setMetadata}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
-const {parseSong,transposeOne,preserveColumns,scoreWidth}=require("./src/chords");
+const {parseSong,transposeOne}=require("./src/chords");
+const AlignedScore=require("./src/aligned-score-ui");
 const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
 const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
@@ -825,33 +826,9 @@ function AppScreen() {
  // Todos los lectores usan una sola cuadrícula de texto monoespaciado:
  // en un único Text padre, los acordes mantienen sus columnas al cambiar dispositivo.
  function renderAlignedScoreRows(rows,fontSize,keyPrefix){
-  const textStyle=[S.songScoreText,{fontSize,lineHeight:fontSize+7}];
-  return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,
-   showsHorizontalScrollIndicator:true,
-   style:S.songScoreScroll,contentContainerStyle:S.songScoreContent},
-   h(View,{style:[S.songScoreBody,{minWidth:scoreWidth(rows,fontSize)}]},
-    ...rows.map((row,i)=>{
-     const key=keyPrefix+"-"+i;
-     if(row.kind==="space")return h(View,{key,style:{height:fontSize*1.1}});
-     if(row.kind==="section"){
-      const chorus=/coro|estribillo|refr[aá]n/i.test(row.text||"");
-      return h(View,{key,style:S.songSectionRow},
-       h(View,{style:[S.songSectionPill,chorus&&S.songChorusPill]},
-        label(row.text,[S.songSectionText,chorus&&S.songChorusText])),
-       h(View,{style:S.songSectionRule}));
-     }
-     if(row.kind==="chords")return h(Text,{key,
-      style:[textStyle,S.songPair],selectable:true,allowFontScaling:false,
-      textBreakStrategy:"simple"},
-      h(Text,{style:S.songChord},preserveColumns(row.chordLine||" ")),
-      "\n",
-      h(Text,{style:S.songLyric},preserveColumns(row.lyricLine||" ")));
-     return h(Text,{key,style:[textStyle,row.kind==="chordsOnly"?S.songChord:S.songLyric],
-      selectable:true,allowFontScaling:false,textBreakStrategy:"simple"},
-      preserveColumns(row.text||" "));
-    })));
+  return h(AlignedScore,{rows,fontSize,variant:keyPrefix});
  }
- function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
+  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
   const parsed=parseSong(lyrics,delta);
   return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
  }
