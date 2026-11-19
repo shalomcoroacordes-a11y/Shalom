@@ -2,7 +2,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const {emptyStore,newCollection,newEntry,newPart,parseStore,exportCode,importCode}=require("../src/personal-collections");
 const {addToPersonal,entriesOf}=require("../src/song-actions-core");
-const {buildPrintableSong}=require("../src/song-print");
+const {buildPrintableSong,readerShiftForPrint}=require("../src/song-print");
 const store=emptyStore();
 const first=addToPersonal(store,"song-1","repertorio",{title:"Domingo"});
 assert.equal(store.collections.length,0,"No debe mutar el estado anterior");
@@ -47,6 +47,9 @@ const html=buildPrintableSong(sample,2);
 assert.match(html,/&lt;&amp;&gt;/);
 assert.match(html,/Jesús &lt;vive&gt; &amp; salva/);
 assert.match(html,/Tono A/,"El tono impreso respeta la transposición");
+assert.equal(readerShiftForPrint({...sample,capo_position:2,capo_key:"F"} ,0,"main"),-2);
+assert.equal(readerShiftForPrint(sample,2,"none"),2);
+assert.equal(readerShiftForPrint({...sample,capo_position:2,capo_key:"F"} ,2,"main"),0);
 assert.match(html,/class="chords"/);
 assert.doesNotMatch(html,/<script>|<vive>/);
 const app=fs.readFileSync("App.js","utf8");
@@ -56,7 +59,7 @@ const profile=fs.readFileSync("src/profile-ui.js","utf8");
 assert.match(app,/h\(SongActionsSheet,/,"Existe panel nativo");
 assert.match(app,/onPress:\(\)=>active\?setActionSongId/,"Tres puntos abren acciones del canto");
 assert.match(app,/h\(ScrollView,\{horizontal:true,nestedScrollEnabled:true/,"Lector original no se reemplazó");
-assert.match(app,/Print\.printAsync\(\{html:buildPrintableSong\(song,transpose\)\}\)/,"Impresión nativa sin navegador");
+assert.match(app,/Print\.printAsync\(\{html:buildPrintableSong\(song,readerShiftForPrint\(song,transpose,capo\)\)\}\)/,"Impresión nativa sin navegador y con capo");
 assert.match(sheet,/onRequestClose:back/,"El botón nativo cierra panel o retrocede dentro de él");
 for(const value of ["Quitar de Mis me gusta","Agregar a Mis me gusta","Agregar a repertorio","Agregar a misa",
  "Agregar a popurrí","Compartir canción","Imprimir letra y acordes","Descargar sin conexión"]){
