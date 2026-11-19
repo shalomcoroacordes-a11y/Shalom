@@ -8,7 +8,7 @@ const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const {getCatalog,getMetadata,setMetadata}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
-const {parseSong,transposeOne}=require("./src/chords");
+const {parseSong,transposeOne,preserveColumns,scoreWidth}=require("./src/chords");
 const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
 const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
@@ -803,29 +803,38 @@ function AppScreen() {
      accessibilityRole:"button",accessibilityLabel:immersiveActive?"Salir de pantalla completa":"Pantalla completa",
      style:S.multiTextAction},label(immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",S.multiTextActionLabel)):null));
  }
- function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
-  const parsed=parseSong(lyrics,delta);
-  const chordStyle=[S.songChord,{fontSize:fontOverride,lineHeight:fontOverride+5}];
-  const lyricStyle=[S.songLyric,{fontSize:fontOverride,lineHeight:fontOverride+7}];
-  return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
+ // Todos los lectores usan una sola cuadrícula de texto monoespaciado:
+ // en un único Text padre, los acordes mantienen sus columnas al cambiar dispositivo.
+ function renderAlignedScoreRows(rows,fontSize,keyPrefix){
+  const textStyle=[S.songScoreText,{fontSize,lineHeight:fontSize+7}];
+  return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,
+   showsHorizontalScrollIndicator:true,
    style:S.songScoreScroll,contentContainerStyle:S.songScoreContent},
-   h(View,{style:{minWidth:"100%"}},
-    ...parsed.map((row,i)=>{
+   h(View,{style:[S.songScoreBody,{minWidth:scoreWidth(rows,fontSize)}]},
+    ...rows.map((row,i)=>{
      const key=keyPrefix+"-"+i;
-     if(row.kind==="space")return h(View,{key,style:{height:fontOverride*.8}});
+     if(row.kind==="space")return h(View,{key,style:{height:fontSize*1.1}});
      if(row.kind==="section"){
-      const chorus=String(row.text||"").toLowerCase().includes("coro");
+      const chorus=/coro|estribillo|refr[aá]n/i.test(row.text||"");
       return h(View,{key,style:S.songSectionRow},
        h(View,{style:[S.songSectionPill,chorus&&S.songChorusPill]},
         label(row.text,[S.songSectionText,chorus&&S.songChorusText])),
        h(View,{style:S.songSectionRule}));
      }
-     if(row.kind==="chords")return h(View,{key,style:S.songPair},
-      h(Text,{style:chordStyle,selectable:true},row.chordLine||" "),
-      h(Text,{style:lyricStyle,selectable:true},row.lyricLine||" "));
-     return h(Text,{key,style:row.kind==="chordsOnly"?chordStyle:lyricStyle,
-      selectable:true},row.text||" ");
+     if(row.kind==="chords")return h(Text,{key,
+      style:[textStyle,S.songPair],selectable:true,allowFontScaling:false,
+      textBreakStrategy:"simple"},
+      h(Text,{style:S.songChord},preserveColumns(row.chordLine||" ")),
+      "\n",
+      h(Text,{style:S.songLyric},preserveColumns(row.lyricLine||" ")));
+     return h(Text,{key,style:[textStyle,row.kind==="chordsOnly"?S.songChord:S.songLyric],
+      selectable:true,allowFontScaling:false,textBreakStrategy:"simple"},
+      preserveColumns(row.text||" "));
     })));
+ }
+ function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
+  const parsed=parseSong(lyrics,delta);
+  return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
  }
  function renderRepertoireDetail(rep){
   const items=Array.isArray(rep.items)?rep.items:[];
@@ -1056,29 +1065,21 @@ function AppScreen() {
   }
   const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
   const liked=hasFavorite(likedIds,song.id);
-  const isChorus=txt=>/\bcoro\b|estribillo|refr[aá]n/i.test(txt||"");
-  const section=(name,i)=>{
-   const chorus=isChorus(name);
-   return h(View,{key:"section-"+i,style:S.songSectionRow},
-    h(View,{style:[S.songSectionPill,chorus&&S.songChorusPill]},
-     label(name,[S.songSectionText,chorus&&S.songChorusText])),
-    h(View,{style:S.songSectionRule}));
-  };
-  const chordStyle=[S.songChord,{fontSize:readerFont,lineHeight:readerFont+5}];
-  const lyricStyle=[S.songLyric,{fontSize:readerFont,lineHeight:readerFont+7}];
   const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset);
   return h(View,{style:S.songReader},
-   h(View,{style:S.songMetaRow},
-    h(View,{style:S.songMetaIcon},
-     h(Image,{source:HOME_IMAGES.song,resizeMode:"contain",style:S.songMetaIconImage})),
-    h(View,{style:{flex:1,minWidth:0}},
-     h(Text,{style:S.songHeading},song.title||"Sin título"),
-     label(names(song._artists)||"SHALOM",S.songArtist),
-     h(View,{style:S.songTypeBadge},label(type(song.song_type),S.songTypeText))),
-    h(Pressable,{onPress:()=>toggleLike(song.id),accessibilityRole:"button",
-     accessibilityLabel:liked?"Quitar Me gusta":"Marcar Me gusta",
-     accessibilityState:{selected:liked},style:S.songLikeButton},
-     h(Text,{style:[S.songHeart,liked&&S.songHeartActive]},liked?"♥":"♡"))),
+   h(View,{style:S.songReaderIntro},
+    label(type(song.song_type).toUpperCase(),S.songReaderKicker),
+    h(View,{style:S.songReaderTitleRow},
+     h(View,{style:{flex:1,minWidth:0}},
+      h(Text,{style:S.songReaderTitle},song.title||"Sin título"),
+      label(names(song._artists)||"SHALOM",S.songReaderArtist)),
+     h(Pressable,{onPress:()=>toggleLike(song.id),accessibilityRole:"button",
+      accessibilityLabel:liked?"Quitar Me gusta":"Marcar Me gusta",
+      accessibilityState:{selected:liked},style:S.songLikeButton},
+      h(Text,{style:[S.songHeart,liked&&S.songHeartActive]},liked?"♥":"♡"))),
+    h(View,{style:S.songReaderBadges},
+     h(View,{style:S.songReaderToneBadge},label(toned,S.songReaderToneText)),
+     label("Letra y acordes",S.songReaderHint))),
    h(View,{style:S.songControlsStack},
     h(View,{style:S.songControls},
      renderToneStepper("Tono "+toned),
@@ -1102,17 +1103,8 @@ function AppScreen() {
     ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
-   h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
-    style:S.songScoreScroll,contentContainerStyle:S.songScoreContent},
-    h(View,{style:{minWidth:"100%"}},
-     ...parsed.map((row,i)=>{
-      if(row.kind==="space")return h(View,{key:i,style:{height:readerFont*.8}});
-      if(row.kind==="section")return section(row.text,i);
-      if(row.kind==="chords")return h(View,{key:i,style:S.songPair},
-       h(Text,{style:chordStyle,selectable:true},row.chordLine||" "),
-       h(Text,{style:lyricStyle,selectable:true},row.lyricLine||" "));
-      return h(Text,{key:i,style:row.kind==="chordsOnly"?chordStyle:lyricStyle,selectable:true},row.text||" ");
-     })))
+   h(View,{style:S.songScoreCard},
+    renderAlignedScoreRows(parsed,readerFont,"song-"+song.id))
   );
  }
  function renderRequest(){
@@ -1261,6 +1253,19 @@ function AppScreen() {
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 const S=StyleSheet.create({
+ songReaderIntro:{paddingHorizontal:2,paddingTop:4,paddingBottom:10,gap:7},
+ songReaderKicker:{color:C.green,fontWeight:"900",letterSpacing:1.5,fontSize:11},
+ songReaderTitleRow:{flexDirection:"row",alignItems:"center",gap:10},
+ songReaderTitle:{fontSize:24,lineHeight:30,fontWeight:"900",color:C.text},
+ songReaderArtist:{color:C.muted,fontSize:12,marginTop:3},
+ songReaderBadges:{flexDirection:"row",alignItems:"center",gap:9},
+ songReaderToneBadge:{paddingVertical:6,paddingHorizontal:11,borderRadius:13,
+  borderWidth:1,borderColor:"#24684f",backgroundColor:"#153a31"},
+ songReaderToneText:{fontSize:14,color:C.pale,fontWeight:"900"},
+ songReaderHint:{fontSize:11,color:C.muted},
+ songScoreCard:{backgroundColor:"#172538",borderWidth:1,borderColor:"#334c60",borderRadius:14,
+  paddingHorizontal:7,paddingTop:5,paddingBottom:8,overflow:"hidden",marginTop:9},
+
  spotifyHomeBrand:{flex:1,flexDirection:"row",alignItems:"center",gap:6},
  spotifyHomeLogo:{height:45,width:52},
  spotifyHomeBrandName:{fontSize:20,color:C.text,fontWeight:"900",letterSpacing:.5},
@@ -1425,17 +1430,19 @@ const S=StyleSheet.create({
  songFontText:{fontSize:19,fontWeight:"850",color:C.text},
  songCapoVariants:{flexDirection:"row",flexWrap:"wrap",gap:6,marginTop:10},
  songCapoNote:{fontSize:11,color:C.pale,marginTop:8},
- songScoreScroll:{backgroundColor:C.bg,marginTop:9,marginBottom:6},
- songScoreContent:{paddingVertical:7,paddingHorizontal:3,minWidth:"100%"},
+ songScoreScroll:{marginTop:0,marginBottom:4},
+ songScoreContent:{paddingVertical:3,paddingHorizontal:3,minWidth:"100%"},
  songSectionRow:{flexDirection:"row",alignItems:"center",gap:8,marginTop:13,marginBottom:8,minWidth:150},
  songSectionPill:{borderWidth:1.5,borderColor:C.green,borderRadius:9,paddingVertical:3,paddingHorizontal:9,backgroundColor:"#113329"},
  songChorusPill:{backgroundColor:C.green},
  songSectionText:{fontSize:16,color:C.pale,fontWeight:"900"},
  songChorusText:{color:"#05211b"},
  songSectionRule:{height:1,backgroundColor:"#2c544b",flex:1,minWidth:18},
- songPair:{marginBottom:6},
- songChord:{fontFamily:MONO,color:C.green,fontWeight:"800",includeFontPadding:false},
- songLyric:{fontFamily:MONO,color:C.text,includeFontPadding:false},
+ songScoreBody:{minWidth:"100%",paddingHorizontal:5,paddingTop:6,paddingBottom:14,alignItems:"flex-start"},
+ songScoreText:{fontFamily:MONO,fontWeight:"normal",letterSpacing:0,includeFontPadding:false},
+ songPair:{marginBottom:9},
+ songChord:{color:C.green,fontWeight:"normal"},
+ songLyric:{color:C.text,fontWeight:"normal"},
  songActionBar:{backgroundColor:"#12212a",flexDirection:"row",justifyContent:"space-around",minHeight:62,borderTopWidth:1,borderColor:"#4a6267",paddingVertical:4},
  songActionItem:{flex:1,alignItems:"center",justifyContent:"center",minHeight:52},
  songActionIcon:{fontSize:21,color:C.text,lineHeight:26,fontWeight:"800"},
