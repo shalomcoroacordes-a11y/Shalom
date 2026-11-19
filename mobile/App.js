@@ -1021,7 +1021,7 @@ function AppScreen() {
  }
  function addSongLocally(song,kind,choice){
   const result=addToPersonal(personal,String(song.id),kind,choice);
-  if(result.added)savePersonal(result.store);
+  if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
  function openSongVideo(song){
