@@ -27,10 +27,11 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
    h(View,{style:{flex:1}},lbl(title,S.actionTitle),
     subtitle?lbl(subtitle,S.actionSub):null),lbl("›",S.chevron));
  const go=next=>{setKind(next);setPhase("targets");setName("");setFolderId(store.collections[0]?.id||"")};
- async function run(fn){
+ async function run(fn,closeFirst=false){
   if(busy)return;
   setBusy(true);
-  try{await fn();onDismiss()}
+  if(closeFirst)onDismiss();
+  try{await fn();if(!closeFirst)onDismiss()}
   catch(err){Alert.alert("No se pudo completar",err?.message||"Inténtalo otra vez.")}
   finally{setBusy(false)}
  }
@@ -69,9 +70,9 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
      button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
      button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
-     button("↗","Compartir canción",()=>run(onShare)),
-     button("▤","Imprimir letra y acordes",()=>run(onPrint),"Impresión nativa desde el teléfono"),
-     button("↓","Descargar sin conexión",()=>run(onDownload),
+     button("↗","Compartir canción",()=>run(onShare,true)),
+     button("▤","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
+     button("↓","Descargar sin conexión",()=>run(onDownload,true),
       offline?"Este canto ya está disponible sin conexión":"Actualizar biblioteca local")
     ):phase==="targets"?h(ScrollView,{keyboardShouldPersistTaps:"handled",showsVerticalScrollIndicator:false,
       contentContainerStyle:S.menu},
