@@ -17,6 +17,7 @@ const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
 const LocalNotice=require("./src/local-notice");
 const PersonalBackupScreen=require("./src/personal-backup-ui");
+const ProfileOptionsMenu=require("./src/profile-options-menu");
 const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./src/personal-backup-io");
 const {addToPersonal}=require("./src/song-actions-core");
 const {buildPrintableSong,readerShiftForPrint}=require("./src/song-print");
@@ -201,6 +202,7 @@ function AppScreen() {
  const [profile,setProfile]=useState(profileDefaults());
  const [actionSongId,setActionSongId]=useState(null);
  const [notice,setNotice]=useState(null);
+ const [profileMenuOpen,setProfileMenuOpen]=useState(false);
  const noticeTimerRef=useRef(null);
  const personalRef=useRef(emptyStore());
  const profileRef=useRef(profileDefaults());
@@ -257,7 +259,7 @@ function AppScreen() {
   if(!term)return true;
   return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
- function goTab(next,options={}){if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){personalNavRef.current=null;setPersonalFilter(options.personalKind||null);}else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
+ function goTab(next,options={}){setProfileMenuOpen(false);if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){personalNavRef.current=null;setPersonalFilter(options.personalKind||null);}else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function personalTotals(value){
@@ -293,14 +295,7 @@ function AppScreen() {
   });
   if(!options.quiet)showLocalNotice("Perfil guardado",()=>saveProfile(prev,{quiet:true}));
  }
- function openProfileMenu(){
-  Alert.alert("Opciones del perfil","Elige qué quieres hacer.",[
-   {text:"Editar perfil",onPress:()=>setProfileEditNonce(n=>n+1)},
-   {text:"Mis colecciones",onPress:()=>goTab("Mis colecciones")},
-   {text:"Respaldo y restauración",onPress:()=>goTab("Respaldo")},
-   {text:"Más opciones",onPress:()=>goTab("Más")},
-   {text:"Cancelar",style:"cancel"}]);
- }
+ function openProfileMenu(){setProfileMenuOpen(true);}
  function setFavoritesLocal(next){
   const prev=likedRef.current;
   likedRef.current=next;setLikedIds(next);
@@ -368,6 +363,7 @@ function AppScreen() {
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
+  if(profileMenuOpen){setProfileMenuOpen(false);return true;}
   if(actionSongId){setActionSongId(null);return true;}
   if(immersiveActive){setImmersive(false);return true;}
   if(settingsOpen){setSettingsOpen(false);return true;}
@@ -389,7 +385,7 @@ function AppScreen() {
   if(Platform.OS!=="android")return;
   const subscription=BackHandler.addEventListener("hardwareBackPress",back);
   return()=>subscription.remove();
- },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter]);
+ },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter,profileMenuOpen]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);
@@ -1255,7 +1251,12 @@ function AppScreen() {
      const undo=notice?.onUndo;
      clearLocalNotice();
      if(typeof undo==="function")undo();
-    }}):null
+    }}):null,
+   h(ProfileOptionsMenu,{visible:profileMenuOpen,onDismiss:()=>setProfileMenuOpen(false),
+    onEdit:()=>setProfileEditNonce(n=>n+1),
+    onCollections:()=>goTab("Mis colecciones"),
+    onBackup:()=>goTab("Respaldo"),
+    onMore:()=>goTab("Más")})
  );
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
