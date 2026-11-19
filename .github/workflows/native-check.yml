@@ -35,6 +35,7 @@ jobs:
           node --check src/personal-backup-io.js
           node --check src/personal-backup-ui.js
           node --check src/local-notice.js
+          node --check src/profile-options-menu.js
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
