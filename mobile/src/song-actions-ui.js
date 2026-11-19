@@ -5,7 +5,7 @@ const {InitialCover}=require("./visual-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const h=React.createElement;
 const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
-function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd}){
+function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone}){
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -17,7 +17,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const back=()=>{
   if(busy)return;
   if(phase==="create"){setPhase("targets");return}
-  if(phase==="targets"){setPhase("menu");return}
+  if(phase==="targets"||phase==="reading"){setPhase("menu");return}
   close();
  };
  const button=(icon,title,action,subtitle=null,disabled=false)=>
@@ -73,7 +73,15 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
      button("↗","Compartir canción",()=>run(onShare,true)),
      button("▤","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
      button("↓","Descargar sin conexión",()=>run(onDownload,true),
-      offline?"Este canto ya está disponible sin conexión":"Actualizar biblioteca local")
+      offline?"Este canto ya está disponible sin conexión":"Actualizar biblioteca local"),
+     h(View,{style:S.rule}),
+     button("⛶","Opciones de lectura",()=>setPhase("reading"),"Pantalla completa y tono original")
+    ):phase==="reading"?h(View,{style:S.menu},
+     lbl("Opciones de lectura",S.sectionTitle),
+     button("⛶","Pantalla completa",()=>run(onFullScreen)),
+     button("↺","Restablecer tono original",()=>run(onResetTone)),
+     h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
+      lbl("← Volver al panel",S.createLabel))
     ):phase==="targets"?h(ScrollView,{keyboardShouldPersistTaps:"handled",showsVerticalScrollIndicator:false,
       contentContainerStyle:S.menu},
      lbl("Agregar a "+NAMES[kind],S.sectionTitle),
