@@ -92,3 +92,16 @@ estilos en iPhone/Android y transposición.
 
 Solo se comunica con `ehpvsasyzlrlypjjpzuk` (**SHALOM**).
 No modifica ni utiliza el proyecto Juntos Hacia Dios.
+
+
+## Mis colecciones privadas: misas y popurrís flexibles
+
+- Desde **Más > Mis colecciones** se crean carpetas personales con color.
+- Dentro de cada carpeta se crean misas y popurrís utilizando **únicamente referencias** a los cantos públicos de SHALOM.
+- Cada fragmento puede seleccionar una estrofa/coro existente, tono local (±11 semitonos), posición en la lista y, en misas, momento litúrgico. Un canto puede repetirse en distintos fragmentos.
+- El lector muestra las partes consecutivamente sin modificar el original.
+- Compartir utiliza un **código SHALOM1-...** mediante el menú nativo de Android (WhatsApp, etc.). El destinatario copia y pega el mensaje en **Importar código**. El código contiene IDs, secciones, orden, tonos y momentos; **no contiene letras ni acordes**.
+- Importar valida el identificador SHALOM, versión, checksum, límites y estructura. Si faltan cantos o cambian sus secciones, la app lo avisa en lugar de inventar letras.
+- Carpeta, misa, popurrí y código se gestionan **en almacenamiento privado del teléfono** usando la misma preferencia local SQLite/archivo que ya usa la aplicación. **No hay escrituras a Supabase**.
+- Los códigos pueden generarse sin conexión; para enviarlos por WhatsApp se requiere conexión cuando WhatsApp lo necesite. El destinatario debe tener la app y los cantos públicos descargados.
+- **Importante:** desinstalar o borrar los datos de la app elimina estas colecciones. Compartir códigos sirve para intercambiar composiciones; no es un respaldo completo automático de todas las carpetas.
