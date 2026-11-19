@@ -30,3 +30,4 @@ jobs:
           node tests/catalog.test.js
           node tests/requests.test.js
           node tests/medleys.test.js
+          node tests/personal-collections.test.js
