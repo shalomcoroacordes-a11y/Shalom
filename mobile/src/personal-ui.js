@@ -202,7 +202,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      h(Text,{style:styles.collectionCardType},"Colección privada"),
      h(Pressable,{onPress:e=>{e?.stopPropagation?.();openFolder(c,true);},
       accessibilityRole:"button",accessibilityLabel:"Personalizar "+c.name,
-      style:styles.collectionCardMore},label("⋮",styles.moreIcon))))));
+      style:styles.collectionCardMore},label("⋮",styles.moreIcon)))));
  }
  function foldersView(){
   const empty=!store.collections.length;
