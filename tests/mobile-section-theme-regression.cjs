@@ -28,6 +28,8 @@ assert.match(songs,/setOnlyLiked/,"Keep device-only likes filtering");
 assert.match(songs,/eligible\.slice\(0,countLimit\)/,"Keep song pagination");
 assert.match(songs,/selectSong\(song\)/,"Songs must still open");
 assert.match(artists,/model\.songsForArtist\(a\.id\)\.length/,"Artist song counts come from catalog");
+assert.match(artists,/style:S\.artistGrid/,"Artists are shown in a responsive two-column gallery");
+assert.match(artists,/h\(InitialCover/,"Artists use color initials without remote photos");
 assert.match(artists,/type\(a\.artist_type\)/,"Artist type filtering");
 assert.match(categories,/model\.children\(/,"Keep folder hierarchy navigation");
 assert.match(categories,/model\.songsForCategory\(current\.id\)/,"Keep category songs");
