@@ -23,7 +23,7 @@ function AlignedScore({rows=[],fontSize=18,variant="default"}){
  const line=(value,color,key)=>h(View,{key,style:[S.line,{height:fontSize+8,width}]},
   ...anchoredTokens(value).map((token,i)=>h(Text,{
    key:key+"-"+i,
-   numberOfLines:1,allowFontScaling:false,selectable:false,
+   numberOfLines:1,allowFontScaling:false,selectable:true,
    style:[characterStyle,S.token,{color,left:5+token.column*cell}]},token.text)));
  return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
   keyboardShouldPersistTaps:"handled",style:S.scroll,
