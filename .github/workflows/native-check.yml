@@ -22,6 +22,15 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify Expo SDK compatibility
         run: npx expo install --check
+      - name: Validate JavaScript syntax of all native screens
+        run: |
+          node --check App.js
+          node --check src/song-actions-core.js
+          node --check src/song-actions-ui.js
+          node --check src/song-print.js
+          node --check src/personal-ui.js
+          node --check src/personal-collections.js
+          node --check src/profile-ui.js
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
@@ -33,3 +42,4 @@ jobs:
           node tests/personal-collections.test.js
           node tests/personal-cover-ui.test.js
           node tests/local-profile.test.js
+          node tests/song-actions.test.js
