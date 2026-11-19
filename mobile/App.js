@@ -141,8 +141,7 @@ function SectionSearch({value,onChangeText,placeholder}){
 function SectionListCard({title,subtitle,meta,icon,onPress}){
  return h(Pressable,{style:S.repCard,onPress,accessibilityRole:"button",
   accessibilityLabel:[title,subtitle].filter(Boolean).join(", ")},
-  h(View,{style:S.repCardIconWrap},
-   h(Image,{source:HOME_IMAGES[icon]||HOME_IMAGES.song,resizeMode:"contain",style:S.repCardIcon})),
+  h(InitialCover,{title:title||"Canto",size:53}),
   h(View,{style:{flex:1,minWidth:0}},
    h(Text,{style:S.repCardTitle,numberOfLines:2},title||"Sin título"),
    subtitle?h(Text,{style:S.repCardCount,numberOfLines:2},subtitle):null,
@@ -494,22 +493,24 @@ function AppScreen() {
    (!artistTypeFilter||normalize(type(a.artist_type))===artistTypeFilter)
    &&matchesSearch([a.name,a.description,a.artist_type],query));
   return h(View,{style:S.repPage},
-   h(SectionHero,{title:"Artistas",subtitle:"Descubre ministerios, coros y músicos",icon:"artists"}),
+   h(SectionHero,{title:"Artistas",subtitle:"Conoce coros, músicos y ministerios de alabanza",icon:"artists"}),
    h(SectionFilterBar,{options:SONG_TYPES.map(([code,name])=>[code,name,null]),
     value:artistTypeFilter,onChange:val=>{setArtistTypeFilter(val);setCountLimit(80)}}),
    sectionSearchOpen?h(SectionSearch,{value:query,onChangeText:v=>{setQuery(v);setCountLimit(80)},
     placeholder:"Buscar artista o ministerio…"}):null,
    label(filtered.length+" "+(filtered.length===1?"artista":"artistas"),S.sectionResults),
-   h(View,{style:S.repCards},
+   h(View,{style:S.artistGrid},
     ...filtered.slice(0,countLimit).map(a=>{
      const count=model.songsForArtist(a.id).length;
-     return h(SectionListCard,{key:a.id,title:a.name||"Artista",
-      subtitle:type(a.artist_type)+" · "+count+" "+(count===1?"canto":"cantos"),
-      icon:"artists",onPress:()=>openDetail({type:"artist",id:a.id})});
-    }),
-    filtered.length>countLimit?h(Btn,{text:"Mostrar más artistas",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null,
-    !filtered.length?h(SectionEmpty,{message:"No hay artistas que coincidan con tu búsqueda."}):null)
-  );
+     return h(Pressable,{key:a.id,style:S.artistGridCard,onPress:()=>openDetail({type:"artist",id:a.id}),
+      accessibilityRole:"button",accessibilityLabel:"Abrir artista "+a.name},
+      h(InitialCover,{title:a.name,size:63,round:true}),
+      h(Text,{style:S.artistGridTitle,numberOfLines:2},a.name),
+      h(Text,{style:S.artistGridMeta,numberOfLines:2},type(a.artist_type)),
+      label(count+" "+(count===1?"canto":"cantos"),S.artistGridCount));
+    })),
+   filtered.length>countLimit?h(Btn,{text:"Mostrar más artistas",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null,
+   !filtered.length?h(SectionEmpty,{message:"No hay artistas que coincidan con tu búsqueda."}):null);
  }
  function renderCategories(){
   const current=model.categoryMap.get(folderId);
@@ -591,7 +592,7 @@ function AppScreen() {
      style:S.repHeadingIcon}),
     h(View,{style:{flex:1,minWidth:0}},
      h(Text,{style:S.repTitle,numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.8},"Repertorios"),
-     label("Listas organizadas de cantos",S.repSubtitle))),
+     label("Misas, ensayos y celebraciones en un solo lugar",S.repSubtitle))),
    h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,
     contentContainerStyle:S.repFilters},
     ...sections.map(([code,name,icon])=>{
@@ -613,8 +614,7 @@ function AppScreen() {
      return h(Pressable,{key:rep.id,onPress:()=>selectRepertoire(rep),
       accessibilityRole:"button",accessibilityLabel:(rep.title||"Repertorio")+", "+count+" cantos",
       style:S.repCard},
-      h(View,{style:S.repCardIconWrap},
-       h(Image,{source:HOME_IMAGES[iconFor(code)],resizeMode:"contain",style:S.repCardIcon})),
+      h(InitialCover,{title:rep.title||"Repertorio",size:53}),
       h(View,{style:{flex:1,minWidth:0}},
        h(Text,{style:S.repCardTitle,numberOfLines:2},rep.title||"Repertorio sin título"),
        label(count+" "+(count===1?"canto":"cantos"),S.repCardCount),
@@ -1087,6 +1087,13 @@ function AppScreen() {
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 const S=StyleSheet.create({
+ artistGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:12},
+ artistGridCard:{width:"48%",padding:12,backgroundColor:"#19332d",borderWidth:1,borderColor:"#3e6757",
+  borderRadius:15,alignItems:"center",justifyContent:"center",minHeight:175,gap:5},
+ artistGridTitle:{color:C.text,fontWeight:"900",fontSize:14,lineHeight:19,textAlign:"center"},
+ artistGridMeta:{color:C.muted,fontSize:11,textAlign:"center"},
+ artistGridCount:{color:C.green,fontSize:11,fontWeight:"750"},
+
  root:{flex:1,backgroundColor:C.bg},
  sectionTopBar:{backgroundColor:C.bg,minHeight:62,paddingHorizontal:10,flexDirection:"row",alignItems:"center",
   borderBottomWidth:1,borderBottomColor:"#24363e"},
