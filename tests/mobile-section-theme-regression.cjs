@@ -37,7 +37,7 @@ assert.match(categories,/setFolderId\(c\.id\)/,"Folders must still open");
 assert.match(medleys,/model\.medleys\.filter/,"Keep published medleys list");
 assert.match(medleys,/selectMedley\(m\)/,"Medleys must still open");
 assert.match(albums,/openDetail\(\{type:"album",id:a\.id\}\)/,"Albums must still open");
-assert.match(app,/\["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más"\]\.includes\(tab\)/,
+assert.match(app,/\["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil"\]\.includes\(tab\)/,
  "All library sections must share the same top header");
 assert.match(app,/PersonalCollectionsScreen/,"Local personal collections remain available as a native screen");
 assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.repTopLogo/,"Official SHALOM dove remains");
