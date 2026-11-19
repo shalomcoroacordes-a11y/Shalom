@@ -1,0 +1,37 @@
+const assert=require("node:assert/strict");
+const {STORE_KEY,COLORS,MOMENTS,emptyStore,parseStore,newCollection,newEntry,newPart,
+ songSections,resolvePart,exportCode,importCode}=require("../src/personal-collections");
+assert.equal(typeof STORE_KEY,"string");
+assert.ok(COLORS.length>=4&&MOMENTS.includes("Comunión"));
+const col=newCollection("Para mis ensayos","#a078e1");
+assert.equal(col.color,"#a078e1");
+assert.deepEqual(emptyStore().collections,[]);
+const song={id:"s1",lyrics:"[Estrofa 1]\nC       G\nSeñor ven aquí\n\n[Coro]\nAm        F\nTe adoramos\n\n[Estrofa 2]\nG\nAmén"};
+const sections=songSections(song.lyrics);
+assert.deepEqual(sections.map(s=>s.title),["Estrofa 1","Coro","Estrofa 2"]);
+const piece={...newPart("s1"),sectionIndex:1,sectionTitle:"Coro",shift:2};
+assert.ok(resolvePart(song,piece).lyrics.includes("Te adoramos"));
+assert.ok(!resolvePart(song,piece).lyrics.includes("Señor ven aquí"));
+assert.ok(resolvePart({...song,lyrics:"[Inicio]\nD\nHola\n\n"+song.lyrics},piece).lyrics.includes("Te adoramos"));
+assert.equal(resolvePart({...song,lyrics:"[Estrofa]\nD\nOtro"},piece).lyrics,null);
+assert.match(resolvePart(null,piece).error,/biblioteca/);
+const obj=newEntry("popurri","Adoración y alegría 🕊️");
+obj.parts=[piece,{...newPart("s2"),moment:"Comunión",shift:-3,sectionIndex:null}];
+const code=exportCode(obj);
+assert.match(code,/^SHALOM1-/);
+assert.ok(!code.includes("Te adoramos"),"El código no incluye letras");
+const decoded=importCode("Te comparto mi popurrí:\n"+code+"\nPégalo en SHALOM.");
+assert.equal(decoded.title,"Adoración y alegría 🕊️");
+assert.equal(decoded.kind,"popurri");
+assert.deepEqual(decoded.parts.map(p=>[p.songId,p.sectionIndex,p.shift,p.moment]),
+ [["s1",1,2,""],["s2",null,-3,"Comunión"]]);
+assert.equal(importCode(exportCode({...obj,kind:"misa"})).kind,"misa");
+assert.throws(()=>importCode(code.slice(0,-1)+"0"),/incompleto|modificado/);
+assert.throws(()=>importCode("ABC1-SHALOM-OTHER"),/código de SHALOM/);
+assert.throws(()=>exportCode({...obj,parts:[]}),/al menos un canto/);
+assert.throws(()=>exportCode({...obj,parts:Array.from({length:31},()=>piece)}),/hasta 30/);
+assert.throws(()=>importCode(code.repeat(12)),/demasiado largo/);
+const parsed=parseStore(JSON.stringify({version:1,collections:[{...col,entries:[obj]}]}));
+assert.equal(parsed.collections[0].entries[0].parts[0].songId,"s1");
+assert.equal(parseStore("not-json").collections.length,0);
+console.log("SHALOM: colecciones, fragmentos, misa/popurrí y códigos offline correctos.");
