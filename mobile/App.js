@@ -14,6 +14,11 @@ const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const PersonalCollectionsScreen=require("./src/personal-ui");
+const {ProfileScreen,ACTION_LABEL}=require("./src/profile-ui");
+const {PROFILE_KEY,defaults:profileDefaults,parseProfile}=require("./src/profile-core");
+const {InitialCover}=require("./src/visual-ui");
+const {CoverArt}=require("./src/personal-cover-ui");
+const {LinearGradient}=require("expo-linear-gradient");
 const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
 const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
@@ -30,9 +35,9 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const tabs=[["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Más","more"]];
+const tabs=[["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Perfil","profile"]];
 const moreTabs=new Set(["Popurrís","Álbumes","Categorías","Solicitar","Mis colecciones"]);
-const isSelectedTab=(current,name)=>current===name||(name==="Más"&&moreTabs.has(current));
+const isSelectedTab=(current,name)=>current===name||(name==="Perfil"&&(moreTabs.has(current)||current==="Más"));
 const matchesSearch=(values,term)=>normalize(values.filter(v=>v!==null&&v!==undefined).join(" ")).includes(normalize(term.trim()));
 const byMostRecent=(a,b)=>{
  const date=x=>Date.parse(x.updated_at||x.created_at||"")||Date.parse(x.created_at||"")||0;
@@ -186,6 +191,9 @@ function AppScreen() {
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
+ const [profile,setProfile]=useState(profileDefaults());
+ const [profileEditNonce,setProfileEditNonce]=useState(0);
+ const profileWriteRef=useRef(Promise.resolve());
  const personalWriteRef=useRef(Promise.resolve());
  const [onlyLiked,setOnlyLiked]=useState(false);
  const [countLimit,setCountLimit]=useState(80);
@@ -227,6 +235,19 @@ function AppScreen() {
   const payload=JSON.stringify(next);
   personalWriteRef.current=personalWriteRef.current.catch(()=>{}).then(()=>setMetadata(PERSONAL_KEY,payload));
   personalWriteRef.current.catch(err=>Alert.alert("No se guardó la colección",(err?.message||"Revisa el espacio del teléfono.")+" Tus cantos oficiales no se modificaron."));
+ }
+ function saveProfile(next){
+  const clean=parseProfile(JSON.stringify(next));
+  setProfile(clean);
+  profileWriteRef.current=profileWriteRef.current.catch(()=>{}).then(()=>setMetadata(PROFILE_KEY,JSON.stringify(clean)));
+  profileWriteRef.current.catch(e=>Alert.alert("No se pudo guardar el perfil",(e?.message||"Revisa el almacenamiento privado del teléfono.")));
+ }
+ function openProfileMenu(){
+  Alert.alert("Opciones del perfil","Elige qué quieres hacer.",[
+   {text:"Editar perfil",onPress:()=>setProfileEditNonce(n=>n+1)},
+   {text:"Mis colecciones",onPress:()=>goTab("Mis colecciones")},
+   {text:"Más opciones",onPress:()=>goTab("Más")},
+   {text:"Cancelar",style:"cancel"}]);
  }
  function toggleLike(songId){
   const prev=likedRef.current;
@@ -321,15 +342,16 @@ function AppScreen() {
   let enabled=true;
   (async()=>{
    try{
-    const [snapshot,pref,n,last,likedRaw,personalRaw]=await Promise.all([
+    const [snapshot,pref,n,last,likedRaw,personalRaw,profileRaw]=await Promise.all([
      getCatalog(),getMetadata("wifi_only","true"),networkState(),getMetadata("last_read",""),
-     getMetadata(FAVORITES_KEY,"[]"),getMetadata(PERSONAL_KEY,"")
+     getMetadata(FAVORITES_KEY,"[]"),getMetadata(PERSONAL_KEY,""),getMetadata(PROFILE_KEY,"")
     ]);
     if(!enabled)return;
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);
     likedRef.current=parseFavorites(likedRaw);setLikedIds(likedRef.current);
     setPersonal(parseStore(personalRaw));
+     setProfile(parseProfile(profileRaw));
     if(last){try{setLastRead(JSON.parse(last))}catch(_){}}setLoaded(true);
     if(!snapshot.syncedAt && n.online && n.wifi) sync(false);
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
@@ -975,6 +997,9 @@ function AppScreen() {
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
   :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong})
+   :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
+     personal,openSong:selectSong,onLiked:toggleLike,onCollections:()=>goTab("Mis colecciones"),
+     onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce})
    :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
@@ -989,7 +1014,7 @@ function AppScreen() {
      {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
      {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
-  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más"].includes(tab)?h(View,{style:S.repTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>goTab("Inicio"),accessibilityRole:"button",accessibilityLabel:"Volver a Inicio"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
@@ -997,15 +1022,15 @@ function AppScreen() {
     h(View,{style:{flex:1,minWidth:0}},
      label("SHALOM",S.repTopName),
      label("Coro y Alabanza",S.repTopSub))),
-   (tab!=="Más"&&tab!=="Mis colecciones")?h(Pressable,{style:S.repTopAction,onPress:()=>{
+   (tab!=="Más"&&tab!=="Mis colecciones"&&tab!=="Perfil")?h(Pressable,{style:S.repTopAction,onPress:()=>{
      if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v)}
      else{setSectionSearchOpen(v=>!v)}
      setQuery("");
     },accessibilityRole:"button",accessibilityLabel:(tab==="Repertorios"?repertoireSearchOpen:sectionSearchOpen)?"Ocultar búsqueda":"Buscar en "+tab},
     h(Image,{source:HOME_IMAGES.search,resizeMode:"contain",style:S.repTopActionIcon})):h(View,{style:S.repTopAction}),
-   h(Pressable,{style:S.repTopAction,onPress:()=>tab==="Más"?setSettingsOpen(true):goTab("Más"),
+   h(Pressable,{style:S.repTopAction,onPress:()=>tab==="Perfil"?openProfileMenu():tab==="Más"?setSettingsOpen(true):goTab("Más"),
     accessibilityRole:"button",accessibilityLabel:tab==="Más"?"Abrir configuración":"Más opciones"},
-    tab==="Más"?label("⚙",S.sectionHeaderGear):
+    tab==="Más"?label("⚙",S.sectionHeaderGear):tab==="Perfil"?label("⋯",S.sectionHeaderGear):
      h(Image,{source:HOME_IMAGES.more,resizeMode:"contain",style:S.repTopActionIcon}))):
   !immersiveActive&&tab==="Inicio"&&!detail&&!settingsOpen?h(View,{style:S.homeTopBar},
    h(Pressable,{onPress:()=>goTab("Más"),accessibilityRole:"button",accessibilityLabel:"Abrir menú",style:S.homeTopButton},
@@ -1054,7 +1079,8 @@ function AppScreen() {
     const homeIcon=HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(name),style:[S.navItem,selected&&S.navSelected]},
-     homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
+     name==="Perfil"?label("♙",[S.navIcon,selected&&{color:C.green}]):
+      homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
       label(icon,[S.navIcon,selected&&{color:C.green}]),
      label(name,[S.navText,selected&&{color:C.green}]));})) : null
  );
