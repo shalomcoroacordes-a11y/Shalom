@@ -339,14 +339,18 @@ function AppScreen() {
    await setMetadata(FAVORITES_KEY,JSON.stringify(next.likedIds));
    await setMetadata("last_read",next.lastRead?JSON.stringify(next.lastRead):"");
   }catch(err){
-   const rolled=await Promise.allSettled([
-    setMetadata(PERSONAL_KEY,JSON.stringify(old.personal)),
-    setMetadata(PROFILE_KEY,JSON.stringify(old.profile)),
-    setMetadata(FAVORITES_KEY,JSON.stringify(old.likedIds)),
-    setMetadata("last_read",old.lastRead?JSON.stringify(old.lastRead):"")
-   ]);
+   const rolled=[];
+   for(const [key,value] of [
+    [PERSONAL_KEY,JSON.stringify(old.personal)],
+    [PROFILE_KEY,JSON.stringify(old.profile)],
+    [FAVORITES_KEY,JSON.stringify(old.likedIds)],
+    ["last_read",old.lastRead?JSON.stringify(old.lastRead):""]
+   ]){
+    try{await setMetadata(key,value);rolled.push(true);}
+    catch(_){rolled.push(false);}
+   }
    staged.cleanup();
-   if(rolled.some(result=>result.status==="rejected"))
+   if(rolled.some(result=>!result))
     throw new Error("La restauración falló y no fue posible recuperar completamente las preferencias anteriores. Conserva tu archivo y vuelve a importarlo: "+err.message);
    throw err;
   }
