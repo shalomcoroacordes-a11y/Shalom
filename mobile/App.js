@@ -1152,6 +1152,7 @@ function AppScreen() {
    store:personal,onDismiss:()=>setActionSongId(null),
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
    onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
+   onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null
  );
 }
