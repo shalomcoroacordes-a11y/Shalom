@@ -32,3 +32,4 @@ jobs:
           node tests/medleys.test.js
           node tests/personal-collections.test.js
           node tests/personal-cover-ui.test.js
+          node tests/local-profile.test.js
