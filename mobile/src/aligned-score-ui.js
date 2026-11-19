@@ -4,7 +4,7 @@ const {View,Text,ScrollView,Platform,StyleSheet}=require("react-native");
 const {anchoredTokens,columnCount,initialCellWidth,measuredCellWidth}=require("./chord-grid");
 const h=React.createElement;
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const SAMPLE="00000000000000000000000000000000";
+const SAMPLE="000000000000";
 const C={green:"#27c98b",pale:"#b5ffe0",text:"#f4f7f7"};
 // Una única muestra obtiene el ancho REAL de un carácter monospace del
 // dispositivo; acordes y letra se anclan a la misma coordenada de cuadrícula.
