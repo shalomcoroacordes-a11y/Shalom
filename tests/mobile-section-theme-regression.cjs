@@ -18,18 +18,26 @@ const categories=section("renderCategories","renderMore");
 const more=section("renderMore","renderRepertoires");
 const medleys=section("renderMedleys","renderMedleyDetail");
 const albums=section("renderAlbums","renderArtistDetail");
-for(const [name,part] of Object.entries({songs,categories,more,medleys,albums})){
+for(const [name,part] of Object.entries({categories,more,medleys,albums})){
  assert.match(part,/h\(SectionHero,/,"Hero missing on "+name);
  assert.match(part,/h\(SectionListCard,/,"Library cards missing on "+name);
  assert.match(part,/style:S\.repPage/,"Repertoire spacing missing on "+name);
 }
-assert.match(songs,/h\(SectionFilterBar,/,"Song type and local likes filtering");
+assert.match(songs,/h\(LibraryHero,/,"Songs use the shared visual banner");
+assert.match(artists,/h\(LibraryHero,/,"Artists use the same banner component");
+assert.match(songs,/h\(LibrarySearch,/,"Search is always visible in Songs");
+assert.match(artists,/h\(LibrarySearch,/,"Search is always visible in Artists");
+assert.match(songs,/h\(LibraryChipRow,/,"Song filters share the artist chip style");
+assert.match(artists,/h\(LibraryChipRow,/,"Artist filters share the song chip style");
+assert.match(songs,/h\(FavoriteSongCard,/,"Real liked songs appear in a horizontal gallery");
+assert.match(songs,/h\(LibrarySongRow,/,"Song cards show colored initials and quick actions");
+assert.match(artists,/h\(LibraryArtistCard,/,"Artists are in a polished two-column gallery");
 assert.match(songs,/setOnlyLiked/,"Keep device-only likes filtering");
 assert.match(songs,/eligible\.slice\(0,countLimit\)/,"Keep song pagination");
 assert.match(songs,/selectSong\(song\)/,"Songs must still open");
 assert.match(artists,/model\.songsForArtist\(a\.id\)\.length/,"Artist song counts come from catalog");
 assert.match(artists,/style:S\.artistGrid/,"Artists are shown in a responsive two-column gallery");
-assert.match(artists,/h\(InitialCover/,"Artists use color initials without remote photos");
+assert.match(require("node:fs").readFileSync("mobile/src/library-ui.js","utf8"),/h\(InitialCover,/,"Artists have offline initials as image fallback");
 assert.match(artists,/type\(a\.artist_type\)/,"Artist type filtering");
 assert.match(categories,/model\.children\(/,"Keep folder hierarchy navigation");
 assert.match(categories,/model\.songsForCategory\(current\.id\)/,"Keep category songs");
