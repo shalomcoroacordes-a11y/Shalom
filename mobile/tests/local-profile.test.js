@@ -32,7 +32,8 @@ assert.match(app,/h\(InitialCover,\{title:title\|\|"Canto",size:53\}/,
  "Las listas de cantos utilizan iniciales de color");
 assert.match(app,/h\(InitialCover,\{title:rep\.title\|\|"Repertorio",size:53\}/,
  "Los repertorios usan iniciales de color");
-assert.match(app,/style:S\.artistGridCard/,"Los artistas se muestran en dos columnas");
+assert.match(app,/h\(LibraryArtistCard,/,"Los artistas utilizan tarjetas compartidas");
+assert.match(fs.readFileSync("src/library-ui.js","utf8"),/artistCard:\{width:"48\.5%"/,"Los artistas se muestran en dos columnas");
 assert.match(profile,/function ProfileScreen\(/,"Vista personalizable");
 assert.match(profile,/Cambiar foto/,"Avatar editable");
 assert.match(profile,/Cambiar portada/,"Portada editable");
