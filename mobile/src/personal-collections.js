@@ -1,7 +1,9 @@
 // Colecciones y partituras personales: siempre locales, sin escrituras a Supabase.
 // El código contiene referencias a cantos publicados, no letras ni acordes nuevos.
 const STORE_KEY="shalom_personal_collections_v1";
-const COLORS=["#27c98b","#2e84d7","#a078e1","#dba13a","#e66b91","#58a7a0"];
+const COLORS=["#27c98b","#2e84d7","#a078e1","#dba13a","#e66b91","#58a7a0","#ec9952","#105c8f","#7e3d93","#c85262"];
+const COVER_PRESETS=["dove","sunrise","guitar","adoration","book","flowers","choir","music"];
+const COVER_FILE=/^cover-[a-z0-9-]+\.jpg$/;
 const MOMENTS=["Entrada","Señor ten piedad","Gloria","Salmo","Aleluya","Ofertorio","Santo","Cordero","Comunión","Salida","Otro"];
 const PREFIX="SHALOM1-";
 const ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -38,7 +40,10 @@ function collectionFrom(input){
  const color=COLORS.includes(input.color)?input.color:COLORS[0];
  if(!Array.isArray(input.entries)||input.entries.length>100)
   throw new Error("La colección admite hasta 100 composiciones.");
- return {id:text(input.id,80)||makeId(),name,color,entries:input.entries.map(e=>entryFrom(e))};
+ const coverPreset=COVER_PRESETS.includes(input.coverPreset)?input.coverPreset:"dove";
+ const coverPhoto=typeof input.coverPhoto==="string"&&COVER_FILE.test(input.coverPhoto)?input.coverPhoto:null;
+ return {id:text(input.id,80)||makeId(),name,color,coverPreset,coverPhoto,
+  entries:input.entries.map(e=>entryFrom(e))};
 }
 function parseStore(raw){
  try {
@@ -47,7 +52,7 @@ function parseStore(raw){
   return {version:1,collections:obj.collections.map(collectionFrom)};
  } catch(_){return emptyStore();}
 }
-function newCollection(name,color=COLORS[0]){return collectionFrom({name,color,entries:[]});}
+function newCollection(name,color=COLORS[0],coverPreset="dove"){return collectionFrom({name,color,coverPreset,entries:[]});}
 function newEntry(kind,title){return entryFrom({kind,title,parts:[]});}
 function newPart(songId,moment=""){return partFrom({songId,moment,sectionIndex:null,shift:0});}
 function songSections(lyrics){
@@ -144,5 +149,5 @@ function importCode(message){
  });
  return entryFrom({kind:data[2],title:data[3],parts},true);
 }
-module.exports={STORE_KEY,COLORS,MOMENTS,LIMIT_PARTS,emptyStore,parseStore,newCollection,newEntry,newPart,
+module.exports={STORE_KEY,COLORS,COVER_PRESETS,COVER_FILE,MOMENTS,LIMIT_PARTS,emptyStore,parseStore,newCollection,newEntry,newPart,
  songSections,resolvePart,entryFrom,exportCode,importCode};
