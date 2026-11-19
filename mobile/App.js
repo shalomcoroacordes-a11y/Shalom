@@ -1059,8 +1059,11 @@ function AppScreen() {
     tab==="Más"?label("⚙",S.sectionHeaderGear):tab==="Perfil"?label("⋯",S.sectionHeaderGear):
      h(Image,{source:HOME_IMAGES.more,resizeMode:"contain",style:S.repTopActionIcon}))):
   !immersiveActive&&tab==="Inicio"&&!detail&&!settingsOpen?h(View,{style:S.homeTopBar},
-   h(Pressable,{onPress:()=>goTab("Más"),accessibilityRole:"button",accessibilityLabel:"Abrir menú",style:S.homeTopButton},
-    h(Image,{source:HOME_IMAGES.menu,style:S.homeTopIcon,resizeMode:"contain"})),
+   h(View,{style:S.spotifyHomeBrand},
+    h(Image,{source:HOME_IMAGES.logo,style:S.spotifyHomeLogo,resizeMode:"contain",accessibilityLabel:"Paloma original de SHALOM"}),
+    h(View,null,label("SHALOM",S.spotifyHomeBrandName),label("Coro y Alabanza",S.spotifyHomeBrandSub))),
+   h(Pressable,{onPress:()=>goTab("Canciones"),accessibilityRole:"button",accessibilityLabel:"Buscar canciones",style:S.homeTopButton},
+    h(Image,{source:HOME_IMAGES.search,style:S.homeTopIcon,resizeMode:"contain"})),
    h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Estado y ajustes del cancionero",style:S.homeTopButton},
     h(Image,{source:HOME_IMAGES.bell,style:S.homeTopIcon,resizeMode:"contain"}),
     h(View,{style:S.homeBellDot}))):
@@ -1105,7 +1108,9 @@ function AppScreen() {
     const homeIcon=HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(name),style:[S.navItem,selected&&S.navSelected]},
-     name==="Perfil"?label("♙",[S.navIcon,selected&&{color:C.green}]):
+     name==="Perfil"?h(View,{style:S.profileNavIcon},
+       h(View,{style:[S.profileNavHead,{borderColor:selected?C.green:C.text}]}),
+       h(View,{style:[S.profileNavBody,{borderColor:selected?C.green:C.text}]})):
       homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
       label(icon,[S.navIcon,selected&&{color:C.green}]),
      label(name,[S.navText,selected&&{color:C.green}]));})) : null
@@ -1113,6 +1118,15 @@ function AppScreen() {
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 const S=StyleSheet.create({
+ spotifyHomeBrand:{flex:1,flexDirection:"row",alignItems:"center",gap:6},
+ spotifyHomeLogo:{height:45,width:52},
+ spotifyHomeBrandName:{fontSize:20,color:C.text,fontWeight:"900",letterSpacing:.5},
+ spotifyHomeBrandSub:{fontSize:10.5,color:C.muted},
+ profileNavIcon:{height:28,width:28,alignItems:"center",justifyContent:"center",overflow:"hidden"},
+ profileNavHead:{position:"absolute",top:1,width:11,height:11,borderRadius:12,borderWidth:2},
+ profileNavBody:{position:"absolute",bottom:1,width:22,height:12,borderTopLeftRadius:11,borderTopRightRadius:11,
+  borderWidth:2,borderBottomWidth:1},
+
  spotifyWelcome:{paddingVertical:8,gap:3},
  spotifyWelcomeTitle:{fontSize:23,fontWeight:"900",color:C.text},
  spotifyWelcomeText:{fontSize:13,color:C.muted},
