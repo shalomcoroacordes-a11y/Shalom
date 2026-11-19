@@ -42,7 +42,6 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
    const outcome=await onAdd(kind,choice);
    onDismiss();
    if(outcome?.already)Alert.alert("Ya está agregado","Este canto ya figura en esa composición.");
-   else if(outcome?.added)Alert.alert("Guardado en este teléfono","El canto se agregó a tu "+NAMES[kind]+" personal. No cambia el cancionero oficial.");
   }catch(e){Alert.alert("No se pudo agregar",e.message||"Revisa tu colección.");}
   finally{setBusy(false)}
  }
