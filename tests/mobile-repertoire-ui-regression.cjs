@@ -23,7 +23,7 @@ assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.section
 assert.match(app,/setRepertoireSearchOpen\(v=>!v\)/);
 assert.match(app,/accessibilityLabel:"Sugerir un repertorio al administrador"/);
 assert.match(app,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
-assert.match(app,/const tabs=\[\["Inicio","home"\],\["Canciones","song"\],\["Repertorios","repertoires"\],\["Artistas","artists"\],\["Más","more"\]\]/);
+assert.match(app,/const tabs=\[\["Inicio","home"\],\["Canciones","song"\],\["Repertorios","repertoires"\],\["Artistas","artists"\],\["Perfil","profile"\]\]/);
 assert.match(iconGenerator,/home-.*\.png/);
 assert.match(iconGenerator,/"mass":/);
 assert.match(iconGenerator,/"calendar":/);
