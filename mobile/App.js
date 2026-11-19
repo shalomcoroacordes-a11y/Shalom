@@ -16,7 +16,7 @@ const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
 const {addToPersonal}=require("./src/song-actions-core");
-const {buildPrintableSong}=require("./src/song-print");
+const {buildPrintableSong,readerShiftForPrint}=require("./src/song-print");
 const Print=require("expo-print");
 const {ProfileScreen,ACTION_LABEL}=require("./src/profile-ui");
 const {PROFILE_KEY,defaults:profileDefaults,parseProfile}=require("./src/profile-core");
@@ -922,7 +922,7 @@ function AppScreen() {
  }
  async function printSong(song){
   try{
-   await Print.printAsync({html:buildPrintableSong(song,transpose)});
+   await Print.printAsync({html:buildPrintableSong(song,readerShiftForPrint(song,transpose,capo))});
   }catch(e){
    Alert.alert("No se pudo abrir la impresión",e?.message||"Revisa el servicio de impresión del teléfono.");
   }
