@@ -70,3 +70,20 @@ commit;
 La tabla continúa con RLS habilitado. Las políticas existentes de escritura siguen exigiendo `jhd_is_admin()`; los visitantes solo pueden leer registros publicados. El asesor de seguridad de Supabase sigue señalando únicamente la advertencia de protección de contraseñas filtradas deshabilitada.
 
 **Alcance:** se modificaron únicamente privilegios SQL de `public.medleys`; no se modificaron ni borraron registros, no se alteraron políticas RLS ni otras tablas. No se ejecutaron pruebas completas de la interfaz web/Android ni pruebas con cuentas reales, que permanecen pendientes.
+
+## Actualización comprobada — 20 de noviembre de 2026
+
+Se consultaron **solo metadatos**, sin crear ni modificar registros, en el proyecto
+Supabase SHALOM `ehpvsasyzlrlypjjpzuk`.
+
+- Las 19 tablas del esquema `public` consultadas tienen RLS habilitado y políticas declaradas.
+- La escritura de `songs`, `song_artists`, `song_categories`, `album_songs`, `song_links` y `song_capo_versions` requiere el rol autenticado y una política que consulta `jhd_is_admin()`; el rol por sí solo no autoriza ediciones.
+- La definición vigente de `jhd_is_admin()` compara `auth.uid()` con la lista de la tabla privada `jhd_admin_users`, no con un correo fijo.
+- `jhd_save_song_bundle` usa `SECURITY INVOKER` y admite una sola categoría (`p_category_id`). Solo el rol `authenticated` tiene permiso de ejecución; el administrador se valida dentro de la función.
+- Se volvió a confirmar que `public.medleys` mantiene RLS y que `anon` y `authenticated` no tienen permiso efectivo de `TRUNCATE`.
+- **Sigue pendiente:** Supabase Advisor advirtió `Leaked Password Protection Disabled`. Habilitarla desde Auth antes de abrir el servicio al público. Guía: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- La nueva función de guardado con categorías múltiples está preparada en `docs/sql-proposals/`, pero **NO desplegada**. Requiere restauración ensayada, staging, prueba con varios roles y verificación de transacción.
+
+Esta inspección **no** sustituye un análisis de penetración, pruebas reales de rol ni
+una restauración de respaldo. No se ejecutaron SQL de escritura, DDL ni cambios
+en usuarios, permisos o políticas.
