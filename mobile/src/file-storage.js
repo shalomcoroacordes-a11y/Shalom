@@ -31,6 +31,7 @@ function validSnapshot(snapshot) {
   // Versiones anteriores no tenían necesariamente el campo source.
   // Cuando está presente debe identificar inequívocamente la base SHALOM.
   if (snapshot.source != null && snapshot.source !== SHALOM_SOURCE) return false;
+  if (snapshot.revision != null && (!Number.isSafeInteger(snapshot.revision) || snapshot.revision < 0)) return false;
   if (snapshot.checksum != null && snapshot.checksum !== snapshotChecksum(snapshot.data)) return false;
   return TABLES.every(table => {
     const rows = snapshot.data[table];
@@ -59,8 +60,13 @@ async function readSnapshot() {
   const [a, b] = await Promise.all([readSlot("A"), readSlot("B")]);
   if (!a && !b) return { data: emptyData(), syncedAt: null, storage: "archivo-local" };
   const latest = !a ? b : !b ? a
-    : Date.parse(a.syncedAt) >= Date.parse(b.syncedAt) ? a : b;
-  return { data: {...emptyData(),...latest.data}, syncedAt: latest.syncedAt, storage: "archivo-local", slot: latest.slot };
+    : (a.revision || 0) !== (b.revision || 0)
+      ? (a.revision || 0) > (b.revision || 0) ? a : b
+      : Date.parse(a.syncedAt) >= Date.parse(b.syncedAt) ? a : b;
+  return {
+    data: {...emptyData(),...latest.data}, syncedAt: latest.syncedAt,
+    storage: "archivo-local", slot: latest.slot, revision: latest.revision || 0
+  };
 }
 
 async function saveSnapshot(data) {
@@ -73,6 +79,7 @@ async function saveSnapshot(data) {
   const syncedAt = new Date().toISOString();
   const snapshot = {
     source: SHALOM_SOURCE, syncedAt, data, version: 1,
+    revision: (last.revision || 0) + 1,
     checksum: snapshotChecksum(data)
   };
   // Sólo sobrescribe la ranura inactiva. La última copia buena sigue intacta.

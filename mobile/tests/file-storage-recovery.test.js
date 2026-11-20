@@ -41,6 +41,8 @@ const key=name=>"shalom-offline-"+name+".json";
  const second=data();second.songs=[row("new")];
  const time2=await storage.saveSnapshot(second);
  assert.equal(memory.has(key("B")),true);
+ assert.equal(JSON.parse(memory.get(key("B"))).revision,2);
+ assert.equal((await storage.readSnapshot()).revision,2);
  assert.match(JSON.parse(memory.get(key("B"))).checksum,/^[0-9a-f]{8}$/);
  assert.equal((await storage.readSnapshot()).data.songs[0].id,"new");
 
@@ -75,7 +77,7 @@ const key=name=>"shalom-offline-"+name+".json";
  assert.equal(storage.validSnapshot(noId),false);
  // Una descarga de una versión antigua puede no tener popurrís y repertorios.
  const legacy=JSON.parse(memory.get(key("B")));
- delete legacy.source;delete legacy.checksum;
+ delete legacy.source;delete legacy.checksum;delete legacy.revision;
  delete legacy.data.medleys;delete legacy.data.repertoires;
  assert.equal(storage.validSnapshot(legacy),true,
   "Mantener compatibilidad con las copias anteriores de SHALOM");
