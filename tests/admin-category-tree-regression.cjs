@@ -27,7 +27,7 @@ assert.equal(tree.path(categories,null),"");
 assert.deepEqual(Array.from(tree.descendants(categories,"a")).sort(),["a","b","c","d"]);
 assert.deepEqual(Array.from(tree.descendants(categories,"e")).sort(),["e","f"]);
 assert.deepEqual(Array.from(tree.descendants(categories,"desconocida")),["desconocida"]);
-assert.deepEqual(tree.flat(categories).map(x=>x.id),
+assert.deepEqual(Array.from(tree.flat(categories),x=>x.id),
  [...categories].sort((a,b)=>tree.path(categories,a).localeCompare(tree.path(categories,b),"es")).map(x=>x.id));
 const ordered=tree.flat(categories);
 assert.notStrictEqual(ordered,categories,"No reordenar el catálogo original");
@@ -38,7 +38,7 @@ assert.deepEqual(Array.from(tree.descendants(circular,"x")).sort(),["x","y"],
  "No entrar en bucle cuando los datos recibidos tienen ciclos");
 assert.equal(JSON.stringify(categories),snapshot,"No modificar categorías descargadas");
 assert.deepEqual(Array.from(tree.descendants([],"a")),["a"]);
-assert.deepEqual(tree.flat([]),[]);
+assert.deepEqual(Array.from(tree.flat([])),[]);
 assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryTree/);
 assert.match(admin,/function apCategoryPath\(item\)/);
 assert.match(admin,/function apCategoryDescendants\(id\)/);
