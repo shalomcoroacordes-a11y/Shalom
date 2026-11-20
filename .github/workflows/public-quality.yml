@@ -93,6 +93,9 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Test editor cursor and scroll persistence across forms
+        run: node tests/admin-editor-position-regression.cjs
+
       - name: Verify legacy admin cleanup and active dependencies
         run: node tests/legacy-admin-cleanup-regression.cjs
 

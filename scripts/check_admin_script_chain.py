@@ -47,6 +47,7 @@ def main():
         ("song-chords.js", "medley-core.js", "admin-medleys.js"),
         ("repertoires-core.js", "admin-repertoires.js"),
         ("admin-backup.js", "admin-backup-import.js"),
+        ("admin-form-layout.js", "admin-editor-position.js", "admin-pro.js"),
         ("admin-pro.js", "admin-category-browser-v2.js", "admin-song-category-picker.js"),
     ]
     for chain in chains:

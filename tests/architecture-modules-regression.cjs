@@ -52,6 +52,19 @@ assert.doesNotMatch(layout,/apRenderView\s*=/);
 assert.doesNotMatch(layout,/document\.createElement\("style"\)/);
 assert.match(layout,/window\.ShalomAdminFormLayout = Object\.freeze/);
 assert.match(read("admin-form-layout.css"),/\.admin-form-collapsible/);
+const editorPositions=read("admin-editor-position.js");
+assert.match(html,/src="admin-editor-position\.js\?v=1"/);
+assert.ok(html.indexOf("admin-form-layout.js")<html.indexOf("admin-editor-position.js")&&
+  html.indexOf("admin-editor-position.js")<html.indexOf("admin-pro.js"),
+ "Admin carga el servicio de selección antes de abrir el editor");
+assert.match(editorPositions,/window\.ShalomAdminEditorPosition = Object\.freeze/);
+assert.match(admin,/remember: apRememberEditorPosition/);
+assert.match(admin,/restore: apRestoreEditorPosition/);
+assert.match(admin,/apForgetEditorPosition\("__new__"\)/);
+assert.doesNotMatch(admin,/const AP_EDITOR_POSITION_KEY/);
+assert.doesNotMatch(editorPositions,/apRenderView\s*=/);
+
+
 
 // Android mantiene exactamente los mismos estilos, pero con una frontera
 // clara entre los componentes y las ~300 reglas de presentación.

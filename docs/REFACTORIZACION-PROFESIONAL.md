@@ -47,6 +47,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Consultas del catálogo Android (en rama):** `mobile/src/library-selectors.js` centraliza la selección de canciones, artistas, favoritos y resultados de Inicio. `App.js` mantiene el estado y memoriza los resultados. La jerarquía de categorías se obtiene una vez por consulta, no una vez por canción. `mobile/tests/library-selectors.test.js` verifica búsquedas con acentos, letras, artistas, filtros combinados y ausencia de mutaciones.
 
+**Administrador — posición del editor (en rama):** `admin-editor-position.js` almacena y restaura scroll horizontal/vertical, cursor y selección por canto, manteniendo la clave anterior de `sessionStorage`. `admin-pro.js` invoca el servicio sin reimplementar el almacenamiento; `admin.html` lo carga expresamente antes. `tests/admin-editor-position-regression.cjs` cubre cambios entre canciones, recarga, valores inválidos, nuevas composiciones y almacenamiento bloqueado. Sin alteraciones a Supabase ni a las letras.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
