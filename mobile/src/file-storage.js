@@ -1,7 +1,8 @@
 // Almacenamiento de rescate en Documentos internos de la APP, NO en caché de Android/Chrome.
 // Dos copias alternas: una descarga interrumpida no reemplaza la última copia válida.
 const { File, Paths } = require("expo-file-system");
-const { TABLES } = require("./config");
+const { TABLES, SUPABASE_URL } = require("./config");
+const SHALOM_SOURCE = new URL(SUPABASE_URL).hostname.split(".")[0];
 
 function fileFor(slot) {
   return new File(Paths.document, "shalom-offline-" + slot + ".json");
@@ -12,11 +13,25 @@ function prefsFile() {
 function emptyData() {
   return Object.fromEntries(TABLES.map(table => [table, []]));
 }
-function validSnapshot(data) {
-  return Boolean(data && typeof data === "object" &&
-    typeof data.syncedAt === "string" &&
-    Number.isFinite(Date.parse(data.syncedAt)) &&
-    data.data && TABLES.every(table => ["medleys","repertoires"].includes(table) && data.data[table] == null ? true : Array.isArray(data.data[table])));
+function validSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object" ||
+      typeof snapshot.syncedAt !== "string" ||
+      !Number.isFinite(Date.parse(snapshot.syncedAt)) ||
+      !snapshot.data || typeof snapshot.data !== "object") return false;
+  // Versiones anteriores no tenían necesariamente el campo source.
+  // Cuando está presente debe identificar inequívocamente la base SHALOM.
+  if (snapshot.source != null && snapshot.source !== SHALOM_SOURCE) return false;
+  return TABLES.every(table => {
+    const rows = snapshot.data[table];
+    if (rows == null && ["medleys","repertoires"].includes(table)) return true;
+    if (!Array.isArray(rows)) return false;
+    const ids = new Set();
+    for (const row of rows) {
+      if (!row || typeof row.id !== "string" || !row.id || ids.has(row.id)) return false;
+      ids.add(row.id);
+    }
+    return true;
+  });
 }
 async function readSlot(slot) {
   try {
@@ -45,12 +60,13 @@ async function saveSnapshot(data) {
   const nextSlot = last.slot === "A" ? "B" : "A";
   const next = fileFor(nextSlot);
   const syncedAt = new Date().toISOString();
-  const snapshot = { source: "ehpvsasyzlrlypjjpzuk", syncedAt, data, version: 1 };
+  const snapshot = { source: SHALOM_SOURCE, syncedAt, data, version: 1 };
   // Sólo sobrescribe la ranura inactiva. La última copia buena sigue intacta.
   next.create({ overwrite: true });
   await next.write(JSON.stringify(snapshot));
   const test = await readSlot(nextSlot);
-  if (!test || !TABLES.every(table => test.data[table].length === data[table].length)) {
+  if (!test || test.source !== SHALOM_SOURCE ||
+      JSON.stringify(test.data) !== JSON.stringify(data)) {
     throw new Error("No se pudo verificar que el archivo del cancionero se guardara completo.");
   }
   return syncedAt;
