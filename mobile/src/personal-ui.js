@@ -4,8 +4,9 @@ const {View,Text,TextInput,Pressable,ScrollView,Share,Alert}=require("react-nati
 const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
-const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,resolvePart,exportCode}=require("./personal-collections");
+const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
+const {readingRows}=require("./personal-reader-core");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
@@ -587,17 +588,16 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
     action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
     action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
-   ...entry.parts.map((p,index)=>{
-    const song=catalog.get(p.songId),resolved=resolvePart(song,p);
+   ...readingRows(entry,catalog,readerShift).map(({part:p,index,song,resolved,shift,tone})=>{
     return h(View,{key:p.id,style:styles.readerPart},
      h(View,{style:styles.partHead},
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
       h(View,{style:{flex:1}},entry.kind==="misa"&&p.moment?label(p.moment,styles.tag):null,
        label(song?.title||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
-        (song?.tone?" · Tono "+transposeOne(song.tone,p.shift+readerShift):""),styles.meta))),
+        (song?.tone?" · Tono "+tone:""),styles.meta))),
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?renderScore(resolved.lyrics,p.shift+readerShift,"local-"+p.id,readerFont):
+      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
        label("Este canto no tiene letra descargada.",styles.warning),
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),

@@ -35,6 +35,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Importación compartida:** el acceso de importación de colecciones heredado llama a `receivePersonal`, el mismo flujo que «Recibir composición». Conserva el formato SHALOM1 y la ubicación local, y ya no crea carpetas manualmente sin validar sus límites.
 
+**Lector local (en rama):** `mobile/src/personal-reader-core.js` prepara fragmentos, estados de canciones no descargadas y transposición general sin acoplarse a React; `readingView` mantiene su presentación pero utiliza ese contrato. Las pruebas cubren fragmentos, tonos, cantos ausentes y datos intactos.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
