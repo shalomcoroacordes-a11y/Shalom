@@ -46,7 +46,7 @@
    '<div class="admin-form-grid"><label>Tipo<select id="popType">'+["catolico","cristiano","mixto"].map(x=>'<option value="'+x+'" '+(d.song_type===x?"selected":"")+'>'+({catolico:"Católico",cristiano:"Cristiano",mixto:"Mixto"}[x])+'</option>').join("")+'</select></label>'+
    '<label>Tono base<input id="popTone" maxlength="24" value="'+esc(d.base_tone||"")+'" placeholder="G"></label></div>'+
    '<label>Descripción<textarea rows="2" id="popDescription" maxlength="1200">'+esc(d.description||"")+'</textarea></label>'+
-   '<label class="medley-published-label"><input type="checkbox" id="popPublished" '+(d.is_published?"checked":"")+'> Publicar el popurrí</label>'+
+   '<label class="medley-published-label"><input type="checkbox" id="popPublished" '+(d.is_published?"checked":"")+'> Publicar el popurrí</label><p class="admin-note">El popurrí publicado más reciente aparecerá en Inicio &gt; Hoy en SHALOM cuando se actualice el cancionero en la app.</p>'+
    '<h3>Seleccionar cantos</h3><label>Buscar canto<input id="popSearch" type="search" value="'+esc(state.query)+'" placeholder="Escribe el nombre"></label>'+
    '<div class="medley-part-tools"><select id="popSong">'+options()+'</select><button type="button" class="song-btn" id="popAdd">+ Agregar</button></div>'+
    '<h3>Orden de los cantos ('+d.parts.length+')</h3>'+d.parts.map(partHtml).join("")+
