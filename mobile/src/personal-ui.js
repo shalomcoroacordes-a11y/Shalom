@@ -101,7 +101,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    commit(result.store,{notice:"Tu "+kindName(createKind)+" está lista para agregar cantos"});
    setFolderId(result.folder.id);setEntryId(result.entry.id);
    setNameDraft(result.entry.title);setSearch("");setAdding(true);
-   setExpandedPartId(null);setEditReturn("home");setView("editing");
+   setExpandedPartId(null);setEditReturn("home");setListFilter(createKind);setView("editing");
   }catch(e){Alert.alert("No se pudo crear",e?.message||"Revisa los datos.");}
  }
  function openReceive(target=null){
@@ -176,7 +176,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   if(entry.parts.length>=30)return Alert.alert("Límite","El máximo es 30 fragmentos.");
   const part=newPart(song.id);
   updateEntry(e=>({...e,parts:[...e.parts,part]}));
-  setSearch("");setAdding(false);
+  setSearch("");setAdding(true);
  }
  function deleteEntry(item){
   Alert.alert("Eliminar composición","Se borrará solamente de este teléfono. No modifica ningún canto oficial.",[
