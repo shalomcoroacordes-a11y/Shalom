@@ -117,6 +117,9 @@ jobs:
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
 
+      - name: Verify clean web and Android module boundaries
+        run: node tests/architecture-modules-regression.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
