@@ -30,14 +30,14 @@ Requiere Node.js 22 o compatible con el SDK Expo configurado.
 cd mobile
 npm install
 npx expo install --check
-node tests/chords.test.js
-node tests/catalog.test.js
-node tests/requests.test.js
-node tests/medleys.test.js
+npm run test:syntax
+npm test
 npx expo start
 ```
 
-- `mobile/App.js`: interfaz, pantallas, navegación y estado.
+El comando `npm test` descubre todos los archivos `mobile/tests/*.test.js` y ejecuta cada uno en un proceso de Node independiente; no hace falta editar listas al agregar pruebas. `npm run test:syntax` revisa `App.js`, `src/`, `scripts/` y `tests/`. Ambos comandos se ejecutan también en `.github/workflows/native-check.yml`. Las verificaciones automáticas no sustituyen las pruebas en un teléfono real.
+
+- `mobile/App.js`: coordinación de pantallas, navegación y estado.
 - `mobile/src/catalog.js`: relaciones y búsquedas del catálogo.
 - `mobile/src/chords.js`: procesamiento de acordes.
 - `mobile/src/sync.js`: descarga de datos públicos de Supabase.

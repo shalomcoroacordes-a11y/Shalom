@@ -43,6 +43,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Solicitudes Android (en rama):** `mobile/src/request-screen-ui.js` encapsula el formulario y declara en una única tabla los campos, longitudes máximas y tipos de entrada. `mobile/App.js` conserva el estado, la conexión y el envío mediante `sendRequest`; no se introducen permisos ni cambios en Supabase. La prueba `mobile/tests/request-screen-ui.test.js` comprueba el modo offline, campos, límites y estado de envío.
 
+**Pruebas Android mantenibles (en rama):** `npm test` descubre y ejecuta todas las pruebas `mobile/tests/*.test.js` de forma aislada. `npm run test:syntax` revisa el código Android completo, sin una lista manual que pueda quedar desactualizada. La validación nativa de GitHub Actions utiliza ambos comandos; `mobile/tests/test-discovery.test.js` protege el descubrimiento y el orden de ejecución.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

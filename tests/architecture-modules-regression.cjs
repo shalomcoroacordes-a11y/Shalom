@@ -104,4 +104,13 @@ assert.match(requestUi,/function RequestScreen\(/);
 assert.doesNotMatch(requestUi,/fetch\(|setMetadata\(|supabase\./);
 assert.doesNotMatch(app,/function renderRequest\(\)\{[\s\S]*?Object.entries\(TYPES\)/);
 
+// Cada nuevo test Android entra automaticamente en CI.
+const nativeWorkflow=read(".github/workflows/native-check.yml");
+const androidPkg=JSON.parse(read("mobile/package.json"));
+assert.equal(androidPkg.scripts.test,"node scripts/run-tests.js");
+assert.equal(androidPkg.scripts["test:syntax"],"node scripts/check-syntax.js");
+assert.match(nativeWorkflow,/run: npm test/);
+assert.match(nativeWorkflow,/run: npm run test:syntax/);
+assert.match(read("mobile/scripts/run-tests.js"),/endsWith\("\.test\.js"\)/);
+
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");
