@@ -205,6 +205,9 @@ function apRenderShell() {
 function apRenderView() {
   const view = ap$("#adminView");
   if (!view) return;
+  // Integración formal del editor, sin reemplazar apRenderView desde otro script.
+  const formLayout = window.ShalomAdminFormLayout;
+  const focus = formLayout?.captureFocus();
   apRememberEditorPosition();
   if (AP.tab === "artists") view.innerHTML = apArtistsHTML();
   if (AP.tab === "categories") view.innerHTML = apCategoriesHTML();
@@ -220,6 +223,8 @@ function apRenderView() {
   if (AP.tab === "donations") apBindDonations();
   if (AP.tab === "medleys") window.ShalomMedleyAdmin?.mount(view, AP.songs);
   if (AP.tab === "repertoires") window.ShalomRepertoireAdmin?.mount(view, AP.songs);
+  formLayout?.enhanceForm(AP);
+  formLayout?.restoreFocus(focus);
 }
 function apSectionHead(kicker, title, count) { return `<div class="admin-section-heading"><div><p class="hero-kicker">${apEsc(kicker)}</p><h2>${apEsc(title)}</h2></div><p class="admin-count">${apEsc(count)}</p></div>`; }
 function apShowMore(kind, total, shown) { return total > shown ? `<button class="song-btn secondary" type="button" data-show-more="${kind}">Ver más</button>` : ""; }
