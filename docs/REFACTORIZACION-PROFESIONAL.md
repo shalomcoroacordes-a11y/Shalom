@@ -57,6 +57,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **RPC para varias categorías (propuesta, no desplegada):** el archivo `docs/sql-proposals/shalom-save-song-bundle-v2.sql` describe una función `SECURITY INVOKER`, con comprobación de administrador y actualizaciones atómicas de 5 tablas. `admin-song-persistence.js` intenta usarla cuando hay varias categorías; si Supabase responde exactamente `PGRST202` (función ausente), utiliza el método anterior y conserva todas las categorías. Cualquier error de permisos o de red evita la degradación automática. Se requiere respaldo, staging, validación SQL real y aprobación antes de ejecutar la propuesta en producción. La prueba `tests/admin-song-v2-proposal-regression.cjs` valida el contrato estático, **no una ejecución SQL**.
 
+**Publicación Android protegida (en rama):** se retiraron tres workflows históricos que podían publicar APK de versiones anteriores desde ejecuciones fijas. `.github/workflows/android-apk.yml` actúa solo desde `main`, genera un artefacto de prueba y requiere `workflow_dispatch` con `publish_release=true` para crear un Release. El proceso **rechaza sobrescribir un tag existente** y antes de publicar compara la firma del APK nuevo contra el certificado de la versión 0.4.10; una firma distinta bloquea la publicación para no arriesgar los datos privados del teléfono. `mobile/scripts/release-preflight.js` comprueba versión, identificadores, proyecto Supabase, paloma y permisos. **Esto no equivale a haber compilado ni instalado una APK nueva.**
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

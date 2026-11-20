@@ -47,7 +47,7 @@ El comando `npm test` descubre todos los archivos `mobile/tests/*.test.js` y eje
 - `mobile/src/requests.js`: solicitudes de cantos/correcciones.
 - `mobile/src/config.js`: URL y clave **publicable**; nunca colocar secretos.
 
-Para publicar Android, actualizar de forma coherente `mobile/package.json` (`version`) y `mobile/app.json` (`version` y `android.versionCode`). El workflow `.github/workflows/android-apk.yml` compila y publica una versión de prueba en GitHub Releases. No afirmar que un APK está listo hasta verificar que el workflow terminó y que existe el archivo en la versión publicada.
+Para obtener un APK de revisión, el workflow `.github/workflows/android-apk.yml` compila en `main` y guarda el artefacto en Actions, **sin publicar automáticamente**. Para publicar una nueva versión se debe incrementar de manera coherente `mobile/package.json.version`, `mobile/app.json.expo.version` y `android.versionCode`, ejecutar `node scripts/release-preflight.js` dentro de `mobile/`, completar las pruebas físicas y lanzar `workflow_dispatch` sobre `main` con `publish_release=true`. El workflow bloqueará un tag repetido y verificará que el certificado coincida con Android 0.4.10. Una firma diferente significa que no puede actualizarse con seguridad sin arriesgar los datos locales.
 
 ## Pruebas web
 

@@ -1,0 +1,21 @@
+const fs=require("node:fs");
+const assert=require("node:assert/strict");
+const root=".github/workflows/";
+const android=fs.readFileSync(root+"android-apk.yml","utf8");
+for(const removed of ["publish-android-apk.yml","publish-shalom-v2.yml","publish-shalom-icon.yml"])
+ assert.equal(fs.existsSync(root+removed),false,removed+" no debe publicarse de nuevo");
+assert.match(android,/if: github\.ref == 'refs\/heads\/main'/);
+assert.match(android,/publish_release:/);
+assert.match(android,/default: false/);
+assert.match(android,/if: inputs\.publish_release/);
+assert.match(android,/node scripts\/release-preflight\.js/);
+assert.match(android,/Reject duplicate Android version tags/);
+assert.match(android,/Require a compatible Android update certificate/);
+assert.match(android,/gh release download android-v0\.4\.10/);
+assert.match(android,/NEW_SHA.*!=.*OLD_SHA/);
+assert.doesNotMatch(android,/--clobber/);
+const publication=android.slice(android.indexOf("- name: Publish direct APK download link"));
+assert.match(publication,/if: inputs\.publish_release/);
+assert.match(publication,/gh release create "\$TAG" "\$APK"/);
+assert.match(fs.readFileSync(root+"native-check.yml","utf8"),/run: npm test/);
+console.log("SHALOM: compilación separada de publicación y firma de actualización obligatoria.");

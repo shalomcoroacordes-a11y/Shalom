@@ -135,6 +135,9 @@ jobs:
       - name: Verify clean web and Android module boundaries
         run: node tests/architecture-modules-regression.cjs
 
+      - name: Test safe Android release permissions and signing gate
+        run: node tests/android-release-workflow-regression.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
