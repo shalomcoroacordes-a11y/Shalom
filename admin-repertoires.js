@@ -60,7 +60,7 @@
      '<label>Fecha<input id="repDate" type="date" value="'+esc(d.event_date||"")+'"></label></div>'+
     '<label>Lugar (opcional)<input id="repLocation" maxlength="180" value="'+esc(d.location||"")+'" placeholder="Parroquia, capilla o lugar de ensayo"></label>'+
     '<label>Indicaciones generales<textarea id="repNotes" rows="3" maxlength="3000" placeholder="Ej. Revisar el tono de entrada">'+esc(d.notes||"")+'</textarea></label>'+
-    '<label class="rep-published"><input id="repPublic" type="checkbox" '+(d.is_published?"checked":"")+'> Publicar para que los integrantes puedan verlo</label>'+
+    '<label class="rep-published"><input id="repPublic" type="checkbox" '+(d.is_published?"checked":"")+'> Publicar para que los integrantes puedan verlo</label><p class="admin-note">Las misas y los ensayos publicados aparecerán en Inicio &gt; Hoy en SHALOM cuando los integrantes actualicen el cancionero. La fecha determina si es de hoy o próxima.</p>'+
     '<h3>Cantos del repertorio ('+d.items.length+')</h3><div class="rep-parts">'+
      (items||'<p class="admin-note">Agrega cantos en el orden en que se interpretarán.</p>')+'</div>'+
     '<div class="rep-select-row"><label>Buscar canto<input type="search" id="repSongSearch" value="'+esc(state.search)+'" placeholder="Filtrar por título o tono"></label>'+
