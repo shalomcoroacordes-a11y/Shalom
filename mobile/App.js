@@ -263,7 +263,7 @@ function AppScreen() {
   if(!term)return true;
   return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
- function goTab(next,options={}){setProfileMenuOpen(false);if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){
+ function goTab(next,options={}){setProfileMenuOpen(false);if(next!=="Perfil")setProfileEditNonce(0);if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){
   personalNavRef.current=options.personalNav||(
    options.personalAction?{view:options.personalAction,kind:options.personalKind||"misa"}:null);
   setPersonalFilter(options.personalKind||null);
@@ -1182,7 +1182,8 @@ function AppScreen() {
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
       onOpenPersonal:(folderId,entryId,parts)=>goTab("Mis colecciones",{
        personalNav:{view:parts?"reading":"editing",folderId,entryId,editReturn:"home"}}),
-     onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce,registerBack:registerNestedBack})
+     onSongs:liked=>goTab("Canciones",{liked}),onRepertoires:()=>goTab("Repertorios"),editNonce:profileEditNonce,
+      onEditRequestConsumed:()=>setProfileEditNonce(0),registerBack:registerNestedBack})
    :tab==="Respaldo"?h(PersonalBackupScreen,{
       onExport:exportMyPersonalBackup,onPick:pickPersonalBackup,
       onRestore:restoreMyPersonalBackup,onBack:back})
