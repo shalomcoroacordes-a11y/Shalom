@@ -15,7 +15,7 @@ const btn=(s,fn,outline=false,disabled=false)=>h(Pressable,{onPress:fn,disabled,
  style:[S.button,outline&&S.outline,disabled&&{opacity:.4}]},
  txt(s,[S.buttonText,outline&&S.outlineText]));
 function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
- editNonce=0,registerBack,onOpenPersonal}){
+ editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal}){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState(profile);
  const [loadingImage,setLoadingImage]=useState(false);
@@ -26,7 +26,14 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    return false;
   });
  },[registerBack,editing]);
- useEffect(()=>{if(editNonce>0){setDraft(profile);setEditing(true)}},[editNonce]);
+ // El botón "Editar perfil" envía una orden de un solo uso.
+ // Si no se consume, al remontar Perfil se abre de nuevo en edición.
+ useEffect(()=>{
+  if(editNonce<=0)return;
+  setDraft(profile);
+  setEditing(true);
+  onEditRequestConsumed?.();
+ },[editNonce]);
  const change=(key,value)=>setDraft(v=>({...v,[key]:value}));
  const collections=personal?.collections||[];
  const popurris=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="popurri").length,0);
@@ -117,7 +124,7 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    txt(ACTION_LABEL[k],S.presetText)))),
   h(View,{style:S.infoBox},txt("🔒  La foto, la portada y el banner se guardan de forma privada en tu teléfono. No se suben a Supabase.",S.caption)),
   h(View,{style:S.rowActions},btn("Guardar cambios",save),
-   btn("Cancelar",()=>setEditing(false),true)));
+   btn("Cancelar",()=>{setDraft(profile);setEditing(false);},true)));
  return h(View,{style:S.page},
   txt("Mi perfil",S.title),
   profileHeader(profile),
