@@ -58,8 +58,9 @@ function AlignedScore({rows=[],fontSize=15,variant="default"}){
   }));
 }
 const S=StyleSheet.create({
- container:{width:"100%",backgroundColor:"#172538",flex:0},
- web:{width:"100%",flex:0,backgroundColor:"#172538"},
+ // La WebView se funde con el fondo del lector: la letra ya no va dentro de una caja.
+ container:{width:"100%",backgroundColor:"#0e1219",flex:0},
+ web:{width:"100%",flex:0,backgroundColor:"#0e1219"},
  fallback:{fontSize:11,color:"#b1d9c9",paddingVertical:6}
 });
 module.exports=AlignedScore;
