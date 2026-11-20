@@ -21,4 +21,7 @@ assert.doesNotMatch(app,/style:S.songActionBar/,"No duplicar la barra de control
 assert.doesNotMatch(app,/!immersiveActive\?h\(AppSectionHeader/,"No dibujar doble cabecera");
 assert.match(profile,/Tu espacio/);
 assert.match(profile,/Editar perfil/);
+assert.match(app,/onOpenLink:url=>openWeb\(url\)/);
+assert.match(app,/onOpenSongPage:\(\)=>openWeb\(songPermalink\(actionSong\)\)/);
+assert.match(app,/onVideo:\(\)=>openSongVideo\(actionSong\)/);
 console.log("SHALOM: jerarquía de pantallas y lectura simplificada verificadas.");

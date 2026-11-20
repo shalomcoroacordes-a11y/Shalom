@@ -25,6 +25,7 @@ assert.match(medley,/const delta=transpose\+/,"Keep original per-fragment pitch 
 assert.match(medley,/capoPosition/,"Retain capo instructions per fragment");
 assert.match(medley,/otherCapos/,"Retain variant capo choices");
 assert.match(medley,/tutorials\.map/,"Preserve YouTube/tutorial links");
+assert.doesNotMatch(medley,/\.slice\(0,3\)/,"Every tutorial should remain available");
 assert.match(score,/parseSong\(lyrics,delta\)/,"Use the same parser as Cantos");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Use saved section labels in all readers");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/song-section-label/,"Use green chorus and verse labels");

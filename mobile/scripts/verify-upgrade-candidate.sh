@@ -27,7 +27,7 @@ NEW_CODE=$(extract_code "$NEW")
 echo "APK oficial: $OLD_PKG | versionCode=$OLD_CODE | SHA-256=$OLD_SHA"
 echo "APK candidata: $NEW_PKG | versionCode=$NEW_CODE | SHA-256=$NEW_SHA"
 if [[ "$OLD_PKG" != "com.shalomcoroacordes.cancionero" ||
-      "$NEW_PKG" != "$OLD_PKG" || "$OLD_CODE" != "33" || "$NEW_CODE" != "35" ]]; then
+      "$NEW_PKG" != "$OLD_PKG" || "$OLD_CODE" != "33" || "$NEW_CODE" != "36" ]]; then
   echo "::error::Paquete o versión incorrecta. No distribuir APK ni probar actualización." >&2
   exit 1
 fi

@@ -5,7 +5,7 @@ const {InitialCover}=require("./visual-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const h=React.createElement;
 const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
-function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone}){
+function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo}){
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -17,7 +17,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const back=()=>{
   if(busy)return;
   if(phase==="create"){setPhase("targets");return}
-  if(phase==="targets"||phase==="reading"){setPhase("menu");return}
+  if(phase==="targets"||phase==="reading"||phase==="links"){setPhase("menu");return}
   close();
  };
  const button=(icon,title,action,subtitle=null,disabled=false)=>
@@ -45,6 +45,22 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
   }catch(e){Alert.alert("No se pudo agregar",e.message||"Revisa tu colección.");}
   finally{setBusy(false)}
  }
+ const rawLinks=[
+  ...(Array.isArray(song._links)?song._links:[]).map((item,index)=>({
+   title:String(item?.title||item?.label||"Enlace "+(index+1)),url:item?.url})),
+  {title:"Tutorial guitarra",url:song.tutorial_guitar},
+  {title:"Tutorial piano",url:song.tutorial_piano},
+  {title:"YouTube",url:song.youtube_url},
+  {title:"Video",url:song.video_url}
+ ];
+ const seenLinks=new Set();
+ const links=rawLinks.filter(item=>{
+  if(typeof item.url!=="string"||!item.url.trim())return false;
+  const normalized=item.url.trim();
+  if(seenLinks.has(normalized))return false;
+  seenLinks.add(normalized);return true;
+ });
+ const youtubeAvailable=links.some(item=>/youtube\.com|youtu\.be/i.test(item.url));
  const targets=kind?entriesOf(store,kind):[];
  const selectedFolder=store.collections.some(c=>c.id===folderId)?folderId:"";
  return h(Modal,{visible:true,transparent:true,animationType:"slide",onRequestClose:back,statusBarTranslucent:true,
@@ -69,6 +85,9 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
      button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
      button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
+     button("↗","Ver enlaces y tutoriales",()=>setPhase("links"),
+      links.length+" enlace(s) registrado(s)"),
+     youtubeAvailable?button("▶","Abrir YouTube",()=>run(onVideo,true)):null,
      button("↗","Compartir canción",()=>run(onShare,true)),
      button("▤","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
      button("↓","Descargar sin conexión",()=>run(onDownload,true),
@@ -81,6 +100,16 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
      button("↺","Restablecer tono original",()=>run(onResetTone)),
      h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
       lbl("← Volver al panel",S.createLabel))
+    ):phase==="links"?h(ScrollView,{keyboardShouldPersistTaps:"handled",
+      showsVerticalScrollIndicator:false,contentContainerStyle:S.menu},
+     lbl("Enlaces de este canto",S.sectionTitle),
+     ...links.map((link,index)=>button("↗",link.title,
+      ()=>run(()=>onOpenLink(link.url),true),link.url)),
+     button("↗","Ver canto en la página SHALOM",()=>run(onOpenSongPage,true),
+      "Abrir el canto desde el sitio oficial"),
+     !links.length?lbl("Este canto aún no tiene tutoriales registrados.",S.hint):null,
+     h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
+      lbl("← Volver a las opciones",S.createLabel))
     ):phase==="targets"?h(ScrollView,{keyboardShouldPersistTaps:"handled",showsVerticalScrollIndicator:false,
       contentContainerStyle:S.menu},
      lbl("Agregar a "+NAMES[kind],S.sectionTitle),

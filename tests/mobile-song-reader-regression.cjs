@@ -26,6 +26,14 @@ assert.match(app,/onPrint:\(\)=>printSong\(actionSong\)/,
  "The actions panel preserves native printing");
 assert.match(songActions,/Compartir canción/,"Sharing remains visible in the actions panel");
 assert.match(songActions,/Imprimir letra y acordes/,"Printing remains visible in the actions panel");
+assert.match(songActions,/Ver enlaces y tutoriales/,"All song references accessible");
+assert.match(songActions,/Ver canto en la página SHALOM/,"Original permalink remains accessible");
+assert.match(songActions,/youtubeAvailable\?button/,"YouTube shortcut visible when available");
+assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"External links open with validation");
+assert.match(app,/onOpenSongPage:\(\)=>openWeb\(songPermalink\(actionSong\)\)/,
+ "Song page permalink remains visible");
+assert.match(app,/onVideo:\(\)=>openSongVideo\(actionSong\)/,
+ "YouTube is connected to the actions sheet");
 assert.doesNotMatch(app,/style:S.songActionBar/,
  "Do not duplicate tone and font controls in a second reader footer");
 assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Supabase calls");

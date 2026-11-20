@@ -870,7 +870,7 @@ function AppScreen() {
      ...(original?._links||[]).map(x=>({title:x.title||"Video",url:x.url})),
      {title:"Tutorial guitarra",url:original?.tutorial_guitar},
      {title:"Tutorial piano",url:original?.tutorial_piano}
-    ].filter(x=>safeWebUrl(x.url)).slice(0,3);
+    ].filter(x=>safeWebUrl(x.url));
     return h(View,{key:part.id||index,style:[S.multiPart,index>0&&S.multiPartDivider]},
      h(View,{style:S.multiPartHeading},
       h(View,{style:S.multiPartNumber},label(String(index+1),S.multiPartNumberText)),
@@ -1138,6 +1138,9 @@ function AppScreen() {
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
    store:personal,onDismiss:()=>setActionSongId(null),
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
+   onOpenLink:url=>openWeb(url),
+   onOpenSongPage:()=>openWeb(songPermalink(actionSong)),
+   onVideo:()=>openSongVideo(actionSong),
    onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
    onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
