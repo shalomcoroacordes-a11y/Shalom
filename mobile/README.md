@@ -210,3 +210,15 @@ La 0.4.5 dibujaba renglones completos en React Native, pero Android aún alterab
 - **Privacidad:** todas las composiciones y carpetas se conservan en SQLite local; ningún cambio modifica Supabase ni el cancionero oficial. Los respaldos y Mis me gusta anteriores se mantienen.
 - El botón nativo Regresar recorre Crear/Editar/Leer/Compartir/Recibir y vuelve a Mis creaciones o la carpeta correcta.
 - Instalar la nueva APK **encima de la anterior sin desinstalar** para preservar los datos locales.
+
+
+## SHALOM Android 0.4.9 — Accesos minimalistas + Hoy en SHALOM
+
+- Los cuatro accesos de Inicio (Mis me gusta, Mis popurrís, Mis misas y Mis creaciones) usan tarjetas **2×2** minimalistas con degradado verde/azul oscuro, sin portadas ilustradas detrás del texto, con un icono pequeño, título, subtítulo y **contador real**.
+- Los números proceden **únicamente de los datos privados locales**: favoritos, popurrís, misas y total de composiciones. No mezclan las publicaciones oficiales del administrador.
+- Debajo aparece **Hoy en SHALOM**, una sección con lo que el coro haya **publicado desde el administrador**: la misa o ensayo de hoy/próximo y el popurrí publicado más reciente. Tocar un elemento abre directamente su lector oficial (no una copia personal).
+- Los elementos no publicados, incompletos o con fecha pasada no se anuncian como misa de hoy ni se muestran como eventos próximos. Si no hay publicaciones, aparece un mensaje explicativo, sin contenido inventado.
+- El botón **↻ Actualizar** vuelve a descargar el catálogo y sus publicaciones oficiales. Las últimas descargas permanecen disponibles sin conexión; la actualización requiere internet.
+- En el administrador de repertorios y popurrís se explica que marcar **Publicar** permite que aparezcan automáticamente en esta sección. No se añadió un segundo flujo de subida ni se cambiaron las tablas de Supabase.
+- Se conserva Destacado con el banner personal, el buscador, Mis me gusta y el resto de Inicio; no cambia el lector de acordes.
+- Instalar la APK encima de la versión anterior, sin desinstalar, para conservar imágenes, perfil y colecciones locales.
