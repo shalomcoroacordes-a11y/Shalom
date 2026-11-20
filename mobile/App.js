@@ -528,16 +528,16 @@ function AppScreen() {
    switch(profile.bannerAction){
     case "repertorios":return goTab("Repertorios");
     case "favoritos":return goTab("Canciones",{liked:true});
-    case "popurris":return goTab("Mis colecciones");
+    case "popurris":return goTab("Mis colecciones",{personalKind:"popurri"});
     case "recientes":return recent?selectSong(recent):goTab("Canciones");
     default:return goTab("Canciones");
    }
   }
   const shortcuts=[
    ["♥","Mis me gusta","guitar",()=>goTab("Canciones",{liked:true})],
-   ["♫","Mis popurrís","choir",()=>goTab("Mis colecciones")],
-   ["♧","Mis misas","sunrise",()=>goTab("Mis colecciones")],
-   ["▣","Colecciones","dove",()=>goTab("Mis colecciones")]
+   ["♫","Mis popurrís","choir",()=>goTab("Mis colecciones",{personalKind:"popurri"})],
+   ["♧","Mis misas","sunrise",()=>goTab("Mis colecciones",{personalKind:"misa"})],
+   ["▣","Mis creaciones","dove",()=>goTab("Mis colecciones")]
   ];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
@@ -720,7 +720,7 @@ function AppScreen() {
  function renderMore(){
   const cards=[
    ["Categorías","Explora por tema o celebración","categories",()=>goTab("Categorías")],
-   ["Mis colecciones",personal.collections.length+" carpetas personales","repertoires",()=>goTab("Mis colecciones")],
+   ["Mis creaciones",personal.collections.reduce((n,c)=>n+c.entries.length,0)+" composiciones personales","repertoires",()=>goTab("Mis colecciones")],
    ["Respaldo personal","Exportar o recuperar datos y fotografías","repertoires",()=>goTab("Respaldo")],
     ["Mis Me gusta",likedIds.length+" cantos guardados en este teléfono","song",
     ()=>goTab("Canciones",{liked:true})],
