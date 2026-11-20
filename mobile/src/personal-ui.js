@@ -54,7 +54,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [photoBusy,setPhotoBusy]=useState(false);
  const [customize,setCustomize]=useState(false);
  const [showFolderForm,setShowFolderForm]=useState(false);
- const [nameDraft,setNameDraft]=useState("");
+ const [nameDraft,setNameDraft]=useState(()=>store.collections.find(c=>c.id===initialNav?.folderId)?.entries.find(e=>e.id===initialNav?.entryId)?.title||"");
  const [search,setSearch]=useState("");
  const [adding,setAdding]=useState(false);
  const [shareOpen,setShareOpen]=useState(false);
@@ -87,7 +87,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   }
   if(view==="folder"){setFolderId(null);setView("folders");return true;}
   if(view==="folders"){setView("home");return true;}
-  if(filterKind){onClearFilter();return true;}
+  if(filterKind){setListFilter("all");onClearFilter();return true;}
   return false;
  }
  function startCreate(kind){
@@ -496,7 +496,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     label(item.title,styles.cardTitle),
     label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
     h(View,{style:styles.actions},
-     action("Abrir",()=>{setEntryId(item.id);setView("reading");setReaderShift(0);setEditReturn("folder")},false,item.parts.length===0),
+     action("Abrir",()=>openEntry(item,folder,"folder"),false),
      action("Editar",()=>editEntry(item),true),
      action("Compartir",()=>showShare(item,folder,"folder"),true,item.parts.length===0)),
     action("Eliminar",()=>deleteEntry(item),true))),
