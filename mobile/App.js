@@ -23,6 +23,7 @@ const ProfileOptionsMenu=require("./src/profile-options-menu");
 const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./src/personal-backup-io");
 const {addToPersonal}=require("./src/song-actions-core");
 const {buildPrintableSong,readerShiftForPrint}=require("./src/song-print");
+const {capoSelection}=require("./src/song-capo-core");
 const Print=require("expo-print");
 const {ProfileScreen,ACTION_LABEL}=require("./src/profile-ui");
 const {PROFILE_KEY,defaults:profileDefaults,parseProfile}=require("./src/profile-core");
@@ -977,24 +978,7 @@ function AppScreen() {
   openWeb(found);
  }
  function renderSongDetail(song){
-  const choices=[{id:"none",label:"Sin capo",position:0,key:""}];
-  if(Number(song.capo_position)>0)choices.push({id:"main",label:"Capo "+song.capo_position,
-   position:Number(song.capo_position),key:song.capo_key||""});
-  for(const item of song._capos||[])choices.push({
-   id:item.id,label:item.label||"Capo "+item.capo_position,
-   position:Number(item.capo_position||0),key:item.capo_key||""});
-  const chosen=choices.find(c=>c.id===capo)||choices[0];
-  const root=String(song.tone||"").trim().match(/[A-G](?:#|b)?/);
-  const rootOf=str=>String(str||"").match(/[A-G](?:#|b)?/)?.[0]||"";
-  const normRoot=root=>({"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#"}[root]||root);
-  const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  let capoOffset=0;
-  if(chosen.id!=="none"){
-   const from=NOTES.indexOf(normRoot(root?.[0]||""));
-   const to=NOTES.indexOf(normRoot(rootOf(chosen.key)));
-   capoOffset=from>=0&&to>=0?((to-from+12)%12):(-chosen.position||0);
-   if(capoOffset>6)capoOffset-=12;
-  }
+  const {choices,chosen,offset:capoOffset}=capoSelection(song,capo);
   const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
   const liked=hasFavorite(likedIds,song.id);
   const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset);

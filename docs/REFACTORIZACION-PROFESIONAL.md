@@ -39,6 +39,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Componentes Android reutilizables (en rama):** `mobile/src/app-components.js` centraliza los encabezados, controles, filtros, tarjetas y estados vacíos que se compartían en `App.js`. Se crea una sola instancia de componentes con los estilos, la paleta y los recursos originales; `mobile/tests/app-components.test.js` verifica acciones, accesibilidad y recursos.
 
+**Capo compartido (en rama):** `mobile/src/song-capo-core.js` calcula las posiciones y el desplazamiento de tono usados por el lector nativo y la impresión. `song-print.js` y `App.js` consumen el mismo resultado. `mobile/tests/song-capo-core.test.js` compara opciones, bemoles, capo sin tonalidad, transposiciones y compatibilidad de los registros descargados.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

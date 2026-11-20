@@ -31,6 +31,7 @@ jobs:
           node --check src/song-actions-core.js
           node --check src/song-actions-ui.js
           node --check src/song-print.js
+          node --check src/song-capo-core.js
           node --check src/personal-ui.js
           node --check src/personal-styles.js
           node --check src/personal-store.js
@@ -69,4 +70,5 @@ jobs:
           node tests/local-profile.test.js
           node tests/home-spotlight.test.js
           node tests/song-actions.test.js
+          node tests/song-capo-core.test.js
           node tests/personal-backup.test.js

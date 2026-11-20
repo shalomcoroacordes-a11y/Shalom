@@ -88,4 +88,13 @@ assert.match(components,/function SectionEmpty\(/);
 assert.doesNotMatch(app,/function AppSectionHeader\(/);
 assert.doesNotMatch(app,/function SectionHero\(/);
 
+// El lector y la impresion comparten el mismo calculo de capo.
+const capo=read("mobile/src/song-capo-core.js");
+const print=read("mobile/src/song-print.js");
+assert.match(app,/capoSelection\(song,capo\)/);
+assert.match(print,/capoSelection\(song,capo\)\.offset/);
+assert.match(capo,/function capoSelection\(/);
+assert.doesNotMatch(app,/const NOTES=\["C","C#"/);
+assert.doesNotMatch(print,/const notes=\["C","C#"/);
+
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");
