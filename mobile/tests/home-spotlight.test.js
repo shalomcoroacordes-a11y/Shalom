@@ -58,7 +58,7 @@ assert.match(app,/personalCounts\(personal,likedIds\)/,"Counters follow persiste
 assert.match(app,/officialHighlights\(model,new Date\(\)\)/,"Feature only real admin published content");
 assert.match(styles,/spotifyShortcuts:\{flexDirection:"row",flexWrap:"wrap"/,"Four shortcuts form 2x2 grid");
 assert.match(styles,/spotifyShortcutCountText/,"Every tile has a numeric count");
-assert.doesNotMatch(styles,/spotifyShortcutShade:,"Remove poster backgrounds and double-overlay icon");
+assert.doesNotMatch(styles,/spotifyShortcutShade:/,"Remove poster backgrounds and double-overlay icon");
 assert.match(app,/Hoy en SHALOM/);
 assert.match(app,/selectRepertoire\(rep\)/,"Tap opens official repertoire or mass");
 assert.match(app,/selectMedley\(m\)/,"Tap opens official medley");
