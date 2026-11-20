@@ -41,10 +41,6 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
  const repertoireCount=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="repertorio").length,0);
  const counts=[["♥",likedSongs.length,"Me gusta"],["♧",misas,"Misas"],
   ["♫",popurris,"Popurrís"],["▣",repertoireCount,"Repertorios"]];
- const recentPersonal=collections.flatMap(folder=>folder.entries.map(entry=>({folder,entry}))).slice(-6).reverse();
- const actions=[["♧","Crear misa","Para la celebración",()=>onCollections("misa","create")],
-  ["▣","Crear repertorio","Para un ensayo",()=>onCollections("repertorio","create")],
-  ["♫","Crear popurrí","Unir varios cantos",()=>onCollections("popurri","create")]];
  async function pick(which){
   if(loadingImage)return;
   setLoadingImage(true);
@@ -132,50 +128,14 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    h(View,{key:name,style:S.metric},
     txt(symbol,S.metricIcon),txt(n,S.metricNum),txt(name,S.metricCaption)))),
   h(View,{style:S.sectionHeader},
-   txt("¿Qué quieres preparar?",S.sectionTitle),
-   txt("Comienza en un solo paso, sin crear carpetas.",S.caption)),
-  h(View,{style:S.quickGrid},...actions.map(shortcut)),
-  h(Pressable,{style:S.receiveButton,onPress:()=>onCollections(null,"import"),
-   accessibilityRole:"button",accessibilityLabel:"Recibir una composición"},
-   txt("↓",S.receiveIcon),
-   h(View,{style:{flex:1}},txt("Recibir composición",S.receiveTitle),
-    txt("Pega un mensaje de SHALOM recibido por WhatsApp.",S.caption)),
-   txt("›",S.shortcutArrow)),
-  section("Mis creaciones",()=>onCollections(null)),
-  h(View,{style:S.presetRow},
-   btn("Misas · "+misas,()=>onCollections("misa"),true),
-   btn("Repertorios · "+repertoireCount,()=>onCollections("repertorio"),true),
-   btn("Popurrís · "+popurris,()=>onCollections("popurri"),true)),
-  ...recentPersonal.map(({folder,entry})=>h(Pressable,{key:folder.id+"-"+entry.id,
-   style:S.personalItem,accessibilityRole:"button",accessibilityLabel:"Abrir "+entry.title,
-   onPress:()=>onOpenPersonal?.(folder.id,entry.id,entry.parts.length)},
-   h(View,{style:S.personalIcon},
-    txt(entry.kind==="misa"?"♧":entry.kind==="repertorio"?"▣":"♫",S.personalIconText)),
-   h(View,{style:{flex:1,minWidth:0}},
-    h(Text,{style:S.songTitle,numberOfLines:2},entry.title),
-    txt((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+
-     " · "+entry.parts.length+" "+(entry.parts.length===1?"canto":"cantos"),S.songDesc)),
-   txt("›",S.more))),
-  !recentPersonal.length?h(View,{style:S.simpleEmpty},
-   txt("Aún no tienes composiciones. Puedes crear tu primera misa, repertorio o popurrí desde arriba.",S.caption)):null,
-  section("♡  Mis me gusta",()=>onSongs(true)),
-  txt("Tus cantos favoritos, guardados solo en este dispositivo.",S.caption),
-  ...likedSongs.slice(0,4).map(song=>h(Pressable,{
-   key:song.id,onPress:()=>openSong(song),style:S.songItem,accessibilityRole:"button",
-   accessibilityLabel:"Abrir "+song.title},
-   h(InitialCover,{title:song.title,size:59}),
-   h(View,{style:{flex:1,minWidth:0}},
-    h(Text,{style:S.songTitle,numberOfLines:2},song.title),
-    txt((song._artists||[]).map(a=>a.name).filter(Boolean).join(" · ")||"Canto SHALOM",S.songDesc)),
-   h(Pressable,{onPress:e=>{e?.stopPropagation?.();onLiked(song.id);},
-    accessibilityRole:"button",accessibilityLabel:"Quitar de Mis me gusta"},
-    txt("♥",S.heart)))),
-  !likedSongs.length?h(View,{style:S.simpleEmpty},
-   txt("Marca el corazón de cualquier canto para verlo aquí.",S.caption),
-   btn("Explorar cantos",()=>onSongs(false),true)):null,
-  h(View,{style:S.bottomActions},
-   btn("▣  Organizar por carpetas",()=>onCollections(null,"folders"),true),
-   btn("Ver repertorios oficiales",onRepertoires,true)));
+   txt("Tu espacio",S.sectionTitle),
+   txt("Tu perfil es personal y se guarda en este teléfono.",S.caption)),
+  h(View,{style:S.quickGrid},
+   shortcut(["▣","Mis creaciones","Misas, repertorios y popurrís",()=>onCollections(null)]),
+   shortcut(["♥","Mis me gusta","Cantos que guardaste",()=>onSongs(true)])),
+  h(View,{style:S.rowActions},
+   btn("✎ Editar perfil",()=>{setDraft(profile);setEditing(true);})),
+  txt("Para preparar o recibir composiciones, abre Mis creaciones en la barra inferior.",S.caption));
 
 }
 const S=StyleSheet.create({

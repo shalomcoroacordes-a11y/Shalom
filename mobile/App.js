@@ -48,7 +48,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const {tabs,isSelectedTab,matchesSearch}=require("./src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,matchesSearch}=require("./src/navigation-core");
 const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs}=require("./src/library-selectors");
 async function openWeb(value) {
  const url=safeWebUrl(value);
@@ -405,6 +405,9 @@ function AppScreen() {
     h(Btn,{text:busy?"Actualizando…":"Actualizar cancionero",onPress:manualSync,disabled:busy}),
     busy?h(ActivityIndicator,{color:C.green,style:{marginTop:8}}):null,
     progress?label(progress,S.info):null,error?label(error,S.error):null),
+   title("Tus datos personales"),
+   h(Btn,{text:"Respaldo y restauración",secondary:true,onPress:()=>goTab("Respaldo")}),
+   label("Conserva una copia fuera del teléfono para recuperar tu perfil, fotos y creaciones.",S.smallMuted),
    title("Información de SHALOM"),
    h(Btn,{text:"Acerca de SHALOM ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")}),
    h(View,{style:{height:10}}),
@@ -437,30 +440,6 @@ function AppScreen() {
    h(View,{style:S.spotifyWelcome},
     label("Hola, "+(profile.name==="Mi perfil"?"bienvenido":profile.name),S.spotifyWelcomeTitle),
     label("Bienvenido a SHALOM 💚",S.spotifyWelcomeText)),
-   h(View,{style:S.spotifyBanner},
-    h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,color:C.green,height:214}),
-    h(LinearGradient,{colors:["rgba(0,12,13,.62)","rgba(0,20,17,.1)","rgba(0,0,0,.72)"],
-     style:S.spotifyBannerOverlay}),
-    h(View,{style:S.spotifyBannerContent},
-     label("♫  DESTACADO",S.spotifyBannerEyebrow),
-     h(Text,{style:S.spotifyBannerTitle,numberOfLines:2},profile.bannerTitle),
-     label("Cantos y acordes para acompañar tu alabanza",S.spotifyBannerSubtitle),
-     h(Pressable,{onPress:goBanner,style:S.spotifyBannerButton,accessibilityRole:"button",
-      accessibilityLabel:ACTION_LABEL[profile.bannerAction]||"Explorar cantos"},
-      label((ACTION_LABEL[profile.bannerAction]||"Explorar cantos")+"  ›",S.spotifyBannerButtonLabel)))),
-   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
-    h(Pressable,{key:name,onPress,accessibilityRole:"button",
-     accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
-     h(LinearGradient,{colors:["#193b33","#172831"],start:{x:0,y:0},end:{x:1,y:1},
-      style:S.spotifyShortcutBackground}),
-     h(View,{style:S.spotifyShortcutTop},
-      h(View,{style:S.spotifyShortcutSymbolBox},
-       icon==="heart"?label("♥",S.spotifyShortcutIcon):
-       h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage})),
-      h(View,{style:S.spotifyShortcutCount},label(count,S.spotifyShortcutCountText))),
-     h(View,{style:S.spotifyShortcutText},
-      label(name,S.spotifyShortcutName),
-      label(subtitle,S.spotifyShortcutSubtitle))))),
    h(View,{style:S.shalomToday},
     h(View,{style:S.shalomTodayHeader},
      h(View,{style:{flex:1,minWidth:0}},
@@ -508,6 +487,30 @@ function AppScreen() {
     label("Recientes",S.spotifyHeading),
     h(SectionListCard,{title:recent.title,subtitle:names(recent._artists)||"Último canto consultado",
      onPress:()=>selectSong(recent)})):null,
+   h(View,{style:S.spotifyBanner},
+    h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,color:C.green,height:214}),
+    h(LinearGradient,{colors:["rgba(0,12,13,.62)","rgba(0,20,17,.1)","rgba(0,0,0,.72)"],
+     style:S.spotifyBannerOverlay}),
+    h(View,{style:S.spotifyBannerContent},
+     label("♫  DESTACADO",S.spotifyBannerEyebrow),
+     h(Text,{style:S.spotifyBannerTitle,numberOfLines:2},profile.bannerTitle),
+     label("Cantos y acordes para acompañar tu alabanza",S.spotifyBannerSubtitle),
+     h(Pressable,{onPress:goBanner,style:S.spotifyBannerButton,accessibilityRole:"button",
+      accessibilityLabel:ACTION_LABEL[profile.bannerAction]||"Explorar cantos"},
+      label((ACTION_LABEL[profile.bannerAction]||"Explorar cantos")+"  ›",S.spotifyBannerButtonLabel)))),
+   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
+    h(Pressable,{key:name,onPress,accessibilityRole:"button",
+     accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
+     h(LinearGradient,{colors:["#193b33","#172831"],start:{x:0,y:0},end:{x:1,y:1},
+      style:S.spotifyShortcutBackground}),
+     h(View,{style:S.spotifyShortcutTop},
+      h(View,{style:S.spotifyShortcutSymbolBox},
+       icon==="heart"?label("♥",S.spotifyShortcutIcon):
+       h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage})),
+      h(View,{style:S.spotifyShortcutCount},label(count,S.spotifyShortcutCountText))),
+     h(View,{style:S.spotifyShortcutText},
+      label(name,S.spotifyShortcutName),
+      label(subtitle,S.spotifyShortcutSubtitle))))),
    likes.length?h(View,{style:S.spotifyBlock},
     label("Mis me gusta",S.spotifyHeading),
     ...likes.slice(0,3).map(song=>h(SectionListCard,{key:song.id,title:song.title,
@@ -515,9 +518,9 @@ function AppScreen() {
    h(View,{style:S.spotifyBlock},
     label("Descubre más en SHALOM",S.spotifyHeading),
     h(View,{style:S.homeGrid},...[
-     ["Categorías","Explorar por tema","categories","Categorías"],
+     ["Explorar","Artistas, álbumes y categorías","categories","Explorar"],
+     ["Popurrís oficiales","Cantos unidos por SHALOM","medleys","Popurrís"],
      ["Álbumes","Colecciones oficiales","albums","Álbumes"],
-     ["Artistas","Coros y cantores","artists","Artistas"],
      ["Más opciones","Solicitudes y ajustes","more","Más"]
     ].map(([name,subtitle,icon,destination])=>h(Pressable,{
      key:name,onPress:()=>goTab(destination),style:S.homeTile,accessibilityRole:"button"},
@@ -535,6 +538,10 @@ function AppScreen() {
   return h(View,{style:S.repPage},
    h(LibraryHero,{title:"Canciones",
     subtitle:"Explora nuestro cancionero de letras y acordes.",preset:"sunrise"}),
+   h(Pressable,{onPress:()=>goTab("Explorar"),accessibilityRole:"button",
+    accessibilityLabel:"Explorar artistas, álbumes, categorías y popurrís",
+    style:{paddingHorizontal:8,paddingVertical:10,alignSelf:"flex-start"}},
+    label("Explorar artistas, álbumes, categorías y popurrís  ›",S.libraryMore)),
    !copy?.syncedAt?h(Card,null,
     label("Descarga el cancionero",S.listTitle),
     label("Necesitas descargar primero la biblioteca a este dispositivo.",S.info),
@@ -650,17 +657,26 @@ function AppScreen() {
  }
  function renderMore(){
   const cards=[
-   ["Categorías","Explora por tema o celebración","categories",()=>goTab("Categorías")],
-   ["Mis creaciones",personal.collections.reduce((n,c)=>n+c.entries.length,0)+" composiciones personales","repertoires",()=>goTab("Mis colecciones")],
-   ["Respaldo personal","Exportar o recuperar datos y fotografías","repertoires",()=>goTab("Respaldo")],
-    ["Mis Me gusta",likedIds.length+" cantos guardados en este teléfono","song",
-    ()=>goTab("Canciones",{liked:true})],
-   ["Popurrís",model.medleys.length+" disponibles · Varios cantos unidos","medleys",()=>goTab("Popurrís")],
-   ["Álbumes",model.albums.length+" colecciones musicales","albums",()=>goTab("Álbumes")],
-   ["Solicitar canto o corrección","Envía una solicitud al administrador","song",()=>requestForm("song")]
+   ["Explorar música","Artistas, álbumes, categorías y popurrís","categories",()=>goTab("Explorar")],
+   ["Solicitar canto o corrección","Envía una solicitud al administrador","song",()=>requestForm("song")],
+   ["Configuración","Sincronización, respaldo e información","more",()=>setSettingsOpen(true)],
+   ["Mis me gusta","Tus cantos guardados en este teléfono","song",()=>goTab("Canciones",{liked:true})]
   ];
   return h(View,{style:S.repPage},
-   h(SectionHero,{title:"Más opciones",subtitle:"Otras secciones de SHALOM",icon:"more"}),
+   h(SectionHero,{title:"Más opciones",subtitle:"Ayuda, preferencias y accesos",icon:"more"}),
+   h(View,{style:S.repCards},
+    ...cards.map(([name,subtitle,icon,action])=>h(SectionListCard,{key:name,title:name,
+     subtitle,icon,onPress:action}))));
+ }
+ function renderExplore(){
+  const cards=[
+   ["Artistas","Busca coros, cantores y ministerios","artists",()=>goTab("Artistas")],
+   ["Categorías","Encuentra cantos por tema o celebración","categories",()=>goTab("Categorías")],
+   ["Álbumes","Colecciones musicales oficiales","albums",()=>goTab("Álbumes")],
+   ["Popurrís oficiales","Varios cantos unidos por SHALOM","medleys",()=>goTab("Popurrís")]
+  ];
+  return h(View,{style:S.repPage},
+   h(SectionHero,{title:"Explorar",subtitle:"Descubre música por artista, tema o colección",icon:"categories"}),
    h(View,{style:S.repCards},
     ...cards.map(([name,subtitle,icon,action])=>h(SectionListCard,{key:name,title:name,
      subtitle,icon,onPress:action}))));
@@ -680,7 +696,7 @@ function AppScreen() {
      style:S.repHeadingIcon}),
     h(View,{style:{flex:1,minWidth:0}},
      h(Text,{style:S.repTitle,numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.8},"Repertorios"),
-     label("Misas, ensayos y celebraciones en un solo lugar",S.repSubtitle))),
+     label("Publicados por SHALOM · Misas, ensayos y celebraciones",S.repSubtitle))),
    h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,
     contentContainerStyle:S.repFilters},
     ...sections.map(([code,name,icon])=>{
@@ -1038,7 +1054,7 @@ function AppScreen() {
   :detail?.type==="artist"&&focusedArtist?renderArtistDetail(focusedArtist)
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
-  :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Repertorios"?renderRepertoires()
+  :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
   :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
@@ -1061,11 +1077,12 @@ function AppScreen() {
     label("SHALOM",S.songTopName)),
    h(Pressable,{style:S.songTopMore,onPress:()=>active?setActionSongId(String(active.id)):
      Alert.alert("Opciones de lectura","Elige una acción.",[
+      {text:"Compartir",onPress:shareMultiReading},
       {text:"Pantalla completa",onPress:()=>setImmersive(true)},
       {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
       {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:active?"Opciones de canción":"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
-  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil","Respaldo"].includes(tab)?h(View,{style:S.repTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Explorar","Mis colecciones","Más","Perfil","Respaldo"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Regresar"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
@@ -1089,50 +1106,28 @@ function AppScreen() {
     h(View,null,label("SHALOM",S.spotifyHomeBrandName),label("Coro y Alabanza",S.spotifyHomeBrandSub))),
    h(Pressable,{onPress:()=>goTab("Canciones"),accessibilityRole:"button",accessibilityLabel:"Buscar canciones",style:S.homeTopButton},
     h(Image,{source:HOME_IMAGES.search,style:S.homeTopIcon,resizeMode:"contain"})),
-   h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Estado y ajustes del cancionero",style:S.homeTopButton},
-    h(Image,{source:HOME_IMAGES.bell,style:S.homeTopIcon,resizeMode:"contain"}),
-    h(View,{style:S.homeBellDot}))):
+   h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Configuración y sincronización del cancionero",style:S.homeTopButton},
+    label("⚙",S.sectionHeaderGear))):
   !immersiveActive&&settingsOpen?h(AppSectionHeader,{section:"Configuración",onBack:()=>setSettingsOpen(false)}):
   !immersiveActive&&detail&&!isReader?h(AppDetailHeader,{
    section:detail.type==="artist"?"Artista":detail.type==="album"?"Álbum":
     detail.type==="medley"?"Popurrí":detail.type==="repertoire"?"Repertorio":"Detalle",
    onBack:back
   }):
-  !immersiveActive?h(AppSectionHeader,{
-   section:tab==="Solicitar"?"Solicitudes":tab,
-   onSettings:()=>setSettingsOpen(true)
+  !immersiveActive&&!settingsOpen&&!detail&&tab==="Solicitar"?h(AppSectionHeader,{
+   section:"Solicitudes",onBack:back
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
-  !immersiveActive&&!settingsOpen&&detail?.type==="song"&&active?h(View,{style:S.songActionBar},
-   ...[
-    ["T−","Tono −",()=>adjustTone(-1)],
-    ["T+","Tono +",()=>adjustTone(1)],
-    ["▤","Imprimir",()=>printSong(active)],
-    ["↗","Compartir",()=>shareSong(active)],
-    ["▶","YouTube",()=>openSongVideo(active)]
-   ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
-    onPress,accessibilityRole:"button",accessibilityLabel:name},
-    label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
-  !immersiveActive&&!settingsOpen&&isReader&&detail?.type!=="song"?h(View,{style:S.songActionBar},
-   ...[
-    ["T−","Tono −",()=>adjustTone(-1)],
-    ["T+","Tono +",()=>adjustTone(1)],
-    ["↗","Compartir",shareMultiReading],
-    ["A−","Letra −",()=>setReaderFont(v=>Math.max(13,v-1))],
-    ["A+","Letra +",()=>setReaderFont(v=>Math.min(22,v+1))]
-   ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
-    onPress,accessibilityRole:"button",accessibilityLabel:name},
-    label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
   !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:[S.nav,tab==="Inicio"&&!detail&&S.homeNav]},
    ...tabs.map(([name,icon])=>{
     const selected=isSelectedTab(tab,name)&&!detail;
     const homeIcon=HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
-     onPress:()=>goTab(name),style:[S.navItem,selected&&S.navSelected]},
+     onPress:()=>goTab(routeForTab(name)),style:[S.navItem,selected&&S.navSelected]},
      name==="Perfil"?h(View,{style:S.profileNavIcon},
        h(View,{style:[S.profileNavHead,{borderColor:selected?C.green:C.text}]}),
        h(View,{style:[S.profileNavBody,{borderColor:selected?C.green:C.text}]})):
@@ -1147,7 +1142,7 @@ function AppScreen() {
    onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
    !immersiveActive?h(LocalNotice,{notice,
-    bottom:settingsOpen||tab==="Respaldo"?22:detail?96:tab==="Inicio"?91:86,
+    bottom:settingsOpen||tab==="Respaldo"||detail?22:tab==="Inicio"?91:86,
     onUndo:()=>{
      const undo=notice?.onUndo;
      clearLocalNotice();
