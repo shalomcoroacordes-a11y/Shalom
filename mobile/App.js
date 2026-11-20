@@ -412,6 +412,7 @@ function AppScreen() {
   );
  }
  function renderHome(){
+  const term=normalize(homeSearch.trim());
   const found=homeMatches;
   const likes=favorites;
   const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
