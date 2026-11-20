@@ -14,6 +14,7 @@ const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog
 const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
+const {personalCounts,officialHighlights}=require("./src/home-spotlight");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
 const LocalNotice=require("./src/local-notice");
@@ -533,11 +534,13 @@ function AppScreen() {
     default:return goTab("Canciones");
    }
   }
+  const counts=personalCounts(personal,likedIds);
+  const official=officialHighlights(model,new Date());
   const shortcuts=[
-   ["♥","Mis me gusta","guitar",()=>goTab("Canciones",{liked:true})],
-   ["♫","Mis popurrís","choir",()=>goTab("Mis colecciones",{personalKind:"popurri"})],
-   ["♧","Mis misas","sunrise",()=>goTab("Mis colecciones",{personalKind:"misa"})],
-   ["▣","Mis creaciones","dove",()=>goTab("Mis colecciones")]
+   ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
+   ["medleys","Mis popurrís","Cantos enlazados",counts.medleys,()=>goTab("Mis colecciones",{personalKind:"popurri"})],
+   ["mass","Mis misas","Celebraciones guardadas",counts.masses,()=>goTab("Mis colecciones",{personalKind:"misa"})],
+   ["repertoires","Mis creaciones","Tu biblioteca personal",counts.creations,()=>goTab("Mis colecciones")]
   ];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
@@ -554,12 +557,52 @@ function AppScreen() {
      h(Pressable,{onPress:goBanner,style:S.spotifyBannerButton,accessibilityRole:"button",
       accessibilityLabel:ACTION_LABEL[profile.bannerAction]||"Explorar cantos"},
       label((ACTION_LABEL[profile.bannerAction]||"Explorar cantos")+"  ›",S.spotifyBannerButtonLabel)))),
-   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([symbol,name,preset,onPress])=>
-    h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,style:S.spotifyShortcut},
-     h(CoverArt,{preset,color:C.green,height:112}),
-     h(LinearGradient,{colors:["transparent","rgba(0,0,0,.82)"],style:S.spotifyShortcutShade}),
-     h(View,{style:S.spotifyShortcutText},label(symbol,S.spotifyShortcutIcon),
-      label(name,S.spotifyShortcutName))))),
+   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
+    h(Pressable,{key:name,onPress,accessibilityRole:"button",
+     accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
+     h(LinearGradient,{colors:["#193b33","#172831"],start:{x:0,y:0},end:{x:1,y:1},
+      style:S.spotifyShortcutBackground}),
+     h(View,{style:S.spotifyShortcutTop},
+      h(View,{style:S.spotifyShortcutSymbolBox},
+       icon==="heart"?label("♥",S.spotifyShortcutIcon):
+       h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage})),
+      h(View,{style:S.spotifyShortcutCount},label(count,S.spotifyShortcutCountText))),
+     h(View,{style:S.spotifyShortcutText},
+      label(name,S.spotifyShortcutName),
+      label(subtitle,S.spotifyShortcutSubtitle))))),
+   h(View,{style:S.shalomToday},
+    h(View,{style:S.shalomTodayHeader},
+     h(View,{style:{flex:1,minWidth:0}},
+      label("Hoy en SHALOM",S.shalomTodayHeading),
+      label("Lo que cantaremos y ensayaremos como coro",S.shalomTodaySubheading)),
+     h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
+      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
+      label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
+    ...official.map(item=>h(Pressable,{key:item.type+"-"+item.id,
+     style:S.shalomTodayCard,onPress:()=>{
+      if(item.type==="medley"){
+       const m=model.medleys.find(x=>String(x.id)===item.id);
+       if(m)selectMedley(m);
+      }else{
+       const rep=model.repertoires.find(x=>String(x.id)===item.id);
+       if(rep)selectRepertoire(rep);
+      }
+     },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
+     h(View,{style:S.shalomTodayIconBox},
+      h(Image,{source:HOME_IMAGES[item.type==="medley"?"medleys":item.kind==="misa"?"mass":"repertoires"],
+       resizeMode:"contain",style:S.shalomTodayImage})),
+     h(View,{style:{flex:1,minWidth:0}},
+      label(item.label.toUpperCase(),S.shalomTodayLabel),
+      h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
+      h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
+       [item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle].filter(Boolean).join(" · "))),
+     label("›",S.shalomTodayArrow))),
+    !official.length?h(View,{style:S.shalomTodayEmpty},
+     label(copy?.syncedAt?
+      "Cuando publiquen una misa, repertorio o popurrí desde el administrador, aparecerá aquí al actualizar.":
+      "Descarga el cancionero para ver las misas y ensayos publicados por SHALOM.",S.shalomTodayEmptyText),
+     !copy?.syncedAt?h(Btn,{text:"Descargar biblioteca",onPress:manualSync,
+      disabled:busy,small:true}):null):null),
    h(View,{style:S.homeSearchWrap},
     label("⌕",S.homeSearchIcon),
     h(TextInput,{style:S.homeSearch,value:homeSearch,onChangeText:setHomeSearch,
@@ -1298,12 +1341,43 @@ const S=StyleSheet.create({
  spotifyBannerSubtitle:{fontSize:12,color:"#f0f5f2",maxWidth:"92%"},
  spotifyBannerButton:{paddingHorizontal:15,paddingVertical:9,borderRadius:99,backgroundColor:C.green,alignSelf:"flex-start"},
  spotifyBannerButtonLabel:{fontSize:12,color:"#0c3022",fontWeight:"900"},
- spotifyShortcuts:{flexDirection:"row",justifyContent:"space-between",gap:6,marginBottom:20},
- spotifyShortcut:{flex:1,overflow:"hidden",borderRadius:14,borderWidth:1,borderColor:"#4b6659"},
- spotifyShortcutShade:{position:"absolute",bottom:0,left:0,right:0,height:90},
- spotifyShortcutText:{position:"absolute",bottom:7,left:0,right:0,alignItems:"center",gap:3},
- spotifyShortcutIcon:{fontSize:22,color:"#fff",fontWeight:"900"},
- spotifyShortcutName:{fontSize:10.5,color:"#fff",fontWeight:"850",textAlign:"center"},
+ // Cuatro accesos minimalistas con contador, sin ilustraciones detrás del texto.
+ spotifyShortcuts:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",
+  rowGap:10,marginBottom:18},
+ spotifyShortcut:{width:"48.6%",minHeight:118,overflow:"hidden",position:"relative",
+  padding:12,borderRadius:15,borderWidth:1,borderColor:"#406457",justifyContent:"space-between"},
+ spotifyShortcutBackground:{position:"absolute",top:0,bottom:0,left:0,right:0},
+ spotifyShortcutTop:{flexDirection:"row",alignItems:"flex-start",justifyContent:"space-between"},
+ spotifyShortcutSymbolBox:{height:35,width:35,borderRadius:11,backgroundColor:"#245448",
+  justifyContent:"center",alignItems:"center"},
+ spotifyShortcutImage:{width:23,height:23,tintColor:C.pale},
+ spotifyShortcutIcon:{fontSize:26,color:C.pale,fontWeight:"900"},
+ spotifyShortcutCount:{minWidth:31,minHeight:26,paddingHorizontal:7,borderRadius:99,
+  alignItems:"center",justifyContent:"center",borderWidth:1,borderColor:"#467667",
+  backgroundColor:"#203a35"},
+ spotifyShortcutCountText:{fontSize:12,color:C.pale,fontWeight:"850"},
+ spotifyShortcutText:{gap:2,alignItems:"flex-start",marginTop:10},
+ spotifyShortcutName:{fontSize:14,color:C.text,fontWeight:"850",textAlign:"left"},
+ spotifyShortcutSubtitle:{fontSize:10.5,color:C.muted,lineHeight:14},
+ shalomToday:{gap:9,marginBottom:20,marginTop:0},
+ shalomTodayHeader:{flexDirection:"row",alignItems:"center",gap:9,marginBottom:2},
+ shalomTodayHeading:{fontSize:19,fontWeight:"900",color:C.text},
+ shalomTodaySubheading:{fontSize:11.5,color:C.muted,marginTop:3,lineHeight:16},
+ shalomTodayRefresh:{height:38,width:38,alignItems:"center",justifyContent:"center",
+  borderWidth:1,borderColor:"#406457",borderRadius:12,backgroundColor:"#17362e"},
+ shalomTodayRefreshIcon:{color:C.green,fontSize:24,fontWeight:"750"},
+ shalomTodayCard:{flexDirection:"row",alignItems:"center",gap:11,padding:12,minHeight:91,
+  backgroundColor:"#18262b",borderRadius:14,borderWidth:1,borderColor:"#365d52"},
+ shalomTodayIconBox:{width:49,height:49,borderRadius:12,backgroundColor:"#214c40",
+  alignItems:"center",justifyContent:"center"},
+ shalomTodayImage:{width:28,height:28,tintColor:C.pale},
+ shalomTodayLabel:{fontSize:10,fontWeight:"850",color:C.green,letterSpacing:.5},
+ shalomTodayTitle:{fontSize:14,fontWeight:"900",color:C.text,lineHeight:19,marginTop:2},
+ shalomTodayMeta:{color:C.muted,fontSize:11,lineHeight:15,marginTop:4},
+ shalomTodayArrow:{fontSize:27,color:C.pale},
+ shalomTodayEmpty:{paddingHorizontal:14,paddingVertical:15,borderRadius:13,
+  borderWidth:1,borderColor:"#365249",backgroundColor:"#16272b",gap:10},
+ shalomTodayEmptyText:{fontSize:12,color:C.muted,lineHeight:18},
  spotifyBlock:{gap:7,marginTop:12,marginBottom:15},
  spotifyHeading:{color:C.text,fontWeight:"900",fontSize:18},
 
