@@ -25,6 +25,17 @@ assert.match(shell,/contacto\.html/);
 assert.equal(exists("site-public-nav.js"),false);
 assert.equal(exists("site-footer-links.js"),false);
 
+// La descripción de una categoría debe salir limpia desde su plantilla.
+// No debe existir un observador global que reescriba nodos después de pintar.
+const categorySource=read("categorias.js"),categoryPage=read("categorias.html");
+assert.match(categorySource,/function categoryDescription\(description, fallback\)/);
+assert.match(categorySource,/CATEGORY_HOME_META/);
+assert.match(categorySource,/Cat\.esc\(categoryDescription\(item\.description/);
+assert.match(categorySource,/Cat\.esc\(categoryDescription\(category\.description/);
+assert.doesNotMatch(categoryPage,/category-home-meta-clean\.js/);
+assert.equal(exists("category-home-meta-clean.js"),false);
+
+
 // La interfaz admin se integra directamente en el ciclo de renderizado,
 // sin sobrescribir apRenderView ni inyectar estilos desde JavaScript.
 const html=read("admin.html"),admin=read("admin-pro.js"),layout=read("admin-form-layout.js");
