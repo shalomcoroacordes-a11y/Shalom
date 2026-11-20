@@ -18,6 +18,7 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 - **Web — administrador:** `admin-search-fix.js` ya no sobrescribe `apRenderView`. Su funcionalidad se trasladó a `admin-form-layout.js` (estado del formulario, restauración del foco y despliegue de editores) y `admin-form-layout.css` (estilos). `admin-pro.js` los invoca explícitamente, y `admin.html` declara sus dependencias.
 - **Web — sitio público:** `Supabase.js` queda dedicado a configurar Supabase. `site-shell.js` reúne menú, metadatos y pie de página, cargados expresamente por las 13 páginas públicas que requieren Supabase. Se retiraron dos scripts separados que se agregaban desde el cliente de datos.
+- **Web — categorías:** `categorias.js` elimina metadatos antiguos en la generación del HTML, y se retiró `category-home-meta-clean.js`, un observador global innecesario que corregía el DOM después de mostrarlo.
 - **Android:** `mobile/App.js` ya no contiene sus ~294 estilos; `mobile/src/app-styles.js` crea la misma hoja con la paleta original. Se actualizaron las pruebas de diseño sin reducir la cobertura funcional.
 - **Publicación:** Android debe ejecutar compilaciones y publicación automática solamente para cambios fusionados en `main`; no se debe reemplazar un APK de producción por construir una rama de ensayo.
 - **Pruebas:** `tests/architecture-modules-regression.cjs` impide que reaparezcan el parche de renderizado, el diseño dentro de Supabase y el bloque monolítico de estilos Android.
@@ -30,8 +31,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 ## Fase 3 — deuda restante web (pendiente)
 
-- Analizar `home-fix.js`, `category-home-meta-clean.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
-- Integrar la limpieza de metadatos en los componentes que construyen la descripción; evitar MutationObservers para limpiar contenido que ya nace incorrecto.
+- Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
+- Revisar otras transformaciones posteriores al renderizado e integrarlas en los componentes que generan el contenido, sin observadores globales de limpieza.
 - Consolidar las fuentes de metadatos y los estilos CSS **sin alterar** los archivos/rutas que GitHub Pages utiliza en producción.
 - Normalizar las responsabilidades del catálogo, buscador, artista, repertorio y popurrí entre pantallas. No reescribir todo de una vez ni introducir un framework sin justificar el costo.
 
