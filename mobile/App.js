@@ -1099,7 +1099,7 @@ function AppScreen() {
     ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
-   h(View,{style:S.songScoreCard},
+   h(View,{style:S.songScorePlain},
     renderAlignedScoreRows(parsed,readerFont,"song-"+song.id))
   );
  }
@@ -1269,8 +1269,8 @@ const S=StyleSheet.create({
   borderWidth:1,borderColor:"#24684f",backgroundColor:"#153a31"},
  songReaderToneText:{fontSize:14,color:C.pale,fontWeight:"900"},
  songReaderHint:{fontSize:11,color:C.muted},
- songScoreCard:{backgroundColor:"#172538",borderWidth:1,borderColor:"#334c60",borderRadius:14,
-  paddingHorizontal:7,paddingTop:5,paddingBottom:8,overflow:"hidden",marginTop:9},
+ // Área de lectura abierta: sin borde, fondo de tarjeta ni recorte de renglones.
+ songScorePlain:{width:"100%",marginTop:13,paddingBottom:10},
 
  spotifyHomeBrand:{flex:1,flexDirection:"row",alignItems:"center",gap:6},
  spotifyHomeLogo:{height:45,width:52},
