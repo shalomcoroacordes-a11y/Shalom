@@ -26,7 +26,7 @@ assert.match(app,/requestForm\("other"\);setRequestTitle\("Sugerencia de reperto
 assert.deepEqual(require("../mobile/src/navigation-core.js").tabs,
  [["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Perfil","profile"]],
  "La estructura de pestañas se mantiene tras extraer el módulo");
-assert.match(app,/require\\("\\.\\/src\\/navigation-core"\\)/);
+assert.ok(app.includes('require("./src/navigation-core")'),"La app importa la navegación desde su módulo");
 assert.match(iconGenerator,/home-.*\.png/);
 assert.match(iconGenerator,/"mass":/);
 assert.match(iconGenerator,/"calendar":/);
