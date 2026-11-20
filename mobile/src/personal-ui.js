@@ -41,7 +41,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [createTitle,setCreateTitle]=useState("");
  const [createTarget,setCreateTarget]=useState(null);
  const [editReturn,setEditReturn]=useState(initialNav?.editReturn||"home");
- const [shareReturn,setShareReturn]=useState("home");
+ const [shareReturn,setShareReturn]=useState(initialNav?.shareReturn||"home");
  const [expandedPartId,setExpandedPartId]=useState(null);
  const [importPreview,setImportPreview]=useState(null);
  const [importTarget,setImportTarget]=useState(null);
@@ -61,8 +61,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [shareInput,setShareInput]=useState("");
  const [readerShift,setReaderShift]=useState(0);
  const [readerFont,setReaderFont]=useState(16);
- useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind})},
-  [folderId,entryId,view,createKind]);
+ useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind,editReturn,shareReturn})},
+  [folderId,entryId,view,createKind,editReturn,shareReturn]);
  useEffect(()=>{
   if(!registerBack)return;
   return registerBack(()=>back(true));
