@@ -25,6 +25,7 @@ jobs:
       - name: Validate JavaScript syntax of all native screens
         run: |
           node --check App.js
+          node --check src/app-styles.js
           node --check src/song-actions-core.js
           node --check src/song-actions-ui.js
           node --check src/song-print.js
