@@ -45,6 +45,7 @@ jobs:
           node tests/chords.test.js
           node tests/chord-grid.test.js
           node tests/web-score-html.test.js
+          node tests/reader-open-layout.test.js
           node tests/favorites.test.js
           node tests/repertoire-ui.test.js
           node tests/catalog.test.js
