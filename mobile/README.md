@@ -173,3 +173,17 @@ En 0.4.4 los acordes y palabras se dividían en tokens colocados de forma absolu
 - Se utiliza el mismo componente para cantos, misas, repertorios y popurrís; no se modifican las letras, los acordes guardados ni Supabase.
 - Tests de regresión comprueban que nunca se dividan las palabras, se preserve la cadena íntegra y que Android lea las mismas parejas que el parser web.
 - Instalar esta APK encima de la anterior, **sin desinstalar** para conservar favoritos, fotografías y colecciones personales.
+
+
+## SHALOM Android 0.4.6 — Misma tipografía y posición que la web
+
+La 0.4.5 dibujaba renglones completos en React Native, pero Android aún alteraba la separación entre las letras y los acordes respecto al navegador. Tras comparar capturas reales, **el bloque de cantos se renderiza con Chromium local dentro de la app**, utilizando las mismas reglas de `song-chords.css` de la web: Courier New, `white-space: pre`, `line-height: 1.22`, sin ligaduras y con los mismos colores.
+
+- **Sin internet:** el bloque HTML se genera a partir de las letras/acordes ya descargados; no visita una URL ni consulta el servidor. CSP restringe recursos remotos.
+- **Posiciones:** reutiliza `parseSong`, que ya se verifica contra el parser real de web/admin; ahora se dibuja con el mismo motor de texto de navegador, no con React Native Text ni coordenadas estimadas.
+- **Lectura limpia:** renglones completos, espacios originales, saltos de línea, etiquetas de estrofas/coros y desplazamiento horizontal propio del bloque.
+- **Integración:** la vista calcula su altura y deja el desplazamiento vertical a la pantalla Android; tamaño de letra, tono, capo, imprimir, compartir y navegación permanecen nativos.
+- **Respaldo:** si un dispositivo no puede abrir el motor embebido, muestra la lectura nativa anterior en lugar de quedar en blanco.
+- La solución se reutiliza en Canciones, Misas, Repertorios y Popurrís, sin modificar los cantos del administrador ni Supabase.
+- Se añadieron pruebas que comparan **el HTML completo de pares acorde/letra** contra el intérprete de la web en distintos tonos y tamaños.
+- **Actualiza encima de la versión instalada sin desinstalar**, para conservar fotos, perfil, colecciones y favoritos.
