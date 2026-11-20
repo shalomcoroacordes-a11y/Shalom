@@ -31,6 +31,7 @@ jobs:
           node --check src/personal-ui.js
           node --check src/personal-collections.js
           node --check src/profile-ui.js
+          node --check src/personal-workflows.js
           node --check src/personal-backup-core.js
           node --check src/personal-backup-io.js
           node --check src/personal-backup-ui.js
@@ -52,6 +53,7 @@ jobs:
           node tests/requests.test.js
           node tests/medleys.test.js
           node tests/personal-collections.test.js
+          node tests/personal-workflows.test.js
           node tests/personal-cover-ui.test.js
           node tests/local-profile.test.js
           node tests/song-actions.test.js
