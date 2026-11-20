@@ -104,29 +104,11 @@ function apCaptureSongDraft() {
   });
 }
 function apDraftValue(key) { return AP.draft?.[key] ?? ""; }
-function apCategoryPath(item) {
-  const parts = [];
-  let current = item;
-  const seen = new Set();
-  while (current && !seen.has(apId(current.id))) {
-    seen.add(apId(current.id));
-    parts.unshift(current.name || "Categoría");
-    current = AP.categories.find((row) => apId(row.id) === apId(current.parent_id));
-  }
-  return parts.join(" › ");
-}
-function apCategoryDescendants(id) {
-  const out = new Set([apId(id)]);
-  let added = true;
-  while (added) {
-    added = false;
-    AP.categories.forEach((row) => {
-      if (out.has(apId(row.parent_id)) && !out.has(apId(row.id))) { out.add(apId(row.id)); added = true; }
-    });
-  }
-  return out;
-}
-function apFlatCategories() { return apSortRows(AP.categories, apCategoryPath); }
+// El editor sigue ofreciendo estos puntos de entrada globales, con datos inyectados.
+const apCategoryTree = window.ShalomAdminCategoryTree;
+function apCategoryPath(item) { return apCategoryTree.path(AP.categories, item); }
+function apCategoryDescendants(id) { return apCategoryTree.descendants(AP.categories, id); }
+function apFlatCategories() { return apCategoryTree.flat(AP.categories); }
 function apSongArtists(song) { return (song._artists || []).map((row) => row.name).filter(Boolean).join(" · ") || "Sin artista"; }
 function apSongCategories(song) { return (song._categories || []).map((row) => row.name).filter(Boolean).join(" · "); }
 function apSongAlbums(song) { return (song._albums || []).map((row) => row.title).filter(Boolean).join(" · "); }

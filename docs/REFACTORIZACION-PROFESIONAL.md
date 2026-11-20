@@ -49,6 +49,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Administrador — posición del editor (en rama):** `admin-editor-position.js` almacena y restaura scroll horizontal/vertical, cursor y selección por canto, manteniendo la clave anterior de `sessionStorage`. `admin-pro.js` invoca el servicio sin reimplementar el almacenamiento; `admin.html` lo carga expresamente antes. `tests/admin-editor-position-regression.cjs` cubre cambios entre canciones, recarga, valores inválidos, nuevas composiciones y almacenamiento bloqueado. Sin alteraciones a Supabase ni a las letras.
 
+**Administrador — árbol de categorías (en rama):** `admin-category-tree.js` reúne las rutas de carpetas, descendientes y orden por ruta con funciones puras y protección de ciclos. `admin-pro.js` conserva los nombres de entrada que usan otros módulos, pero delega la lógica. Se mantiene el orden español y la estructura de Supabase; `tests/admin-category-tree-regression.cjs` prueba raíces, subcarpetas, ciclos y datos inmutables.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
