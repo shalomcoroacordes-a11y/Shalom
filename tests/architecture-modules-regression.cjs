@@ -90,9 +90,9 @@ assert.doesNotMatch(persistence,/document\.|querySelector|apRenderView/);
 // Android mantiene exactamente los mismos estilos, pero con una frontera
 // clara entre los componentes y las ~300 reglas de presentación.
 const app=read("mobile/App.js"),styles=read("mobile/src/app-styles.js");
-assert.match(app,/const S=require\("\.\/src\/app-styles"\)\(C\)/);
+assert.match(app,/const S=require\("\.\/src\/app-styles"\)\(C,MONO\)/);
 assert.doesNotMatch(app,/const S=StyleSheet\.create\(/);
-assert.match(styles,/module\.exports=function createAppStyles\(C\)/);
+assert.match(styles,/module\.exports=function createAppStyles\(C,MONO\)/);
 assert.match(styles,/return StyleSheet\.create\(/);
 assert.match(styles,/spotifyShortcuts:\{flexDirection:"row",flexWrap:"wrap"/);
 assert.match(styles,/songScorePlain:\{width:"100%",marginTop:13,paddingBottom:10\}/);
