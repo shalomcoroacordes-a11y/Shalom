@@ -33,7 +33,7 @@ SHALOM tiene tres partes conectadas:
 | Navegación/metadatos del sitio | `site-shell.js`, incorporado expresamente en HTML público |
 | Formularios de administración | `admin-form-layout.js`, `admin-form-layout.css`, `admin-pro.js` |
 | Cursor y scroll de edición de cantos | `admin-editor-position.js` |
-| Rutas y jerarquías de categorías Admin | `admin-category-tree.js` |
+| Rutas y jerarquías de categorías Admin | `admin-category-hierarchy.js` |
 | Administración de repertorios | `admin-repertoires.js`, `admin.html` |
 | Administración de popurrís | `admin-medleys.js`, `admin.html` |
 | Acceso al administrador | `admin-auth-controller.js`, `admin-access-guard.js`, políticas SQL |

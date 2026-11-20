@@ -63,11 +63,11 @@ assert.match(admin,/restore: apRestoreEditorPosition/);
 assert.match(admin,/apForgetEditorPosition\("__new__"\)/);
 assert.doesNotMatch(admin,/const AP_EDITOR_POSITION_KEY/);
 assert.doesNotMatch(editorPositions,/apRenderView\s*=/);
-const categoryTree=read("admin-category-tree.js");
+const categoryTree=read("admin-category-hierarchy.js");
 assert.match(html,/src="admin-category-tree\.js\?v=1"/);
-assert.ok(html.indexOf("admin-category-tree.js")<html.indexOf("admin-pro.js"));
-assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryTree/);
-assert.match(categoryTree,/window\.ShalomAdminCategoryTree = Object\.freeze/);
+assert.ok(html.indexOf("admin-category-hierarchy.js")<html.indexOf("admin-pro.js"));
+assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryHierarchy/);
+assert.match(categoryTree,/window\.ShalomAdminCategoryHierarchy = Object\.freeze/);
 assert.doesNotMatch(admin,/while \(added\) \{/);
 assert.doesNotMatch(categoryTree,/supabaseClient|\.from\(|document\./);
 

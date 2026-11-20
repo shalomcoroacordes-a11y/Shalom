@@ -50,5 +50,5 @@
       pathFrom(indexed, a).localeCompare(pathFrom(indexed, b), "es"));
   }
 
-  window.ShalomAdminCategoryTree = Object.freeze({ path, descendants, flat });
+  window.ShalomAdminCategoryHierarchy = Object.freeze({ path, descendants, flat });
 })();

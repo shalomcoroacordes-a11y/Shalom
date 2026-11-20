@@ -2,12 +2,12 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const vm=require("node:vm");
-const source=fs.readFileSync("admin-category-tree.js","utf8");
+const source=fs.readFileSync("admin-category-hierarchy.js","utf8");
 const admin=fs.readFileSync("admin-pro.js","utf8");
 const html=fs.readFileSync("admin.html","utf8");
 const context={window:{}};
 vm.runInNewContext(source,context);
-const tree=context.window.ShalomAdminCategoryTree;
+const tree=context.window.ShalomAdminCategoryHierarchy;
 assert.ok(Object.isFrozen(tree));
 const categories=[
  {id:"a",name:"Misa",parent_id:null},
@@ -39,10 +39,10 @@ assert.deepEqual(Array.from(tree.descendants(circular,"x")).sort(),["x","y"],
 assert.equal(JSON.stringify(categories),snapshot,"No modificar categorías descargadas");
 assert.deepEqual(Array.from(tree.descendants([],"a")),["a"]);
 assert.deepEqual(Array.from(tree.flat([])),[]);
-assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryTree/);
+assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryHierarchy/);
 assert.match(admin,/function apCategoryPath\(item\)/);
 assert.match(admin,/function apCategoryDescendants\(id\)/);
 assert.match(admin,/function apFlatCategories\(\)/);
-assert.ok(html.indexOf("admin-category-tree.js")<html.indexOf("admin-pro.js"),
+assert.ok(html.indexOf("admin-category-hierarchy.js")<html.indexOf("admin-pro.js"),
  "La ruta de categorías debe existir antes del consumidor");
 console.log("SHALOM Admin: rutas, subcategorías, ciclos y orden estables.");

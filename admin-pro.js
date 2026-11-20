@@ -105,7 +105,7 @@ function apCaptureSongDraft() {
 }
 function apDraftValue(key) { return AP.draft?.[key] ?? ""; }
 // El editor sigue ofreciendo estos puntos de entrada globales, con datos inyectados.
-const apCategoryTree = window.ShalomAdminCategoryTree;
+const apCategoryTree = window.ShalomAdminCategoryHierarchy;
 function apCategoryPath(item) { return apCategoryTree.path(AP.categories, item); }
 function apCategoryDescendants(id) { return apCategoryTree.descendants(AP.categories, id); }
 function apFlatCategories() { return apCategoryTree.flat(AP.categories); }
