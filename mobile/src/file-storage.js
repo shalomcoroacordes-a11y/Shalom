@@ -76,7 +76,11 @@ async function saveSnapshot(data) {
   const last = await readSnapshot();
   const nextSlot = last.slot === "A" ? "B" : "A";
   const next = fileFor(nextSlot);
-  const syncedAt = new Date().toISOString();
+  // Hora estrictamente creciente, incluso ante dos escrituras en un mismo ms.
+  // SQLite puede comparar esta fecha con su última sincronización.
+  const oldTime = Date.parse(last.syncedAt || "");
+  const nextTime = Math.max(Date.now(), Number.isFinite(oldTime) ? oldTime + 1 : 0);
+  const syncedAt = new Date(nextTime).toISOString();
   const snapshot = {
     source: SHALOM_SOURCE, syncedAt, data, version: 1,
     revision: (last.revision || 0) + 1,
