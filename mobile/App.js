@@ -1161,7 +1161,7 @@ function AppScreen() {
 }
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 // La lógica de navegación no contiene definiciones de estilo.
-const S=require("./src/app-styles")(C);
+const S=require("./src/app-styles")(C,MONO);
 const {label,type,inputField,Btn,Card,Chip,SongRow,EntityRow,Photo,AppSectionHeader,AppDetailHeader,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty}=
  require("./src/app-components")({styles:S,colors:C,images:HOME_IMAGES,InitialCover});
 module.exports=App;

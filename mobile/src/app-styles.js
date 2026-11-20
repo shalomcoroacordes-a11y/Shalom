@@ -1,7 +1,8 @@
 // Estilos de la aplicación principal, independientes de las pantallas y sus eventos.
 // Reciben la paleta SHALOM; mantener los nombres de estilo estables evita regresiones.
 const {StyleSheet}=require("react-native");
-module.exports=function createAppStyles(C){
+// La tipografía se inyecta desde App.js; no depender de globales de Hermes.
+module.exports=function createAppStyles(C,MONO){
  return StyleSheet.create({
  libraryList:{gap:9,paddingBottom:10},
  libraryTitleRow:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",
