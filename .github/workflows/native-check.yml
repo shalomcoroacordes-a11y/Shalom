@@ -38,10 +38,13 @@ jobs:
           node --check src/profile-options-menu.js
           node --check src/chord-grid.js
           node --check src/aligned-score-ui.js
+          node --check src/aligned-score-legacy-ui.js
+          node --check src/web-score-html.js
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
           node tests/chord-grid.test.js
+          node tests/web-score-html.test.js
           node tests/favorites.test.js
           node tests/repertoire-ui.test.js
           node tests/catalog.test.js
