@@ -74,6 +74,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Sincronización Android sin saltos de páginas (en rama):** `mobile/src/sync.js` descarga las tablas con paginación por identificador (`id=gt.<último ID>`) en lugar de desplazamientos numéricos. Antes de guardar verifica IDs presentes y orden estricto; una respuesta repetida, corrupta o fuera de orden rechaza la descarga y conserva la copia anterior. `mobile/tests/catalog-sync-pagination.test.js` simula 552 filas, supresiones durante la descarga, páginas completas, errores y Wi-Fi. No cambia el modelo SQLite ni la configuración de la base pública.
 
+**Recuperación entre SQLite y Archivos Android (en rama):** `mobile/tests/database-failover.test.js` usa SQLite y almacenamiento de archivos simulados para probar copia válida cuando falla SQLite, persistencia por transacción ante un error de escritura, respaldo fallido con SQLite disponible, recuperación frente a ambas fallas y preferencias que sobreviven a sincronizaciones. Ninguna prueba modifica datos del dispositivo.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.
