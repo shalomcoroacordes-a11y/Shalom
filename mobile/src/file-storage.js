@@ -13,6 +13,16 @@ function prefsFile() {
 function emptyData() {
   return Object.fromEntries(TABLES.map(table => [table, []]));
 }
+// Suma de comprobación no criptográfica: detecta escrituras incompletas
+// o contenidos cambiados, sin invalidar respaldos antiguos sin checksum.
+function snapshotChecksum(data) {
+  const payload = JSON.stringify(data);
+  let hash = 2166136261;
+  for (let i = 0; i < payload.length; i++) {
+    hash = Math.imul(hash ^ payload.charCodeAt(i), 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
 function validSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== "object" ||
       typeof snapshot.syncedAt !== "string" ||
@@ -21,6 +31,7 @@ function validSnapshot(snapshot) {
   // Versiones anteriores no tenían necesariamente el campo source.
   // Cuando está presente debe identificar inequívocamente la base SHALOM.
   if (snapshot.source != null && snapshot.source !== SHALOM_SOURCE) return false;
+  if (snapshot.checksum != null && snapshot.checksum !== snapshotChecksum(snapshot.data)) return false;
   return TABLES.every(table => {
     const rows = snapshot.data[table];
     if (rows == null && ["medleys","repertoires"].includes(table)) return true;
@@ -60,16 +71,26 @@ async function saveSnapshot(data) {
   const nextSlot = last.slot === "A" ? "B" : "A";
   const next = fileFor(nextSlot);
   const syncedAt = new Date().toISOString();
-  const snapshot = { source: SHALOM_SOURCE, syncedAt, data, version: 1 };
+  const snapshot = {
+    source: SHALOM_SOURCE, syncedAt, data, version: 1,
+    checksum: snapshotChecksum(data)
+  };
   // Sólo sobrescribe la ranura inactiva. La última copia buena sigue intacta.
-  next.create({ overwrite: true });
-  await next.write(JSON.stringify(snapshot));
-  const test = await readSlot(nextSlot);
-  if (!test || test.source !== SHALOM_SOURCE ||
-      JSON.stringify(test.data) !== JSON.stringify(data)) {
-    throw new Error("No se pudo verificar que el archivo del cancionero se guardara completo.");
+  try {
+    next.create({ overwrite: true });
+    await next.write(JSON.stringify(snapshot));
+    const test = await readSlot(nextSlot);
+    if (!test || test.source !== SHALOM_SOURCE ||
+        JSON.stringify(test.data) !== JSON.stringify(data)) {
+      throw new Error("No se pudo verificar que el archivo del cancionero se guardara completo.");
+    }
+    return syncedAt;
+  } catch (error) {
+    // La ranura fallida nunca debe superar a la última copia buena.
+    // File.delete es la API de expo-file-system SDK 58.
+    try { if (next.exists) next.delete(); } catch (_) {}
+    throw error;
   }
-  return syncedAt;
 }
 
 async function getPreference(key, fallback = null) {

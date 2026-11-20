@@ -70,7 +70,7 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **APK de prueba paralela (en rama):** `.github/workflows/android-preview.yml` construye desde el PR una APK con paquete temporal `com.shalomcoroacordes.cancionero.preview` y nombre «SHALOM Pruebas». Se guarda solamente como artefacto de Actions; no crea ni sobrescribe Releases. Su instalación puede coexistir con la SHALOM oficial, pero **no valida actualizaciones ni recuperación del almacenamiento de la instalación normal**. El resultado de la compilación y las pruebas manuales están pendientes.
 
-**Recuperación offline Android reforzada (en rama):** `mobile/src/file-storage.js` valida origen SHALOM cuando está identificado, IDs presentes y únicos, y el contenido completo después de escribir la ranura inactiva. Mantiene respaldo anterior cuando una escritura queda corrupta, y admite snapshots heredados sin `source`, `medleys` o `repertoires`. `mobile/tests/file-storage-recovery.test.js` ensaya cortes, contaminación de datos, recuperación y preferencias sin tocar archivos reales.
+**Recuperación offline Android reforzada (en rama):** `mobile/src/file-storage.js` valida origen SHALOM cuando está identificado, IDs presentes y únicos, checksum de datos y el contenido completo después de escribir la ranura inactiva. Si falla, borra la ranura nueva y preserva la copia anterior. Mantiene respaldo anterior cuando una escritura queda corrupta, y admite snapshots heredados sin `source`, `medleys` o `repertoires`. `mobile/tests/file-storage-recovery.test.js` ensaya cortes, contaminación de datos, recuperación y preferencias sin tocar archivos reales.
 
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 

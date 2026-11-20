@@ -10,6 +10,7 @@ class FakeFile {
  constructor(root,name){this.name=name}
  get exists(){return memory.has(this.name)}
  create({overwrite}={}){if(this.exists&&!overwrite)throw Error("File exists");memory.set(this.name,"")}
+ delete(){memory.delete(this.name)}
  async text(){if(!this.exists)throw Error("File missing");return memory.get(this.name)}
  async write(value){
   if(nextWrite){const effect=nextWrite;nextWrite=null;return effect(this.name,value)}
@@ -40,6 +41,7 @@ const key=name=>"shalom-offline-"+name+".json";
  const second=data();second.songs=[row("new")];
  const time2=await storage.saveSnapshot(second);
  assert.equal(memory.has(key("B")),true);
+ assert.match(JSON.parse(memory.get(key("B"))).checksum,/^[0-9a-f]{8}$/);
  assert.equal((await storage.readSnapshot()).data.songs[0].id,"new");
 
  // Una copia en B con mismo número de filas pero contenido alterado NO es válida.
@@ -64,12 +66,17 @@ const key=name=>"shalom-offline-"+name+".json";
  const wrongId=JSON.parse(memory.get(key("B")));
  wrongId.data.songs=[{id:"x"},{id:"x"}];
  assert.equal(storage.validSnapshot(wrongId),false,"Rechazar identificadores duplicados");
+ const sameLengthChanged=JSON.parse(memory.get(key("B")));
+ sameLengthChanged.data.songs[0].id="nex";
+ assert.equal(storage.validSnapshot(sameLengthChanged),false,
+  "El checksum detecta cambios incluso cuando el tamaño del archivo es igual");
  const noId=JSON.parse(memory.get(key("B")));
  noId.data.songs=[{title:"Canto sin ID"}];
  assert.equal(storage.validSnapshot(noId),false);
  // Una descarga de una versión antigua puede no tener popurrís y repertorios.
  const legacy=JSON.parse(memory.get(key("B")));
- delete legacy.source;delete legacy.data.medleys;delete legacy.data.repertoires;
+ delete legacy.source;delete legacy.checksum;
+ delete legacy.data.medleys;delete legacy.data.repertoires;
  assert.equal(storage.validSnapshot(legacy),true,
   "Mantener compatibilidad con las copias anteriores de SHALOM");
  memory.set(key("A"),JSON.stringify(legacy));
@@ -82,5 +89,6 @@ const key=name=>"shalom-offline-"+name+".json";
  assert.equal(await storage.getPreference("no-existe","defecto"),"defecto");
  const invalid=data();invalid.songs=[{title:"sin ID"}];
  await assert.rejects(storage.saveSnapshot(invalid),/verificar/);
+ assert.equal((await storage.readSnapshot()).data.songs[0].id,"new");
  console.log("SHALOM Android: doble respaldo, recuperación, integridad y compatibilidad comprobados.");
 })().catch(err=>{console.error(err);process.exitCode=1});
