@@ -43,7 +43,7 @@ jobs:
           /tmp/shalom-upgrade-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
           /tmp/shalom-upgrade-icons/bin/python scripts/generate_icons.py
           node scripts/release-preflight.js
-      - name: Stage v0.4.11 and versionCode 34 ONLY in disposable runner
+      - name: Stage v0.4.12 and versionCode 35 ONLY in disposable runner
         run: |
           node - <<'NODE'
           const fs=require("node:fs");
@@ -53,9 +53,9 @@ jobs:
             app.expo.android.versionCode!==33 ||
             app.expo.android.package!=="com.shalomcoroacordes.cancionero")
             throw Error("Baseline Android changed; refusing to build an unreviewed upgrade");
-          app.expo.version="0.4.11";
-          app.expo.android.versionCode=34;
-          pkg.version="0.4.11";
+          app.expo.version="0.4.12";
+          app.expo.android.versionCode=35;
+          pkg.version="0.4.12";
           fs.writeFileSync("app.json",JSON.stringify(app,null,2)+"\n");
           fs.writeFileSync("package.json",JSON.stringify(pkg,null,2)+"\n");
           NODE
@@ -83,14 +83,23 @@ jobs:
       - name: Preserve VERIFIED rehearsal candidate as temporary artifact only
         uses: actions/upload-artifact@v4
         with:
-          name: SHALOM-UPGRADE-TEST-0.4.11-${{ github.sha }}
+          name: SHALOM-UPGRADE-TEST-0.4.12-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Rehearse 0.4.10 to 0.4.11 on emulator with adb install -r
+      - name: Enable hardware acceleration for Android emulator
+        run: |
+          if [ ! -c /dev/kvm ]; then
+            echo "::error::GitHub runner does not expose /dev/kvm. Cannot claim emulator coverage." >&2
+            exit 1
+          fi
+          sudo chmod a+rw /dev/kvm
+          ls -l /dev/kvm
+      - name: Rehearse 0.4.10 to 0.4.12 on emulator with adb install -r
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
+          disable-linux-hw-accel: false
           target: google_apis
           arch: x86_64
           profile: pixel_4

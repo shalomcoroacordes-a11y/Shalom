@@ -35,7 +35,8 @@ realizarse en teléfonos, sesiones y navegadores reales.
 - [x] **Comprobado en GitHub:** las APK oficiales 0.4.8 y 0.4.10 comparten SHA-256 del certificado `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`.
 - [x] Auditoría ampliada aprobada en GitHub: paquete `com.shalomcoroacordes.cancionero` idéntico; `versionCode` 31 en 0.4.8 y 33 en 0.4.10.
 
-- [ ] Verificar el ensayo automático `android-upgrade-rehearsal.yml`: paquete original, versión temporal 0.4.11, `versionCode=34`, certificado idéntico a 0.4.10 e instalación `adb install -r` en emulador. Si falla la firma NO distribuir el APK.
+- [ ] **0.4.11 reportada con cierre tras splash en Android físico (video 20 nov 2026). NO distribuir esa versión.** Sospecha de constructor URL de navegador utilizado al importar el almacenamiento antes de montar React; corregido en rama con prueba Hermes sin URL, pero falta confirmar APK corregida en dispositivo.
+- [ ] Verificar el nuevo ensayo automático: APK temporal **0.4.12 / versionCode 35**, mismo certificado que 0.4.10 y arranque estable en emulador con KVM. Si falla NO distribuir ni desinstalar.
 - [ ] Actualizar APK sobre v0.4.10 SIN DESINSTALAR y verificar certificado, versión y datos.
 - [ ] Repetir con red lenta, sin Wi-Fi, fallas parciales y diferentes tamaños de pantalla.
 

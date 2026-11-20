@@ -2,7 +2,10 @@
 // Dos copias alternas: una descarga interrumpida no reemplaza la última copia válida.
 const { File, Paths } = require("expo-file-system");
 const { TABLES, SUPABASE_URL } = require("./config");
-const SHALOM_SOURCE = new URL(SUPABASE_URL).hostname.split(".")[0];
+// Hermes puede no implementar new URL(...) sin un polyfill.
+// Nunca interpretar la URL en la carga inicial de la app: un error aquí
+// cerraría SHALOM antes de montar la pantalla y abrir las colecciones.
+const SHALOM_SOURCE = String(SUPABASE_URL).match(/^https:\/\/([a-z0-9]+)\.supabase\.co\/?$/)?.[1] || "";
 
 function fileFor(slot) {
   return new File(Paths.document, "shalom-offline-" + slot + ".json");
