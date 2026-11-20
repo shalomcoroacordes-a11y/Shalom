@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run from repository root. No adb uninstall, pm clear or data reset.
+# Run from repository root. Preserve all app-private data across in-place installation.
 set -euo pipefail
 PKG="com.shalomcoroacordes.cancionero"
 OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.10.apk"
