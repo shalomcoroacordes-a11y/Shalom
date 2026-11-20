@@ -159,7 +159,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function saveTitle(){
   const value=nameDraft.trim();
   if(!value)return Alert.alert("Nombre obligatorio","Escribe un nombre para guardar.");
-  updateEntry(e=>({...e,title:value.slice(0,120)}),{notice:"Nombre actualizado"});
+  if(value!==entry?.title)updateEntry(e=>({...e,title:value.slice(0,120)}),{notice:"Nombre actualizado"});
  }
  function changePart(id,fn){updateEntry(e=>({...e,parts:e.parts.map(p=>p.id===id?fn(p):p)}));}
  function movePart(index,delta){
@@ -496,7 +496,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     label(item.title,styles.cardTitle),
     label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
     h(View,{style:styles.actions},
-     action("Abrir",()=>{setEntryId(item.id);setView("reading");setReaderShift(0)},false,item.parts.length===0),
+     action("Abrir",()=>{setEntryId(item.id);setView("reading");setReaderShift(0);setEditReturn("folder")},false,item.parts.length===0),
      action("Editar",()=>editEntry(item),true),
      action("Compartir",()=>showShare(item,folder,"folder"),true,item.parts.length===0)),
     action("Eliminar",()=>deleteEntry(item),true))),
@@ -518,10 +518,16 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    label(entry.kind==="misa"?"Prepara tu misa":entry.kind==="repertorio"?"Prepara tu repertorio":"Prepara tu popurrí",styles.pageTitle),
    label("Agrega cantos del catálogo. Después puedes ajustar estrofas y tonos.",styles.description),
    label("Nombre",styles.inputLabel),
-   input(nameDraft,setNameDraft,"Nombre de tu composición"),
+   h(TextInput,{value:nameDraft,onChangeText:setNameDraft,
+    onBlur:()=>{if(nameDraft.trim()&&nameDraft.trim()!==entry.title)saveTitle();},
+    placeholder:"Nombre de tu composición",placeholderTextColor:theme.muted,
+    style:styles.input,maxLength:120}),
    h(View,{style:styles.actions},
     action("Guardar nombre",saveTitle,true,nameDraft.trim()===entry.title||!nameDraft.trim()),
-    action("✓  Listo",()=>{setAdding(false);setExpandedPartId(null);setView(editReturn)},true)),
+    action("✓  Listo",()=>{
+     if(!nameDraft.trim())return Alert.alert("Falta el nombre","Escribe el nombre de tu composición.");
+     saveTitle();setAdding(false);setExpandedPartId(null);setView(editReturn);
+    },true)),
    h(View,{style:styles.editorStep},
     label("1. Elige tus cantos",styles.cardTitle),
     label("Puedes repetir cantos para formar un popurrí o una misa.",styles.description),
@@ -576,12 +582,12 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    h(View,{style:styles.editorFinish},
     action("▶  Leer composición",()=>{setView("reading");setReaderShift(0)},false,!entry.parts.length),
     action("↗  Compartir",()=>showShare(entry,folder,"editing"),true,!entry.parts.length)),
-   label("Los cambios se guardan automáticamente en tu teléfono.",styles.privacyNote));
+   label("Los cambios se guardan en tu teléfono. El nombre también se guarda al salir del campo.",styles.privacyNote));
  }
  function readingView(){
   if(!folder||!entry)return folderView();
   return h(View,{style:styles.container},
-   action("← Editar "+(entry.kind==="misa"?"misa":"popurrí"),back,true),
+   action("← Editar "+kindName(entry.kind),back,true),
    label(entry.title,styles.pageTitle),
    label((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description),
    h(View,{style:styles.toneRow},
