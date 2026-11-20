@@ -68,6 +68,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Validación transversal (en rama):** `tests/launch-critical-path-regression.cjs` verifica Admin → páginas de cantos, popurrís y repertorios → catálogo Android con categorías múltiples y exclusión de borradores. `docs/LANZAMIENTO-CHECKLIST.md` distingue pruebas automáticas de pasos físicos pendientes. No se simuló un teléfono real ni se realizaron escrituras en Supabase.
 
+**APK de prueba paralela (en rama):** `.github/workflows/android-preview.yml` construye desde el PR una APK con paquete temporal `com.shalomcoroacordes.cancionero.preview` y nombre «SHALOM Pruebas». Se guarda solamente como artefacto de Actions; no crea ni sobrescribe Releases. Su instalación puede coexistir con la SHALOM oficial, pero **no valida actualizaciones ni recuperación del almacenamiento de la instalación normal**. El resultado de la compilación y las pruebas manuales están pendientes.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.

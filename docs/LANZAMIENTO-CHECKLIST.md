@@ -24,6 +24,7 @@ realizarse en teléfonos, sesiones y navegadores reales.
 ## 3. Android y continuidad de datos
 - [x] Validaciones automatizadas de catálogo, favoritos, SQLite y respaldos.
 - [x] Gate de publicación manual: solo main, tag nuevo y certificado compatible con v0.4.10.
+- [ ] Descargar e instalar la APK aislada «SHALOM Pruebas» del PR sin reemplazar SHALOM 0.4.10.
 - [ ] Probar en un Android físico: sincronizar todas las tablas y abrir lectores en modo avión.
 - [ ] Guardar perfil, favoritos, fotos y colecciones; reiniciar y comprobar persistencia.
 - [ ] Exportar e importar respaldo SHALOM1; validar datos y ausencia de duplicados.
