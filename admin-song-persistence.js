@@ -82,9 +82,56 @@
     return {error: {message: "No se pudo guardar la canción."}};
   }
 
+  // La función original de Supabase es transaccional, pero solo admite 0 o 1
+  // categoría. Nunca usarla para cantos con varias categorías.
+  function legacyRpcArguments(plan, id) {
+    const rows = Object.fromEntries(plan.relations(id || null));
+    if (rows.song_categories.length > 1) return null;
+    return {
+      p_song_id: id || null,
+      p_song: plan.payload,
+      p_artists: rows.song_artists.map(row => ({artist_id: row.artist_id})),
+      p_category_id: rows.song_categories[0]?.category_id || null,
+      p_album_id: rows.album_songs[0]?.album_id || null,
+      p_links: rows.song_links.filter(row => String(row.url || "").trim()).map(row => ({
+        title: row.title, link_type: row.link_type, platform: row.platform, url: row.url
+      })),
+      p_capos: rows.song_capo_versions.filter(row =>
+        Number(row.capo_position) > 0 && String(row.capo_key || "").trim()).map(row => ({
+        label: row.label, capo_position: row.capo_position, capo_key: row.capo_key
+      }))
+    };
+  }
+
+  async function saveViaExistingRpc(db, args) {
+    try {
+      const result = await db.rpc("jhd_save_song_bundle", args);
+      if (result.error) return {
+        ok: false, phase: "rpc", message: "No se guardó la canción: " + result.error.message
+      };
+      if (typeof result.data !== "string" || !result.data) return {
+        ok: false, phase: "uncertain",
+        message: "No se confirmó el identificador del canto. Comprueba si aparece en el catálogo antes de volver a guardar."
+      };
+      return {ok: true, phase: "complete", songId: result.data};
+    } catch(error) {
+      // Un fallo de red puede ocurrir DESPUÉS del COMMIT del servidor.
+      // No aconsejar un reintento a ciegas cuando aún no conocemos el ID.
+      return {
+        ok: false, phase: "uncertain",
+        message: "No se confirmó el guardado: " +
+          (error?.message || "Error de conexión.") +
+          ". Verifica el catálogo antes de intentar otra vez."
+      };
+    }
+  }
+
   async function save({db, draft, links = [], capos = [], id = null, slug}) {
     const plan = prepare(draft, links, capos, slug);
     if (plan.error) return {ok: false, phase: "validation", message: plan.error};
+    const rpcArgs = legacyRpcArguments(plan, id);
+    if (rpcArgs && typeof db.rpc === "function")
+      return saveViaExistingRpc(db, rpcArgs);
     let songId = null;
     try {
       const saved = await writeSong(db, plan.payload, id);
@@ -123,6 +170,7 @@
   }
 
   window.ShalomAdminSongPersistence = Object.freeze({
-    prepare, missingOptionalColumn, writeSong, save, RELATIONS
+    prepare, missingOptionalColumn, writeSong, save,
+    legacyRpcArguments, saveViaExistingRpc, RELATIONS
   });
 })();

@@ -53,6 +53,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Administrador — guardado de canciones recuperable (en rama):** `admin-song-persistence.js` valida el canto, construye sus relaciones y realiza las operaciones de Supabase por etapas con errores identificables. Ante una falla posterior al guardado del canto, devuelve su ID; `admin-pro.js` lo conserva para que «Guardar» vuelva a editar la misma canción y no cree un duplicado. El controlador evita dobles envíos simultáneos y mantiene el borrador al fallar. No implica atomicidad ni resuelve completamente una actualización parcial: para ello hará falta una operación transaccional en Supabase después de revisar esquema, RLS y respaldos. `tests/admin-song-persistence-regression.cjs` cubre validación, compatibilidad de columnas, errores de relaciones, reintentos y cambios en la interfaz.
 
+**Guardado atómico compatible con Supabase (en rama):** tras auditar el proyecto SHALOM en modo lectura se confirmó que `jhd_save_song_bundle` existe, usa `SECURITY INVOKER`, comprueba `jhd_is_admin()` y realiza la escritura en una sola llamada RPC. `admin-song-persistence.js` lo consume para cantos con cero o una categoría, con pruebas de acceso denegado y errores de red. **La función actual solo admite una categoría**; con dos o más se conserva el procedimiento anterior, aún no atómico, hasta aprobar y probar la versión SQL multicategroría. Una respuesta de red incierta NO se trata como confirmación de guardado.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

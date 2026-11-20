@@ -99,6 +99,9 @@ jobs:
       - name: Test retryable song persistence and partial relation errors
         run: node tests/admin-song-persistence-regression.cjs
 
+      - name: Test transactional song RPC compatibility and multi-category fallback
+        run: node tests/admin-song-rpc-regression.cjs
+
       - name: Test editor cursor and scroll persistence across forms
         run: node tests/admin-editor-position-regression.cjs
 
