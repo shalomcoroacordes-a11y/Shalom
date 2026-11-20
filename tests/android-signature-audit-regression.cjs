@@ -12,6 +12,7 @@ assert.match(w,/aapt/);
 assert.match(w,/dump badging SHALOM-Android-v0\.4\.8\.apk/);
 assert.match(w,/dump badging SHALOM-Android-v0\.4\.10\.apk/);
 assert.match(w,/com\.shalomcoroacordes\.cancionero/);
+assert.ok(w.includes("^package: name="),"El paquete debe analizarse con un prefijo exacto del manifiesto");
 assert.match(w,/CODE_048.*>=.*CODE_0410/);
 assert.match(w,/SHA_048.*!=.*SHA_0410/);
 assert.match(w,/exit 1/);
