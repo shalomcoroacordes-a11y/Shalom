@@ -32,6 +32,7 @@ SHALOM tiene tres partes conectadas:
 | Almacenamiento sin conexión | `mobile/src/database.js`, `mobile/src/file-storage.js` |
 | Navegación/metadatos del sitio | `site-shell.js`, incorporado expresamente en HTML público |
 | Formularios de administración | `admin-form-layout.js`, `admin-form-layout.css`, `admin-pro.js` |
+| Guardado y recuperación parcial de cantos Admin | `admin-song-persistence.js`, `admin-pro.js` |
 | Cursor y scroll de edición de cantos | `admin-editor-position.js` |
 | Rutas y jerarquías de categorías Admin | `admin-category-hierarchy.js` |
 | Administración de repertorios | `admin-repertoires.js`, `admin.html` |

@@ -49,6 +49,7 @@ def main():
         ("admin-backup.js", "admin-backup-import.js"),
         ("admin-form-layout.js", "admin-editor-position.js", "admin-pro.js"),
         ("admin-category-hierarchy.js", "admin-pro.js", "admin-category-browser-v2.js"),
+        ("admin-song-persistence.js", "admin-pro.js"),
         ("admin-pro.js", "admin-category-browser-v2.js", "admin-song-category-picker.js"),
     ]
     for chain in chains:

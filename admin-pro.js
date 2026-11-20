@@ -316,28 +316,29 @@ function apAddCapoDraft() { apCaptureSongDraft(); const draft = AP.draft, positi
 
 async function apSaveArtist(event) { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget).entries()); if (!String(data.name || "").trim()) return; const payload = { name: String(data.name).trim(), slug: apSlug(data.name), artist_type: String(data.artist_type || "").trim() || "general", description: String(data.description || "").trim() || null }; const result = AP.edits.artist ? await AdminPro.from("artists").update(payload).eq("id", AP.edits.artist) : await AdminPro.from("artists").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } AP.edits.artist = null; await apRefresh("Artista guardado."); }
 async function apSaveAlbum(event) { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget).entries()); const payload = { artist_id: data.artist_id, title: String(data.title || "").trim(), slug: apSlug(data.title), sort_order: Number(data.sort_order || 0), description: String(data.description || "").trim() || null }; if (!payload.artist_id || !payload.title) { apNote("Selecciona artista y escribe el nombre del álbum.", true); return; } const result = AP.edits.album ? await AdminPro.from("albums").update(payload).eq("id", AP.edits.album) : await AdminPro.from("albums").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } AP.edits.album = null; await apRefresh("Álbum guardado."); }
-async function apOptionalSongWrite(payload, id) { const optional = ["difficulty", "capo_position", "capo_key"]; let patch = { ...payload }; for (let attempt = 0; attempt <= optional.length; attempt++) { const query = id ? AdminPro.from("songs").update(patch).eq("id", id).select("id").single() : AdminPro.from("songs").insert([patch]).select("id").single(); const result = await query; if (!result.error) return result; const key = optional.find((field) => String(result.error.message || "").toLowerCase().includes(field.toLowerCase())); if (!key || !(key in patch)) return result; delete patch[key]; } return { error: { message: "No se pudo guardar la canción." } }; }
+// El módulo de persistencia conoce las tablas; esta pantalla sólo conserva el borrador.
+let apSongSaving = false;
 async function apSaveSong(event) {
-  event.preventDefault(); apCaptureSongDraft(); const draft = AP.draft; const main = apId(draft.main_artist_id); const artists = [...new Set([main, ...(draft.collaborators || []).map(apId)].filter(Boolean))];
-  if (!String(draft.title || "").trim()) { apNote("Escribe el título de la canción.", true); return; }
-  if (!String(draft.tone || "").trim()) { apNote("Escribe el tono original.", true); return; }
-  if (!artists.length) { apNote("Selecciona al menos un artista.", true); return; }
-  if (Number(draft.capo_position || 0) > 0 && !String(draft.capo_key || "").trim()) { apNote("Si usas capo principal, escribe las figuras.", true); return; }
-  const payload = { title: String(draft.title).trim(), slug: apSlug(draft.title), song_type: draft.song_type || "catolico", tone: String(draft.tone).trim(), lyrics: String(draft.lyrics || ""), difficulty: String(draft.difficulty || "").trim() || null, capo_position: Number(draft.capo_position || 0), capo_key: Number(draft.capo_position || 0) > 0 ? String(draft.capo_key || "").trim() : "" };
-  const saved = await apOptionalSongWrite(payload, AP.edits.song);
-  if (saved.error || !saved.data) { apNote(`Error: ${saved.error?.message || "No se pudo guardar."}`, true); return; }
-  const songId = saved.data.id;
-  const clearResults = await Promise.all([AdminPro.from("song_artists").delete().eq("song_id", songId), AdminPro.from("song_categories").delete().eq("song_id", songId), AdminPro.from("album_songs").delete().eq("song_id", songId), AdminPro.from("song_links").delete().eq("song_id", songId), AdminPro.from("song_capo_versions").delete().eq("song_id", songId)]);
-  const clearError = clearResults.find((row) => row.error)?.error; if (clearError) { apNote(`Error al actualizar relaciones: ${clearError.message}`, true); return; }
-  const writes = [];
-  writes.push(AdminPro.from("song_artists").insert(artists.map((artistId, index) => ({ song_id: songId, artist_id: artistId, role: index === 0 ? "principal" : "colaborador", sort_order: index }))));
-  const categoryIds = [...new Set((Array.isArray(draft.category_ids) ? draft.category_ids : [draft.category_id]).map(apId).filter(Boolean))];
-  if (categoryIds.length) writes.push(AdminPro.from("song_categories").insert(categoryIds.map((categoryId) => ({ song_id: songId, category_id: categoryId }))));
-  if (draft.album_id) writes.push(AdminPro.from("album_songs").insert([{ song_id: songId, album_id: draft.album_id, sort_order: 0 }]));
-  if (AP.links.length) writes.push(AdminPro.from("song_links").insert(AP.links.map((row, index) => ({ song_id: songId, title: row.title || "Enlace", link_type: row.link_type || "Tutorial", platform: row.platform || "", url: row.url || "", sort_order: index }))));
-  if (AP.capos.length) writes.push(AdminPro.from("song_capo_versions").insert(AP.capos.map((row, index) => ({ song_id: songId, label: row.label || "", capo_position: Number(row.capo_position || 0), capo_key: row.capo_key || "", sort_order: index }))));
-  const writeResults = await Promise.all(writes); const writeError = writeResults.find((row) => row.error)?.error; if (writeError) { apNote(`La canción se guardó, pero una relación falló: ${writeError.message}`, true); return; }
-  apResetDraft(); await apRefresh("Canción guardada.");
+  event.preventDefault();
+  if (apSongSaving) return;
+  apSongSaving = true;
+  try {
+    apCaptureSongDraft();
+    const result = await window.ShalomAdminSongPersistence.save({
+      db: AdminPro, draft: AP.draft, links: AP.links, capos: AP.capos,
+      id: AP.edits.song, slug: apSlug
+    });
+    // Si la canción se guardó pero alguna relación falló, reintentar
+    // actualiza el mismo ID en lugar de crear otra canción.
+    if (result.songId) AP.edits.song = result.songId;
+    if (!result.ok) { apNote(result.message, true); return; }
+    apResetDraft();
+    await apRefresh("Canción guardada.");
+  } catch (error) {
+    apNote("Error al guardar: " + (error?.message || "Inténtalo nuevamente."), true);
+  } finally {
+    apSongSaving = false;
+  }
 }
 async function apHandleDeleteError(error) { if (!error) return false; apNote(`Error: ${error.message}`, true); return true; }
 async function apDeleteArtist(id) { const usedSongs = AP.songs.some((song) => song._artists.some((artist) => apId(artist.id) === apId(id))); const usedAlbums = AP.albums.some((album) => apId(album.artist_id) === apId(id)); if (usedSongs || usedAlbums) { apNote("No se puede eliminar: este artista tiene canciones o álbumes relacionados.", true); return; } if (!confirm("¿Eliminar este artista?")) return; const { error } = await AdminPro.from("artists").delete().eq("id", id); if (await apHandleDeleteError(error)) return; await apRefresh("Artista eliminado."); }

@@ -70,6 +70,18 @@ assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryHierarchy/
 assert.match(categoryTree,/window\.ShalomAdminCategoryHierarchy = Object\.freeze/);
 assert.doesNotMatch(admin,/while \(added\) \{/);
 assert.doesNotMatch(categoryTree,/supabaseClient|\.from\(|document\./);
+// El controlador no repite los INSERT/DELETE de relaciones del catálogo.
+const persistence=read("admin-song-persistence.js");
+assert.match(html,/src="admin-song-persistence\.js\?v=1"/);
+assert.ok(html.indexOf("admin-song-persistence.js") < html.indexOf("admin-pro.js"));
+assert.match(admin,/ShalomAdminSongPersistence\.save\(/);
+assert.match(admin,/if \(result\.songId\) AP\.edits\.song = result\.songId/);
+assert.match(persistence,/window\.ShalomAdminSongPersistence = Object\.freeze/);
+assert.match(persistence,/for \(const table of RELATIONS\)/);
+assert.doesNotMatch(admin,/async function apOptionalSongWrite\(/);
+assert.doesNotMatch(persistence,/document\.|querySelector|apRenderView/);
+
+
 
 
 
