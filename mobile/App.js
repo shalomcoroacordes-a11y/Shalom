@@ -1,7 +1,7 @@
 const React=require("react");
 const {useEffect,useMemo,useState,useRef,useCallback}=React;
 const {
- View,Text,TextInput,Pressable,ScrollView,StatusBar,StyleSheet,
+ View,Text,TextInput,Pressable,ScrollView,StatusBar,
  Switch,Alert,AppState,BackHandler,Platform,Linking,Image,ActivityIndicator,Share
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
