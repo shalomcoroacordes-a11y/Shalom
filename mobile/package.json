@@ -29,6 +29,7 @@
     "expo-clipboard": "~58.0.4"
   },
   "overrides": {
-    "@babel/traverse": "7.29.14"
+    "@babel/traverse": "7.29.14",
+    "@babel/plugin-transform-block-scoping": "7.29.14"
   }
 }
