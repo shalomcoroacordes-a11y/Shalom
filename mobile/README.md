@@ -197,3 +197,16 @@ La 0.4.5 dibujaba renglones completos en React Native, pero Android aún alterab
 - Los controles de tono, capo, imprimir, compartir y YouTube permanecen igual. No se modifica el catálogo ni Supabase.
 - Nueva prueba de regresión para evitar que regrese un contenedor que recorte o tape las líneas.
 - Instalar la APK encima de la anterior, sin desinstalar, para mantener los favoritos y colecciones locales.
+
+
+## SHALOM Android 0.4.8 — Perfil y Mis creaciones simplificados
+
+- **Mi perfil** muestra accesos directos **Crear misa**, **Crear repertorio**, **Crear popurrí** y **Recibir composición**, además de las creaciones personales recientes que abren con un toque.
+- **No es necesario crear una colección antes de empezar.** La acción Crear pide nombre, ofrece una carpeta opcional y, si no se elige ninguna, usa/crea **Mis creaciones** de forma transparente.
+- **Mis creaciones** es una biblioteca de composiciones plana con filtros por tipo. Las carpetas originales y sus portadas siguen disponibles desde **Organizar por carpetas**; no hay migración, eliminación ni cambio de IDs.
+- El editor destaca **Añadir canto**, el orden y la lectura. Los controles avanzados de estrofas, tono y momento de misa aparecen al tocar **Ajustar** en un canto concreto.
+- **Compartir** abre una pantalla clara con **Enviar por WhatsApp u otra app** y **Copiar mensaje**. El destinatario usa **Perfil → Recibir composición → Pegar desde el portapapeles → Revisar → Guardar en mi teléfono**.
+- El código existente **SHALOM1-...** se conserva: incluye referencias a cantos, orden, estrofas y transposición, no fotos ni letras completas. Puede importarse sin login, aunque hace falta tener descargados los cantos para leerlos.
+- **Privacidad:** todas las composiciones y carpetas se conservan en SQLite local; ningún cambio modifica Supabase ni el cancionero oficial. Los respaldos y Mis me gusta anteriores se mantienen.
+- El botón nativo Regresar recorre Crear/Editar/Leer/Compartir/Recibir y vuelve a Mis creaciones o la carpeta correcta.
+- Instalar la nueva APK **encima de la anterior sin desinstalar** para preservar los datos locales.
