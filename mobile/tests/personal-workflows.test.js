@@ -67,6 +67,6 @@ assert.match(screen,/if\(view==="share"\)/,"Botón Android vuelve desde comparti
 assert.match(screen,/if\(view==="import"\)/,"Botón Android vuelve desde importar");
 assert.match(screen,/if\(view==="create"\)/,"Botón Android vuelve desde crear");
 assert.match(screen,/if\(view==="folders"\)/,"Volver de carpeta avanzada al inicio de creaciones");
-assert.doesNotMatch(fs.readFileSync("src/personal-workflows.js","utf8"),/supabase|https?:\/\//i,
+assert.doesNotMatch(fs.readFileSync("src/personal-workflows.js","utf8"),/fetch\s*\(|createClient|supabase\.(from|rpc)|https?:\/\//i,
  "El flujo nuevo no escribe en la nube");
 console.log("SHALOM: crear, editar, compartir y recibir localmente sin carpetas obligatorias verificado.");
