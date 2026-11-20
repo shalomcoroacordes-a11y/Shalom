@@ -78,6 +78,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Recuperación entre SQLite y Archivos Android (en rama):** `commitCatalog` compara la fecha del último SQLite y archivo antes de generar la nueva marca de sincronización; si la copia en archivos falla, el SQLite nuevo supera ambos registros anteriores, evitando elegir datos obsoletos incluso con reloj desfasado.  `mobile/tests/database-failover.test.js` usa SQLite y almacenamiento de archivos simulados para probar copia válida cuando falla SQLite, persistencia por transacción ante un error de escritura, respaldo fallido con SQLite disponible, recuperación frente a ambas fallas y preferencias que sobreviven a sincronizaciones. Ninguna prueba modifica datos del dispositivo.
 
+**Auditoría histórica de firmas Android (en rama):** `.github/workflows/android-signature-audit.yml` descarga en CI las APK públicas 0.4.8 y 0.4.10 y compara sus certificados con `apksigner`. No publica, no solicita secretos y no instala APK en teléfonos. Una diferencia marca bloqueo de compatibilidad antes de planear una actualización normal; la firma de un APK futuro debe coincidir con la versión instalada. `tests/android-signature-audit-regression.cjs` verifica que el workflow siga siendo de solo lectura.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.

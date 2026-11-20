@@ -32,6 +32,7 @@ realizarse en teléfonos, sesiones y navegadores reales.
 - [ ] Probar en un Android físico: sincronizar todas las tablas y abrir lectores en modo avión.
 - [ ] Guardar perfil, favoritos, fotos y colecciones; reiniciar y comprobar persistencia.
 - [ ] Exportar e importar respaldo SHALOM1; validar datos y ausencia de duplicados.
+- [ ] Confirmar con auditoría automática que las versiones oficiales 0.4.8 y 0.4.10 utilizan el mismo certificado; si difieren, investigar antes de prometer actualizaciones.
 - [ ] Actualizar APK sobre v0.4.10 SIN DESINSTALAR y verificar certificado, versión y datos.
 - [ ] Repetir con red lenta, sin Wi-Fi, fallas parciales y diferentes tamaños de pantalla.
 

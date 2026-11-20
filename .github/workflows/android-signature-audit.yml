@@ -1,0 +1,51 @@
+name: SHALOM Android certificate history (read-only)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/android-signature-audit.yml"
+      - ".github/workflows/android-apk.yml"
+permissions:
+  contents: read
+jobs:
+  signature-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install APK signing verifier
+        run: sdkmanager --install "build-tools;35.0.0"
+      - name: Download signed public baseline releases (no changes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/shalom-android-certificates
+          gh release download android-v0.4.8 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'SHALOM-Android-v0.4.8.apk' --dir /tmp/shalom-android-certificates
+          gh release download android-v0.4.10 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'SHALOM-Android-v0.4.10.apk' --dir /tmp/shalom-android-certificates
+          test -s /tmp/shalom-android-certificates/SHALOM-Android-v0.4.8.apk
+          test -s /tmp/shalom-android-certificates/SHALOM-Android-v0.4.10.apk
+      - name: Compare actual signing certificates used in v0.4.8 and v0.4.10
+        run: |
+          set -euo pipefail
+          SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -x "$SIGNER"
+          cd /tmp/shalom-android-certificates
+          "$SIGNER" verify --print-certs SHALOM-Android-v0.4.8.apk > v048.txt
+          "$SIGNER" verify --print-certs SHALOM-Android-v0.4.10.apk > v0410.txt
+          SHA_048=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' v048.txt | head -1)
+          SHA_0410=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' v0410.txt | head -1)
+          test -n "$SHA_048"
+          test -n "$SHA_0410"
+          echo "v0.4.8 signer SHA-256: $SHA_048"
+          echo "v0.4.10 signer SHA-256: $SHA_0410"
+          if [ "$SHA_048" != "$SHA_0410" ]; then
+            echo "::error::Las APK oficiales v0.4.8 y v0.4.10 tienen firmas distintas. Una instalación no puede actualizarse sobre la otra normalmente."
+            exit 1
+          fi
+          echo "Historial de certificados 0.4.8 y 0.4.10: compatible."

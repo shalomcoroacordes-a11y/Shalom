@@ -138,6 +138,9 @@ jobs:
       - name: Test safe Android release permissions and signing gate
         run: node tests/android-release-workflow-regression.cjs
 
+      - name: Validate read-only historical Android certificate audit
+        run: node tests/android-signature-audit-regression.cjs
+
       - name: Verify isolated Android pull request preview workflow
         run: node tests/android-preview-workflow-regression.cjs
 
