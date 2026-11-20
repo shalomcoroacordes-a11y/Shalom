@@ -97,4 +97,11 @@ assert.match(capo,/function capoSelection\(/);
 assert.doesNotMatch(app,/const NOTES=\["C","C#"/);
 assert.doesNotMatch(print,/const notes=\["C","C#"/);
 
+// Solicitudes separan la presentacion del envio y las preferencias locales.
+const requestUi=read("mobile/src/request-screen-ui.js");
+assert.match(app,/h\(RequestScreen,\{/);
+assert.match(requestUi,/function RequestScreen\(/);
+assert.doesNotMatch(requestUi,/fetch\(|setMetadata\(|supabase\./);
+assert.doesNotMatch(app,/function renderRequest\(\)\{[\s\S]*?Object.entries\(TYPES\)/);
+
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");

@@ -11,7 +11,8 @@ const {syncAll,networkState}=require("./src/sync");
 const {parseSong,transposeOne}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
-const {sendRequest,TYPES}=require("./src/requests");
+const {sendRequest}=require("./src/requests");
+const RequestScreen=require("./src/request-screen-ui");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const {personalCounts,officialHighlights}=require("./src/home-spotlight");
@@ -1024,22 +1025,14 @@ function AppScreen() {
   );
  }
  function renderRequest(){
-  return h(View,null,
-   title("Solicitudes y correcciones","Los administradores de SHALOM revisarán cada mensaje."),
-   !network.online?label("Para enviar una solicitud necesitas conexión. Puedes seguir consultando los cantos descargados sin internet.",S.error):null,
-   label("¿Qué deseas solicitar?",S.fieldTitle),
-   h(View,{style:S.chips},
-    ...Object.entries(TYPES).map(([kind,name])=>h(Chip,{key:kind,text:name,active:requestKind===kind,onPress:()=>setRequestKind(kind)}))),
-   inputField("Nombre del canto o tema",requestTitle,setRequestTitle,{maxLength:160,placeholder:"Ej. Canto de entrada"}),
-   inputField("Artista o ministerio (opcional)",requestArtist,setRequestArtist,{maxLength:160}),
-   inputField("Enlace de YouTube o referencia (opcional)",requestLink,setRequestLink,{url:true,maxLength:400,placeholder:"https://…"}),
-   inputField("¿Qué propones o qué debemos corregir?",requestDetails,setRequestDetails,{
-    multiline:true,maxLength:2500,placeholder:"Describe dónde está el error o qué canto te gustaría agregar…"}),
-   inputField("Tu nombre (opcional)",requestName,setRequestName,{maxLength:120}),
-   inputField("Correo de contacto (opcional)",requestEmail,setRequestEmail,{email:true,maxLength:160}),
-   h(Btn,{text:sending?"Enviando solicitud…":"Enviar al administrador",onPress:submitRequest,disabled:sending}),
-   label("Se requiere internet para enviar. No modifica la canción directamente.",S.smallMuted)
-  );
+  return h(RequestScreen,{
+   styles:S,online:network.online,sending,
+   form:{kind:requestKind,title:requestTitle,artist:requestArtist,
+    link:requestLink,details:requestDetails,name:requestName,email:requestEmail},
+   onChange:{kind:setRequestKind,title:setRequestTitle,artist:setRequestArtist,
+    link:setRequestLink,details:setRequestDetails,name:setRequestName,email:setRequestEmail},
+   onSubmit:submitRequest,ui:{title,label,inputField,Chip,Btn}
+  });
  }
  function metric(name,n){return h(View,{style:S.metric,key:name},label(String(n),S.metricNumber),label(name,S.smallMuted))}
  const page=detail?.type==="repertoire"&&focusedRepertoire?renderRepertoireDetail(focusedRepertoire)

@@ -41,6 +41,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Capo compartido (en rama):** `mobile/src/song-capo-core.js` calcula las posiciones y el desplazamiento de tono usados por el lector nativo y la impresión. `song-print.js` y `App.js` consumen el mismo resultado. `mobile/tests/song-capo-core.test.js` compara opciones, bemoles, capo sin tonalidad, transposiciones y compatibilidad de los registros descargados.
 
+**Solicitudes Android (en rama):** `mobile/src/request-screen-ui.js` encapsula el formulario y declara en una única tabla los campos, longitudes máximas y tipos de entrada. `mobile/App.js` conserva el estado, la conexión y el envío mediante `sendRequest`; no se introducen permisos ni cambios en Supabase. La prueba `mobile/tests/request-screen-ui.test.js` comprueba el modo offline, campos, límites y estado de envío.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
