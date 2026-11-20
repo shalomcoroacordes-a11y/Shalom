@@ -20,8 +20,8 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
   if(phase==="targets"||phase==="reading"||phase==="links"){setPhase("menu");return}
   close();
  };
- const button=(icon,title,action,subtitle=null,disabled=false)=>
-  h(Pressable,{key:title,onPress:action,disabled:busy||disabled,style:S.action,
+ const button=(icon,title,action,subtitle=null,disabled=false,keyValue=title)=>
+  h(Pressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:S.action,
    accessibilityRole:"button",accessibilityLabel:title,accessibilityState:{disabled:busy||disabled}},
    lbl(icon,S.actionIcon),
    h(View,{style:{flex:1}},lbl(title,S.actionTitle),
@@ -104,7 +104,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
       showsVerticalScrollIndicator:false,contentContainerStyle:S.menu},
      lbl("Enlaces de este canto",S.sectionTitle),
      ...links.map((link,index)=>button("↗",link.title,
-      ()=>run(()=>onOpenLink(link.url),true),link.url)),
+      ()=>run(()=>onOpenLink(link.url),true),link.url,false,"link-"+index)),
      button("↗","Ver canto en la página SHALOM",()=>run(onOpenSongPage,true),
       "Abrir el canto desde el sitio oficial"),
      !links.length?lbl("Este canto aún no tiene tutoriales registrados.",S.hint):null,
