@@ -74,7 +74,7 @@ assert.match(app,/if\(immersiveActive\)/,"Android sale primero de pantalla compl
 assert.match(app,/if\(settingsOpen\)/,"Android cierra ajustes");
 assert.match(app,/tab==="Categorías"&&folderId/,"Android retrocede en subcategorías");
 assert.match(personal,/if\(view==="reading"\)\{setView\("editing"\)/,"Retroceso desde lectura personal");
-assert.match(personal,/if\(showFolderForm&&view==="folders"\)/,"Retroceso al crear colecciones");
+assert.match(personal,/if\(showFolderForm\)\{setShowFolderForm\(false\);return true;\}/,"Retroceso al crear carpetas opcionales");
 assert.match(personal,/initialNav\?\.folderId/,"Volver desde canción conserva la colección anterior");
 assert.match(profile,/if\(editing\)\{setEditing\(false\);return true;\}/,"Volver cancela edición no guardada del perfil");
 console.log("SHALOM: acciones del canto, impresión y navegación Android verificadas.");
