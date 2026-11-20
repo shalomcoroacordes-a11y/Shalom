@@ -38,8 +38,8 @@ jobs:
           cd /tmp/shalom-android-certificates
           "$AAPT" dump badging SHALOM-Android-v0.4.8.apk | grep '^package: ' > pkg048.txt
           "$AAPT" dump badging SHALOM-Android-v0.4.10.apk | grep '^package: ' > pkg0410.txt
-          PKG_048=$(sed -n "s/.*name='\([^']*\)'.*/\1/p" pkg048.txt)
-          PKG_0410=$(sed -n "s/.*name='\([^']*\)'.*/\1/p" pkg0410.txt)
+          PKG_048=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" pkg048.txt)
+          PKG_0410=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" pkg0410.txt)
           CODE_048=$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" pkg048.txt)
           CODE_0410=$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" pkg0410.txt)
           echo "0.4.8 paquete: $PKG_048 · versionCode: $CODE_048"
