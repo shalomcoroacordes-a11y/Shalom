@@ -22,7 +22,7 @@ SHALOM tiene tres partes conectadas:
 | Repertorios web | `repertorios.html`, `repertoires.js`, `repertoires-core.js` |
 | Inicio y lectores Android | `mobile/App.js`, `mobile/src/app-styles.js` |
 | Pestañas y búsqueda Android | `mobile/src/navigation-core.js` |
-| Mis colecciones Android | `mobile/src/personal-ui.js`, `mobile/src/personal-styles.js`, `mobile/src/personal-store.js`, `mobile/src/personal-workflows.js` |
+| Mis colecciones Android | `mobile/src/personal-ui.js`, `mobile/src/personal-styles.js`, `mobile/src/personal-store.js`, `mobile/src/personal-workflows.js`, `mobile/src/personal-reader-core.js` |
 | Catálogo Android | `mobile/src/catalog.js` |
 | Acordes Android | `mobile/src/chords.js` |
 | Sincronización Android | `mobile/src/sync.js`, `mobile/src/config.js` |

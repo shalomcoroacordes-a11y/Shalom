@@ -75,5 +75,7 @@ assert.match(personalUi,/require\("\.\/personal-store"\)/);
 assert.doesNotMatch(personalUi,/StyleSheet\.create\(/);
 assert.match(read("mobile/src/personal-styles.js"),/return StyleSheet\.create\(/);
 assert.match(read("mobile/src/personal-store.js"),/function updateComposition\(/);
+assert.match(personalUi,/require\("\.\/personal-reader-core"\)/);
+assert.match(read("mobile/src/personal-reader-core.js"),/function readingRows\(/);
 
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");
