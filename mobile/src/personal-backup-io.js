@@ -22,6 +22,9 @@ async function exportPersonalBackup(source){
  file.create({overwrite:true});
  await file.write(contents);
  if(!file.exists||file.size<100)throw new Error("No se pudo generar el archivo de respaldo.");
+ // El límite al importar mide bytes UTF-8; el del JSON en memoria mide caracteres.
+ // Verificar el tamaño real impide exportar archivos que luego SHALOM rechazaría.
+ if(file.size>MAX_JSON_BYTES){file.delete();throw new Error("El respaldo supera 64 MB. Reduce algunas portadas para continuar.");}
  if(!await Sharing.isAvailableAsync())throw new Error("Este teléfono no tiene un método para compartir archivos.");
  await Sharing.shareAsync(file.uri,{mimeType:"application/json",dialogTitle:"Guardar o compartir respaldo SHALOM"});
  return {filename,summary:{images:images.length}};
@@ -31,7 +34,7 @@ async function pickPersonalBackup(){
  if(selection.canceled||!selection.assets?.length)return null;
  const asset=selection.assets[0];
  if(typeof asset.size==="number"&&asset.size>MAX_JSON_BYTES)
-  throw new Error("Este respaldo excede el límite permitido de 42 MB.");
+  throw new Error("Este respaldo excede el límite permitido de 64 MB.");
  if(!asset.uri)throw new Error("No se pudo abrir el archivo seleccionado.");
  const file=new File(asset.uri);
  if(!file.exists)throw new Error("No se pudo leer el archivo desde tu dispositivo.");
