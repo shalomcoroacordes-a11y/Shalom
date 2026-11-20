@@ -1,6 +1,7 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const styles=fs.readFileSync("mobile/src/app-styles.js","utf8");
 const generator=fs.readFileSync("mobile/scripts/generate_icons.py","utf8");
 const dove=fs.readFileSync("mobile/assets/dove-path.txt","utf8").trim();
 assert.ok(dove.startsWith("M "), "Official dove outline must remain available");
@@ -36,10 +37,10 @@ assert.match(app,/setReaderFont\(v=>Math\.max\(13,v-1\)\)/);
 assert.match(app,/setReaderFont\(v=>Math\.min\(22,v\+1\)\)/);
 
 // Sizing checks: denser than the old 104dp cards without losing tap targets.
-assert.match(app,/repCard:\{minHeight:78/);
-assert.match(app,/repCardIconWrap:\{height:50,width:50/);
-assert.match(app,/repFilterChip:\{minHeight:44/);
-assert.match(app,/songToneStepButton:\{width:40,minHeight:44/);
-assert.match(app,/songFontButton:\{flex:1,alignItems:"center",justifyContent:"center",minHeight:44/);
-assert.match(app,/songActionBar:\{backgroundColor:"#12212a",flexDirection:"row",justifyContent:"space-around",minHeight:62/);
+assert.match(styles,/repCard:\{minHeight:78/);
+assert.match(styles,/repCardIconWrap:\{height:50,width:50/);
+assert.match(styles,/repFilterChip:\{minHeight:44/);
+assert.match(styles,/songToneStepButton:\{width:40,minHeight:44/);
+assert.match(styles,/songFontButton:\{flex:1,alignItems:"center",justifyContent:"center",minHeight:44/);
+assert.match(styles,/songActionBar:\{backgroundColor:"#12212a",flexDirection:"row",justifyContent:"space-around",minHeight:62/);
 console.log("SHALOM 0.3.7: quick tone controls, compact cards and original standalone dove verified.");
