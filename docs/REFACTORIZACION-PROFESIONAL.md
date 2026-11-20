@@ -31,6 +31,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Avance adicional de fase 2 (en la misma rama):** la navegación principal, las pestañas secundarias y la búsqueda normalizada de Android se mueven a `mobile/src/navigation-core.js`, con prueba unitaria propia. Se eliminan dos funciones antiguas sin consumidores en `mobile/App.js`. El resto de la fase 2 sigue pendiente.
 
+**Mis colecciones, fase 2 (en rama):** `personal-styles.js` aloja la misma hoja de estilos; `personal-store.js` contiene las operaciones inmutables de edición, composición y orden de cantos. `personal-ui.js` se dedica a la interacción y las vistas. Las fotos y datos locales no se migran. Se añadió una prueba unitaria para el contrato del almacenamiento.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

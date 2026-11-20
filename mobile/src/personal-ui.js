@@ -1,6 +1,6 @@
 const React=require("react");
 const {useState,useEffect}=React;
-const {View,Text,TextInput,Pressable,ScrollView,Share,Alert,StyleSheet}=require("react-native");
+const {View,Text,TextInput,Pressable,ScrollView,Share,Alert}=require("react-native");
 const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
@@ -9,6 +9,7 @@ const {transposeOne}=require("./chords");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
+const styles=require("./personal-styles")(theme);
 const label=(str,style)=>h(Text,{style:style||styles.text},String(str==null?"":str));
 function action(title,onPress,secondary=false,disabled=false){
  return h(Pressable,{onPress,disabled,accessibilityRole:"button",accessibilityLabel:title,
@@ -25,14 +26,7 @@ function input(value,setValue,placeholder,multiline=false){
   style:[styles.input,multiline&&styles.multiInput],multiline,maxLength:multiline?19000:120,
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
-function modify(store,folderId,entryId,apply){
- const collections=store.collections.map(folder=>{
-  if(folder.id!==folderId)return folder;
-  if(!entryId)return apply(folder);
-  return {...folder,entries:folder.entries.map(entry=>entry.id===entryId?apply(entry):entry)};
- });
- return {...store,collections};
-}
+const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
 function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
@@ -71,8 +65,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const entry=folder?.entries.find(e=>e.id===entryId);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
  const commit=(next,options)=>onChange(next,options);
- const updateFolder=fn=>commit(modify(store,folderId,null,fn));
- const updateEntry=(fn,options)=>commit(modify(store,folderId,entryId,fn),options);
+ const updateFolder=fn=>commit(updateCollection(store,folderId,fn));
+ const updateEntry=(fn,options)=>commit(updateComposition(store,folderId,entryId,fn),options);
  function back(fromNative=false){
   if(shareOpen){setShareOpen(false);return true;}
   if(showFolderForm){setShowFolderForm(false);return true;}
@@ -163,13 +157,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function changePart(id,fn){updateEntry(e=>({...e,parts:e.parts.map(p=>p.id===id?fn(p):p)}));}
  function movePart(index,delta){
-  const other=index+delta;
-  if(!entry||other<0||other>=entry.parts.length)return;
-  updateEntry(e=>{
-   const parts=e.parts.slice();
-   [parts[index],parts[other]]=[parts[other],parts[index]];
-   return {...e,parts};
-  });
+  if(!entry||index+delta<0||index+delta>=entry.parts.length)return;
+  updateEntry(e=>reorderParts(e,index,delta));
  }
  function addSong(song){
   if(!entry)return;
@@ -642,116 +631,4 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  if(view==="folders")return foldersView();
  return homeView();
 }
-const styles=StyleSheet.create({
- editorStep:{gap:7,paddingTop:7,paddingBottom:7},
- searchPanel:{padding:10,backgroundColor:theme.panel,borderRadius:13,gap:4},
- partCompact:{padding:12,borderRadius:13,borderColor:theme.border,borderWidth:1,gap:10,marginBottom:5},
- partDetails:{paddingTop:9,borderTopWidth:1,borderColor:theme.border,gap:5},
- editorFinish:{gap:8,marginTop:10},
- privacyNote:{fontSize:11,color:theme.muted,paddingTop:3},
-
- quickGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:9,marginTop:5,marginBottom:7},
- quickTile:{width:"48.5%",minHeight:116,padding:13,borderRadius:15,
-  backgroundColor:"#17342f",borderWidth:1,borderColor:"#386d5c",gap:4,justifyContent:"center"},
- quickTileIcon:{fontSize:24,color:theme.green,fontWeight:"850"},
- quickTileText:{fontSize:14,color:theme.text,fontWeight:"850"},
- quickTileCaption:{fontSize:10,color:theme.muted,lineHeight:14},
- receiveShortcut:{flexDirection:"row",gap:12,alignItems:"center",paddingHorizontal:13,paddingVertical:15,
-  borderRadius:13,backgroundColor:theme.panel,borderColor:theme.border,borderWidth:1},
- receiveIcon:{fontSize:25,color:theme.green,fontWeight:"850"},
- sectionHeading:{fontSize:19,fontWeight:"900",color:theme.text,marginTop:9},
- creationRow:{backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border,borderRadius:13,
-  flexDirection:"row",alignItems:"center",overflow:"hidden",marginVertical:2},
- creationOpen:{flex:1,minWidth:0,padding:11,flexDirection:"row",gap:10,alignItems:"center",minHeight:78},
- creationIcon:{width:39,height:39,justifyContent:"center",alignItems:"center",
-  backgroundColor:"#174633",borderRadius:10},
- creationIconText:{color:theme.green,fontSize:22},
- creationFolder:{fontSize:10,color:"#80b5a6",marginTop:3},
- shareSmall:{paddingHorizontal:13,minHeight:54,justifyContent:"center",alignItems:"center",
-  borderLeftWidth:1,borderColor:theme.border},
- emptyClean:{gap:8,paddingVertical:20,paddingHorizontal:4},
- importSummary:{padding:14,backgroundColor:"#18362d",borderRadius:14,gap:9,borderWidth:1,borderColor:"#427b5f"},
- infoCard:{backgroundColor:theme.panel,padding:14,borderRadius:13,gap:7},
- codePreview:{fontSize:10,color:theme.muted,backgroundColor:theme.panel,padding:10,borderRadius:12},
-
- collectionRoot:{gap:13,paddingBottom:25},
- collectionHeading:{gap:4,paddingTop:5,marginBottom:2},
- eyebrow:{fontSize:10,fontWeight:"900",letterSpacing:1.1,color:theme.green},
- collectionTitle:{fontSize:25,color:theme.text,fontWeight:"900",lineHeight:33},
- collectionSubtitle:{fontSize:12,color:theme.muted,lineHeight:18},
- collectionTopActions:{flexDirection:"row",flexWrap:"wrap",gap:8,marginBottom:5},
- collectionGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:13},
- collectionCard:{width:"48.4%",overflow:"hidden",borderRadius:14,backgroundColor:"#19222d",borderWidth:1,
-  borderColor:"#43525B",borderBottomWidth:4},
- collectionCardBody:{minHeight:112,padding:10,gap:4,justifyContent:"space-between"},
- collectionCardTitle:{fontSize:14,fontWeight:"900",lineHeight:19,color:theme.text},
- collectionCardCount:{fontSize:10.2,color:theme.muted},
- collectionCardFoot:{flexDirection:"row",alignItems:"center",gap:5,minHeight:25},
- collectionColorDot:{width:8,height:8,borderRadius:6},
- collectionCardType:{fontSize:9,color:theme.muted,flex:1},
- collectionCardMore:{minWidth:29,minHeight:33,justifyContent:"center",alignItems:"center"},
- moreIcon:{fontSize:22,color:theme.text,fontWeight:"800"},
- emptyVisual:{gap:11,marginTop:7},
- emptyHeading:{marginBottom:4,gap:3},
- emptyTitle:{fontSize:16,fontWeight:"850",color:theme.text,lineHeight:23},
- inspirationGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:11},
- inspirationCard:{width:"48%",borderRadius:14,overflow:"hidden",backgroundColor:theme.panel,
-  borderColor:theme.border,borderWidth:1},
- inspirationLabel:{fontSize:12,fontWeight:"800",color:theme.text,padding:10},
- emptyHint:{fontSize:11,color:theme.muted},
- customizerPanel:{backgroundColor:theme.panel,padding:13,borderWidth:1,borderColor:theme.border,
-  borderRadius:16,gap:10,marginTop:4},
- customTitle:{fontSize:17,fontWeight:"900",color:theme.text},
- folderHero:{borderRadius:16,overflow:"hidden",backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border},
- folderHeroBottom:{padding:11,flexDirection:"row",alignItems:"center",gap:7},
- folderCustomize:{width:42,height:42,borderWidth:1,borderColor:theme.green,borderRadius:12,
-  justifyContent:"center",alignItems:"center"},
- folderCustomizeIcon:{fontSize:22,color:theme.green},
- privacyFooter:{padding:11,borderTopWidth:1,borderColor:theme.border,marginTop:9},
- privateText:{fontSize:11,color:theme.muted,lineHeight:16},
- entryCard:{padding:12,borderRadius:13,backgroundColor:theme.panel,borderWidth:1,
-  borderColor:theme.border,gap:9,marginVertical:3},
- folderEmpty:{padding:16,backgroundColor:theme.panel,borderRadius:14,gap:9,marginVertical:13},
- container:{gap:9,paddingVertical:5,paddingBottom:22},
- pageTitle:{fontSize:20,color:theme.text,fontWeight:"900",marginBottom:1},
- text:{fontSize:13,color:theme.text},
- description:{fontSize:12,color:theme.muted,lineHeight:18,marginBottom:6},
- meta:{fontSize:12,color:theme.muted,lineHeight:17,flexShrink:1},
- tag:{fontSize:11,fontWeight:"850",color:theme.green,marginBottom:5},
- cardTitle:{fontSize:16,fontWeight:"850",color:theme.text,lineHeight:22},
- card:{padding:12,borderRadius:13,backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border,gap:10,marginVertical:3},
- folderCard:{padding:12,borderRadius:12,backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border,borderLeftWidth:5,
-  flexDirection:"row",alignItems:"center",gap:12,marginVertical:4},
- folderHeader:{padding:13,borderLeftWidth:5,borderColor:theme.border,backgroundColor:theme.panel,borderRadius:12},
- folderIcon:{fontSize:26,color:theme.pale},
- arrow:{fontSize:26,color:theme.green},
- actions:{flexDirection:"row",gap:6,flexWrap:"wrap",alignItems:"center",marginVertical:3},
- action:{backgroundColor:theme.green,borderRadius:10,minHeight:40,paddingHorizontal:12,paddingVertical:8,
-  alignItems:"center",justifyContent:"center"},
- actionSecondary:{backgroundColor:theme.sub,borderWidth:1,borderColor:theme.border},
- actionText:{color:"#041b13",fontSize:12,fontWeight:"850",textAlign:"center"},
- actionTextSecondary:{color:theme.text},
- input:{borderColor:theme.border,borderWidth:1,backgroundColor:theme.sub,color:theme.text,
-  borderRadius:11,padding:11,minHeight:44,fontSize:14},
- multiInput:{height:120},
- colors:{flexDirection:"row",flexWrap:"wrap",gap:12,marginVertical:10},
- color:{width:34,height:34,borderRadius:20,alignItems:"center",justifyContent:"center"},
- colorActive:{borderWidth:3,borderColor:"#ffffff"},
- colorCheck:{color:"#ffffff",fontWeight:"900",fontSize:17},
- chip:{paddingHorizontal:10,paddingVertical:9,backgroundColor:theme.sub,borderRadius:14,borderWidth:1,borderColor:theme.border,minHeight:37},
- chipActive:{backgroundColor:"#176b51",borderColor:theme.green},
- chipText:{fontSize:12,color:theme.text,fontWeight:"650"},
- chipTextActive:{color:theme.pale,fontWeight:"850"},
- wrap:{flexDirection:"row",flexWrap:"wrap",gap:5,marginVertical:5},
- inputLabel:{color:theme.muted,fontSize:12,fontWeight:"750",marginTop:5},
- partHead:{flexDirection:"row",alignItems:"center",gap:8},
- number:{width:33,height:33,borderRadius:8,backgroundColor:"#106849",alignItems:"center",justifyContent:"center"},
- numberText:{fontSize:17,color:theme.pale,fontWeight:"900"},
- toneRow:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:6,marginVertical:4},
- warning:{fontSize:13,color:"#ffc4bf",lineHeight:20,marginVertical:8},
- empty:{fontSize:13,color:theme.muted,marginVertical:10,lineHeight:20},
- result:{minHeight:41,paddingVertical:8,borderBottomWidth:1,borderColor:theme.border,flexDirection:"row",alignItems:"center",gap:7},
- resultTitle:{flex:1,fontSize:13,color:theme.text},
- readerPart:{paddingTop:15,paddingBottom:15,borderBottomWidth:1,borderColor:theme.border,gap:8}
-});
 module.exports=PersonalCollectionsScreen;
