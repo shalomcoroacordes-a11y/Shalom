@@ -102,6 +102,9 @@ jobs:
       - name: Test transactional song RPC compatibility and multi-category fallback
         run: node tests/admin-song-rpc-regression.cjs
 
+      - name: Validate staged atomic multi-category SQL proposal
+        run: node tests/admin-song-v2-proposal-regression.cjs
+
       - name: Test editor cursor and scroll persistence across forms
         run: node tests/admin-editor-position-regression.cjs
 

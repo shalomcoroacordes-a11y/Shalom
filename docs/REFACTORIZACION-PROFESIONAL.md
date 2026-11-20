@@ -55,6 +55,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Guardado atómico compatible con Supabase (en rama):** tras auditar el proyecto SHALOM en modo lectura se confirmó que `jhd_save_song_bundle` existe, usa `SECURITY INVOKER`, comprueba `jhd_is_admin()` y realiza la escritura en una sola llamada RPC. `admin-song-persistence.js` lo consume para cantos con cero o una categoría, con pruebas de acceso denegado y errores de red. **La función actual solo admite una categoría**; con dos o más se conserva el procedimiento anterior, aún no atómico, hasta aprobar y probar la versión SQL multicategroría. Una respuesta de red incierta NO se trata como confirmación de guardado.
 
+**RPC para varias categorías (propuesta, no desplegada):** el archivo `docs/sql-proposals/shalom-save-song-bundle-v2.sql` describe una función `SECURITY INVOKER`, con comprobación de administrador y actualizaciones atómicas de 5 tablas. `admin-song-persistence.js` intenta usarla cuando hay varias categorías; si Supabase responde exactamente `PGRST202` (función ausente), utiliza el método anterior y conserva todas las categorías. Cualquier error de permisos o de red evita la degradación automática. Se requiere respaldo, staging, validación SQL real y aprobación antes de ejecutar la propuesta en producción. La prueba `tests/admin-song-v2-proposal-regression.cjs` valida el contrato estático, **no una ejecución SQL**.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

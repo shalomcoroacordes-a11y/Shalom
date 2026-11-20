@@ -103,6 +103,49 @@
     };
   }
 
+  // El contrato futuro acepta TODAS las categorías y conserva una única
+  // operación de Postgres; la propuesta SQL no se despliega desde esta rama.
+  function multiCategoryRpcArguments(plan, id) {
+    const rows = Object.fromEntries(plan.relations(id || null));
+    return {
+      p_song_id: id || null,
+      p_song: plan.payload,
+      p_artists: rows.song_artists.map(row => ({artist_id: row.artist_id})),
+      p_categories: rows.song_categories.map(row => row.category_id),
+      p_album_id: rows.album_songs[0]?.album_id || null,
+      p_links: rows.song_links.filter(row => String(row.url || "").trim()).map(row => ({
+        title: row.title, link_type: row.link_type, platform: row.platform, url: row.url
+      })),
+      p_capos: rows.song_capo_versions.filter(row =>
+        Number(row.capo_position) > 0 && String(row.capo_key || "").trim()).map(row => ({
+        label: row.label, capo_position: row.capo_position, capo_key: row.capo_key
+      }))
+    };
+  }
+
+  async function saveViaMultiCategoryRpc(db, args) {
+    try {
+      const result = await db.rpc("shalom_save_song_bundle_v2", args);
+      if (result.error?.code === "PGRST202") return null; // Función aún no instalada.
+      if (result.error) return {
+        ok: false, phase: "rpc", message: "No se guardó la canción: " + result.error.message
+      };
+      if (typeof result.data !== "string" || !result.data) return {
+        ok: false, phase: "uncertain",
+        message: "El guardado no devolvió un identificador. Verifica el catálogo antes de repetirlo."
+      };
+      return {ok: true, phase: "complete", songId: result.data};
+    } catch (error) {
+      // Si la petición se completó en el servidor, repetir podría duplicar.
+      return {
+        ok: false, phase: "uncertain",
+        message: "No se confirmó el guardado: " +
+          (error?.message || "Error de conexión.") +
+          ". Verifica el catálogo antes de intentar otra vez."
+      };
+    }
+  }
+
   async function saveViaExistingRpc(db, args) {
     try {
       const result = await db.rpc("jhd_save_song_bundle", args);
@@ -132,6 +175,11 @@
     const rpcArgs = legacyRpcArguments(plan, id);
     if (rpcArgs && typeof db.rpc === "function")
       return saveViaExistingRpc(db, rpcArgs);
+    if (!rpcArgs && typeof db.rpc === "function") {
+      const atomic = await saveViaMultiCategoryRpc(db, multiCategoryRpcArguments(plan, id));
+      if (atomic !== null) return atomic;
+    }
+    // Compatibilidad mientras la versión SQL multicategroría no esté instalada.
     let songId = null;
     try {
       const saved = await writeSong(db, plan.payload, id);
@@ -171,6 +219,7 @@
 
   window.ShalomAdminSongPersistence = Object.freeze({
     prepare, missingOptionalColumn, writeSong, save,
-    legacyRpcArguments, saveViaExistingRpc, RELATIONS
+    legacyRpcArguments, saveViaExistingRpc,
+    multiCategoryRpcArguments, saveViaMultiCategoryRpc, RELATIONS
   });
 })();

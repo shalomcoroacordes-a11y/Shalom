@@ -64,7 +64,10 @@ const untouched=JSON.stringify({draft,links,capos});
  assert.equal(uncertain.phase,"uncertain");
 
  const multiDb={
-  rpc(){throw Error("El RPC antiguo NO admite dos categorías")},
+  rpc(name){
+   assert.equal(name,"shalom_save_song_bundle_v2");
+   return {data:null,error:{code:"PGRST202",message:"Función no instalada"}};
+  },
   from(table){
    if(table==="songs")return {insert(rows){return {select(){return {
     single:async()=>({data:{id:"song-2"},error:null})};}};}};
@@ -74,6 +77,33 @@ const untouched=JSON.stringify({draft,links,capos});
  const multi=await service.save({db:multiDb,draft:{...draft,category_ids:["cat-1","cat-2"]},links,capos,slug});
  assert.equal(multi.ok,true);
  assert.equal(multi.songId,"song-2");
+ const multiArgs=service.multiCategoryRpcArguments(
+  prepare({...draft,category_ids:["cat-1","cat-2"]}),"song-existing");
+ assert.deepEqual(Array.from(multiArgs.p_categories),["cat-1","cat-2"]);
+ assert.equal(multiArgs.p_song_id,"song-existing");
+ const multiCalls=[];
+ const v2Db={rpc:async(name,args)=>{
+  multiCalls.push({name,args});
+  return {data:"song-v2",error:null};
+ },from(){throw Error("Cuando existe v2 no se debe escribir por partes")}};
+ const modern=await service.save({db:v2Db,
+  draft:{...draft,category_ids:["cat-1","cat-2"]},links,capos,slug});
+ assert.equal(modern.ok,true);
+ assert.equal(modern.songId,"song-v2");
+ assert.equal(multiCalls[0].name,"shalom_save_song_bundle_v2");
+ assert.deepEqual(Array.from(multiCalls[0].args.p_categories),["cat-1","cat-2"]);
+ const forbidden={rpc:async()=>({error:{code:"42501",message:"No autorizado"}}),
+  from(){throw Error("No debe degradarse a escrituras directas tras error RLS")}};
+ const deniedV2=await service.save({db:forbidden,
+  draft:{...draft,category_ids:["cat-1","cat-2"]},links,capos,slug});
+ assert.equal(deniedV2.phase,"rpc");
+ assert.match(deniedV2.message,/No autorizado/);
+ const uncertainV2={rpc:async()=>{throw Error("Conexión perdida");},
+  from(){throw Error("No reintentar sin saber si hubo commit")}};
+ const unknownV2=await service.save({db:uncertainV2,
+  draft:{...draft,category_ids:["cat-1","cat-2"]},links,capos,slug});
+ assert.equal(unknownV2.phase,"uncertain");
+ assert.match(unknownV2.message,/Verifica el catálogo/);
  assert.equal(JSON.stringify({draft,links,capos}),untouched);
- console.log("SHALOM Admin: RPC atómico para una categoría; múltiples categorías protegidas.");
+ console.log("SHALOM Admin: RPC v1 y v2, varias categorías y degradación segura verificados.");
 })().catch(e=>{console.error(e);process.exitCode=1});
