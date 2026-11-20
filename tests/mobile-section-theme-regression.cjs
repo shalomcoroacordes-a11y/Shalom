@@ -16,10 +16,11 @@ assert.match(components,/h\(Pressable,\{style:S\.repCard/,"Shared cards must use
 const songs=section("renderSongs","renderArtists");
 const artists=section("renderArtists","renderCategories");
 const categories=section("renderCategories","renderMore");
-const more=section("renderMore","renderRepertoires");
+const more=section("renderMore","renderExplore");
+const explore=section("renderExplore","renderRepertoires");
 const medleys=section("renderMedleys","renderMedleyDetail");
 const albums=section("renderAlbums","renderArtistDetail");
-for(const [name,part] of Object.entries({categories,more,medleys,albums})){
+for(const [name,part] of Object.entries({categories,more,explore,medleys,albums})){
  assert.match(part,/h\(SectionHero,/,"Hero missing on "+name);
  assert.match(part,/h\(SectionListCard,/,"Library cards missing on "+name);
  assert.match(part,/style:S\.repPage/,"Repertoire spacing missing on "+name);
@@ -46,7 +47,7 @@ assert.match(categories,/setFolderId\(c\.id\)/,"Folders must still open");
 assert.match(medleys,/model\.medleys\.filter/,"Keep published medleys list");
 assert.match(medleys,/selectMedley\(m\)/,"Medleys must still open");
 assert.match(albums,/openDetail\(\{type:"album",id:a\.id\}\)/,"Albums must still open");
-assert.match(app,/\["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Mis colecciones","Más","Perfil","Respaldo"\]\.includes\(tab\)/,
+assert.match(app,/\["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Explorar","Mis colecciones","Más","Perfil","Respaldo"\]\.includes\(tab\)/,
  "All library sections must share the same top header");
 assert.match(app,/PersonalCollectionsScreen/,"Local personal collections remain available as a native screen");
 assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.repTopLogo/,"Official SHALOM dove remains");

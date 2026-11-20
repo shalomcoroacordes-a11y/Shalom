@@ -30,8 +30,9 @@ assert.match(app,/disabled:transpose>=11/);
 assert.match(app,/renderToneStepper\("Tono "\+toned\)/,"Cantos must have direct semitone controls");
 assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,
  "Popurris and Repertorios must use the same tone controls");
-assert.match(app,/\["T−","Tono −",\(\)=>adjustTone\(-1\)\]/,"Fixed reader bar must lower pitch without a dialog");
-assert.match(app,/\["T\+","Tono \+",\(\)=>adjustTone\(1\)\]/,"Fixed reader bar must raise pitch without a dialog");
+assert.match(app,/renderToneStepper\("Tono "\+toned\)/,"Song reader provides direct tone buttons");
+assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,"Multi-song reader provides direct tone buttons");
+assert.doesNotMatch(app,/style:S\.songActionBar/,"No duplicate toolbar obscures lyrics");
 assert.doesNotMatch(app,/showSongToneMenu/);
 assert.match(app,/setReaderFont\(v=>Math\.max\(13,v-1\)\)/);
 assert.match(app,/setReaderFont\(v=>Math\.min\(22,v\+1\)\)/);
@@ -42,5 +43,5 @@ assert.match(styles,/repCardIconWrap:\{height:50,width:50/);
 assert.match(styles,/repFilterChip:\{minHeight:44/);
 assert.match(styles,/songToneStepButton:\{width:40,minHeight:44/);
 assert.match(styles,/songFontButton:\{flex:1,alignItems:"center",justifyContent:"center",minHeight:44/);
-assert.match(styles,/songActionBar:\{backgroundColor:"#12212a",flexDirection:"row",justifyContent:"space-around",minHeight:62/);
+assert.doesNotMatch(styles,/songActionBar:/,"Dead reader footer styles are removed");
 console.log("SHALOM 0.3.7: quick tone controls, compact cards and original standalone dove verified.");

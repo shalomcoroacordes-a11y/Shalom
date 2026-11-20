@@ -43,8 +43,10 @@ assert.match(app,/!immersiveActive&&detail&&!isReader\?h\(AppDetailHeader/,
  "Do not render a duplicate header above the multi-song readers");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View/,
  "Hide regular navigation in ALL readers");
-assert.match(app,/detail\?\.type!=="song"\?h\(View,\{style:S\.songActionBar\}/,
- "Multi-song reader has Cantos-style fixed actions");
+assert.match(app,/\{text:"Compartir",onPress:shareMultiReading\}/,
+ "Multi-song reader keeps Share inside the upper options menu");
+assert.doesNotMatch(app,/style:S\.songActionBar/,
+ "No second toolbar under the lyrics");
 assert.match(app,/shareMultiReading/);
 assert.match(styles,/multiPage:\{paddingHorizontal:18/,"Keep comfortable side margins");
 console.log("SHALOM medley and misa readers match Cantos styling, preserve content, and have usable controls.");
