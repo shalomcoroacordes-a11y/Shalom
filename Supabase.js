@@ -8,13 +8,3 @@ var supabaseClient = supabase.createClient(
 );
 
 window.supabaseClient = supabaseClient;
-
-(() => {
-  if (/(^|\/)admin\.html$/i.test(location.pathname)) return;
-  ["site-footer-links.js?v=1", "site-public-nav.js?v=1"].forEach((src) => {
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    document.head.append(script);
-  });
-})();
