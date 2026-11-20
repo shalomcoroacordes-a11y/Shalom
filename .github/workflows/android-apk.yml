@@ -37,8 +37,6 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
-      - name: Verify package, version, assets and Supabase identity
-        run: node scripts/release-preflight.js
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Verify Expo dependencies
@@ -50,6 +48,8 @@ jobs:
           /tmp/shalom-icon-generator/bin/python scripts/generate_icons.py
           test -s assets/icon.png
           test -s assets/adaptive-foreground.png
+      - name: Verify package, version, assets and Supabase identity
+        run: node scripts/release-preflight.js
       - name: Generate Android native project
         run: npx expo prebuild --platform android --non-interactive --no-install
       - name: Build standalone release APK

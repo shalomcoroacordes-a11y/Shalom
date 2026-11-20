@@ -27,8 +27,6 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
-      - name: Check current SHALOM identity before creating isolated preview
-        run: node scripts/release-preflight.js
       - name: Install JavaScript dependencies
         run: npm install --no-audit --no-fund
       - name: Verify Expo compatibility and native unit tests
@@ -36,6 +34,14 @@ jobs:
           npx expo install --check
           npm run test:syntax
           npm test
+      - name: Generate official SHALOM dove icons for preview
+        run: |
+          python3 -m venv /tmp/shalom-preview-icons
+          /tmp/shalom-preview-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
+          /tmp/shalom-preview-icons/bin/python scripts/generate_icons.py
+          test -s assets/icon.png
+      - name: Check current SHALOM identity before creating isolated preview
+        run: node scripts/release-preflight.js
       - name: Give the preview its own Android package and title
         run: |
           node - <<'NODE'
@@ -50,12 +56,6 @@ jobs:
           if(config.expo.android.package==='com.shalomcoroacordes.cancionero')
             throw new Error('La APK de prueba nunca debe reemplazar la aplicación real');
           NODE
-      - name: Generate official SHALOM dove icons for preview
-        run: |
-          python3 -m venv /tmp/shalom-preview-icons
-          /tmp/shalom-preview-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
-          /tmp/shalom-preview-icons/bin/python scripts/generate_icons.py
-          test -s assets/icon.png
       - name: Generate isolated Android preview project
         run: npx expo prebuild --platform android --non-interactive --no-install
       - name: Compile standalone Android preview APK
