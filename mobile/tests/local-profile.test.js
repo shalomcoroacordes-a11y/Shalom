@@ -40,5 +40,20 @@ assert.match(profile,/Cambiar portada/,"Portada editable");
 assert.match(profile,/Elegir foto del banner/,"Banner de inicio editable");
 assert.match(profile,/Mis me gusta/,"Favoritos dentro de Perfil");
 assert.match(profile,/onCollections/,"Conservar acceso a misas y popurrís locales");
+assert.match(profile,/onEditRequestConsumed\?\.\(\)/,
+ "La petición de editar perfil se consume y no queda pendiente");
+assert.match(profile,/if\(editNonce<=0\)return;/,
+ "Perfil abre en modo lectura salvo acción explícita de edición");
+assert.match(app,/onEditRequestConsumed:\(\)=>setProfileEditNonce\(0\)/,
+ "El contenedor limpia el evento después de abrir el editor");
+assert.match(app,/if\(next!=="Perfil"\)setProfileEditNonce\(0\)/,
+ "Salir de Perfil también elimina el evento de edición anterior");
+assert.match(app,/onEdit:\(\)=>setProfileEditNonce\(n=>n\+1\)/,
+ "Editar solo se inicia al pulsar la opción en los tres puntos");
+assert.match(profile,/btn\("Cancelar",\(\)=>\{setDraft\(profile\);setEditing\(false\);\},true\)/,
+ "Cancelar abandona la edición y descarta un borrador sin guardar");
+assert.match(profile,/setEditing\(false\);[\s\S]*?const avatar=/,
+ "Guardar vuelve a la vista normal de perfil");
+
 assert.match(cover,/Paths\.document/,"No subir fotos a la nube");
 console.log("SHALOM: perfil personal, fotos privadas, inicio editable y biblioteca visual verificados.");
