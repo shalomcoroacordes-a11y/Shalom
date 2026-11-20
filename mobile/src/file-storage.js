@@ -69,7 +69,7 @@ async function readSnapshot() {
   };
 }
 
-async function saveSnapshot(data) {
+async function saveSnapshot(data, lastSqlSync = null) {
   if (!data || !TABLES.every(table => Array.isArray(data[table]))) {
     throw new Error("El cancionero recibido está incompleto.");
   }
@@ -79,7 +79,12 @@ async function saveSnapshot(data) {
   // Hora estrictamente creciente, incluso ante dos escrituras en un mismo ms.
   // SQLite puede comparar esta fecha con su última sincronización.
   const oldTime = Date.parse(last.syncedAt || "");
-  const nextTime = Math.max(Date.now(), Number.isFinite(oldTime) ? oldTime + 1 : 0);
+  const sqlTime = Date.parse(lastSqlSync || "");
+  // También superar el último guardado SQLite, incluso cuando una copia
+  // de archivo anterior falló y ambos almacenamientos se desfasaron.
+  const nextTime = Math.max(Date.now(),
+    Number.isFinite(oldTime) ? oldTime + 1 : 0,
+    Number.isFinite(sqlTime) ? sqlTime + 1 : 0);
   const syncedAt = new Date(nextTime).toISOString();
   const snapshot = {
     source: SHALOM_SOURCE, syncedAt, data, version: 1,

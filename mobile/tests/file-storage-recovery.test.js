@@ -40,6 +40,8 @@ const key=name=>"shalom-offline-"+name+".json";
  assert.equal(memory.has(key("A")),true);
  const second=data();second.songs=[row("new")];
  const time2=await storage.saveSnapshot(second);
+ const futureSql=new Date(Date.parse(time2)+100000).toISOString();
+ assert.equal(storage.validSnapshot(JSON.parse(memory.get(key("A")))),true);
  assert.ok(Date.parse(time2)>Date.parse(time1),
   "La marca de tiempo avanza aunque ambos guardados ocurran en el mismo milisegundo");
  assert.equal(memory.has(key("B")),true);

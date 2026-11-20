@@ -8,7 +8,7 @@ let records=new Map(),meta=new Map(),savedFile=null,failFile=false,failSql=false
 const flags={fileWrites:0,sqlCommits:0};
 const id=(table,key)=>table+":"+key;
 const fakeDb={
- async execAsync(sql){assert.match(sql,/CREATE TABLE IF NOT EXISTS/);},
+ async execAsync(sql){assert.match(sql,/PRAGMA journal_mode|CREATE TABLE IF NOT EXISTS|CREATE INDEX IF NOT EXISTS/);},
  async getFirstAsync(sql,key){
   if(failSqlRead)throw Error("SQLite no disponible");
   const lookup=key||"last_sync";
@@ -48,10 +48,14 @@ const backup={
  async readSnapshot(){
   return savedFile||{data:Object.fromEntries(TABLES.map(t=>[t,[]])),syncedAt:null,storage:"archivo-local"};
  },
- async saveSnapshot(data){
+ async saveSnapshot(data,lastSqlSync){
   flags.fileWrites++;
   if(failFile)throw Error("Archivo de respaldo no disponible");
-  const syncedAt=new Date(Date.parse(savedFile?.syncedAt||"2026-11-20T00:00:00.000Z")+1000).toISOString();
+  const lastTime=Date.parse(savedFile?.syncedAt||"");
+  const sqlTime=Date.parse(lastSqlSync||"");
+  const next=Math.max(Date.now(),Number.isFinite(lastTime)?lastTime+1:0,
+   Number.isFinite(sqlTime)?sqlTime+1:0);
+  const syncedAt=new Date(next).toISOString();
   savedFile={data:structuredClone(data),syncedAt,storage:"archivo-local"};
   return syncedAt;
  },
@@ -95,6 +99,8 @@ function sample(songId){
  const secondTime=await api.commitCatalog(second);
  assert.equal((await api.getCatalog()).data.songs[0].id,"s2");
  assert.equal(meta.get("last_sync"),secondTime);
+ assert.ok(Date.parse(secondTime)>Date.parse(firstTime),
+  "SQLite supera la fecha del último respaldo aunque la escritura de archivos falle");
  assert.equal(flags.sqlCommits,2);
  assert.equal(await api.getMetadata("preferencias-wifi"),"true");
  failFile=false;
@@ -129,5 +135,20 @@ function sample(songId){
  assert.equal(flags.sqlCommits,beforeSql);
  assert.equal(flags.fileWrites,beforeFile);
  assert.equal(await api.getMetadata("preferencias-wifi"),"true");
+
+ // Ajuste del reloj: el nuevo guardado supera una fecha SQLite futura.
+ const future=new Date(Date.now()+60000).toISOString();
+ meta.set("last_sync",future);
+ const next=await api.commitCatalog(sample("s5"));
+ assert.ok(Date.parse(next)>Date.parse(future));
+ assert.equal((await api.getCatalog()).data.songs[0].id,"s5");
+
+ // Cuando también falla Archivos, el timestamp SQLite debe ser superior al
+ // respaldo previo para evitar mostrar una copia antigua por error.
+ failFile=true;
+ const saved=await api.commitCatalog(sample("s6"));
+ assert.ok(Date.parse(saved)>Date.parse(next));
+ assert.equal((await api.getCatalog()).data.songs[0].id,"s6");
+ failFile=false;
  console.log("SHALOM: SQLite, copia local, fallo doble, transacción y preferencias verificados.");
 })().catch(error=>{console.error(error);process.exitCode=1});
