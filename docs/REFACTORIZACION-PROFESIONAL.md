@@ -45,6 +45,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Pruebas Android mantenibles (en rama):** `npm test` descubre y ejecuta todas las pruebas `mobile/tests/*.test.js` de forma aislada. `npm run test:syntax` revisa el código Android completo, sin una lista manual que pueda quedar desactualizada. La validación nativa de GitHub Actions utiliza ambos comandos; `mobile/tests/test-discovery.test.js` protege el descubrimiento y el orden de ejecución.
 
+**Consultas del catálogo Android (en rama):** `mobile/src/library-selectors.js` centraliza la selección de canciones, artistas, favoritos y resultados de Inicio. `App.js` mantiene el estado y memoriza los resultados. La jerarquía de categorías se obtiene una vez por consulta, no una vez por canción. `mobile/tests/library-selectors.test.js` verifica búsquedas con acentos, letras, artistas, filtros combinados y ausencia de mutaciones.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

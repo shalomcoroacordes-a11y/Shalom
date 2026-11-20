@@ -49,6 +49,7 @@ const HOME_IMAGES={
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const {tabs,isSelectedTab,matchesSearch}=require("./src/navigation-core");
+const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs}=require("./src/library-selectors");
 async function openWeb(value) {
  const url=safeWebUrl(value);
  if(!url)return Alert.alert("Enlace no válido","No se encontró una dirección válida.");
@@ -146,14 +147,13 @@ function AppScreen() {
  const focusedRepertoire=detail?.type==="repertoire"?model.repertoires.find(x=>x.id===detail.id):null;
  const likedSet=useMemo(()=>new Set(likedIds),[likedIds]);
  const actionSong=actionSongId?model.songs.find(song=>String(song.id)===String(actionSongId)):null;
- const eligible=useMemo(()=>model.songs.filter(s=>{
-  if(onlyLiked&&!likedSet.has(String(s.id)))return false;
-  if(typeFilter&&s.song_type!==typeFilter)return false;
-  if(categoryId&&!s._categories.some(c=>model.descendants(categoryId).has(c.id)))return false;
-  const term=normalize(query.trim());
-  if(!term)return true;
-  return matchesSearch([s.title,s.tone,s.lyrics,names(s._artists),names(s._categories)],term);
+ const favorites=useMemo(()=>favoriteSongs(model,likedSet),[model,likedSet]);
+ const eligible=useMemo(()=>filterSongs(model,{
+  query,typeFilter,categoryId,onlyLiked,likedSet
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
+ const filteredArtists=useMemo(()=>filterArtists(model,{query,type:artistTypeFilter}),
+  [model,query,artistTypeFilter]);
+ const homeMatches=useMemo(()=>searchHomeSongs(model,homeSearch,6),[model,homeSearch]);
  function goTab(next,options={}){setProfileMenuOpen(false);if(next!=="Perfil")setProfileEditNonce(0);if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){
   personalNavRef.current=options.personalNav||(
    options.personalAction?{view:options.personalAction,kind:options.personalKind||"misa"}:null);
@@ -412,9 +412,8 @@ function AppScreen() {
   );
  }
  function renderHome(){
-  const term=normalize(homeSearch.trim());
-  const found=term?model.songs.filter(song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term)).slice(0,6):[];
-  const likes=model.songs.filter(song=>likedSet.has(String(song.id)));
+  const found=homeMatches;
+  const likes=favorites;
   const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
   function goBanner(){
    switch(profile.bannerAction){
@@ -531,7 +530,6 @@ function AppScreen() {
  function renderSongs(){
   const chosen=onlyLiked?"liked":typeFilter||"all";
   const options=[["all","Todos"],["liked","♥ Mis me gusta"],...SONG_TYPES.filter(([code])=>code)];
-  const favorites=model.songs.filter(song=>likedSet.has(String(song.id)));
   const showing=onlyLiked?"Mis me gusta":"Todas las canciones";
   return h(View,{style:S.repPage},
    h(LibraryHero,{title:"Canciones",
@@ -578,9 +576,7 @@ function AppScreen() {
      "No hay cantos que coincidan con tu búsqueda.":"Descarga la biblioteca para ver los cantos."}):null));
  }
  function renderArtists(){
-  const filtered=model.artists.filter(a=>
-   (!artistTypeFilter||normalize(type(a.artist_type))===artistTypeFilter)
-   &&matchesSearch([a.name,a.description,a.artist_type],query));
+  const filtered=filteredArtists;
   return h(View,{style:S.repPage},
    h(LibraryHero,{title:"Artistas",
     subtitle:"Coros, ministerios y cantores de alabanza.",preset:"choir"}),

@@ -24,6 +24,7 @@ SHALOM tiene tres partes conectadas:
 | Capo compartido e impresión | `mobile/src/song-capo-core.js`, `mobile/src/song-print.js` |
 | Solicitudes Android | `mobile/src/request-screen-ui.js` (presentación), `mobile/src/requests.js` (validación/envío) |
 | Pestañas y búsqueda Android | `mobile/src/navigation-core.js` |
+| Listados y favoritos Android | `mobile/src/library-selectors.js` |
 | Mis colecciones Android | `mobile/src/personal-ui.js`, `mobile/src/personal-styles.js`, `mobile/src/personal-store.js`, `mobile/src/personal-workflows.js`, `mobile/src/personal-reader-core.js` |
 | Catálogo Android | `mobile/src/catalog.js` |
 | Acordes Android | `mobile/src/chords.js` |

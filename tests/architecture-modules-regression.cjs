@@ -113,4 +113,14 @@ assert.match(nativeWorkflow,/run: npm test/);
 assert.match(nativeWorkflow,/run: npm run test:syntax/);
 assert.match(read("mobile/scripts/run-tests.js"),/endsWith\("\.test\.js"\)/);
 
+// Los listados de Android usan selectores puros y consultas de categoria sin recalculo.
+const selectors=read("mobile/src/library-selectors.js");
+assert.match(app,/require\("\.\/src\/library-selectors"\)/);
+assert.match(app,/filterSongs\(model,\{/);
+assert.match(app,/filterArtists\(model,\{/);
+assert.match(app,/favoriteSongs\(model,likedSet\)/);
+assert.match(app,/searchHomeSongs\(model,homeSearch,6\)/);
+assert.match(selectors,/const descendants=categoryId\?model\.descendants\(categoryId\):null/);
+assert.doesNotMatch(app,/model\.descendants\(categoryId\)/);
+
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");

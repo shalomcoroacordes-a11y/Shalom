@@ -39,6 +39,7 @@ El comando `npm test` descubre todos los archivos `mobile/tests/*.test.js` y eje
 
 - `mobile/App.js`: coordinación de pantallas, navegación y estado.
 - `mobile/src/catalog.js`: relaciones y búsquedas del catálogo.
+- `mobile/src/library-selectors.js`: consultas de canciones, artistas, favoritos y resultados de Inicio.
 - `mobile/src/chords.js`: procesamiento de acordes.
 - `mobile/src/sync.js`: descarga de datos públicos de Supabase.
 - `mobile/src/database.js`: SQLite local.
