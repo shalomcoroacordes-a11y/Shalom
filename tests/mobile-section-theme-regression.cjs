@@ -1,17 +1,18 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const components=fs.readFileSync("mobile/src/app-components.js","utf8");
 const section=(start,end)=>{
  const i=app.indexOf(" function "+start+"(){");
  const j=app.indexOf(" function "+end+"(",i+1);
  assert.ok(i>=0&&j>i,"Missing section: "+start);
  return app.slice(i,j);
 };
-assert.match(app,/function SectionHero\(/,"Shared section hero");
-assert.match(app,/function SectionFilterBar\(/,"Shared section filter chips");
-assert.match(app,/function SectionListCard\(/,"Shared repertoire-style cards");
-assert.match(app,/function SectionEmpty\(/,"Shared empty state with original SHALOM logo");
-assert.match(app,/h\(Pressable,\{style:S\.repCard/,"Shared cards must use repertoire visual proportions");
+assert.match(components,/function SectionHero\(/,"Shared section hero");
+assert.match(components,/function SectionFilterBar\(/,"Shared section filter chips");
+assert.match(components,/function SectionListCard\(/,"Shared repertoire-style cards");
+assert.match(components,/function SectionEmpty\(/,"Shared empty state with original SHALOM logo");
+assert.match(components,/h\(Pressable,\{style:S\.repCard/,"Shared cards must use repertoire visual proportions");
 const songs=section("renderSongs","renderArtists");
 const artists=section("renderArtists","renderCategories");
 const categories=section("renderCategories","renderMore");

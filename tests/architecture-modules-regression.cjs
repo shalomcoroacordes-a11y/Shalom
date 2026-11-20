@@ -78,4 +78,14 @@ assert.match(read("mobile/src/personal-store.js"),/function updateComposition\(/
 assert.match(personalUi,/require\("\.\/personal-reader-core"\)/);
 assert.match(read("mobile/src/personal-reader-core.js"),/function readingRows\(/);
 
+// Compartir los componentes sin duplicar sus implementaciones en App.js.
+const components=read("mobile/src/app-components.js");
+assert.match(app,/require\("\.\/src\/app-components"\)/);
+assert.match(components,/function AppSectionHeader\(/);
+assert.match(components,/function SectionFilterBar\(/);
+assert.match(components,/function SectionListCard\(/);
+assert.match(components,/function SectionEmpty\(/);
+assert.doesNotMatch(app,/function AppSectionHeader\(/);
+assert.doesNotMatch(app,/function SectionHero\(/);
+
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");
