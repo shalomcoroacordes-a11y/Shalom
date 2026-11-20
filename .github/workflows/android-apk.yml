@@ -76,6 +76,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          node scripts/release-preflight.js --publish
           VERSION=$(node -p "require('./package.json').version")
           if gh release view "android-v${VERSION}" >/dev/null 2>&1; then
             echo "Ya existe esta versión. Incrementa versión y versionCode." >&2

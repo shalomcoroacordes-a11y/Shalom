@@ -20,4 +20,14 @@ assert.match(invalid(x=>x.expo.scheme="otro"),/Deep link/);
 assert.match(invalid(x=>x.expo.version="9.0.0"),/Versiones/);
 assert.match(invalid(x=>x.expo.plugins=[]),/Permisos/);
 assert.match(checkReleaseConfig(app,pkg,()=>false).join(", "),/icono/);
+assert.match(checkReleaseConfig(app,pkg,()=>true,{publishRelease:true}).join(", "),/aumentar la versión/);
+assert.match(checkReleaseConfig(app,pkg,()=>true,{publishRelease:true}).join(", "),/versionCode/);
+const validNext=clone(app);
+validNext.expo.version="0.4.11";
+validNext.expo.android.versionCode=34;
+assert.deepEqual(checkReleaseConfig(validNext,{...pkg,version:"0.4.11"},()=>true,{publishRelease:true}),[]);
+const badCode=clone(validNext);
+badCode.expo.android.versionCode=33;
+assert.match(checkReleaseConfig(badCode,{...pkg,version:"0.4.11"},()=>true,{publishRelease:true}).join(", "),/versionCode/);
+
 console.log("SHALOM: identidad, Supabase y permisos Android protegidos.");

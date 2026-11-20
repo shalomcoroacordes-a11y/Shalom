@@ -25,6 +25,7 @@ realizarse en teléfonos, sesiones y navegadores reales.
 - [x] Validaciones automatizadas de catálogo, favoritos, SQLite y respaldos.
 - [x] Prueba automática del respaldo alterno Android ante archivos truncados, fuente incorrecta y datos alterados.
 - [x] Gate de publicación manual: solo main, tag nuevo y certificado compatible con v0.4.10.
+- [x] Gate adicional de publicación: versión superior a 0.4.10 y versionCode superior a 33.
 - [ ] Descargar e instalar la APK aislada «SHALOM Pruebas» del PR sin reemplazar SHALOM 0.4.10.
 - [ ] Probar en un Android físico: sincronizar todas las tablas y abrir lectores en modo avión.
 - [ ] Guardar perfil, favoritos, fotos y colecciones; reiniciar y comprobar persistencia.

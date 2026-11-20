@@ -4,7 +4,16 @@ const path=require("node:path");
 const ROOT=path.resolve(__dirname,"..");
 const PROJECT="ehpvsasyzlrlypjjpzuk";
 const PACKAGE="com.shalomcoroacordes.cancionero";
-function checkReleaseConfig(config,pkg,exists=()=>true){
+const BASELINE_VERSION="0.4.10";
+const BASELINE_CODE=33;
+function isNewerVersion(version){
+ const parse=s=>s.split(".").map(Number);
+ const next=parse(version),base=parse(BASELINE_VERSION);
+ return next[0]>base[0]||
+  (next[0]===base[0]&&next[1]>base[1])||
+  (next[0]===base[0]&&next[1]===base[1]&&next[2]>base[2]);
+}
+function checkReleaseConfig(config,pkg,exists=()=>true,options={}){
  const app=config?.expo||{};
  const android=app.android||{};
  const errors=[];
@@ -17,6 +26,10 @@ function checkReleaseConfig(config,pkg,exists=()=>true){
  if(app.scheme!=="shalom")errors.push("Deep link de SHALOM cambiado");
  if(!Number.isInteger(android.versionCode)||android.versionCode<1)
   errors.push("android.versionCode debe ser un entero positivo");
+ if(options.publishRelease && (!/^\d+\.\d+\.\d+$/.test(version) || !isNewerVersion(version)))
+  errors.push("Para publicar debes aumentar la versión respecto de "+BASELINE_VERSION);
+ if(options.publishRelease && (!Number.isInteger(android.versionCode)||android.versionCode<=BASELINE_CODE))
+  errors.push("Para publicar incrementa versionCode por encima de "+BASELINE_CODE);
  if(!exists(app.icon||""))errors.push("Falta el icono SHALOM");
  if(!exists(android.adaptiveIcon?.foregroundImage||""))
   errors.push("Falta el icono adaptable con la paloma original");
@@ -32,9 +45,9 @@ function main(){
  const errors=checkReleaseConfig(config,pkg,relative=>{
   if(!relative||relative.includes("..")||path.isAbsolute(relative))return false;
   return fs.existsSync(path.join(ROOT,relative));
- });
+ },{publishRelease:process.argv.includes("--publish")});
  if(errors.length){for(const e of errors)console.error("SHALOM: "+e);process.exitCode=1;}
  else console.log("SHALOM: versión "+pkg.version+", paquete, base de datos, paloma y permisos verificados.");
 }
 if(require.main===module)main();
-module.exports=Object.freeze({checkReleaseConfig,PROJECT,PACKAGE});
+module.exports=Object.freeze({checkReleaseConfig,PROJECT,PACKAGE,BASELINE_VERSION,BASELINE_CODE});

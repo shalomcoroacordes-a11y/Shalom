@@ -10,6 +10,7 @@ assert.match(android,/default: false/);
 assert.match(android,/if: inputs\.publish_release/);
 assert.match(android,/node scripts\/release-preflight\.js/);
 assert.match(android,/Reject duplicate Android version tags/);
+assert.match(android,/node scripts\/release-preflight\.js --publish/);
 assert.match(android,/Require a compatible Android update certificate/);
 assert.match(android,/gh release download android-v0\.4\.10/);
 assert.match(android,/NEW_SHA.*!=.*OLD_SHA/);
