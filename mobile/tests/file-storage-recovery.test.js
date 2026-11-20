@@ -40,7 +40,6 @@ const key=name=>"shalom-offline-"+name+".json";
  assert.equal(memory.has(key("A")),true);
  const second=data();second.songs=[row("new")];
  const time2=await storage.saveSnapshot(second);
- const futureSql=new Date(Date.parse(time2)+100000).toISOString();
  assert.equal(storage.validSnapshot(JSON.parse(memory.get(key("A")))),true);
  assert.ok(Date.parse(time2)>Date.parse(time1),
   "La marca de tiempo avanza aunque ambos guardados ocurran en el mismo milisegundo");
@@ -96,5 +95,12 @@ const key=name=>"shalom-offline-"+name+".json";
  const invalid=data();invalid.songs=[{title:"sin ID"}];
  await assert.rejects(storage.saveSnapshot(invalid),/verificar/);
  assert.equal((await storage.readSnapshot()).data.songs[0].id,"new");
+ // Si SQLite quedó con un timestamp futuro, la próxima copia debe superar
+ // también ese valor, incluso con el reloj del teléfono desajustado.
+ const futureSql=new Date(Date.now()+60000).toISOString();
+ const newest=data();newest.songs=[row("after-sql")];
+ const storedAt=await storage.saveSnapshot(newest,futureSql);
+ assert.ok(Date.parse(storedAt)>Date.parse(futureSql));
+ assert.equal((await storage.readSnapshot()).data.songs[0].id,"after-sql");
  console.log("SHALOM Android: doble respaldo, recuperación, integridad y compatibilidad comprobados.");
 })().catch(err=>{console.error(err);process.exitCode=1});

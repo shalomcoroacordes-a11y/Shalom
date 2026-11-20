@@ -3,6 +3,8 @@ const fs=require("node:fs");
 const preview=fs.readFileSync(".github/workflows/android-preview.yml","utf8");
 const release=fs.readFileSync(".github/workflows/android-apk.yml","utf8");
 assert.match(preview,/pull_request:/);
+assert.match(preview,/shalom-android-preview-/);
+assert.match(preview,/cancel-in-progress: true/);
 assert.match(preview,/contents: read/);
 assert.match(preview,/node scripts\/release-preflight\.js/);
 assert.match(preview,/npm test/);
