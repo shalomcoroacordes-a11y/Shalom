@@ -60,7 +60,7 @@ assert.match(app,/h\(SongActionsSheet,/,"Existe panel nativo");
 assert.match(app,/onPress:\(\)=>active\?setActionSongId/,"Tres puntos abren acciones del canto");
 const gridUI=fs.readFileSync("src/aligned-score-ui.js","utf8");
 assert.match(app,/h\(AlignedScore,/,"Lector muestra renglones completos compartidos entre pantallas");
-assert.match(gridUI,/horizontal:true,scrollEnabled:true,nestedScrollEnabled:true/,"El lector conserva scroll horizontal");
+assert.match(fs.readFileSync("src/web-score-html.js","utf8"),/overflow-x:auto/,"El lector conserva desplazamiento horizontal de la letra");
 assert.match(app,/Print\.printAsync\(\{html:buildPrintableSong\(song,readerShiftForPrint\(song,transpose,capo\)\)\}\)/,"Impresión nativa sin navegador y con capo");
 assert.match(sheet,/onRequestClose:back/,"El botón nativo cierra panel o retrocede dentro de él");
 for(const value of ["Quitar de Mis me gusta","Agregar a Mis me gusta","Agregar a repertorio","Agregar a misa",
