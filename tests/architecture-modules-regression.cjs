@@ -64,7 +64,7 @@ assert.match(admin,/apForgetEditorPosition\("__new__"\)/);
 assert.doesNotMatch(admin,/const AP_EDITOR_POSITION_KEY/);
 assert.doesNotMatch(editorPositions,/apRenderView\s*=/);
 const categoryTree=read("admin-category-hierarchy.js");
-assert.match(html,/src="admin-category-tree\.js\?v=1"/);
+assert.match(html,/src="admin-category-hierarchy\.js\?v=1"/);
 assert.ok(html.indexOf("admin-category-hierarchy.js")<html.indexOf("admin-pro.js"));
 assert.match(admin,/const apCategoryTree = window\.ShalomAdminCategoryHierarchy/);
 assert.match(categoryTree,/window\.ShalomAdminCategoryHierarchy = Object\.freeze/);
