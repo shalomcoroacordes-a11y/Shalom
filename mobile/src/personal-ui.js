@@ -507,55 +507,76 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    action("Eliminar colección",deleteFolder,true));
  }
  function editView(){
-  if(!folder||!entry)return folderView();
-  const results=search.trim()?songs.filter(s=>
-   (String(s.title||"")+" "+(s._artists||[]).map(a=>a.name).join(" ")).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().includes(
-    search.trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase())).slice(0,24):songs.slice(0,24);
+  if(!folder||!entry)return homeView();
+  const normalized=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const results=search.trim()?songs.filter(song=>normalized(
+   (song.title||"")+" "+(song._artists||[]).map(a=>a.name).join(" ")).includes(normalized(search.trim()))).slice(0,14):
+   songs.slice(0,8);
   return h(View,{style:styles.container},
-   action("← "+folder.name,back,true),
-   label(entry.kind==="misa"?"Editar misa personal":entry.kind==="repertorio"?"Editar repertorio personal":"Editar popurrí personal",styles.pageTitle),
-   label("Solo utiliza cantos publicados. Puedes repetir un canto y elegir una estrofa distinta cada vez.",styles.description),
-   input(nameDraft,setNameDraft,"Nombre de la misa o popurrí"),
-   action("Guardar nombre",saveTitle,true),
-   label(entry.parts.length+" fragmentos en orden",styles.cardTitle),
+   action("← Volver",back,true),
+   label("PASO 2 DE 2",styles.eyebrow),
+   label(entry.kind==="misa"?"Prepara tu misa":entry.kind==="repertorio"?"Prepara tu repertorio":"Prepara tu popurrí",styles.pageTitle),
+   label("Agrega cantos del catálogo. Después puedes ajustar estrofas y tonos.",styles.description),
+   label("Nombre",styles.inputLabel),
+   input(nameDraft,setNameDraft,"Nombre de tu composición"),
+   h(View,{style:styles.actions},
+    action("Guardar nombre",saveTitle,true,nameDraft.trim()===entry.title||!nameDraft.trim()),
+    action("✓  Listo",()=>{setAdding(false);setExpandedPartId(null);setView(editReturn)},true)),
+   h(View,{style:styles.editorStep},
+    label("1. Elige tus cantos",styles.cardTitle),
+    label("Puedes repetir cantos para formar un popurrí o una misa.",styles.description),
+    action(adding?"Cerrar búsqueda":"+ Añadir canto",()=>setAdding(v=>!v))),
+   adding?h(View,{style:styles.searchPanel},
+    input(search,setSearch,"Buscar canto por título o artista"),
+    !songs.length?label("Descarga primero el cancionero en Inicio.",styles.warning):null,
+    ...results.map(song=>h(Pressable,{key:song.id,onPress:()=>addSong(song),style:styles.result,
+     accessibilityRole:"button",accessibilityLabel:"Añadir "+song.title},
+      h(View,{style:{flex:1}},
+       label(song.title,styles.resultTitle),
+       label((song._artists||[]).map(a=>a.name).filter(Boolean).join(" · ")||
+        "Canto SHALOM",styles.meta)),
+      label("+",styles.arrow))),
+    search.trim()&&!results.length?label("No se encontraron cantos con ese nombre.",styles.description):null):null,
+   label("2. Orden de los cantos",styles.cardTitle),
+   label(entry.parts.length?(entry.parts.length+" "+(entry.parts.length===1?"canto agregado":"cantos agregados")):
+    "Aún no hay cantos. Usa «Añadir canto» para comenzar.",styles.description),
    ...entry.parts.map((p,index)=>{
-    const song=catalog.get(p.songId);
-    const sections=song?songSections(song.lyrics):[];
-    return h(View,{key:p.id,style:styles.card},
+    const song=catalog.get(p.songId),sections=song?songSections(song.lyrics):[];
+    const expanded=expandedPartId===p.id;
+    return h(View,{key:p.id,style:styles.partCompact},
      h(View,{style:styles.partHead},
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
-      h(View,{style:{flex:1}},label(song?.title||"Canto pendiente de descargar",styles.cardTitle),
-       label(p.sectionIndex===null?"Canto completo":p.sectionTitle||"Estrofa "+(p.sectionIndex+1),styles.meta))),
-     label("Fragmento a interpretar",styles.inputLabel),
-     song?h(View,{style:styles.wrap},
-      chip("Completo",p.sectionIndex===null,()=>changePart(p.id,x=>({...x,sectionIndex:null,sectionTitle:""}))),
-      ...sections.map(s=>chip(s.title+" #"+(s.index+1),p.sectionIndex===s.index,
-       ()=>changePart(p.id,x=>({...x,sectionIndex:s.index,sectionTitle:s.title}))))):
-      label("Actualiza el cancionero para poder elegir sus estrofas.",styles.warning),
-     entry.kind==="misa"?h(View,null,label("Momento de la celebración",styles.inputLabel),
-      h(View,{style:styles.wrap},...MOMENTS.map(m=>chip(m,p.moment===m,()=>changePart(p.id,x=>({...x,moment:m})))))):null,
-     h(View,{style:styles.toneRow},
-      label("Tono "+(song?.tone?transposeOne(song.tone,p.shift):"sin registro"),styles.meta),
-      action("−",()=>changePart(p.id,x=>({...x,shift:Math.max(-11,x.shift-1)})),true,p.shift<=-11),
-      label((p.shift>0?"+":"")+p.shift+" st",styles.meta),
-      action("+",()=>changePart(p.id,x=>({...x,shift:Math.min(11,x.shift+1)})),true,p.shift>=11)),
+      h(View,{style:{flex:1,minWidth:0}},
+       h(Text,{style:styles.cardTitle,numberOfLines:2},song?.title||"Canto pendiente de descargar"),
+       label((p.sectionIndex===null?"Completo":p.sectionTitle||"Fragmento")+" · "+
+        (song?.tone?transposeOne(song.tone,p.shift):"Sin tono")+
+        (p.moment?" · "+p.moment:""),styles.meta))),
      h(View,{style:styles.actions},
+      action(expanded?"Cerrar ajustes":"Ajustar",()=>setExpandedPartId(expanded?null:p.id),true),
       action("↑",()=>movePart(index,-1),true,index===0),
       action("↓",()=>movePart(index,1),true,index===entry.parts.length-1),
-      action("Quitar",()=>updateEntry(e=>({...e,parts:e.parts.filter(x=>x.id!==p.id)})),true))
-    );
+      action("Quitar",()=>updateEntry(e=>({...e,parts:e.parts.filter(x=>x.id!==p.id)})),true)),
+     expanded?h(View,{style:styles.partDetails},
+      label("¿Qué parte quieres usar?",styles.inputLabel),
+      song?h(View,{style:styles.wrap},
+       chip("Canto completo",p.sectionIndex===null,()=>changePart(p.id,x=>({...x,sectionIndex:null,sectionTitle:""}))),
+       ...sections.map(section=>chip(section.title,p.sectionIndex===section.index,
+        ()=>changePart(p.id,x=>({...x,sectionIndex:section.index,sectionTitle:section.title}))))):
+       label("Descarga la biblioteca para elegir estrofas.",styles.warning),
+      entry.kind==="misa"?h(View,{style:{gap:7}},
+       label("Momento de la misa",styles.inputLabel),
+       h(View,{style:styles.wrap},...MOMENTS.map(m=>chip(m,p.moment===m,
+        ()=>changePart(p.id,x=>({...x,moment:m})))))):null,
+      label("Cambiar tono de este canto",styles.inputLabel),
+      h(View,{style:styles.toneRow},
+       action("T−",()=>changePart(p.id,x=>({...x,shift:Math.max(-11,x.shift-1)})),true,p.shift<=-11),
+       label((p.shift>0?"+":"")+p.shift+" semitonos",styles.meta),
+       action("T+",()=>changePart(p.id,x=>({...x,shift:Math.min(11,x.shift+1)})),true,p.shift>=11))):null);
    }),
-   action(adding?"Cerrar búsqueda":"+ Agregar canto o fragmento",()=>setAdding(v=>!v),true),
-   adding?h(View,{style:styles.card},
-    label("Selecciona un canto publicado",styles.cardTitle),
-    input(search,setSearch,"Buscar por título o artista"),
-    !songs.length?label("Descarga primero el cancionero de SHALOM.",styles.warning):null,
-    ...results.map(song=>h(Pressable,{key:song.id,onPress:()=>addSong(song),style:styles.result,
-     accessibilityRole:"button",accessibilityLabel:"Agregar "+song.title},
-      label(song.title,styles.resultTitle),label("＋",styles.arrow)))):null,
-   h(View,{style:styles.actions},
-    action("Leer completo",()=>{setView("reading");setReaderShift(0)},false,!entry.parts.length),
-    action("Compartir",()=>showShare(entry,folder,"editing"),true,!entry.parts.length)));
+   h(View,{style:styles.editorFinish},
+    action("▶  Leer composición",()=>{setView("reading");setReaderShift(0)},false,!entry.parts.length),
+    action("↗  Compartir",()=>showShare(entry,folder,"editing"),true,!entry.parts.length)),
+   label("Los cambios se guardan automáticamente en tu teléfono.",styles.privacyNote));
  }
  function readingView(){
   if(!folder||!entry)return folderView();
@@ -616,6 +637,13 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  return homeView();
 }
 const styles=StyleSheet.create({
+ editorStep:{gap:7,paddingTop:7,paddingBottom:7},
+ searchPanel:{padding:10,backgroundColor:theme.panel,borderRadius:13,gap:4},
+ partCompact:{padding:12,borderRadius:13,borderColor:theme.border,borderWidth:1,gap:10,marginBottom:5},
+ partDetails:{paddingTop:9,borderTopWidth:1,borderColor:theme.border,gap:5},
+ editorFinish:{gap:8,marginTop:10},
+ privacyNote:{fontSize:11,color:theme.muted,paddingTop:3},
+
  quickGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:9,marginTop:5,marginBottom:7},
  quickTile:{width:"48.5%",minHeight:116,padding:13,borderRadius:15,
   backgroundColor:"#17342f",borderWidth:1,borderColor:"#386d5c",gap:4,justifyContent:"center"},
