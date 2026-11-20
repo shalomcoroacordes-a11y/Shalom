@@ -65,4 +65,8 @@ assert.match(styles,/songScorePlain:\{width:"100%",marginTop:13,paddingBottom:10
 assert.match(styles,/repCard:\{minHeight:78/);
 assert.ok((styles.match(/^\s*[A-Za-z]\w*:\{/gm)||[]).length>=290,
  "No se pierden estilos al extraerlos");
+assert.match(app,/require\("\.\/src\/navigation-core"\)/,
+ "App consume el contrato de navegación en lugar de duplicarlo");
+assert.doesNotMatch(app,/const tabs=\[\[/,
+ "La navegación no debe volver al monolito principal");
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");

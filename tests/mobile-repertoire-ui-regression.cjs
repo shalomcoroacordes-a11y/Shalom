@@ -23,7 +23,10 @@ assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.section
 assert.match(app,/setRepertoireSearchOpen\(v=>!v\)/);
 assert.match(app,/accessibilityLabel:"Sugerir un repertorio al administrador"/);
 assert.match(app,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
-assert.match(app,/const tabs=\[\["Inicio","home"\],\["Canciones","song"\],\["Repertorios","repertoires"\],\["Artistas","artists"\],\["Perfil","profile"\]\]/);
+assert.deepEqual(require("../mobile/src/navigation-core.js").tabs,
+ [["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Perfil","profile"]],
+ "La estructura de pestañas se mantiene tras extraer el módulo");
+assert.match(app,/require\\("\\.\\/src\\/navigation-core"\\)/);
 assert.match(iconGenerator,/home-.*\.png/);
 assert.match(iconGenerator,/"mass":/);
 assert.match(iconGenerator,/"calendar":/);
