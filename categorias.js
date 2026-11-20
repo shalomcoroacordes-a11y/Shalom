@@ -14,6 +14,12 @@ const categorySearch = Cat.$("#categorySearch");
 const categoryStatus = Cat.$("#categoryResultsStatus");
 const allowedTypes = new Set(["", "catolico", "cristiano", "mixto", "general"]);
 
+const CATEGORY_HOME_META = /\s*<!--JHD_HOME_ACCESS:[\s\S]*?-->\s*$/;
+function categoryDescription(description, fallback) {
+  return String(description || "").replace(CATEGORY_HOME_META, "").trim() || fallback;
+}
+
+
 const findCategory = (value) => Cat.state.categories.find((item) => String(item.id) === String(value) || Cat.normalize(item.slug) === Cat.normalize(value) || Cat.normalize(item.name) === Cat.normalize(value));
 const categoryKey = (item) => item?.slug || item?.id || "";
 const childrenOf = () => Cat.state.categories
@@ -101,7 +107,7 @@ function applyRoute(route, write = false) {
 function categoryTile(item) {
   const nested = Number(item.child_count || 0) > 0;
   const count = Number(item.song_count || 0);
-  return `<article class="public-category-card"><p class="hero-kicker">${Cat.esc(Cat.typeLabel(item.song_type))}</p><h3>📁 ${Cat.esc(item.name || "Categoría")}</h3><p>${Cat.esc(item.description || "Cantos organizados en esta categoría.")}</p><p class="public-category-count">${count} ${count === 1 ? "canto" : "cantos"}</p><div class="public-category-card-actions">${nested ? `<button class="song-btn small-btn" type="button" data-folder="${Cat.esc(item.id)}">Abrir carpeta</button>` : ""}<button class="song-btn small-btn secondary" type="button" data-category="${Cat.esc(item.id)}">Ver cantos</button></div></article>`;
+  return `<article class="public-category-card"><p class="hero-kicker">${Cat.esc(Cat.typeLabel(item.song_type))}</p><h3>📁 ${Cat.esc(item.name || "Categoría")}</h3><p>${Cat.esc(categoryDescription(item.description, "Cantos organizados en esta categoría."))}</p><p class="public-category-count">${count} ${count === 1 ? "canto" : "cantos"}</p><div class="public-category-card-actions">${nested ? `<button class="song-btn small-btn" type="button" data-folder="${Cat.esc(item.id)}">Abrir carpeta</button>` : ""}<button class="song-btn small-btn secondary" type="button" data-category="${Cat.esc(item.id)}">Ver cantos</button></div></article>`;
 }
 
 function bindCategoryButtons() {
@@ -160,7 +166,7 @@ function renderCategorySongs(category) {
     ? categorySongRows.map(categorySongRow).join("")
     : "<p class='muted-text'>Esta categoría todavía no tiene cantos relacionados.</p>";
   setStatus(`${categorySongTotal} ${categorySongTotal === 1 ? "canto encontrado" : "cantos encontrados"}`);
-  categoryGrid.innerHTML = `<div class="category-songs-view"><button class="song-btn small-btn secondary" id="backToCategories" type="button">← Volver a categorías</button><div class="category-songs-header"><p class="hero-kicker">Cantos encontrados</p><h2>${Cat.esc(category.name)}</h2><p>${Cat.esc(category.description || "Cantos de esta categoría y sus subcategorías.")}</p></div><div class="category-songs-list">${rows}</div><div class="catalog-load-more"><button class="song-btn secondary" id="categorySongsLoadMore" type="button" ${hasMore ? "" : "hidden"}>${categorySongLoading ? "Cargando…" : "Cargar más canciones"}</button></div></div>`;
+  categoryGrid.innerHTML = `<div class="category-songs-view"><button class="song-btn small-btn secondary" id="backToCategories" type="button">← Volver a categorías</button><div class="category-songs-header"><p class="hero-kicker">Cantos encontrados</p><h2>${Cat.esc(category.name)}</h2><p>${Cat.esc(categoryDescription(category.description, "Cantos de esta categoría y sus subcategorías."))}</p></div><div class="category-songs-list">${rows}</div><div class="catalog-load-more"><button class="song-btn secondary" id="categorySongsLoadMore" type="button" ${hasMore ? "" : "hidden"}>${categorySongLoading ? "Cargando…" : "Cargar más canciones"}</button></div></div>`;
   Cat.$("#backToCategories")?.addEventListener("click", () => {
     categorySongId = null;
     syncHistory("push");
