@@ -4,7 +4,7 @@ const h=React.createElement;
 function ProfileOptionsMenu({visible,onDismiss,onEdit,onCollections,onBackup,onMore}){
  const items=[
   ["✎","Editar perfil",onEdit],
-  ["▣","Mis colecciones",onCollections],
+  ["▣","Mis creaciones",onCollections],
   ["↥","Respaldo y restauración",onBackup],
   ["⋯","Más opciones",onMore]
  ];
