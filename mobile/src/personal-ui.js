@@ -45,6 +45,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [expandedPartId,setExpandedPartId]=useState(null);
  const [importPreview,setImportPreview]=useState(null);
  const [importTarget,setImportTarget]=useState(null);
+ const [listFilter,setListFilter]=useState(filterKind||"all");
+ const [showRawCode,setShowRawCode]=useState(false);
  const [newFolderName,setNewFolderName]=useState("");
  const [newColor,setNewColor]=useState(COLORS[0]);
  const [newCoverPreset,setNewCoverPreset]=useState("dove");
@@ -257,6 +259,170 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
       accessibilityRole:"button",accessibilityLabel:"Personalizar "+c.name,
       style:styles.collectionCardMore},label("⋮",styles.moreIcon)))));
  }
+ function kindTile(kind,caption){
+  const name=kind==="misa"?"Misa":kind==="popurri"?"Popurrí":"Repertorio";
+  const symbol=kind==="misa"?"♧":kind==="popurri"?"♫":"▣";
+  return h(Pressable,{key:kind,onPress:()=>startCreate(kind),
+   style:styles.quickTile,accessibilityRole:"button",accessibilityLabel:"Crear "+name.toLowerCase()},
+   label(symbol,styles.quickTileIcon),label("Nueva "+name,styles.quickTileText),
+   label(caption,styles.quickTileCaption));
+ }
+ function homeView(){
+  const all=items(store,listFilter==="all"?null:listFilter);
+  const counts={misa:items(store,"misa").length,popurri:items(store,"popurri").length,
+   repertorio:items(store,"repertorio").length};
+  return h(View,{style:styles.container},
+   label("MI ESPACIO",styles.eyebrow),
+   label("Mis creaciones",styles.collectionTitle),
+   label("Prepara tus cantos para misa o ensayo. Todo se guarda en este celular.",styles.description),
+   h(View,{style:styles.quickGrid},
+    kindTile("misa","Para una celebración"),
+    kindTile("repertorio","Para tu ensayo"),
+    kindTile("popurri","Une varios cantos")),
+   h(Pressable,{onPress:openReceive,accessibilityRole:"button",
+    accessibilityLabel:"Recibir una composición por código",style:styles.receiveShortcut},
+    label("↓",styles.receiveIcon),
+    h(View,{style:{flex:1}},
+     label("Recibir composición",styles.cardTitle),
+     label("Pega el mensaje que te enviaron por WhatsApp.",styles.meta)),
+    label("›",styles.arrow)),
+   label("Tus composiciones",styles.sectionHeading),
+   h(View,{style:styles.wrap},
+    chip("Todos",listFilter==="all",()=>setListFilter("all")),
+    chip("Misas · "+counts.misa,listFilter==="misa",()=>setListFilter("misa")),
+    chip("Popurrís · "+counts.popurri,listFilter==="popurri",()=>setListFilter("popurri")),
+    chip("Repertorios · "+counts.repertorio,listFilter==="repertorio",()=>setListFilter("repertorio"))),
+   ...all.map(({folder:c,entry:item})=>h(View,{key:c.id+"-"+item.id,style:styles.creationRow},
+    h(Pressable,{style:styles.creationOpen,onPress:()=>openEntry(item,c,"home"),
+     accessibilityRole:"button",accessibilityLabel:"Abrir "+item.title},
+     h(View,{style:styles.creationIcon},label(item.kind==="misa"?"♧":item.kind==="repertorio"?"▣":"♫",styles.creationIconText)),
+     h(View,{style:{flex:1,minWidth:0}},
+      h(Text,{style:styles.cardTitle,numberOfLines:2},item.title),
+      label((item.kind==="misa"?"Misa":item.kind==="repertorio"?"Repertorio":"Popurrí")+
+       " · "+item.parts.length+" "+(item.parts.length===1?"canto":"cantos"),styles.meta),
+      label("En "+c.name,styles.creationFolder)),
+     label("›",styles.arrow)),
+    item.parts.length?h(Pressable,{onPress:()=>showShare(item,c,"home"),
+     style:styles.shareSmall,accessibilityRole:"button",
+     accessibilityLabel:"Compartir "+item.title},label("↗",styles.moreIcon)):null)),
+   !all.length?h(View,{style:styles.emptyClean},
+    label(listFilter==="all"?"Todavía no tienes composiciones.":
+     "Aún no has creado "+(listFilter==="misa"?"misas":listFilter==="popurri"?"popurrís":"repertorios")+".",styles.emptyTitle),
+    label("Elige una de las opciones de arriba para comenzar. No necesitas crear una carpeta.",styles.description)):null,
+   action("▣  Organizar por carpetas",()=>setView("folders"),true),
+   h(View,{style:styles.privacyFooter},
+    label("🔒  Tus composiciones son privadas y no modifican los cantos oficiales de SHALOM.",styles.privateText)));
+ }
+ function createView(){
+  const title=createKind==="misa"?"Nueva misa":createKind==="repertorio"?"Nuevo repertorio":"Nuevo popurrí";
+  return h(View,{style:styles.container},
+   action("← Mis creaciones",back,true),
+   label("PASO 1 DE 2",styles.eyebrow),
+   label(title,styles.collectionTitle),
+   label("Dale un nombre. Después podrás elegir los cantos y ordenarlos.",styles.description),
+   label("¿Qué vas a preparar?",styles.inputLabel),
+   h(View,{style:styles.wrap},
+    chip("♧ Misa",createKind==="misa",()=>setCreateKind("misa")),
+    chip("▣ Repertorio",createKind==="repertorio",()=>setCreateKind("repertorio")),
+    chip("♫ Popurrí",createKind==="popurri",()=>setCreateKind("popurri"))),
+   label("Nombre",styles.inputLabel),
+   input(createTitle,setCreateTitle,createKind==="misa"?"Ej. Misa del domingo":
+    createKind==="repertorio"?"Ej. Ensayo del jueves":"Ej. Alabanzas de entrada"),
+   label("Guardar en",styles.inputLabel),
+   label("Por defecto se organizará en «Mis creaciones». La carpeta es opcional.",styles.description),
+   h(View,{style:styles.wrap},
+    chip("Automático",createTarget===null,()=>setCreateTarget(null)),
+    ...store.collections.map(c=>chip(c.name,createTarget===c.id,()=>setCreateTarget(c.id)))),
+   action("Continuar → Agregar cantos",finishCreate,false,!createTitle.trim()),
+   label("Los nombres y cantos son editables después. Nada se publica en internet.",styles.meta));
+ }
+ async function pasteFromClipboard(){
+  try{
+   const copied=await Clipboard.getStringAsync();
+   if(!copied.trim())return Alert.alert("Portapapeles vacío","Copia primero el mensaje recibido.");
+   setShareInput(copied);setImportPreview(null);
+  }catch(e){Alert.alert("No se pudo pegar",e?.message||"Pega el mensaje manualmente.");}
+ }
+ function examineImport(){
+  try{setImportPreview(codePreview(shareInput,songs));}
+  catch(e){setImportPreview(null);Alert.alert("Mensaje no reconocido",e.message);}
+ }
+ function completeImport(){
+  try{
+   // Se vuelve a validar el texto por si se modificó después de la vista previa.
+   const inspected=codePreview(shareInput,songs);
+   const result=receivePersonal(store,shareInput,importTarget);
+   commit(result.store,{notice:"Composición recibida y guardada"});
+   setFolderId(result.folder.id);setEntryId(result.entry.id);
+   setNameDraft(result.entry.title);setEditReturn("home");
+   setSearch("");setAdding(false);setExpandedPartId(null);
+   setShareInput("");setImportPreview(null);setView("editing");
+   if(inspected.missingCount)Alert.alert("Cantos pendientes",
+    "Hay "+inspected.missingCount+" cantos que no están descargados. Actualiza la biblioteca para verlos.");
+  }catch(e){Alert.alert("No se pudo importar",e?.message||"Comprueba el código.");}
+ }
+ function receiveView(){
+  return h(View,{style:styles.container},
+   action("← Mis creaciones",back,true),
+   label("RECIBIR",styles.eyebrow),
+   label("Recibir composición",styles.collectionTitle),
+   label("¿Te enviaron una misa, popurrí o repertorio? Copia el mensaje de WhatsApp y pégalo aquí.",styles.description),
+   action("Pegar desde el portapapeles",pasteFromClipboard),
+   h(TextInput,{value:shareInput,onChangeText:v=>{setShareInput(v);setImportPreview(null)},
+    placeholder:"O mantén presionado aquí para pegar el mensaje SHALOM…",
+    placeholderTextColor:theme.muted,style:[styles.input,styles.multiInput],multiline:true,
+    maxLength:19000,textAlignVertical:"top",autoCapitalize:"none",autoCorrect:false}),
+   action("Revisar composición",examineImport,true,!shareInput.trim()),
+   importPreview?h(View,{style:styles.importSummary},
+    label("LISTA PARA IMPORTAR",styles.eyebrow),
+    label(importPreview.entry.title,styles.cardTitle),
+    label("Tipo: "+kindName(importPreview.entry.kind)+" · "+
+     importPreview.count+" "+(importPreview.count===1?"fragmento":"fragmentos"),styles.meta),
+    label(importPreview.missingCount?
+     "Hay "+importPreview.missingCount+" cantos pendientes de descargar. Podrás agregarlos más adelante.":
+     "Todos los cantos de este mensaje están en tu biblioteca.",styles.description),
+    label("¿Dónde guardarla?",styles.inputLabel),
+    h(View,{style:styles.wrap},
+     chip("Recibidos",importTarget===null,()=>setImportTarget(null)),
+     ...store.collections.map(c=>chip(c.name,importTarget===c.id,()=>setImportTarget(c.id)))),
+    action("Guardar en mi teléfono",completeImport),
+    label("No se alterarán tus cantos originales ni la cuenta del administrador.",styles.meta)):null);
+ }
+ function shareView(){
+  if(!folder||!entry)return homeView();
+  let code="";
+  try{code=exportCode(entry);}catch(_){}
+  const shareMessage="🕊️ SHALOM · "+kindName(entry.kind)+"\n"+entry.title+
+   "\n\n"+code+"\n\nPara guardarlo: abre SHALOM → Perfil → Recibir composición → Pegar mensaje.";
+  async function shareNative(){
+   try{
+    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    await Share.share({title:"SHALOM · "+entry.title,message:shareMessage});
+   }catch(e){Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");}
+  }
+  async function copyCode(){
+   try{
+    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    await Clipboard.setStringAsync(shareMessage);
+    Alert.alert("Mensaje copiado","Ya puedes pegarlo en WhatsApp o en otra conversación.");
+   }catch(e){Alert.alert("No se pudo copiar",e?.message||"Inténtalo de nuevo.");}
+  }
+  return h(View,{style:styles.container},
+   action("← Volver",back,true),
+   label("COMPARTIR",styles.eyebrow),
+   label("Enviar composición",styles.collectionTitle),
+   label(entry.title,styles.cardTitle),
+   label(entry.parts.length+" cantos · "+kindName(entry.kind),styles.meta),
+   label("La otra persona podrá guardarla en su SHALOM, sin que ninguno de los dos tenga que iniciar sesión.",styles.description),
+   action("↗  Enviar por WhatsApp u otra app",shareNative,false,!code),
+   action("▣  Copiar mensaje",copyCode,true,!code),
+   h(View,{style:styles.infoCard},
+    label("¿Qué recibe la otra persona?",styles.cardTitle),
+    label("El orden de los cantos, los fragmentos y sus tonos. No se envían tus fotos ni las letras completas.",styles.description),
+    label("Solo tiene que abrir Perfil → Recibir composición y pegar el mensaje.",styles.meta)),
+   action(showRawCode?"Ocultar código":"Ver código de SHALOM",()=>setShowRawCode(v=>!v),true),
+   showRawCode?h(Text,{selectable:true,style:styles.codePreview},code):null);
+ }
  function foldersView(){
   const empty=!store.collections.length;
   return h(View,{style:styles.collectionRoot},
@@ -443,11 +609,38 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  if(view==="reading")return readingView();
  if(view==="editing")return editView();
+ if(view==="share")return shareView();
+ if(view==="import")return receiveView();
+ if(view==="create")return createView();
  if(view==="folder")return folderView();
- if(filterKind)return filteredEntriesView();
- return foldersView();
+ if(view==="folders")return foldersView();
+ return homeView();
 }
 const styles=StyleSheet.create({
+ quickGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:9,marginTop:5,marginBottom:7},
+ quickTile:{width:"48.5%",minHeight:116,padding:13,borderRadius:15,
+  backgroundColor:"#17342f",borderWidth:1,borderColor:"#386d5c",gap:4,justifyContent:"center"},
+ quickTileIcon:{fontSize:24,color:theme.green,fontWeight:"850"},
+ quickTileText:{fontSize:14,color:theme.text,fontWeight:"850"},
+ quickTileCaption:{fontSize:10,color:theme.muted,lineHeight:14},
+ receiveShortcut:{flexDirection:"row",gap:12,alignItems:"center",paddingHorizontal:13,paddingVertical:15,
+  borderRadius:13,backgroundColor:theme.panel,borderColor:theme.border,borderWidth:1},
+ receiveIcon:{fontSize:25,color:theme.green,fontWeight:"850"},
+ sectionHeading:{fontSize:19,fontWeight:"900",color:theme.text,marginTop:9},
+ creationRow:{backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border,borderRadius:13,
+  flexDirection:"row",alignItems:"center",overflow:"hidden",marginVertical:2},
+ creationOpen:{flex:1,minWidth:0,padding:11,flexDirection:"row",gap:10,alignItems:"center",minHeight:78},
+ creationIcon:{width:39,height:39,justifyContent:"center",alignItems:"center",
+  backgroundColor:"#174633",borderRadius:10},
+ creationIconText:{color:theme.green,fontSize:22},
+ creationFolder:{fontSize:10,color:"#80b5a6",marginTop:3},
+ shareSmall:{paddingHorizontal:13,minHeight:54,justifyContent:"center",alignItems:"center",
+  borderLeftWidth:1,borderColor:theme.border},
+ emptyClean:{gap:8,paddingVertical:20,paddingHorizontal:4},
+ importSummary:{padding:14,backgroundColor:"#18362d",borderRadius:14,gap:9,borderWidth:1,borderColor:"#427b5f"},
+ infoCard:{backgroundColor:theme.panel,padding:14,borderRadius:13,gap:7},
+ codePreview:{fontSize:10,color:theme.muted,backgroundColor:theme.panel,padding:10,borderRadius:12},
+
  collectionRoot:{gap:13,paddingBottom:25},
  collectionHeading:{gap:4,paddingTop:5,marginBottom:2},
  eyebrow:{fontSize:10,fontWeight:"900",letterSpacing:1.1,color:theme.green},
