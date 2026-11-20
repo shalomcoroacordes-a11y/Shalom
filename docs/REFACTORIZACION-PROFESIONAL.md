@@ -33,6 +33,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Mis colecciones, fase 2 (en rama):** `personal-styles.js` aloja la misma hoja de estilos; `personal-store.js` contiene las operaciones inmutables de edición, composición y orden de cantos. `personal-ui.js` se dedica a la interacción y las vistas. Las fotos y datos locales no se migran. Se añadió una prueba unitaria para el contrato del almacenamiento.
 
+**Importación compartida:** el acceso de importación de colecciones heredado llama a `receivePersonal`, el mismo flujo que «Recibir composición». Conserva el formato SHALOM1 y la ubicación local, y ya no crea carpetas manualmente sin validar sus límites.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.

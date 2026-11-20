@@ -40,4 +40,9 @@ assert.doesNotMatch(screen,/StyleSheet\.create\(/);
 assert.match(styles,/return StyleSheet\.create\(/);
 assert.match(styles,/collectionGrid:/);
 assert.match(styles,/readerPart:/);
+const legacyImport=screen.slice(screen.indexOf("function pasteImport(){"),screen.indexOf("function importPanel(){"));
+assert.match(legacyImport,/receivePersonal\(store,shareInput,folder\?\.id\|\|null\)/,
+ "Reutiliza las mismas restricciones para importar una misa o popurrí");
+assert.doesNotMatch(legacyImport,/newCollection\(|store\.collections\.some\(/,
+ "La pantalla no reconstruye manualmente las colecciones importadas");
 console.log("SHALOM: Mis colecciones respeta edición inmutable, orden, fotos y estilos.");

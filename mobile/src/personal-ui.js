@@ -4,7 +4,7 @@ const {View,Text,TextInput,Pressable,ScrollView,Share,Alert}=require("react-nati
 const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
-const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,resolvePart,exportCode,importCode}=require("./personal-collections");
+const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,resolvePart,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
@@ -197,26 +197,28 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function pasteImport(){
   try{
-   const imported=importCode(shareInput);
-   const unavailable=[...new Set(imported.parts.map(p=>p.songId))].filter(id=>!catalog.has(id)).length;
-   const targetFolder=folder||store.collections.find(c=>c.name==="Recibidos");
-   const newTarget=targetFolder||newCollection("Recibidos");
-   if(newTarget.entries.length>=100)throw new Error("Esta colección ya tiene 100 composiciones.");
-   Alert.alert("Importar "+(imported.kind==="misa"?"misa":imported.kind==="repertorio"?"repertorio":"popurrí"),
-    imported.title+"\n"+imported.parts.length+" fragmentos.\n"+
-    (unavailable?"Hay "+unavailable+" cantos que no están descargados. Podrás revisar esos fragmentos al actualizar la biblioteca.":"Todos los cantos están en tu biblioteca local.")+
+   const preview=codePreview(shareInput,songs);
+   const imported=preview.entry;
+   const missing=preview.missingCount;
+   Alert.alert("Importar "+kindName(imported.kind),imported.title+"\n"+
+    preview.count+" fragmentos.\n"+
+    (missing?"Hay "+missing+" cantos que no están descargados. Podrás revisarlos al actualizar la biblioteca.":
+     "Todos los cantos están en tu biblioteca local.")+
     "\nSe guardará solo en tu teléfono.",[
     {text:"Cancelar",style:"cancel"},
     {text:"Guardar",onPress:()=>{
-     const collections=store.collections.some(c=>c.id===newTarget.id)?
-      store.collections.map(c=>c.id===newTarget.id?{...c,entries:[...c.entries,imported]}:c):
-      [...store.collections,{...newTarget,entries:[imported]}];
-     commit({...store,collections});
-     setFolderId(newTarget.id);setEntryId(imported.id);setNameDraft(imported.title);
-     setShareInput("");setShareOpen(false);setView("editing");
+     try{
+      // Usa el mismo flujo validado que Perfil > Recibir composición.
+      const result=receivePersonal(store,shareInput,folder?.id||null);
+      commit(result.store,{notice:"Composición recibida y guardada"});
+      setFolderId(result.folder.id);setEntryId(result.entry.id);
+      setNameDraft(result.entry.title);setEditReturn("home");
+      setSearch("");setAdding(false);setExpandedPartId(null);
+      setShareInput("");setShareOpen(false);setView("editing");
+     }catch(e){Alert.alert("No se pudo importar",e?.message||"Comprueba el código.");}
     }}
    ]);
-  }catch(e){Alert.alert("Código no reconocido",e.message||"Revisa el mensaje recibido.");}
+  }catch(e){Alert.alert("Código no reconocido",e?.message||"Revisa el mensaje recibido.");}
  }
  function importPanel(){
   if(!shareOpen)return null;
