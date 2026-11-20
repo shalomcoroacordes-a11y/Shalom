@@ -37,6 +37,7 @@ realizarse en teléfonos, sesiones y navegadores reales.
 
 - [ ] **0.4.11 reportada con cierre tras splash en Android físico (video 20 nov 2026). NO distribuir esa versión.** Sospecha de constructor URL de navegador utilizado al importar el almacenamiento antes de montar React; corregido en rama con prueba Hermes sin URL, pero falta confirmar APK corregida en dispositivo.
 - [ ] Verificar el nuevo ensayo automático: APK temporal **0.4.12 / versionCode 35**, mismo certificado que 0.4.10 y arranque estable en emulador con KVM. Si falla NO distribuir ni desinstalar.
+- [ ] Repetir ensayo con helper de UID compatible con Android API 34 (la primera ejecución instaló 0.4.10, pero el parser antiguo de `dumpsys` detuvo el test antes de actualizar).
 - [ ] Actualizar APK sobre v0.4.10 SIN DESINSTALAR y verificar certificado, versión y datos.
 - [ ] Repetir con red lenta, sin Wi-Fi, fallas parciales y diferentes tamaños de pantalla.
 

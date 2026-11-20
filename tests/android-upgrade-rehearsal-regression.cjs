@@ -13,6 +13,7 @@ assert.match(y,/reactivecircus\/android-emulator-runner@v2/);
 assert.match(y,/disable-linux-hw-accel: false/);
 assert.match(y,/chmod a\+rw \/dev\/kvm/);
 assert.match(e,/adb shell pidof/);
+assert.match(e,/pm list packages -U/);
 assert.match(e,/adb logcat/);
 assert.match(y,/verify-upgrade-on-emulator\.sh/);
 assert.match(y,/actions\/upload-artifact@v4/);

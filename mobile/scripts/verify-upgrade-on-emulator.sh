@@ -5,14 +5,29 @@ PKG="com.shalomcoroacordes.cancionero"
 OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.10.apk"
 NEW="mobile/android/app/build/outputs/apk/release/app-release.apk"
 test -s "$OLD" && test -s "$NEW"
+package_uid(){
+  local listing
+  listing=$(adb shell pm list packages -U "$PKG" | tr -d '\r')
+  printf '%s\n' "$listing" | sed -n "s/^package:$PKG uid:\([0-9][0-9]*\).*$/\1/p" | head -1
+}
 adb wait-for-device
 adb install "$OLD"
-old_uid=$(adb shell dumpsys package "$PKG" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | head -1 | tr -d '\r')
+old_uid=$(package_uid)
+if [ -z "$old_uid" ]; then
+  echo "::error::No se pudo leer el UID de SHALOM 0.4.10 tras instalarla" >&2
+  adb shell pm list packages -U "$PKG"
+  exit 1
+fi
 test -n "$old_uid"
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 sleep 5
 adb install -r "$NEW"
-new_uid=$(adb shell dumpsys package "$PKG" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | head -1 | tr -d '\r')
+new_uid=$(package_uid)
+if [ -z "$new_uid" ]; then
+  echo "::error::No se pudo leer el UID de SHALOM 0.4.12 después de actualizar" >&2
+  adb shell pm list packages -U "$PKG"
+  exit 1
+fi
 test -n "$new_uid"
 test "$old_uid" = "$new_uid"
 adb shell pm path "$PKG" | grep -q '^package:'
