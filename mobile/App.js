@@ -1090,7 +1090,7 @@ function AppScreen() {
     h(View,{style:{flex:1,minWidth:0}},
      label("SHALOM",S.repTopName),
      label("Coro y Alabanza",S.repTopSub))),
-   (tab!=="Canciones"&&tab!=="Artistas"&&tab!=="Más"&&tab!=="Mis colecciones"&&tab!=="Perfil"&&tab!=="Respaldo")?h(Pressable,{style:S.repTopAction,onPress:()=>{
+   (tab!=="Canciones"&&tab!=="Artistas"&&tab!=="Explorar"&&tab!=="Más"&&tab!=="Mis colecciones"&&tab!=="Perfil"&&tab!=="Respaldo")?h(Pressable,{style:S.repTopAction,onPress:()=>{
      if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v)}
      else{setSectionSearchOpen(v=>!v)}
      setQuery("");

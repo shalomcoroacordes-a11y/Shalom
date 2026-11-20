@@ -15,6 +15,7 @@ const search=app.indexOf("h(View,{style:S.homeSearchWrap},");
 const banner=app.indexOf("h(View,{style:S.spotifyBanner},");
 assert.ok(today>=0&&search>today&&banner>search,"Hoy y búsqueda son prioritarios en Inicio");
 assert.match(app,/Publicados por SHALOM/,"Distinguir repertorios oficiales");
+assert.match(app,/tab!=="Artistas"&&tab!=="Explorar"/,"Explorar no muestra un botón de búsqueda que no funciona");
 assert.match(app,/text:"Respaldo y restauración"/,"Respaldos accesibles en Configuración");
 assert.doesNotMatch(app,/style:S.songActionBar/,"No duplicar la barra de controles de lectura");
 assert.doesNotMatch(app,/!immersiveActive\?h\(AppSectionHeader/,"No dibujar doble cabecera");
