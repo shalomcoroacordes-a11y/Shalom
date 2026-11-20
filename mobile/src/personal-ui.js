@@ -40,7 +40,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [createKind,setCreateKind]=useState(initialNav?.kind||filterKind||"misa");
  const [createTitle,setCreateTitle]=useState("");
  const [createTarget,setCreateTarget]=useState(null);
- const [editReturn,setEditReturn]=useState("home");
+ const [editReturn,setEditReturn]=useState(initialNav?.editReturn||"home");
  const [shareReturn,setShareReturn]=useState("home");
  const [expandedPartId,setExpandedPartId]=useState(null);
  const [importPreview,setImportPreview]=useState(null);
@@ -85,7 +85,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    setEntryId(null);setSearch("");setAdding(false);setExpandedPartId(null);
    setView(editReturn);return true;
   }
-  if(view==="folder"){setFolderId(null);setView("home");return true;}
+  if(view==="folder"){setFolderId(null);setView("folders");return true;}
+  if(view==="folders"){setView("home");return true;}
   if(filterKind){onClearFilter();return true;}
   return false;
  }
@@ -103,8 +104,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    setExpandedPartId(null);setEditReturn("home");setView("editing");
   }catch(e){Alert.alert("No se pudo crear",e?.message||"Revisa los datos.");}
  }
- function openReceive(){
-  setShareInput("");setImportTarget(null);setImportPreview(null);
+ function openReceive(target=null){
+  setShareInput("");setImportTarget(target);setImportPreview(null);
   setShareOpen(false);setView("import");
  }
  function openEntry(item,targetFolder,origin="home"){
@@ -434,8 +435,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("+ Crear colección",()=>{
       if(showFolderForm){setShowFolderForm(false);}else startNewFolder();
      }),
-    action("Importar código",()=>{setShareOpen(v=>!v);setShowFolderForm(false);},true)),
-   importPanel(),
+    action("Recibir composición",()=>{setShowFolderForm(false);openReceive();},true)),
    showFolderForm?h(View,{style:styles.customizerPanel},
     label("Nueva colección",styles.customTitle),
     label("Ponle un nombre y dale tu propio estilo.",styles.description),
@@ -490,8 +490,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("+ Misa",()=>createEntry("misa")),
     action("+ Popurrí",()=>createEntry("popurri")),
     action("+ Repertorio",()=>createEntry("repertorio"),true),
-    action("Importar código",()=>setShareOpen(v=>!v),true)),
-   importPanel(),
+    action("Recibir composición",()=>openReceive(folder.id),true)),
    ...folder.entries.map(item=>h(View,{key:item.id,style:styles.entryCard},
     label(item.kind==="misa"?"⛪ MISA PERSONAL":item.kind==="repertorio"?"▣ REPERTORIO PERSONAL":"♫ POPURRÍ PERSONAL",styles.tag),
     label(item.title,styles.cardTitle),
@@ -499,7 +498,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     h(View,{style:styles.actions},
      action("Abrir",()=>{setEntryId(item.id);setView("reading");setReaderShift(0)},false,item.parts.length===0),
      action("Editar",()=>editEntry(item),true),
-     action("Compartir",()=>shareEntry(item),true,item.parts.length===0)),
+     action("Compartir",()=>showShare(item,folder,"folder"),true,item.parts.length===0)),
     action("Eliminar",()=>deleteEntry(item),true))),
    !folder.entries.length?h(View,{style:styles.folderEmpty},
     label("Esta colección ya tiene su portada 💚",styles.emptyTitle),
@@ -556,7 +555,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
       label(song.title,styles.resultTitle),label("＋",styles.arrow)))):null,
    h(View,{style:styles.actions},
     action("Leer completo",()=>{setView("reading");setReaderShift(0)},false,!entry.parts.length),
-    action("Compartir código",()=>shareEntry(entry),true,!entry.parts.length)));
+    action("Compartir",()=>showShare(entry,folder,"editing"),true,!entry.parts.length)));
  }
  function readingView(){
   if(!folder||!entry)return folderView();
@@ -584,7 +583,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
        label("Este canto no tiene letra descargada.",styles.warning),
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
-   action("Compartir código",()=>shareEntry(entry),true));
+   action("Compartir",()=>showShare(entry,folder,"reading"),true));
  }
  function filteredEntriesView(){
   const name=filterKind==="misa"?"Mis misas":"Mis popurrís";
