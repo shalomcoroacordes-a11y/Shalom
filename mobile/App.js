@@ -46,19 +46,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const tabs=[["Inicio","home"],["Canciones","song"],["Repertorios","repertoires"],["Artistas","artists"],["Perfil","profile"]];
-const moreTabs=new Set(["Popurrís","Álbumes","Categorías","Solicitar","Mis colecciones"]);
-const isSelectedTab=(current,name)=>current===name||(name==="Perfil"&&(moreTabs.has(current)||current==="Más"));
-const matchesSearch=(values,term)=>normalize(values.filter(v=>v!==null&&v!==undefined).join(" ")).includes(normalize(term.trim()));
-const byMostRecent=(a,b)=>{
- const date=x=>Date.parse(x.updated_at||x.created_at||"")||Date.parse(x.created_at||"")||0;
- return date(b)-date(a);
-};
-const upcomingMass=(repertoires,today)=>{
- const masses=repertoires.filter(r=>r.kind==="misa");
- return masses.filter(r=>r.event_date&&r.event_date>=today).sort((a,b)=>a.event_date.localeCompare(b.event_date))[0]
-  ||masses.find(r=>!r.event_date)||null;
-};
+const {tabs,isSelectedTab,matchesSearch}=require("./src/navigation-core");
 const label=(value,style)=>h(Text,{style:style||S.info},String(value??""));
 const type=val=>typeLabel(val);
 const inputField=(name,value,onChangeText,more={})=>h(View,{style:S.field,key:name},

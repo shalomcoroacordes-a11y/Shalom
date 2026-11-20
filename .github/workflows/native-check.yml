@@ -26,6 +26,7 @@ jobs:
         run: |
           node --check App.js
           node --check src/app-styles.js
+          node --check src/navigation-core.js
           node --check src/song-actions-core.js
           node --check src/song-actions-ui.js
           node --check src/song-print.js
@@ -52,6 +53,7 @@ jobs:
           node tests/favorites.test.js
           node tests/repertoire-ui.test.js
           node tests/catalog.test.js
+          node tests/navigation-core.test.js
           node tests/requests.test.js
           node tests/medleys.test.js
           node tests/personal-collections.test.js

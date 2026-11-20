@@ -29,6 +29,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 - `mobile/src/personal-ui.js` (~45 kB) concentra crear, importar, exportar, leer, editar y gestionar carpetas. Separar vistas de creación, editor, lectura y compartir sin cambiar almacenamiento local ni el código SHALOM1.
 - `admin-pro.js` (~52 kB) contiene la lógica de varias entidades y funciones de guardado. Extraer servicios por entidad y formularios, con pruebas de edición concurrente y recuperación del borrador.
 
+**Avance adicional de fase 2 (en la misma rama):** la navegación principal, las pestañas secundarias y la búsqueda normalizada de Android se mueven a `mobile/src/navigation-core.js`, con prueba unitaria propia. Se eliminan dos funciones antiguas sin consumidores en `mobile/App.js`. El resto de la fase 2 sigue pendiente.
+
 ## Fase 3 — deuda restante web (pendiente)
 
 - Analizar `home-fix.js`, `site-seo-static.js` y otros módulos históricos por referencias reales. Eliminar código muerto únicamente después de demostrar que no se ejecuta.
