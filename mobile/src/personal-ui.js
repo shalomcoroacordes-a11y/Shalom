@@ -1,10 +1,12 @@
 const React=require("react");
 const {useState,useEffect}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Share,Alert,StyleSheet}=require("react-native");
+const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,resolvePart,exportCode,importCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
+const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
 const label=(str,style)=>h(Text,{style:style||styles.text},String(str==null?"":str));
@@ -34,7 +36,15 @@ function modify(store,folderId,entryId,apply){
 function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
- const [view,setView]=useState(initialNav?.view||"folders");
+ const [view,setView]=useState(initialNav?.view||"home");
+ const [createKind,setCreateKind]=useState(initialNav?.kind||filterKind||"misa");
+ const [createTitle,setCreateTitle]=useState("");
+ const [createTarget,setCreateTarget]=useState(null);
+ const [editReturn,setEditReturn]=useState("home");
+ const [shareReturn,setShareReturn]=useState("home");
+ const [expandedPartId,setExpandedPartId]=useState(null);
+ const [importPreview,setImportPreview]=useState(null);
+ const [importTarget,setImportTarget]=useState(null);
  const [newFolderName,setNewFolderName]=useState("");
  const [newColor,setNewColor]=useState(COLORS[0]);
  const [newCoverPreset,setNewCoverPreset]=useState("dove");
@@ -49,32 +59,61 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [shareInput,setShareInput]=useState("");
  const [readerShift,setReaderShift]=useState(0);
  const [readerFont,setReaderFont]=useState(16);
- useEffect(()=>{onNavChange?.({folderId,entryId,view})},[folderId,entryId,view]);
+ useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind})},
+  [folderId,entryId,view,createKind]);
  useEffect(()=>{
   if(!registerBack)return;
-  return registerBack(()=>{
-   if(shareOpen){setShareOpen(false);return true;}
-   if(showFolderForm&&view==="folders"){setShowFolderForm(false);return true;}
-   if(customize&&view==="folder"){setCustomize(false);return true;}
-   if(adding&&view==="editing"){setAdding(false);return true;}
-   if(view==="reading"){setView("editing");return true;}
-   if(view==="editing"){setEntryId(null);setAdding(false);setView("folder");return true;}
-   if(view==="folder"){setFolderId(null);setView("folders");return true;}
-   if(filterKind){onClearFilter();return true;}
-   return false;
-  });
- },[registerBack,view,shareOpen,showFolderForm,customize,adding,filterKind,onClearFilter]);
+  return registerBack(()=>back(true));
+ },[registerBack,view,shareOpen,showFolderForm,customize,adding,filterKind,editReturn,shareReturn]);
  const folder=store.collections.find(c=>c.id===folderId);
  const entry=folder?.entries.find(e=>e.id===entryId);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
  const commit=(next,options)=>onChange(next,options);
  const updateFolder=fn=>commit(modify(store,folderId,null,fn));
  const updateEntry=(fn,options)=>commit(modify(store,folderId,entryId,fn),options);
- function back(){
-  if(view==="reading"){setView("editing");return;}
-  if(view==="editing"){setEntryId(null);setSearch("");setAdding(false);setView("folder");return;}
-  if(view==="folder"){setFolderId(null);setView("folders");return;}
-  setShareOpen(false);
+ function back(fromNative=false){
+  if(shareOpen){setShareOpen(false);return true;}
+  if(showFolderForm){setShowFolderForm(false);return true;}
+  if(customize){setCustomize(false);return true;}
+  if(view==="share"){setView(shareReturn);return true;}
+  if(view==="import"){setImportPreview(null);setShareInput("");setView("home");return true;}
+  if(view==="create"){setView("home");return true;}
+  if(view==="reading"){setView("editing");return true;}
+  if(view==="editing"){
+   setEntryId(null);setSearch("");setAdding(false);setExpandedPartId(null);
+   setView(editReturn);return true;
+  }
+  if(view==="folder"){setFolderId(null);setView("home");return true;}
+  if(filterKind){onClearFilter();return true;}
+  return false;
+ }
+ function startCreate(kind){
+  if(!["misa","popurri","repertorio"].includes(kind))return;
+  setCreateKind(kind);setCreateTitle("");setCreateTarget(null);
+  setView("create");setShareInput("");setImportPreview(null);
+ }
+ function finishCreate(){
+  try{
+   const result=createPersonal(store,createKind,createTitle,createTarget);
+   commit(result.store,{notice:"Tu "+kindName(createKind)+" está lista para agregar cantos"});
+   setFolderId(result.folder.id);setEntryId(result.entry.id);
+   setNameDraft(result.entry.title);setSearch("");setAdding(true);
+   setExpandedPartId(null);setEditReturn("home");setView("editing");
+  }catch(e){Alert.alert("No se pudo crear",e?.message||"Revisa los datos.");}
+ }
+ function openReceive(){
+  setShareInput("");setImportTarget(null);setImportPreview(null);
+  setShareOpen(false);setView("import");
+ }
+ function openEntry(item,targetFolder,origin="home"){
+  setFolderId(targetFolder.id);setEntryId(item.id);
+  setNameDraft(item.title);setSearch("");setAdding(false);
+  setEditReturn(origin);setExpandedPartId(null);
+  setView(item.parts.length?"reading":"editing");setReaderShift(0);
+ }
+ function showShare(item,targetFolder,returnTo="home"){
+  setFolderId(targetFolder.id);setEntryId(item.id);
+  setShareReturn(returnTo);setView("share");
  }
  function createFolder(){
   try{
@@ -109,10 +148,10 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   if(folder.entries.length>=100)return Alert.alert("Límite","Esta colección ya tiene 100 composiciones.");
   const item=newEntry(kind,kind==="misa"?"Mi misa":kind==="repertorio"?"Mi repertorio":"Mi popurrí");
   updateFolder(c=>({...c,entries:[...c.entries,item]}));
-  setEntryId(item.id);setNameDraft(item.title);setSearch("");setAdding(true);setView("editing");
+  setEntryId(item.id);setNameDraft(item.title);setSearch("");setAdding(true);setEditReturn("folder");setView("editing");
  }
  function editEntry(item){
-  setEntryId(item.id);setNameDraft(item.title);setView("editing");setSearch("");setAdding(false);
+  setEntryId(item.id);setNameDraft(item.title);setView("editing");setSearch("");setAdding(false);setEditReturn("folder");
  }
  function saveTitle(){
   const value=nameDraft.trim();
