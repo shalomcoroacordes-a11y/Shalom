@@ -86,6 +86,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Guardado de campos opcionales consistente (en rama):** `admin-song-persistence.js` descarta enlaces vacíos y opciones de capo sin figuras o posición antes de construir relaciones, reordena `sort_order` y mantiene los valores originales del borrador. El método REST de varias categorías usa los mismos filtros que los RPC; las pruebas de persistencia y RPC incluyen filas incompletas y verifican que no rompan el guardado.
 
+**Ensayo de actualización firmado (en rama):** `.github/workflows/android-upgrade-rehearsal.yml` crea una APK temporal 0.4.11 (`versionCode` 34) con el mismo ID Android que la oficial, únicamente en el runner. Verifica SHA-256 del certificado, ID de paquete y versionCode frente al APK real 0.4.10. **Si el certificado no coincide, el workflow falla y no permite instalar ni distribuir la nueva APK**; no asume que el runner tiene la clave histórica. Solo al aprobar comprueba con `adb install -r` en un emulador que Android conserva el identificador de usuario de la app al actualizar. Cualquier artefacto es temporal, no un Release ni una actualización de la versión pública. No valida fotos ni colecciones reales; requieren respaldo y prueba en dispositivo físico.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.

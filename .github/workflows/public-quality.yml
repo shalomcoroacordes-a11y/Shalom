@@ -138,6 +138,9 @@ jobs:
       - name: Test safe Android release permissions and signing gate
         run: node tests/android-release-workflow-regression.cjs
 
+      - name: Verify isolated signed Android upgrade rehearsal cannot publish or uninstall
+        run: node tests/android-upgrade-rehearsal-regression.cjs
+
       - name: Validate read-only historical Android certificate audit
         run: node tests/android-signature-audit-regression.cjs
 

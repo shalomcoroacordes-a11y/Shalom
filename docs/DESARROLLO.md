@@ -78,6 +78,8 @@ Para la verificación completa de HTML y rutas, usar el workflow de GitHub Actio
 - Antes de ejecutar un SQL, verificar qué objetos existen, qué cambios ya se aplicaron, sus dependencias y un respaldo. No ejecutar todos los archivos SQL por orden alfabético.
 - No publicar claves privadas, tokens ni datos de usuarios.
 
+Para verificar una futura actualización antes de publicarla usa el ensayo no publicador `.github/workflows/android-upgrade-rehearsal.yml`. Construye una APK 0.4.11 temporal sin cambiar el repositorio y bloquea cualquier firma distinta a 0.4.10; solo si coincide comprueba `adb install -r` en emulador. **Nunca desinstales 0.4.10 para forzar una actualización de prueba** ni declares preservadas las colecciones hasta hacer una prueba física con respaldo.
+
 Consulta también `docs/LANZAMIENTO-CHECKLIST.md` para la aceptación de versiones y actualización sin pérdida de datos. Las pruebas en dispositivos reales son obligatorias.
 
 ## Antes de aceptar una modificación

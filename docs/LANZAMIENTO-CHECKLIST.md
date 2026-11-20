@@ -35,6 +35,7 @@ realizarse en teléfonos, sesiones y navegadores reales.
 - [x] **Comprobado en GitHub:** las APK oficiales 0.4.8 y 0.4.10 comparten SHA-256 del certificado `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`.
 - [x] Auditoría ampliada aprobada en GitHub: paquete `com.shalomcoroacordes.cancionero` idéntico; `versionCode` 31 en 0.4.8 y 33 en 0.4.10.
 
+- [ ] Verificar el ensayo automático `android-upgrade-rehearsal.yml`: paquete original, versión temporal 0.4.11, `versionCode=34`, certificado idéntico a 0.4.10 e instalación `adb install -r` en emulador. Si falla la firma NO distribuir el APK.
 - [ ] Actualizar APK sobre v0.4.10 SIN DESINSTALAR y verificar certificado, versión y datos.
 - [ ] Repetir con red lenta, sin Wi-Fi, fallas parciales y diferentes tamaños de pantalla.
 
