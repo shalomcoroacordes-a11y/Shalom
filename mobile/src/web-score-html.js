@@ -30,12 +30,12 @@ function scoreHtml(rows,fontSize=15){
  const size=Math.min(35,Math.max(10,Number(fontSize)||15));
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
-  'html,body{margin:0;padding:0;border:0;background:#172538;color:#f4f7f7;}',
+  'html,body{margin:0;padding:0;border:0;background:#0e1219;color:#f4f7f7;}',
   'body{overflow:hidden;}',
   '.score-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}',
   '.song-lyrics{font-family:"Courier New",Courier,monospace!important;font-size:'+size+'px;',
   'font-variant-ligatures:none;letter-spacing:0!important;line-height:1.22;',
-  'white-space:pre;width:max-content;min-width:100%;padding:5px 2px 10px;',
+  'white-space:pre;width:max-content;min-width:100%;padding:5px 4px 12px;',
   'box-sizing:border-box;color:#f4f7f7;}',
   '.song-line{display:block;margin-bottom:3px;break-inside:avoid;}',
   '.chord-line,.lyric-line,.song-plain-line,.song-standalone-chords{',
