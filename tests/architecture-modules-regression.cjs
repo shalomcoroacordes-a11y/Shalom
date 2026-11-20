@@ -69,4 +69,11 @@ assert.match(app,/require\("\.\/src\/navigation-core"\)/,
  "App consume el contrato de navegación en lugar de duplicarlo");
 assert.doesNotMatch(app,/const tabs=\[\[/,
  "La navegación no debe volver al monolito principal");
+const personalUi=read("mobile/src/personal-ui.js");
+assert.match(personalUi,/require\("\.\/personal-styles"\)\(theme\)/);
+assert.match(personalUi,/require\("\.\/personal-store"\)/);
+assert.doesNotMatch(personalUi,/StyleSheet\.create\(/);
+assert.match(read("mobile/src/personal-styles.js"),/return StyleSheet\.create\(/);
+assert.match(read("mobile/src/personal-store.js"),/function updateComposition\(/);
+
 console.log("SHALOM: módulos públicos, editor admin y estilos Android separados sin parches de renderizado.");
