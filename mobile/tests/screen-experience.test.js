@@ -1,0 +1,23 @@
+// Regresión de experiencia de uso: jerarquía, rutas y ausencia de controles duplicados.
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const {tabs,routeForTab,isSelectedTab}=require("../src/navigation-core");
+const app=fs.readFileSync("App.js","utf8");
+const profile=fs.readFileSync("src/profile-ui.js","utf8");
+assert.deepEqual(tabs.map(t=>t[0]),["Inicio","Canciones","Repertorios","Mis creaciones","Perfil"]);
+assert.equal(routeForTab("Mis creaciones"),"Mis colecciones");
+assert.equal(isSelectedTab("Mis colecciones","Mis creaciones"),true);
+assert.match(app,/onPress:\(\)=>goTab\(routeForTab\(name\)\)/,"La barra abre creaciones locales");
+assert.match(app,/function renderExplore\(\)/,"Existe exploración musical secundaria");
+assert.match(app,/tab==="Explorar"\?renderExplore\(\)/);
+const today=app.indexOf("h(View,{style:S.shalomToday},");
+const search=app.indexOf("h(View,{style:S.homeSearchWrap},");
+const banner=app.indexOf("h(View,{style:S.spotifyBanner},");
+assert.ok(today>=0&&search>today&&banner>search,"Hoy y búsqueda son prioritarios en Inicio");
+assert.match(app,/Publicados por SHALOM/,"Distinguir repertorios oficiales");
+assert.match(app,/text:"Respaldo y restauración"/,"Respaldos accesibles en Configuración");
+assert.doesNotMatch(app,/style:S.songActionBar/,"No duplicar la barra de controles de lectura");
+assert.doesNotMatch(app,/!immersiveActive\?h\(AppSectionHeader/,"No dibujar doble cabecera");
+assert.match(profile,/Tu espacio/);
+assert.match(profile,/Editar perfil/);
+console.log("SHALOM: jerarquía de pantallas y lectura simplificada verificadas.");
