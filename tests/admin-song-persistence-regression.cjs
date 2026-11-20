@@ -45,6 +45,34 @@ assert.deepEqual(relations.album_songs,[{song_id:"song-a",album_id:"album-1",sor
 assert.equal(relations.song_links[0].sort_order,0);
 assert.equal(relations.song_capo_versions[0].capo_position,3);
 assert.equal(JSON.stringify({sourceDraft,links,capos}),before);
+
+const blankLinks=[
+ {title:"Vacío",url:" "},
+ {title:"Ensayo",url:" https://example.test/ensayo ",platform:"YouTube"},
+ null,
+ {title:"",url:"https://example.test/otro"}];
+const blankCapos=[
+ {label:"Inválido",capo_position:0,capo_key:"F"},
+ {label:"Sin figuras",capo_position:2,capo_key:" "},
+ null,
+ {label:"",capo_position:3,capo_key:" D "},
+ {label:"Otro",capo_position:5,capo_key:"G"}];
+const normalized=Object.fromEntries(
+ service.prepare(sourceDraft,blankLinks,blankCapos,slug).relations("song-a")
+ .map(([table,rows])=>[table,JSON.parse(JSON.stringify(rows))]));
+assert.deepEqual(normalized.song_links,[
+ {song_id:"song-a",title:"Ensayo",link_type:"Tutorial",platform:"YouTube",
+  url:"https://example.test/ensayo",sort_order:0},
+ {song_id:"song-a",title:"Enlace",link_type:"Tutorial",platform:"",
+  url:"https://example.test/otro",sort_order:1}
+]);
+assert.deepEqual(normalized.song_capo_versions,[
+ {song_id:"song-a",label:"Capo 3",capo_position:3,capo_key:"D",sort_order:0},
+ {song_id:"song-a",label:"Otro",capo_position:5,capo_key:"G",sort_order:1}
+]);
+assert.equal(blankLinks[1].url," https://example.test/ensayo ");
+assert.equal(blankCapos[3].capo_key," D ");
+
 assert.equal(service.missingOptionalColumn("column difficulty does not exist",{difficulty:"A"}),"difficulty");
 assert.equal(service.missingOptionalColumn("permission denied for difficulty",{difficulty:"A"}),null);
 assert.equal(service.missingOptionalColumn("Could not find the 'capo_key' column in schema cache",{capo_key:"F"}),"capo_key");
@@ -108,6 +136,14 @@ function fakeDb(){
  assert.equal(fresh.state.calls.filter(x=>x.action==="delete").length,5);
  assert.equal(fresh.state.calls.filter(x=>x.action==="insert"&&x.table!=="songs").length,5);
  assert.deepEqual(fresh.state.relations.get("song_artists"),relations.song_artists.map(r=>({...r,song_id:"song-1"})));
+ const filteredSaveDb=fakeDb();
+ const filteredSave=await service.save({
+  db:filteredSaveDb.db,draft:sourceDraft,links:blankLinks,capos:blankCapos,slug
+ });
+ assert.equal(filteredSave.ok,true,"Campos opcionales vacíos no interrumpen el guardado");
+ assert.equal(filteredSaveDb.state.relations.get("song_links").length,2);
+ assert.equal(filteredSaveDb.state.relations.get("song_capo_versions").length,2);
+ assert.equal(filteredSaveDb.state.relations.get("song_categories").length,2);
  const total=fresh.state.calls.length;
  const invalid=await service.save({...args,draft:{...sourceDraft,title:""}});
  assert.equal(invalid.phase,"validation");

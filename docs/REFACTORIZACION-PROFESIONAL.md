@@ -84,6 +84,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Auditoría histórica de firmas Android (en rama):** `.github/workflows/android-signature-audit.yml` descarga en CI las APK públicas 0.4.8 y 0.4.10 y compara sus certificados con `apksigner`. No publica, no solicita secretos y no instala APK en teléfonos. Una diferencia marca bloqueo de compatibilidad antes de planear una actualización normal; la firma de un APK futuro debe coincidir con la versión instalada. `tests/android-signature-audit-regression.cjs` verifica que el workflow siga siendo de solo lectura.
 
+**Guardado de campos opcionales consistente (en rama):** `admin-song-persistence.js` descarta enlaces vacíos y opciones de capo sin figuras o posición antes de construir relaciones, reordena `sort_order` y mantiene los valores originales del borrador. El método REST de varias categorías usa los mismos filtros que los RPC; las pruebas de persistencia y RPC incluyen filas incompletas y verifican que no rompan el guardado.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.

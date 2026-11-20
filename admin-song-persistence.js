@@ -44,15 +44,24 @@
         ["album_songs", song.album_id ? [{
           song_id: songId, album_id: song.album_id, sort_order: 0
         }] : []],
-        ["song_links", linkRows.map((row, index) => ({
-          song_id: songId, title: row.title || "Enlace",
-          link_type: row.link_type || "Tutorial", platform: row.platform || "",
-          url: row.url || "", sort_order: index
+        // Las tablas reales rechazan URL vacía y capo sin posición/figuras.
+        // El RPC ya omitía filas incompletas: aplicar el mismo criterio
+        // al método compatible evita borrar otras relaciones por un error.
+        ["song_links", linkRows.filter(row =>
+          row && String(row.url || "").trim()
+        ).map((row, index) => ({
+          song_id: songId, title: String(row.title || "").trim() || "Enlace",
+          link_type: String(row.link_type || "").trim() || "Tutorial",
+          platform: row.platform || "",
+          url: String(row.url).trim(), sort_order: index
         }))],
-        ["song_capo_versions", capoRows.map((row, index) => ({
-          song_id: songId, label: row.label || "",
-          capo_position: Number(row.capo_position || 0),
-          capo_key: row.capo_key || "", sort_order: index
+        ["song_capo_versions", capoRows.filter(row =>
+          row && Number(row.capo_position) > 0 && String(row.capo_key || "").trim()
+        ).map((row, index) => ({
+          song_id: songId,
+          label: String(row.label || "").trim() || "Capo " + Number(row.capo_position),
+          capo_position: Number(row.capo_position),
+          capo_key: String(row.capo_key).trim(), sort_order: index
         }))]
       ];
     }

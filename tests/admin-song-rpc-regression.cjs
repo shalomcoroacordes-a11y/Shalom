@@ -29,6 +29,18 @@ assert.equal(service.legacyRpcArguments(prepare({...draft,category_ids:["c1","c2
  "No enviar varias categorías a un RPC que solo guarda una");
 assert.equal(service.legacyRpcArguments(prepare({...draft,category_ids:[]}),null).p_category_id,null);
 assert.equal(service.legacyRpcArguments(prepare(),"song-123").p_song_id,"song-123");
+
+const mixed=service.prepare(draft,[
+ {url:""}, {url:"https://example.test/uno"}, {url:"    "},
+ {url:"https://example.test/dos"}],[
+ {capo_position:0,capo_key:"A"}, {capo_position:3,capo_key:"D"},
+ {capo_position:4,capo_key:" "}
+],slug);
+const mixedRpc=service.multiCategoryRpcArguments(mixed,null);
+assert.deepEqual(JSON.parse(JSON.stringify(mixedRpc.p_links)).map(x=>x.url),[
+ "https://example.test/uno","https://example.test/dos"]);
+assert.deepEqual(JSON.parse(JSON.stringify(mixedRpc.p_capos)).map(x=>x.capo_position),[3]);
+
 const untouched=JSON.stringify({draft,links,capos});
 (async()=>{
  const events=[];
