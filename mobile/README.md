@@ -187,3 +187,13 @@ La 0.4.5 dibujaba renglones completos en React Native, pero Android aún alterab
 - La solución se reutiliza en Canciones, Misas, Repertorios y Popurrís, sin modificar los cantos del administrador ni Supabase.
 - Se añadieron pruebas que comparan **el HTML completo de pares acorde/letra** contra el intérprete de la web en distintos tonos y tamaños.
 - **Actualiza encima de la versión instalada sin desinstalar**, para conservar fotos, perfil, colecciones y favoritos.
+
+
+## SHALOM 0.4.7 — Lectura sin caja y sin recorte
+
+- Eliminada la tarjeta azul alrededor de letra y acordes: sin borde, esquinas, recorte ni acolchado lateral.
+- El lector WebView local se integra con el mismo fondo oscuro (#0e1219) del resto de SHALOM y aprovecha el ancho de la pantalla.
+- Se conservan las reglas de tipografía de la web: espacios originales, acordes alineados por columnas, tamaño ajustable y desplazamiento horizontal si hace falta.
+- Los controles de tono, capo, imprimir, compartir y YouTube permanecen igual. No se modifica el catálogo ni Supabase.
+- Nueva prueba de regresión para evitar que regrese un contenedor que recorte o tape las líneas.
+- Instalar la APK encima de la anterior, sin desinstalar, para mantener los favoritos y colecciones locales.
