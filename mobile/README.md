@@ -222,3 +222,16 @@ La 0.4.5 dibujaba renglones completos en React Native, pero Android aún alterab
 - En el administrador de repertorios y popurrís se explica que marcar **Publicar** permite que aparezcan automáticamente en esta sección. No se añadió un segundo flujo de subida ni se cambiaron las tablas de Supabase.
 - Se conserva Destacado con el banner personal, el buscador, Mis me gusta y el resto de Inicio; no cambia el lector de acordes.
 - Instalar la APK encima de la versión anterior, sin desinstalar, para conservar imágenes, perfil y colecciones locales.
+
+
+## SHALOM Android 0.4.10 — Perfil siempre abre en modo lectura
+
+En 0.4.8/0.4.9, después de usar «Editar perfil» una vez, la señal de edición persistía en el estado de navegación. Cada remontaje de la pantalla Perfil interpretaba la señal anterior como si el usuario hubiera pulsado «Editar perfil» de nuevo.
+
+- **Corregido:** las solicitudes de edición de los tres puntos se consumen una sola vez inmediatamente después de abrir el editor.
+- Al salir de Perfil, también se elimina cualquier solicitud de edición pendiente.
+- **Guardar cambios**, **Cancelar** y el regreso nativo cierran el editor; al volver desde otra sección aparece Mi perfil normal, con su portada, foto y contenido.
+- Cancelar descarta el borrador sin guardar. Guardar conserva el perfil en SQLite privado del teléfono, como antes.
+- Test de regresión en \`mobile/tests/local-profile.test.js\` verifica que la señal se consume, se limpia al cambiar de pestaña y que el editor solo se solicita desde los tres puntos.
+- Incluye el Inicio 2×2 con contadores y «Hoy en SHALOM» introducido en 0.4.9.
+- Instalar encima de la aplicación anterior sin desinstalar para mantener fotos, portada, misas, popurrís, favoritos y colecciones.
