@@ -15,14 +15,16 @@ async function networkState() {
 
 // Conserva absolutamente todas las páginas; Supabase puede limitar a 1,000 filas por respuesta.
 async function allRows(table, onBatch) {
-  let offset = 0;
+  let cursor = null;
   const collected = [];
   while (true) {
+    // Paginación por clave estable: si el administrador elimina o inserta
+    // filas anteriores durante la descarga, nunca se desplaza la ventana.
     const query = [
       "select=*",
       "order=id.asc",
       "limit=" + PAGE_SIZE,
-      "offset=" + offset
+      ...(cursor === null ? [] : ["id=gt." + encodeURIComponent(cursor)])
     ].join("&");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -46,11 +48,23 @@ async function allRows(table, onBatch) {
     } finally {
       clearTimeout(timeout);
     }
-    if (!Array.isArray(rows)) throw new Error("Respuesta incorrecta de " + table);
+    if (!Array.isArray(rows) || rows.length > PAGE_SIZE)
+      throw new Error("Respuesta incorrecta de " + table);
+    // IDs UUID/texto normalizados por PostgREST; el orden por id debe
+    // avanzar estrictamente. Nunca escribir una descarga incompleta.
+    let lastId = cursor;
+    for (const row of rows) {
+      if (!row || typeof row.id !== "string" || !row.id ||
+          (lastId !== null && row.id <= lastId)) {
+        throw new Error("Página desordenada o duplicada en " + table +
+          ". La copia anterior del cancionero se conserva.");
+      }
+      lastId = row.id;
+    }
     collected.push(...rows);
     if (onBatch) onBatch(table, collected.length);
     if (rows.length < PAGE_SIZE) return collected;
-    offset += rows.length;
+    cursor = lastId;
   }
 }
 

@@ -23,6 +23,7 @@ realizarse en teléfonos, sesiones y navegadores reales.
 
 ## 3. Android y continuidad de datos
 - [x] Validaciones automatizadas de catálogo, favoritos, SQLite y respaldos.
+- [x] Paginación de catálogo por identificador, con prueba de cambios durante descarga y rechazo de páginas repetidas.
 - [x] Prueba automática del respaldo alterno Android ante archivos truncados, fuente incorrecta y datos alterados.
 - [x] Gate de publicación manual: solo main, tag nuevo y certificado compatible con v0.4.10.
 - [x] Gate adicional de publicación: versión superior a 0.4.10 y versionCode superior a 33.

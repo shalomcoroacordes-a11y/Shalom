@@ -72,6 +72,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 
 **Recuperación offline Android reforzada (en rama):** `mobile/src/file-storage.js` valida origen SHALOM cuando está identificado, IDs presentes y únicos, checksum de datos y el contenido completo después de escribir la ranura inactiva. Un contador de revisión independiente de la hora impide escoger una copia anterior cuando dos escrituras comparten el mismo milisegundo. Además, las fechas de sincronización progresan estrictamente para que la comparación de SQLite con la copia de rescate no pierda una descarga nueva. Si falla, borra la ranura nueva y preserva la copia anterior. Mantiene respaldo anterior cuando una escritura queda corrupta, y admite snapshots heredados sin `source`, `medleys` o `repertoires`. `mobile/tests/file-storage-recovery.test.js` ensaya cortes, contaminación de datos, recuperación y preferencias sin tocar archivos reales.
 
+**Sincronización Android sin saltos de páginas (en rama):** `mobile/src/sync.js` descarga las tablas con paginación por identificador (`id=gt.<último ID>`) en lugar de desplazamientos numéricos. Antes de guardar verifica IDs presentes y orden estricto; una respuesta repetida, corrupta o fuera de orden rechaza la descarga y conserva la copia anterior. `mobile/tests/catalog-sync-pagination.test.js` simula 552 filas, supresiones durante la descarga, páginas completas, errores y Wi-Fi. No cambia el modelo SQLite ni la configuración de la base pública.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.
