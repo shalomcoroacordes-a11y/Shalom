@@ -30,6 +30,35 @@ jobs:
             --pattern 'SHALOM-Android-v0.4.10.apk' --dir /tmp/shalom-android-certificates
           test -s /tmp/shalom-android-certificates/SHALOM-Android-v0.4.8.apk
           test -s /tmp/shalom-android-certificates/SHALOM-Android-v0.4.10.apk
+      - name: Compare official Android package and versionCode history
+        run: |
+          set -euo pipefail
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          test -x "$AAPT"
+          cd /tmp/shalom-android-certificates
+          "$AAPT" dump badging SHALOM-Android-v0.4.8.apk | grep '^package: ' > pkg048.txt
+          "$AAPT" dump badging SHALOM-Android-v0.4.10.apk | grep '^package: ' > pkg0410.txt
+          PKG_048=$(sed -n "s/.*name='\([^']*\)'.*/\1/p" pkg048.txt)
+          PKG_0410=$(sed -n "s/.*name='\([^']*\)'.*/\1/p" pkg0410.txt)
+          CODE_048=$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" pkg048.txt)
+          CODE_0410=$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" pkg0410.txt)
+          echo "0.4.8 paquete: $PKG_048 · versionCode: $CODE_048"
+          echo "0.4.10 paquete: $PKG_0410 · versionCode: $CODE_0410"
+          if [ "$PKG_048" != "com.shalomcoroacordes.cancionero" ] ||
+             [ "$PKG_0410" != "$PKG_048" ]; then
+            echo "::error::El paquete Android ha cambiado entre versiones oficiales."
+            exit 1
+          fi
+          if ! [[ "$CODE_048" =~ ^[0-9]+$ && "$CODE_0410" =~ ^[0-9]+$ ]]; then
+            echo "::error::versionCode inválido en una APK histórica."
+            exit 1
+          fi
+          if (( 10#$CODE_048 >= 10#$CODE_0410 || 10#$CODE_0410 != 33 )); then
+            echo "::error::El historial versionCode no permite la actualización esperada."
+            exit 1
+          fi
+          echo "Identidad de paquete y progresión de versionCode: compatibles."
+
       - name: Compare actual signing certificates used in v0.4.8 and v0.4.10
         run: |
           set -euo pipefail
