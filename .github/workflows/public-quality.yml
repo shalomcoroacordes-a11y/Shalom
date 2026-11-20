@@ -52,7 +52,7 @@ jobs:
         run: node tests/category-hierarchy-regression.cjs
 
       - name: Test admin category path and descendant selectors
-        run: node tests/admin-category-tree-regression.cjs
+        run: node tests/admin-category-hierarchy-regression.cjs
 
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
