@@ -66,6 +66,8 @@ Mantener el mismo comportamiento público de SHALOM mientras se reducen acoplami
 - Consolidar las fuentes de metadatos y los estilos CSS **sin alterar** los archivos/rutas que GitHub Pages utiliza en producción.
 - Normalizar las responsabilidades del catálogo, buscador, artista, repertorio y popurrí entre pantallas. No reescribir todo de una vez ni introducir un framework sin justificar el costo.
 
+**Validación transversal (en rama):** `tests/launch-critical-path-regression.cjs` verifica Admin → páginas de cantos, popurrís y repertorios → catálogo Android con categorías múltiples y exclusión de borradores. `docs/LANZAMIENTO-CHECKLIST.md` distingue pruebas automáticas de pasos físicos pendientes. No se simuló un teléfono real ni se realizaron escrituras en Supabase.
+
 ## Fase 4 — criterios para el lanzamiento (pendiente)
 
 1. Ejecutar en PR las pruebas web, administrador, React Native, almacenamiento y regresión de estilos.

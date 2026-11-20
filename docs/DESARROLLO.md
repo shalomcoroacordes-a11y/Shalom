@@ -78,6 +78,8 @@ Para la verificación completa de HTML y rutas, usar el workflow de GitHub Actio
 - Antes de ejecutar un SQL, verificar qué objetos existen, qué cambios ya se aplicaron, sus dependencias y un respaldo. No ejecutar todos los archivos SQL por orden alfabético.
 - No publicar claves privadas, tokens ni datos de usuarios.
 
+Consulta también `docs/LANZAMIENTO-CHECKLIST.md` para la aceptación de versiones y actualización sin pérdida de datos. Las pruebas en dispositivos reales son obligatorias.
+
 ## Antes de aceptar una modificación
 
 - [ ] La funcionalidad anterior sigue operando.

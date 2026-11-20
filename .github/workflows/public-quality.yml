@@ -141,6 +141,9 @@ jobs:
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
+      - name: Verify integrated Admin to web to Android offline contract
+        run: node tests/launch-critical-path-regression.cjs
+
       - name: Validate HTML and local assets
         shell: bash
         run: |
