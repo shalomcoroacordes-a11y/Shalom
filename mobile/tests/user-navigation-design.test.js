@@ -25,11 +25,14 @@ for(const url of ["acerca.html","contacto.html","donaciones.html"])
 assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);
 const today=app.indexOf("style:S.shalomToday}");
 const search=app.indexOf("style:S.homeSearchWrap}");
-const recent=app.indexOf('label("Continuar leyendo",S.spotifyHeading)');
+const recent=app.indexOf('label("Continuar donde te quedaste",S.spotifyHeading)');
 const access=app.indexOf('label("Tus accesos",S.spotifyHeading)');
 const banner=app.indexOf("style:S.spotifyBanner}");
 assert.ok(today>=0&&search>today&&recent>search&&access>recent&&banner>access,
  "Prioritize liturgy, search and recent reading before the personalized banner");
+assert.match(app,/h\(View,\{style:S.todayTitleWrap\}/,"Unified Today panel");
+assert.match(app,/style:S.homeRecentCard/,"Native Resume card");
+assert.match(app,/numberOfLines:1,[\s\S]*?minimumFontScale:.65/,"Keep nav captions on one line");
 assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"Maintain tutorial links");
 assert.match(app,/onOpenSongPage:\(\)=>openWeb\(songPermalink\(actionSong\)\)/,"Maintain official song URL");
 console.log("SHALOM: five tabs, compact reader and retained links verified.");

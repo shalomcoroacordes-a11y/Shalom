@@ -434,43 +434,41 @@ function AppScreen() {
    ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
    ["medleys","Mis popurrís","Cantos enlazados",counts.medleys,()=>goTab("Mis colecciones",{personalKind:"popurri"})],
    ["mass","Mis misas","Celebraciones guardadas",counts.masses,()=>goTab("Mis colecciones",{personalKind:"misa"})],
-   ["repertoires","Mis creaciones","Tu biblioteca personal",counts.creations,()=>goTab("Mis colecciones")]
+   ["repertoires","Mis repertorios","Tu biblioteca personal",counts.creations,()=>goTab("Mis colecciones",{personalKind:"repertorio"})]
   ];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
-    label("Hola, "+(profile.name==="Mi perfil"?"bienvenido":profile.name),S.spotifyWelcomeTitle),
-    label("Bienvenido a SHALOM 💚",S.spotifyWelcomeText)),
+    label("Bienvenido a SHALOM",S.spotifyWelcomeTitle),
+    label("Tu música para celebrar y ensayar.",S.spotifyWelcomeText)),
    h(View,{style:S.shalomToday},
     h(View,{style:S.shalomTodayHeader},
-     h(View,{style:{flex:1,minWidth:0}},
-      label("Hoy en SHALOM",S.shalomTodayHeading),
-      label("Lo que cantaremos y ensayaremos como coro",S.shalomTodaySubheading)),
+     h(View,{style:S.todayTitleWrap},
+      label("♧",S.todayTitleIcon),
+      label("Hoy en SHALOM",S.shalomTodayHeading)),
      h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
-      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
+      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones oficiales"},
       label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
-    ...official.map(item=>h(Pressable,{key:item.type+"-"+item.id,
-     style:S.shalomTodayCard,onPress:()=>{
+    ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
+     style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{
       if(item.type==="medley"){
-       const m=model.medleys.find(x=>String(x.id)===item.id);
-       if(m)selectMedley(m);
+       const medley=model.medleys.find(x=>String(x.id)===item.id);
+       if(medley)selectMedley(medley);
       }else{
        const rep=model.repertoires.find(x=>String(x.id)===item.id);
        if(rep)selectRepertoire(rep);
       }
      },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
-     h(View,{style:S.shalomTodayIconBox},
-      h(Image,{source:HOME_IMAGES[item.type==="medley"?"medleys":item.kind==="misa"?"mass":"repertoires"],
-       resizeMode:"contain",style:S.shalomTodayImage})),
-     h(View,{style:{flex:1,minWidth:0}},
-      label(item.label.toUpperCase(),S.shalomTodayLabel),
+     h(View,{style:S.todayEntryBody},
       h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
       h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
-       [item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle].filter(Boolean).join(" · "))),
+       [item.label,item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle]
+        .filter(Boolean).join(" · "))),
      label("›",S.shalomTodayArrow))),
     !official.length?h(View,{style:S.shalomTodayEmpty},
      label(copy?.syncedAt?
-      "Cuando publiquen una misa, repertorio o popurrí desde el administrador, aparecerá aquí al actualizar.":
-      "Descarga el cancionero para ver las misas y ensayos publicados por SHALOM.",S.shalomTodayEmptyText),
+      "Aquí aparecerán las misas, repertorios y popurrís que publique el coro.":
+      "Descarga el cancionero para ver las publicaciones oficiales de SHALOM.",S.shalomTodayEmptyText),
+     label("Publicaciones oficiales",S.todayFootnote),
      !copy?.syncedAt?h(Btn,{text:"Descargar biblioteca",onPress:manualSync,
       disabled:busy,small:true}):null):null),
    h(View,{style:S.homeSearchWrap},
@@ -483,10 +481,16 @@ function AppScreen() {
     ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
     !found.length?label("No se encontraron cantos.",S.empty):null,
     h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
-   recent?h(View,{style:S.spotifyBlock},
-    label("Continuar leyendo",S.spotifyHeading),
-    h(SectionListCard,{title:recent.title,subtitle:names(recent._artists)||"Último canto consultado",
-     onPress:()=>selectSong(recent)})):null,
+   h(View,{style:S.spotifyBlock},
+    label("Continuar donde te quedaste",S.spotifyHeading),
+    h(Pressable,{style:S.homeRecentCard,onPress:()=>recent?selectSong(recent):goTab("Canciones"),
+     accessibilityRole:"button",accessibilityLabel:recent?"Continuar con "+recent.title:"Explorar cantos"},
+     h(View,{style:{flex:1,minWidth:0}},
+      h(Text,{style:S.homeRecentTitle,numberOfLines:1},
+       recent?recent.title:"Abre un canto para comenzar"),
+      recent?h(Text,{style:S.homeRecentSubtitle,numberOfLines:1},
+       names(recent._artists)||"Último canto consultado"):null),
+     label("›",S.homeRecentArrow))),
    h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading)),
    h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
     h(Pressable,{key:name,onPress,accessibilityRole:"button",
@@ -1145,7 +1149,8 @@ function AppScreen() {
        h(View,{style:[S.profileNavBody,{borderColor:selected?C.green:C.text}]})):
       homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
       label(icon,[S.navIcon,selected&&{color:C.green}]),
-     label(name,[S.navText,selected&&{color:C.green}]));})) : null,
+     h(Text,{style:[S.navText,selected&&{color:C.green}],numberOfLines:1,
+       adjustsFontSizeToFit:true,minimumFontScale:.65,allowFontScaling:false},name));})) : null,
   actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
    store:personal,onDismiss:()=>setActionSongId(null),
