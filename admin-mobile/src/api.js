@@ -43,16 +43,30 @@ function createApi(fetcher,auth){
    });
   }
   const previous=await find(table,id);
-  if(previous && previous.updated_at && (!expected || previous.updated_at!==expected)){
-   const error=new Error("Otra persona modificó este contenido. Revisa los cambios antes de publicar.");
+  const payload=mainPayload(table,record);
+  if(previous){
+   // COMPARACIÓN ATÓMICA: solo cambiar si la versión de servidor no cambió.
+   if(!expected||previous.updated_at!==expected){
+    const error=new Error("CONFLICT: alguien actualizó el registro. Revisa sus cambios.");
+    error.code="CONFLICT";throw error;
+   }
+   payload.updated_at=new Date().toISOString();
+   const column=ID_FIELDS[table]||"id";
+   const path="/rest/v1/"+quote(table)+"?"+column+"=eq."+quote(id)+"&updated_at=eq."+quote(expected)+"&select=*";
+   const updated=await raw(path,"PATCH",payload,"return=representation");
+   if(!Array.isArray(updated)||updated.length!==1){
+    const error=new Error("CONFLICT: el servidor cambió antes de guardar. No se sobrescribió.");
+    error.code="CONFLICT";throw error;
+   }
+   return updated[0];
+  }
+  if(expected){
+   const error=new Error("CONFLICT: el registro se eliminó del servidor.");
    error.code="CONFLICT";throw error;
   }
-  if(!previous&&expected){const error=new Error("El contenido ya no existe en el servidor");error.code="CONFLICT";throw error;}
-  const payload=mainPayload(table,record);
-  const idField=ID_FIELDS[table]||"id";
-  const result=await raw("/rest/v1/"+quote(table)+"?on_conflict="+idField,"POST",[payload],"resolution=merge-duplicates,return=representation");
-  if(!Array.isArray(result)||result.length!==1)throw Error("Publicación no confirmada por el servidor");
-  return result[0];
+  const created=await raw("/rest/v1/"+quote(table)+"?select=*","POST",[payload],"return=representation");
+  if(!Array.isArray(created)||created.length!==1)throw Error("El servidor no confirmó la creación.");
+  return created[0];
  }
  async function remove(table,id){
   if(table==="songs")return raw("/rest/v1/rpc/admin_delete_song","POST",{p_song_id:id});

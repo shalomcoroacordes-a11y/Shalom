@@ -18,3 +18,19 @@ const fetcher=async(url,options)=>{
  assert.ok(!calls.some(x=>x.url.includes("song_links?")),"Sin guardados parciales por REST");
  console.log("Publicación atómica vía RPC comprobada.");
 })().catch(e=>{console.error(e);process.exit(1);});
+
+const requestLog=[];
+const guarded=(url,opts)=>{
+ requestLog.push({url,opts});
+ if(opts.method==="GET")return Promise.resolve({ok:true,status:200,text:async()=>JSON.stringify([{id:"existing",updated_at:"2026-11-21T10:00:00Z"}])});
+ if(opts.method==="PATCH")return Promise.resolve({ok:true,status:200,text:async()=>JSON.stringify([{id:"existing",updated_at:"2026-11-21T11:00:00Z"}])});
+ return Promise.resolve({ok:false,status:400,text:async()=>JSON.stringify({message:"Bad request"})});
+};
+(async()=>{
+ const a=createApi(guarded,auth);
+ const x=await a.publish("artists",{id:"existing",name:"Coro nuevo",slug:"coro-nuevo"},"2026-11-21T10:00:00Z");
+ assert.equal(x.id,"existing");
+ assert.ok(requestLog.some(r=>r.opts.method==="PATCH"&&r.url.includes("updated_at=eq.")),"Actualización atómica con marca de tiempo");
+ await assert.rejects(()=>a.publish("artists",{id:"existing",name:"Otros cambios",slug:"otro"},"2026-11-21T09:00:00Z"),/CONFLICT/);
+ console.log("Concurrencia optimista: no sobrescribir modificaciones de otros admins.");
+})().catch(e=>{console.error(e);process.exit(1);});
