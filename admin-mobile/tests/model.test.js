@@ -22,3 +22,7 @@ assert.throws(()=>baseRecord("songs",{...song,links:[{title:"X",url:"http://unse
 assert.throws(()=>baseRecord("categories",{name:"X",song_type:"mixto"}),/mixta/);
 assert.equal(slug("Álbum de la Fe"),"album-de-la-fe");
 console.log("Modelo, capos, enlaces y relaciones correctos.");
+
+const donation=baseRecord("donation_settings",{title:"Donativos",is_active:true,sort_order:2});
+assert.equal(donation.is_active,true);
+assert.equal(donation.sort_order,2);

@@ -15,3 +15,7 @@ assert.match(sql,/admin_publish_song/);
 assert.match(sql,/for update/);
 assert.doesNotMatch(fs.readFileSync("src/config.js","utf8"),/service_role|sb_secret_/);
 console.log("Identidad APK y protección del servidor verificadas.");
+
+assert.match(app,/admin_permission_overrides/);
+assert.match(app,/setPermissionOverride/);
+assert.match(app,/donation_settings/);

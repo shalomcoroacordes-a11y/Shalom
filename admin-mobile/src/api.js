@@ -68,11 +68,14 @@ function createApi(fetcher,auth){
  async function createRole(role){return raw("/rest/v1/rpc/admin_create_role","POST",{p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
  async function changeRole(role){return raw("/rest/v1/rpc/admin_update_role","POST",{p_id:role.id,p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
  async function assignUserRoles(userId,roleIds){return raw("/rest/v1/rpc/admin_assign_user_roles","POST",{p_user_id:userId,p_role_ids:roleIds});}
+ async function setPermissionOverride(userId,permission,allowed){
+  return raw("/rest/v1/rpc/admin_set_permission_override","POST",{p_user_id:userId,p_permission:permission,p_allowed:allowed});
+ }
  async function invite(email,roles){
   return raw("/rest/v1/rpc/admin_invite_user","POST",{p_email:email,p_role_ids:roles});
  }
  async function blockUser(id,reason){return raw("/rest/v1/rpc/admin_block_user","POST",{p_user_id:id,p_reason:reason||""});}
  async function unblockUser(id){return raw("/rest/v1/rpc/admin_unblock_user","POST",{p_user_id:id});}
- return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,assignUserRoles,invite,blockUser,unblockUser};
+ return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,assignUserRoles,setPermissionOverride,invite,blockUser,unblockUser};
 }
 module.exports={createApi};

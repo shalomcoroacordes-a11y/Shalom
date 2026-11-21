@@ -9,7 +9,7 @@ const Crypto=require("expo-crypto");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {S,C}=require("./src/styles");
 const {TITLES,FIELDS,OPTIONS,baseRecord,displayTitle}=require("./src/model");
-const {RESOURCES,ACTIONS,effective,canPublish,canEdit}=require("./src/permissions");
+const {RESOURCES,ACTIONS,effective,canPublish,canEdit,mapped}=require("./src/permissions");
 const {TABLES}=require("./src/config");
 const {renderLines}=require("./src/score");
 const {createAuth}=require("./src/auth");
@@ -22,7 +22,7 @@ const api=createApi(fetch,auth);
 const network=async()=>{const n=await NetInfo.fetch();return !!(n.isConnected&&n.isInternetReachable!==false);};
 const sync=createSync(api,auth,network);
 const tabs=[["Inicio","⌂"],["Cantos","♫"],["Catálogo","▤"],["Pendientes","⇧"],["Usuarios","♙"]];
-const catalogTabs=["artists","albums","categories","repertoires","medleys","contact_messages","home_recommendations","site_content"];
+const catalogTabs=["artists","albums","categories","repertoires","medleys","contact_messages","home_recommendations","site_content","donation_settings"];
 function txt(value,style){return h(Text,{style},String(value??""));}
 function heading(text){return txt(text,S.section);}
 function button(title,action,kind,disabled){
@@ -135,6 +135,7 @@ function Main(){
  const [search,setSearch]=useState(""),[offline,setOffline]=useState(false),[roles,setRoles]=useState([]),[profiles,setProfiles]=useState([]);
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
+ const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null);
  const owner=session?.user_id;
  async function hydrate(s){
   setSession(s);setBoot(false);
@@ -172,8 +173,9 @@ function Main(){
  async function loadUsers(a=access){
   if(!a?.owner)return;
   try{
-   const [r,u,assignments,blocks]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks")]);
+   const [r,u,assignments,blocks,exceptions]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks"),api.list("admin_permission_overrides")]);
    setRoles(r);setProfiles(u);setBlockedUsers(blocks);
+   setOverrides(Object.fromEntries(u.map(p=>[p.user_id,Object.fromEntries(exceptions.filter(x=>x.user_id===p.user_id).map(x=>[x.permission,x.allowed]))])));
    setAssigned(Object.fromEntries(u.map(p=>[p.user_id,assignments.filter(x=>x.user_id===p.user_id).map(x=>x.role_id)])));
   }catch(e){setMessage("Permisos: "+e.message);}
  }
@@ -215,7 +217,7 @@ function Main(){
   }catch(e){Alert.alert("No se pudo guardar",e.message);}
  }
  function confirmRemove(record){
-  if(!effective(access,selectedType+".delete"))return Alert.alert("Sin permiso","No puedes eliminar este contenido");
+  if(!effective(access,mapped(selectedType)+".delete"))return Alert.alert("Sin permiso","No puedes eliminar este contenido");
   Alert.alert("Eliminar contenido","Esta acción elimina datos del servidor. ¿Continuar?",[
    {text:"Cancelar",style:"cancel"},
    {text:"Eliminar",style:"destructive",onPress:async()=>{
@@ -231,6 +233,14 @@ function Main(){
    else await api.createRole({name:newRole,description:roleDescription,permissions:rolePermissions});
    setEditingRole(null);setShowRoleEditor(false);setNewRole("");setRoleDescription("");setRolePermissions([]);await loadUsers();setMessage("Rol guardado.");
   }catch(e){Alert.alert("Error de rol",e.message);}
+ }
+ async function updateOverride(userId,permission){
+  const old=overrides[userId]||{};
+  const exists=Object.prototype.hasOwnProperty.call(old,permission);
+  const next=!exists?true:old[permission]===true?false:null;
+  try{await api.setPermissionOverride(userId,permission,next);
+   setOverrides(value=>{const u={...(value[userId]||{})};if(next===null)delete u[permission];else u[permission]=next;return {...value,[userId]:u};});
+  }catch(e){Alert.alert("Error de permiso",e.message);}
  }
  async function sendInvite(){
   if(!inviteEmail.trim()||!inviteRoles.length)return Alert.alert("Faltan datos","Indica correo y al menos un rol.");
@@ -267,6 +277,13 @@ function Main(){
      const current=assigned[u.user_id]||[];const next=current.includes(id)?current.filter(x=>x!==id):[...current,id];
      try{await api.assignUserRoles(u.user_id,next);setAssigned(old=>({...old,[u.user_id]:next}));}catch(e){Alert.alert("Error",e.message);}
     }),
+    button(overrideUser===u.user_id?"Ocultar permisos individuales":"Permisos individuales",()=>setOverrideUser(overrideUser===u.user_id?null:u.user_id),"secondary"),
+    overrideUser===u.user_id?h(View,{style:{gap:12}},txt("Permiso individual: ✓ permitir, ✕ denegar, · heredar del rol",S.note),
+      RESOURCES.map(([resource,label])=>h(View,{key:resource,style:{gap:5}},txt(label,S.itemTitle),
+        wrapChips(ACTIONS.map(([verb,name])=>{const key=resource+"."+verb;const val=(overrides[u.user_id]||{})[key];return [key,name+" "+(val===true?"✓":val===false?"✕":"·")];}),
+        Object.entries(overrides[u.user_id]||{}).filter(([_,value])=>value===true).map(([key])=>key),
+        key=>updateOverride(u.user_id,key))
+      ))):null,
     h(View,{style:S.row},button("Bloquear acceso",()=>Alert.alert("Bloquear administrador","Sus permisos dejarán de funcionar al consultar el servidor.",[
       {text:"Cancelar"},{text:"Bloquear",style:"destructive",onPress:async()=>{try{await api.blockUser(u.user_id,"Revocado por propietario");await loadUsers();}catch(e){Alert.alert("Error",e.message);}}}
     ]),"danger"),button("Restaurar",async()=>{try{await api.unblockUser(u.user_id);await loadUsers();}catch(e){Alert.alert("Error",e.message);}},"secondary")))
@@ -299,11 +316,11 @@ function Main(){
  function catalogPanel(type){
   const rows=(lists[type]||[]).filter(x=>displayTitle(type,x).toLowerCase().includes(search.toLowerCase()));
   return h(View,{style:{gap:13}},
-   h(View,{style:S.apart},heading(TITLES[type]),button("+ Nuevo",()=>begin(type),null,!canEdit(access,type)&&!offline)),
+   h(View,{style:S.apart},heading(TITLES[type]),type==="contact_messages"?null:button("+ Nuevo",()=>begin(type),null,!canEdit(access,type)&&!offline)),
    input("Buscar "+TITLES[type],search,setSearch),
    rows.map(r=>h(View,{key:String(r.id||r.content_key),style:S.item},
     itemRow(displayTitle(type,r),(r.tone?"Tono "+r.tone:"")+(r.song_type?" · "+r.song_type:""),()=>begin(type,r)),
-    !!access&&effective(access,type+".delete")?button("Eliminar",()=>confirmRemove(r),"danger"):null
+    !!access&&effective(access,mapped(type)+".delete")?button("Eliminar",()=>confirmRemove(r),"danger"):null
    )),
    !rows.length&&txt("No hay registros descargados. Conéctate y pulsa Actualizar para consultar el catálogo.",S.note)
   );

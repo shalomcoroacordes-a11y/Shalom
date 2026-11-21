@@ -8,6 +8,7 @@ const FIELDS=Object.freeze({
  repertoires:[["title","Nombre del repertorio","text",true],["kind","Tipo de repertorio","repertoire_type"],["event_date","Fecha (AAAA-MM-DD)","date"],["location","Lugar","text"],["notes","Notas","multiline"],["items","Cantos y orden (JSON)","json"],["is_published","Publicado","boolean"]],
  contact_messages:[["status","Estado","request_status"],["admin_notes","Notas internas","multiline"]],
  home_recommendations:[["target_type","Tipo destacado","target_type"],["target_id","ID del contenido","text"],["section_type","Sección","section_type"],["sort_order","Orden","number"],["is_visible","Visible","boolean"]],
+ donation_settings:[["title","Título","text",true],["subtitle","Subtítulo","multiline"],["bank_name","Banco","text"],["account_holder","Titular","text"],["account_number","Número de cuenta","text"],["account_type","Tipo de cuenta","text"],["note","Nota","multiline"],["button_text","Texto del botón","text"],["label","Etiqueta","text"],["instructions","Instrucciones","multiline"],["sort_order","Orden","number"],["is_active","Activo","boolean"]],
  site_content:[["content_key","Clave de contenido","text",true],["content","Contenido JSON","json"]]
 });
 const OPTIONS={
@@ -19,7 +20,7 @@ const OPTIONS={
  target_type:[["song","Canto"],["category","Categoría"]],
  section_type:[["catolico","Católico"],["cristiano","Cristiano"]]
 };
-const TITLES={songs:"Cantos",artists:"Artistas",albums:"Álbumes",categories:"Categorías",medleys:"Popurrís",repertoires:"Repertorios y misas",contact_messages:"Solicitudes",home_recommendations:"Destacados",site_content:"Contenido del sitio"};
+const TITLES={songs:"Cantos",artists:"Artistas",albums:"Álbumes",categories:"Categorías",medleys:"Popurrís",repertoires:"Repertorios y misas",contact_messages:"Solicitudes",home_recommendations:"Destacados",donation_settings:"Donaciones",site_content:"Contenido del sitio"};
 const ID_FIELDS={site_content:"content_key"};
 const slug=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 function baseRecord(table,form,id) {
