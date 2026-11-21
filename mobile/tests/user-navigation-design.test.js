@@ -21,8 +21,10 @@ assert.doesNotMatch(personal,/Perfil → Recibir composición/);
 assert.match(profile,/Respaldo y restauración/);
 assert.match(profile,/Solicitar canto/);
 assert.match(profile,/Acerca de y donaciones/);
-assert.match(profile,/style:S.simpleIdentity/);
-assert.match(profile,/style:S.simpleDivider/);
+assert.match(profile,/profileHeader\(profile\)/);
+assert.match(profile,/style:S.profileStats/);
+assert.match(profile,/style:S.profileShortcuts/);
+assert.match(profile,/style:S.toolList/);
 for(const url of ["acerca.html","contacto.html","donaciones.html"])
  assert.ok(app.includes("https://shalomcoroacordes-a11y.github.io/Shalom/"+url),"Keep existing public link "+url);
 assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);

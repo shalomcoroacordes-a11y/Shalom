@@ -20,8 +20,10 @@ assert.match(app,/tab!=="Artistas"&&tab!=="Explorar"/,"Explorar no muestra un bo
 assert.match(app,/text:"Respaldo y restauración"/,"Respaldos accesibles en Configuración");
 assert.doesNotMatch(app,/style:S.songActionBar/,"No duplicar la barra de controles de lectura");
 assert.doesNotMatch(app,/!immersiveActive\?h\(AppSectionHeader/,"No dibujar doble cabecera");
-assert.match(profile,/style:S.simpleIdentity/,"The normal profile uses a compact avatar instead of the large cover");
-assert.match(profile,/Tus canciones favoritas/,"Favorites are visible in profile");
+assert.match(profile,/profileHeader\(profile\)/,"The profile uses the original editable cover and avatar");
+assert.match(profile,/style:S.profileStats/,"Profile shows personal counters");
+assert.match(profile,/style:S.profileShortcuts/,"Profile links to local collections and favorites");
+assert.match(profile,/Cantos que guardaste/,"Favorites are visible in profile");
 assert.match(profile,/Acerca de y donaciones/,"Existing information links are easy to find");
 assert.match(profile,/Editar perfil/);
 assert.match(profile,/Configuración/);
