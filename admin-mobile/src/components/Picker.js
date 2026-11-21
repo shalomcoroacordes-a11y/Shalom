@@ -38,7 +38,7 @@ function Picker({title,options,value,onChange,multiple=false,maxSelected=0,place
    h(ScrollView,{nestedScrollEnabled:true,keyboardShouldPersistTaps:"always",style:{maxHeight:280},showsVerticalScrollIndicator:true},
     visible.map(([id,name])=>h(Pressable,{key:id,onPress:()=>select(id),style:S.pickerRow,accessibilityRole:"checkbox",accessibilityState:{checked:selected.includes(id)}},
      label(selected.includes(id)?"✓":"○",{color:selected.includes(id)?C.green:C.muted,fontSize:17}),
-     h(View,{style:{flex:1}},label(name,{color:C.text,fontSize:13}))))),
+     h(View,{style:{flex:1}},label(name,{color:C.text,fontSize:13})))),
     !visible.length&&h(View,{style:{padding:12}},label("Sin resultados. Busca con otro nombre.",S.note)),
     filtered.length>visible.length&&h(Pressable,{style:S.pickerRow,onPress:()=>setPage(n=>n+1)},
      label("Mostrar más · "+(filtered.length-visible.length)+" restantes",{color:C.green,fontSize:12}))),
