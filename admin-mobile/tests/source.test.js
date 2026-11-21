@@ -22,3 +22,5 @@ assert.match(app,/donation_settings/);
 
 assert.match(app,/featured_song_ids/);
 assert.match(app,/requestRecovery/);
+
+assert.match(fs.readFileSync("../sql/SHALOM_ADMIN_DONATIONS_RBAC_20261121.sql","utf8"),/donation_settings\\\./);

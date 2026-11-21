@@ -11,3 +11,6 @@ assert.equal(effective({...roles,blocked:true},"songs.edit"),false);
 assert.equal(canPublish({owner:true,blocked:false},"songs"),true);
 assert.equal(canPublish(null,"songs"),false);
 console.log("Roles múltiples y bloqueo predominante verificados.");
+
+assert.ok(ALL.includes("donation_settings.publish"));
+assert.equal(canPublish({authorized:true,owner:false,permissions:["site_content.publish"]},"donation_settings"),false);
