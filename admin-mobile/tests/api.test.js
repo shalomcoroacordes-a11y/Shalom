@@ -28,9 +28,9 @@ const guarded=(url,opts)=>{
 };
 (async()=>{
  const a=createApi(guarded,auth);
- const x=await a.publish("artists",{id:"existing",name:"Coro nuevo",slug:"coro-nuevo"},"2026-11-21T10:00:00Z");
+ const x=await a.publish("albums",{id:"existing",title:"Álbum nuevo",slug:"album-nuevo"},"2026-11-21T10:00:00Z");
  assert.equal(x.id,"existing");
  assert.ok(requestLog.some(r=>r.opts.method==="PATCH"&&r.url.includes("updated_at=eq.")),"Actualización atómica con marca de tiempo");
- await assert.rejects(()=>a.publish("artists",{id:"existing",name:"Otros cambios",slug:"otro"},"2026-11-21T09:00:00Z"),/CONFLICT/);
+ await assert.rejects(()=>a.publish("albums",{id:"existing",title:"Otros cambios",slug:"otro"},"2026-11-21T09:00:00Z"),/CONFLICT/);
  console.log("Concurrencia optimista: no sobrescribir modificaciones de otros admins.");
 })().catch(e=>{console.error(e);process.exit(1);});
