@@ -26,3 +26,6 @@ console.log("Modelo, capos, enlaces y relaciones correctos.");
 const donation=baseRecord("donation_settings",{title:"Donativos",is_active:true,sort_order:2});
 assert.equal(donation.is_active,true);
 assert.equal(donation.sort_order,2);
+
+assert.throws(()=>baseRecord("artists",{name:"Artista",featured_song_ids:["1","2","3","4"]}),/Máximo tres/);
+assert.equal(mainPayload("artists",baseRecord("artists",{name:"Artista",featured_song_ids:["1"]})).featured_song_ids,undefined);

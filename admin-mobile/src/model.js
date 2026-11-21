@@ -1,7 +1,7 @@
 "use strict";
 const FIELDS=Object.freeze({
  songs:[["title","Título","text",true],["song_type","Tipo","type"],["tone","Tonalidad","text"],["difficulty","Dificultad","difficulty"],["artist_id","Artista principal","artist"],["lyrics","Letra y acordes","multiline",true],["capo_position","Capo principal (0-12)","number"],["capo_key","Figuras con capo","text"],["category_ids","Categorías","categories"],["collaborator_ids","Artistas colaboradores","artists"],["album_id","Álbum","album"],["links","Tutoriales y enlaces","links"],["capos","Versiones de capo","capos"]],
- artists:[["name","Nombre","text",true],["artist_type","Tipo","type"],["description","Descripción","multiline"],["bio","Biografía","multiline"],["avatar_url","Fotografía URL","url"],["cover_url","Portada URL","url"],["youtube_url","YouTube","url"],["spotify_url","Spotify","url"],["instagram_url","Instagram","url"],["facebook_url","Facebook","url"]],
+ artists:[["name","Nombre","text",true],["artist_type","Tipo","type"],["description","Descripción","multiline"],["bio","Biografía","multiline"],["avatar_url","Fotografía URL","url"],["cover_url","Portada URL","url"],["youtube_url","YouTube","url"],["spotify_url","Spotify","url"],["instagram_url","Instagram","url"],["facebook_url","Facebook","url"],["featured_song_ids","Canciones destacadas (máx. 3)","featured"]],
  albums:[["title","Nombre del álbum","text",true],["artist_id","Artista","artist"],["description","Descripción","multiline"],["sort_order","Orden","number"]],
  categories:[["name","Categoría","text",true],["song_type","Tipo","category_type"],["parent_id","Categoría principal","category"],["description","Descripción","multiline"],["sort_order","Orden","number"]],
  medleys:[["title","Nombre del popurrí","text",true],["song_type","Tipo","type"],["base_tone","Tonalidad","text"],["description","Descripción","multiline"],["parts","Partes (JSON)","json"],["is_published","Publicado","boolean"]],
@@ -31,7 +31,7 @@ function baseRecord(table,form,id) {
   if(kind==="number"){value=Number(value||0);if(!Number.isFinite(value))throw Error("Número inválido: "+key);}
   else if(kind==="boolean")value=!!value;
   else if(kind==="json"){if(typeof value==="string"){try{value=JSON.parse(value|| (key==="content"?"{}":"[]"));}catch(_){throw Error("JSON inválido en "+key);}}value=value==null?(key==="content"?{}:[]):value;}
-  else if(kind==="categories"||kind==="artists"||kind==="links"||kind==="capos")value=Array.isArray(value)?value:[];
+  else if(["categories","artists","links","capos","featured"].includes(kind))value=Array.isArray(value)?value:[];
   else value=String(value??"").trim();
   if(required && (!value|| (Array.isArray(value)&&!value.length)))throw Error("Falta el campo: "+key);
   if(kind==="url"&&value&&!/^https:\/\//i.test(value))throw Error("El enlace debe comenzar con https://");
@@ -44,12 +44,14 @@ function baseRecord(table,form,id) {
   for(const x of out.links){if(!x.title||!/^https:\/\//i.test(x.url||""))throw Error("Enlace inválido: requiere título y URL https");}
   for(const x of out.capos){if(!(Number(x.capo_position)>0&&Number(x.capo_position)<=12)||!String(x.capo_key||"").trim())throw Error("Versión de capo inválida");}
  }
+ if(table==="artists"&&out.featured_song_ids.length>3)throw Error("Máximo tres canciones destacadas");
  if(table==="categories"&&out.song_type==="mixto")throw Error("Categoría mixta no compatible con la base actual");
  return out;
 }
 function mainPayload(table,rec){
  const out={...rec};
  if(table==="songs")for(const field of ["category_ids","collaborator_ids","album_id","links","capos"])delete out[field];
+ if(table==="artists")delete out.featured_song_ids;
  if(table==="contact_messages")return {status:out.status,admin_notes:out.admin_notes};
  return out;
 }

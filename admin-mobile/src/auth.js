@@ -57,10 +57,11 @@ function createAuth(fetcher,secure) {
   try{await verifiedAccess(s);}catch(err){await clear();throw err;}
   return s;
  }
+ async function requestRecovery(email){return request("/auth/v1/recover","POST",{email:String(email||"").trim()});}
  async function signOut(){
   const s=await read();await clear();
   if(s&&s.expires_at>Date.now())try{await request("/auth/v1/logout","POST",undefined,s.access_token);}catch(_){}
  }
- return{session,read,requireFresh,verifiedAccess,signIn,signUp,signOut,clear};
+ return{session,read,requireFresh,verifiedAccess,signIn,signUp,requestRecovery,signOut,clear};
 }
 module.exports={createAuth,SESSION_KEY};

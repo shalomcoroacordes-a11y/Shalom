@@ -33,6 +33,11 @@ function createApi(fetcher,auth){
  async function publish(table,record,expected){
   const id=record[ID_FIELDS[table]||"id"];
   if(!id)throw Error("Falta identificador de publicación");
+  if(table==="artists"){
+   return raw("/rest/v1/rpc/admin_publish_artist","POST",{
+    p_artist:mainPayload(table,record),p_featured:record.featured_song_ids||[],p_expected:expected||null
+   });
+  }
   if(table==="songs"){
    const r=relations(record);
    return raw("/rest/v1/rpc/admin_publish_song","POST",{

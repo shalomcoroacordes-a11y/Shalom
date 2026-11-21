@@ -19,3 +19,6 @@ console.log("Identidad APK y protección del servidor verificadas.");
 assert.match(app,/admin_permission_overrides/);
 assert.match(app,/setPermissionOverride/);
 assert.match(app,/donation_settings/);
+
+assert.match(app,/featured_song_ids/);
+assert.match(app,/requestRecovery/);

@@ -43,7 +43,7 @@ function itemRow(title,sub,onPress,right){
 function localId(){return Crypto.randomUUID();}
 function initial(table){
  const values={};for(const [key,,kind] of FIELDS[table]){
-  values[key]=["categories","artists","links","capos"].includes(kind)?[]:kind==="json"?(key==="content"?"{}":"[]"):kind==="boolean"?false:kind==="number"?"0":"";
+  values[key]=["categories","artists","links","capos","featured"].includes(kind)?[]:kind==="json"?(key==="content"?"{}":"[]"):kind==="boolean"?false:kind==="number"?"0":"";
  }
  if(table==="songs")values.song_type="catolico";
  if(table==="repertoires")values.kind="misa";
@@ -53,6 +53,7 @@ function initial(table){
 }
 function fromServer(table,raw,all){
  const out={...initial(table),...raw};
+ if(table==="artists")out.featured_song_ids=(all.artist_featured_songs||[]).filter(r=>r.artist_id===raw.id).sort((a,b)=>a.sort_order-b.sort_order).map(r=>r.song_id);
  if(table==="songs"){
   out.category_ids=(all.song_categories||[]).filter(r=>r.song_id===raw.id).map(r=>r.category_id);
   out.collaborator_ids=(all.song_artists||[]).filter(r=>r.song_id===raw.id&&r.role==="colaborador").map(r=>r.artist_id);
@@ -130,10 +131,10 @@ function Field({spec,form,onChange,lists}){
   const opt=[["","Ninguno"],...(lists[other]||[]).map(x=>[x.id,displayTitle(other,x)])];
   return h(View,{style:{gap:7}},txt(label,S.label),wrapChips(opt,value,set));
  }
- if(["artists","categories"].includes(kind)){
-  const type=kind==="artists"?"artists":"categories";
+ if(["artists","categories","featured"].includes(kind)){
+  const type=kind==="artists"?"artists":kind==="featured"?"songs":"categories";
   const opt=(lists[type]||[]).map(x=>[x.id,displayTitle(type,x)]);
-  return h(View,{style:{gap:8}},txt(label,S.label),wrapChips(opt,value||[],v=>set((value||[]).includes(v)?value.filter(x=>x!==v):[...(value||[]),v])));
+  return h(View,{style:{gap:8}},txt(label,S.label),wrapChips(opt,value||[],v=>{const next=(value||[]).includes(v)?value.filter(x=>x!==v):[...(value||[]),v];if(kind==="featured"&&next.length>3)return Alert.alert("Límite","Solo tres canciones destacadas");set(next);}));
  }
  if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
  if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa"});
@@ -181,6 +182,7 @@ function Login({onSuccess}){
   input("Contraseña",pass,setPass,{secure:true}),
   button(busy?"Verificando...":creating?"Registrarme con invitación":"Entrar a SHALOM Admin",go,null,busy),
   button(creating?"Ya tengo cuenta":"Tengo una invitación: crear cuenta",()=>{setCreating(!creating);setMessage("");},"secondary"),
+  button("Olvidé mi contraseña",async()=>{if(!email.trim())return setMessage("Escribe tu correo primero");try{await auth.requestRecovery(email);setMessage("Solicitud enviada. Consulta tu correo para restablecer la contraseña.");}catch(e){setMessage(e.message);}},"secondary"),
   !!message&&txt(message,S.error),
   txt("La primera sesión requiere internet. Tus borradores posteriores se guardan en el dispositivo.",S.note)
  );
@@ -214,7 +216,7 @@ function Main(){
    if(!active)return;
    const on=!!(state.isConnected&&state.isInternetReachable!==false);
    setOffline(!on);
-   if(on && access?.authorized)sendQueue();
+   if(on){if(access?.authorized)sendQueue();else refresh();}
   });
   const app=AppState.addEventListener("change",state=>{if(state==="active"&&access?.authorized)sendQueue();});
   return()=>{active=false;unsub();app.remove();};
