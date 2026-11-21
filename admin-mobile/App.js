@@ -64,6 +64,62 @@ function fromServer(table,raw,all){
  for(const [key,,kind] of FIELDS[table])if(kind==="json")out[key]=JSON.stringify(out[key]??(key==="content"?{}:[]),null,2);
  return out;
 }
+function CompositeEditor({kind,value,onChange,songs,mode}){
+ const [query,setQuery]=useState("");
+ let entries;
+ try{entries=JSON.parse(String(value||"[]"));}catch(_){return input("Corrige los datos JSON",value,onChange,{multi:true});}
+ if(!Array.isArray(entries))return input("Se requiere una lista JSON",value,onChange,{multi:true});
+ const medley=kind==="parts",limit=medley?30:45;
+ const save=a=>onChange(JSON.stringify(a,null,2));
+ const change=(index,key,value)=>save(entries.map((x,i)=>i===index?{...x,[key]:value}:x));
+ const remove=index=>save(entries.filter((_,i)=>i!==index));
+ const move=(index,delta)=>{
+  const to=index+delta;if(to<0||to>=entries.length)return;
+  const list=entries.slice();[list[index],list[to]]=[list[to],list[index]];save(list);
+ };
+ const add=song=>{
+  if(entries.length>=limit)return Alert.alert("Límite alcanzado","Máximo "+limit+" cantos.");
+  const entry=medley?
+   {id:localId(),song_id:song.id,song_title:song.title,title:song.title,tone:song.tone||"",lyrics:song.lyrics||"",shift:0}:
+   {song_id:song.id,moment:mode==="misa"?"Entrada":"Ensayo",notes:""};
+  save([...entries,entry]);setQuery("");
+ };
+ const filtered=songs.filter(x=>String(x.title||"").toLowerCase().includes(query.toLowerCase())).slice(0,16);
+ function chooseSection(index,label){
+  const source=String(songs.find(x=>x.id===entries[index].song_id)?.lyrics||"");
+  const labelRx=/^\[([^\]]+)\]\s*$/gm;
+  const found=[...source.matchAll(labelRx)];
+  const match=found.find(x=>x[1]===label);
+  if(!match)return;
+  const at=source.indexOf(match[0],match.index);
+  const next=found.find(x=>x.index>at);
+  change(index,"lyrics",source.slice(at,next?.index??source.length).trim());
+ }
+ return h(View,{style:{gap:11}},
+  txt(medley?"Fragmentos del popurrí ("+entries.length+"/"+limit+")":"Cantos del repertorio ("+entries.length+"/"+limit+")",S.section),
+  entries.map((e,i)=>h(View,{key:(e.id||e.song_id||"item")+"_"+i,style:S.card},
+   h(View,{style:S.apart},txt((i+1)+". "+(e.title||e.song_title||songs.find(x=>x.id===e.song_id)?.title||"Canto"),S.itemTitle),
+    h(View,{style:S.row},button("↑",()=>move(i,-1),"secondary",i===0),button("↓",()=>move(i,1),"secondary",i===entries.length-1),button("Quitar",()=>remove(i),"danger"))),
+   medley?
+    h(View,{style:{gap:7}},
+     input("Nombre del fragmento",e.title||"",v=>change(i,"title",v)),
+     input("Transponer (−11 a +11 semitonos)",String(e.shift||0),v=>change(i,"shift",Number(v)||0)),
+     txt("Usar sección del canto original",S.label),
+     wrapChips([...String(songs.find(x=>x.id===e.song_id)?.lyrics||"").matchAll(/^\[([^\]]+)\]\s*$/gm)].slice(0,12).map(x=>[x[1],x[1]]),"",section=>chooseSection(i,section)),
+     input("Letra y acordes de esta parte",e.lyrics||"",v=>change(i,"lyrics",v),{multi:true})):
+    h(View,{style:{gap:7}},
+     txt("Momento de la celebración",S.label),
+     wrapChips((mode==="misa"?["Entrada","Señor ten piedad","Gloria","Salmo","Aleluya","Ofertorio","Santo","Cordero de Dios","Comunión","Salida"]:["Ensayo","Repaso","Nuevo canto","Inicio","Final"]).map(x=>[x,x]),e.moment||"",v=>change(i,"moment",v)),
+     input("Indicaciones para el coro",e.notes||"",v=>change(i,"notes",v)))
+  )),
+  txt("Agregar un canto existente",S.label),
+  input("Buscar título",query,setQuery),
+  h(View,{style:{gap:4}},filtered.map(song=>h(Pressable,{key:song.id,style:S.item,onPress:()=>add(song)},
+   h(View,{style:S.apart},txt(song.title,S.itemTitle),txt("+ Agregar",{color:C.green,fontSize:11,fontWeight:"800"}))))),
+  !songs.length&&txt("Primero descarga el catálogo conectado a internet para elegir cantos.",S.note),
+  txt("Los cantos originales no se modifican. Puedes reordenar y eliminar fragmentos sin alterar sus fuentes.",S.note)
+ );
+}
 function Field({spec,form,onChange,lists}){
  const [key,label,kind]=spec,value=form[key];
  const set=v=>onChange(key,v);
@@ -80,6 +136,7 @@ function Field({spec,form,onChange,lists}){
   return h(View,{style:{gap:8}},txt(label,S.label),wrapChips(opt,value||[],v=>set((value||[]).includes(v)?value.filter(x=>x!==v):[...(value||[]),v])));
  }
  if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
+ if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa"});
  return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});
 }
 function NestedEditor({kind,value,onChange}){
@@ -206,6 +263,7 @@ function Main(){
    if(selectedType==="songs")clean.artist_id=clean.artist_id||null;
    if(selectedType==="albums")clean.artist_id=clean.artist_id||null;
    if(selectedType==="categories")clean.parent_id=clean.parent_id||null;
+   if(selectedType==="repertoires")clean.event_date=clean.event_date||null;
    if(selectedType==="songs")clean.category_id=clean.category_ids[0]||null;
    if(selectedType==="contact_messages")clean.id=editing.id;
    if(selectedType==="home_recommendations")clean.id=editing.id;
