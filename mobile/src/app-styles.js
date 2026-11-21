@@ -52,7 +52,6 @@ module.exports=function createAppStyles(C,MONO){
   rowGap:8,marginBottom:16},
  spotifyShortcut:{width:"48.6%",minHeight:78,overflow:"hidden",position:"relative",
   padding:10,borderRadius:14,borderWidth:1,borderColor:"#363f44",backgroundColor:"#23272e",justifyContent:"space-between"},
- spotifyShortcutBackground:{position:"absolute",top:0,bottom:0,left:0,right:0},
  spotifyShortcutTop:{flexDirection:"row",alignItems:"flex-start",justifyContent:"space-between"},
  spotifyShortcutSymbolBox:{height:30,width:30,borderRadius:9,backgroundColor:"#303c39",
   justifyContent:"center",alignItems:"center"},

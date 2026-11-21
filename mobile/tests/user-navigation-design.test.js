@@ -43,6 +43,8 @@ assert.match(app,/style:\[S.shalomTodayCard,index>0&&S.todayEntryDivider\]/,"Pub
 assert.match(app,/style:S.libraryExploreGrid/,"Secondary music exploration is grouped in Cantos");
 assert.match(app,/style:S.repSuggest/,"Suggestion is a compact working repertoire row");
 assert.match(app,/style:S.homeRecentCard/,"Native Resume card");
+assert.doesNotMatch(app,/style:S.spotifyShortcutBackground/,"Personal shortcuts do not use oversized green gradients");
+assert.match(styles,/spotifyShortcut:\{width:"48\.6%",minHeight:78/,"Compact neutral Home access cards");
 assert.match(app,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,"User-selected featured banner photo remains visible in the compact card");
 assert.match(app,/numberOfLines:1,[\s\S]*?minimumFontScale:.65/,"Keep nav captions on one line");
 assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"Maintain tutorial links");

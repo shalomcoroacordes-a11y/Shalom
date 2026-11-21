@@ -495,8 +495,6 @@ function AppScreen() {
    h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
     h(Pressable,{key:name,onPress,accessibilityRole:"button",
      accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
-     h(LinearGradient,{colors:["#193b33","#172831"],start:{x:0,y:0},end:{x:1,y:1},
-      style:S.spotifyShortcutBackground}),
      h(View,{style:S.spotifyShortcutTop},
       h(View,{style:S.spotifyShortcutSymbolBox},
        icon==="heart"?label("♥",S.spotifyShortcutIcon):
