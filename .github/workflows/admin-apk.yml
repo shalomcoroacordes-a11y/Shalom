@@ -1,0 +1,88 @@
+name: SHALOM Admin Android (preview)
+on:
+  push:
+    branches: ["feature/shalom-admin-android-v1"]
+    paths:
+      - "admin-mobile/**"
+      - "sql/SHALOM_ADMIN_ROLES_20261121.sql"
+      - ".github/workflows/admin-apk.yml"
+  pull_request:
+    paths:
+      - "admin-mobile/**"
+      - "sql/SHALOM_ADMIN_ROLES_20261121.sql"
+      - ".github/workflows/admin-apk.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shalom-admin-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify Expo compatibility
+        run: npx expo install --check
+      - name: Check JavaScript syntax
+        run: npm run test:syntax
+      - name: Test content model, authentication and permissions
+        run: npm test
+  apk:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    defaults:
+      run:
+        working-directory: admin-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Generate original SHALOM dove icon
+        run: |
+          python3 -m venv /tmp/shalom-admin-icons
+          /tmp/shalom-admin-icons/bin/pip install --quiet cairosvg
+          /tmp/shalom-admin-icons/bin/python ../mobile/scripts/generate_icons.py
+          mkdir -p assets
+          cp ../mobile/assets/icon.png assets/icon.png
+          cp ../mobile/assets/adaptive-foreground.png assets/adaptive-foreground.png
+          test -s assets/icon.png
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --non-interactive --no-install
+      - name: Build SHALOM Admin APK
+        working-directory: admin-mobile/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleRelease
+      - name: Verify APK and checksum
+        run: |
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          sha256sum android/app/build/outputs/apk/release/app-release.apk
+      - name: Upload SHALOM Admin isolated APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM-ADMIN-Android-Preview
+          path: admin-mobile/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
