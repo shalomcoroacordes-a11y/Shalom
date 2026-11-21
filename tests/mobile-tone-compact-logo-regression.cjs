@@ -37,10 +37,10 @@ assert.match(styles,/songToneStepperCompact:/,"Compact reader tone controls are 
 assert.match(app,/label\("CAPO",S.songControlCaption\)/);
 assert.doesNotMatch(app,/style:S\.songActionBar/,"No duplicate toolbar obscures lyrics");
 assert.doesNotMatch(app,/showSongToneMenu/);
-assert.match(app,/setReaderFont\(v=>Math\.max\(13,v-1\)\)/);
-assert.match(app,/setReaderFont\(v=>Math\.min\(22,v\+1\)\)/);
+assert.match(app,/setReaderFont\(v=>clampReaderFont\(v-1\)\)/);
+assert.match(app,/setReaderFont\(v=>clampReaderFont\(v\+1\)\)/);
 
-// Sizing checks: denser than the old 104dp cards without losing tap targets.
+// Size controls share the broader 10–46pt range with the two-finger reader.\n// Sizing checks: denser than the old 104dp cards without losing tap targets.
 assert.match(styles,/repCard:\{minHeight:78/);
 assert.match(styles,/repCardIconWrap:\{height:50,width:50/);
 assert.match(styles,/repFilterChip:\{minHeight:44/);
