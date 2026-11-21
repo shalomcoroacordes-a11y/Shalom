@@ -35,12 +35,6 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
   onEditRequestConsumed?.();
  },[editNonce]);
  const change=(key,value)=>setDraft(v=>({...v,[key]:value}));
- const collections=personal?.collections||[];
- const popurris=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="popurri").length,0);
- const misas=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="misa").length,0);
- const repertoireCount=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="repertorio").length,0);
- const counts=[["♥",likedSongs.length,"Me gusta"],["♧",misas,"Misas"],
-  ["♫",popurris,"Popurrís"],["▣",repertoireCount,"Repertorios"]];
  async function pick(which){
   if(loadingImage)return;
   setLoadingImage(true);
@@ -74,21 +68,12 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    edit?h(Pressable,{style:S.editBubble,onPress:()=>pick("cover"),accessibilityRole:"button",
     accessibilityLabel:"Cambiar portada del perfil"},txt("✎",S.editBubbleText)):null);
  }
- const section=(title,more)=>h(View,{style:S.sectionHead},txt(title,S.sectionTitle),
-  more?h(Pressable,{onPress:more,accessibilityRole:"button",accessibilityLabel:"Ver todo "+title},
-   txt("Ver todo  ›",S.more)):null);
  function toolRow(symbol,name,description,onPress){
   return h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,
    style:S.toolRow},
    h(View,{style:S.toolIcon},txt(symbol,S.toolSymbol)),
    h(View,{style:{flex:1,minWidth:0}},txt(name,S.toolName),txt(description,S.toolDescription)),
    txt("›",S.toolChevron));
- }
- function shortcut([symbol,name,description,onPress]){
-  return h(Pressable,{key:name,onPress,style:S.shortcut,accessibilityRole:"button",accessibilityLabel:name},
-   h(View,{style:S.shortcutIcon},txt(symbol,S.shortcutSymbol)),
-   h(View,{style:{flex:1}},txt(name,S.shortcutLabel),txt(description,S.shortcutDescription)),
-   txt("›",S.shortcutArrow));
  }
  if(editing)return h(View,{style:S.page},
   h(View,{style:S.editHeading},
@@ -130,29 +115,34 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    btn("Cancelar",()=>{setDraft(profile);setEditing(false);},true)));
  return h(View,{style:S.page},
   txt("Mi perfil",S.title),
-  profileHeader(profile),
-  h(View,{style:S.metrics},...counts.map(([symbol,n,name])=>
-   h(View,{key:name,style:S.metric},
-    txt(symbol,S.metricIcon),txt(n,S.metricNum),txt(name,S.metricCaption)))),
-  h(View,{style:S.sectionHeader},
-   txt("Tu espacio",S.sectionTitle),
-   txt("Tu perfil es personal y se guarda en este teléfono.",S.caption)),
-  h(View,{style:S.quickGrid},
-   shortcut(["▣","Mis creaciones","Misas, repertorios y popurrís",()=>onCollections(null)]),
-   shortcut(["♥","Mis me gusta","Cantos que guardaste",()=>onSongs(true)])),
-  h(View,{style:S.rowActions},
-   btn("✎ Editar perfil",()=>{setDraft(profile);setEditing(true);})),
-  section("Herramientas"),
+  h(View,{style:S.simpleIdentity},
+   avatar(profile,64),
+   h(View,{style:{flex:1,minWidth:0}},
+    txt(profile.name||"Mi perfil",S.simpleName),
+    txt(profile.subtitle||"Coro y Alabanza",S.simpleSubtitle)),
+   h(Pressable,{onPress:()=>{setDraft(profile);setEditing(true);},
+    accessibilityRole:"button",accessibilityLabel:"Editar perfil",style:S.simpleEdit},
+    txt("✎",S.simpleEditIcon))),
+  h(View,{style:S.simpleDivider}),
   h(View,{style:S.toolList},
-   toolRow("⚙","Configuración","Sincronización y uso de Wi-Fi",onSettings),
-   toolRow("↥","Respaldo y restauración","Protege tus fotos, favoritos y creaciones",onBackup),
-   toolRow("✉","Solicitar un canto","Enviar sugerencias o correcciones",onRequest),
-   toolRow("⋯","Más información","Ayuda, acerca de SHALOM y donaciones",onMore)),
-  txt("Para preparar o recibir composiciones, abre Mis creaciones en la barra inferior.",S.caption));
+   toolRow("♡","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
+   toolRow("⚙","Configuración","Sincronización y Wi-Fi",onSettings),
+   toolRow("♢","Respaldo y restauración","Guardar tus datos personales",onBackup),
+   toolRow("◌","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
+   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
+  h(View,{style:S.simpleDivider}),
+  txt("Mis creaciones están disponibles en la barra inferior.",S.simpleFootnote));
 
 }
 const S=StyleSheet.create({
- page:{gap:12,paddingBottom:25,paddingTop:6},
+ page:{gap:15,paddingBottom:25,paddingTop:8},
+ simpleIdentity:{flexDirection:"row",alignItems:"center",gap:14,paddingVertical:10},
+ simpleName:{fontSize:19,color:FG,fontWeight:"850"},
+ simpleSubtitle:{fontSize:13,color:MUTED,marginTop:5},
+ simpleEdit:{height:44,width:44,alignItems:"center",justifyContent:"center",borderRadius:22},
+ simpleEditIcon:{fontSize:23,color:FG},
+ simpleDivider:{height:1,backgroundColor:"#293038",marginVertical:12},
+ simpleFootnote:{fontSize:11.5,lineHeight:17,color:MUTED,marginTop:6},
  title:{fontSize:28,fontWeight:"900",color:FG,lineHeight:36},
  caption:{fontSize:12,color:MUTED,lineHeight:18},
  hero:{borderRadius:17,overflow:"hidden",height:232,backgroundColor:"#073b32"},
@@ -182,13 +172,12 @@ const S=StyleSheet.create({
  shortcutDescription:{fontSize:10,color:MUTED,marginTop:3},
  shortcutArrow:{color:GREEN,fontSize:24,fontWeight:"600"},
  toolList:{gap:0,borderTopWidth:1,borderColor:"#354d49"},
- toolRow:{minHeight:63,paddingVertical:9,flexDirection:"row",gap:10,alignItems:"center",
-  borderBottomWidth:1,borderColor:"#354d49"},
- toolIcon:{width:33,height:34,alignItems:"center",justifyContent:"center"},
- toolSymbol:{fontSize:21,fontWeight:"800",color:GREEN},
- toolName:{fontSize:13.5,color:FG,fontWeight:"850"},
- toolDescription:{fontSize:11,color:MUTED,marginTop:3,lineHeight:15},
- toolChevron:{fontSize:23,color:GREEN},
+ toolRow:{minHeight:72,paddingVertical:12,flexDirection:"row",gap:14,alignItems:"center"},
+ toolIcon:{width:30,height:34,alignItems:"center",justifyContent:"center"},
+ toolSymbol:{fontSize:22,fontWeight:"600",color:MUTED},
+ toolName:{fontSize:16,color:FG,fontWeight:"750"},
+ toolDescription:{fontSize:12,color:MUTED,marginTop:4,lineHeight:17},
+ toolChevron:{fontSize:23,color:MUTED},
  receiveButton:{backgroundColor:"#1d3036",borderWidth:1,borderColor:"#45635b",
   borderRadius:14,padding:12,flexDirection:"row",alignItems:"center",gap:11,minHeight:72},
  receiveIcon:{color:GREEN,fontSize:25},
