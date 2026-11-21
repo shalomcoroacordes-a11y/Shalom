@@ -443,11 +443,11 @@ function AppScreen() {
    h(View,{style:S.shalomToday},
     h(View,{style:S.shalomTodayHeader},
      h(View,{style:S.todayTitleWrap},
-      label("♧",S.todayTitleIcon),
       label("Hoy en SHALOM",S.shalomTodayHeading)),
      h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
       accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
       label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
+    label("Lo que cantaremos y ensayaremos como coro",S.shalomTodaySubheading),
     ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
      style:S.shalomTodayCard,onPress:()=>{
       if(item.type==="medley"){
@@ -458,7 +458,10 @@ function AppScreen() {
        if(rep)selectRepertoire(rep);
       }
      },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
+     h(View,{style:S.shalomTodayIconBox},
+      h(Image,{source:HOME_IMAGES[item.type==="medley"?"medleys":"mass"],style:S.shalomTodayImage,resizeMode:"contain"})),
      h(View,{style:S.todayEntryBody},
+      label(item.label.toUpperCase(),S.shalomTodayLabel),
       h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
       h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
        [item.label,item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle]
