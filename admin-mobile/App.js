@@ -83,15 +83,15 @@ function Field({spec,form,onChange,lists}){
  return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});
 }
 function NestedEditor({kind,value,onChange}){
- const [title,setTitle]=useState(""),[url,setUrl]=useState(""),[platform,setPlatform]=useState("YouTube");
+ const [title,setTitle]=useState(""),[url,setUrl]=useState(""),[platform,setPlatform]=useState("YouTube"),[linkType,setLinkType]=useState("Tutorial"),[capoLabel,setCapoLabel]=useState("");
  const [position,setPosition]=useState("2"),[key,setKey]=useState("G");
  function add(){
   if(kind==="links"){
    if(!title.trim()||!/^https:\/\//i.test(url))return Alert.alert("Enlace incompleto","Indica título y URL HTTPS.");
-   onChange([...value,{title,platform,link_type:"Tutorial",url,sort_order:value.length}]);setTitle("");setUrl("");
+   onChange([...value,{title,platform,link_type:linkType,url,sort_order:value.length}]);setTitle("");setUrl("");
   }else{
    if(!Number(position)||!key.trim())return Alert.alert("Capo incompleto","Indica capo y figuras.");
-   onChange([...value,{label:"Capo "+position+" · "+key,capo_position:Number(position),capo_key:key,sort_order:value.length}]);
+   onChange([...value,{label:capoLabel.trim()||"Capo "+position+" · "+key,capo_position:Number(position),capo_key:key,sort_order:value.length}]);setCapoLabel("");
   }
  }
  return h(View,{style:{gap:10}},
@@ -100,8 +100,11 @@ function NestedEditor({kind,value,onChange}){
     h(View,{style:{flex:1,gap:3}},txt(x.title||x.label,S.itemTitle),txt(x.url||"Capo "+x.capo_position+" / "+x.capo_key,S.itemSub)),
     button("Quitar",()=>onChange(value.filter((_,j)=>j!==i)),"danger"))),
   kind==="links"?
-   h(View,{style:{gap:9}},input("Título del enlace",title,setTitle),input("URL (HTTPS)",url,setUrl),input("Plataforma",platform,setPlatform)):
-   h(View,{style:{gap:9}},input("Posición del capo (1-12)",position,setPosition),input("Figuras",key,setKey)),
+   h(View,{style:{gap:9}},input("Título del enlace",title,setTitle),
+    txt("Tipo de enlace",S.label),wrapChips(["Tutorial","Video","Canal","Cover","Acordes"].map(x=>[x,x]),linkType,setLinkType),
+    txt("Plataforma",S.label),wrapChips(["YouTube","TikTok","Instagram","Facebook","Spotify","Sitio web"].map(x=>[x,x]),platform,setPlatform),
+    input("URL (HTTPS)",url,setUrl)):
+   h(View,{style:{gap:9}},input("Nombre de la versión",capoLabel,setCapoLabel),input("Posición del capo (1-12)",position,setPosition),input("Figuras",key,setKey)),
   button(kind==="links"?"+ Agregar enlace":"+ Agregar capo",add,"secondary")
  );
 }
@@ -286,7 +289,7 @@ function Main(){
     txt(form.title||"Canto sin título",S.section),
     txt("TONO "+(form.tone||"—")+" · CAPO "+(form.capo_position||0),S.caption),
     renderLines(form.lyrics).map((r,i)=>txt(r.text,[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,{marginTop:r.type==="section"?10:0}]))
-   ):available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists})),
+   ):h(View,{style:{gap:12}},song&&section==="Letra"?h(View,{style:{gap:6}},txt("Insertar secciones",S.label),wrapChips(["Intro","Verso 1","Pre-coro","Coro","Puente","Intermedio","Final"].map(x=>[x,x]),"",v=>update("lyrics",String(form.lyrics||"")+"\n["+v+"]\n"))):null,available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
     button("Enviar a publicación",()=>saveDraft(true),null,!canPublish(access,selectedType)&&!offline)),

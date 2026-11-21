@@ -1,18 +1,14 @@
 "use strict";
-// Vista previa sin dependencias web: acordes monoespaciados sobre la letra.
-const CHORD=/^[A-G](?:#|b)?(?:m|maj|min|sus|dim|aug|add|[0-9]|\/|[+#()-])*$/;
-function lineIsChord(s){
- const t=String(s||"").trim().split(/\s+/).filter(Boolean);
- return t.length>0&&t.every(x=>CHORD.test(x));
-}
+// Mismo analizador de acordes que SHALOM público: columnas e inserciones (D) compatibles.
+const {parseSong}=require("./chords");
 function renderLines(text){
- const lines=String(text||"").replace(/\r\n?/g,"\n").split("\n");
- const result=[];
- for(const row of lines){
-  if(/^\[[^\]]+\]$/.test(row.trim()))result.push({type:"section",text:row.trim().slice(1,-1)});
-  else if(lineIsChord(row))result.push({type:"chords",text:row});
-  else result.push({type:"lyrics",text:row||" "});
+ const out=[];
+ for(const row of parseSong(text,0)){
+  if(row.kind==="chords"){out.push({type:"chords",text:row.chordLine||" "});out.push({type:"lyrics",text:row.lyricLine||" "});}
+  else if(row.kind==="chordsOnly")out.push({type:"chords",text:row.text||" "});
+  else if(row.kind==="section")out.push({type:"section",text:row.text});
+  else out.push({type:"lyrics",text:row.text||" "});
  }
- return result;
+ return out;
 }
-module.exports={renderLines,lineIsChord};
+module.exports={renderLines};
