@@ -160,7 +160,7 @@ module.exports=function createAppStyles(C,MONO){
  categoryPathText:{fontSize:11,color:C.muted,lineHeight:17},
  categorySongHeading:{marginTop:12,marginBottom:3,gap:4},
  categorySongTitle:{fontSize:18,fontWeight:"850",color:C.text},
- repCard:{minHeight:73,backgroundColor:"#23272e",borderColor:"#363f44",borderWidth:1,borderRadius:14,flexDirection:"row",alignItems:"center",gap:10,paddingVertical:8,paddingHorizontal:11},
+ repCard:{minHeight:78,backgroundColor:"#23272e",borderColor:"#363f44",borderWidth:1,borderRadius:14,flexDirection:"row",alignItems:"center",gap:10,paddingVertical:8,paddingHorizontal:11},
  repCardIconWrap:{height:50,width:50,borderRadius:12,backgroundColor:"#14664a",alignItems:"center",justifyContent:"center"},
  repCardIcon:{height:31,width:31,tintColor:"#61ffb3"},
  repCardTitle:{fontSize:16,fontWeight:"850",lineHeight:21,color:C.text},
