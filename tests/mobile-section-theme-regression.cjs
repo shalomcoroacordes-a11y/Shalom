@@ -25,13 +25,16 @@ for(const [name,part] of Object.entries({categories,more,explore,medleys,albums}
  assert.match(part,/h\(SectionListCard,/,"Library cards missing on "+name);
  assert.match(part,/style:S\.repPage/,"Repertoire spacing missing on "+name);
 }
-assert.match(songs,/h\(LibraryHero,/,"Songs use the shared visual banner");
+assert.match(songs,/label\(songLibraryOpen\?"Biblioteca de cantos":"Cantos",S.cantosPageTitle\)/,"Cantos has a clear minimal heading");
+assert.match(songs,/style:S.cantosLibraryCard/,"Cantos opens with a tappable library card");
 assert.match(artists,/h\(LibraryHero,/,"Artists use the same banner component");
-assert.match(songs,/h\(LibrarySearch,/,"Search is always visible in Songs");
+assert.match(songs,/placeholder:"Buscar letras, acordes y títulos"/,"Cantos has an always visible native search");
 assert.match(artists,/h\(LibrarySearch,/,"Search is always visible in Artists");
-assert.match(songs,/h\(LibraryChipRow,/,"Song filters share the artist chip style");
+assert.match(songs,/style:S.cantosFilterRow/,"Cantos has screenshot-matched compact filters");
+assert.match(songs,/setOnlyLiked\(value==="liked"\)/,"Favorites filter works");
 assert.match(artists,/h\(LibraryChipRow,/,"Artist filters share the song chip style");
-assert.match(songs,/h\(FavoriteSongCard,/,"Real liked songs appear in a horizontal gallery");
+assert.doesNotMatch(songs,/h\(FavoriteSongCard,/,"Do not crowd the new Cantos home with a favorites gallery");
+assert.match(songs,/\["liked","Mis me gusta"\]/,"Favorites remain accessible via the filter");
 assert.match(songs,/h\(LibrarySongRow,/,"Song cards show colored initials and quick actions");
 assert.match(artists,/h\(LibraryArtistCard,/,"Artists are in a polished two-column gallery");
 assert.match(songs,/setOnlyLiked/,"Keep device-only likes filtering");
@@ -47,8 +50,10 @@ assert.match(categories,/setFolderId\(c\.id\)/,"Folders must still open");
 assert.match(medleys,/model\.medleys\.filter/,"Keep published medleys list");
 assert.match(medleys,/selectMedley\(m\)/,"Medleys must still open");
 assert.match(albums,/openDetail\(\{type:"album",id:a\.id\}\)/,"Albums must still open");
-assert.match(app,/\["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Explorar","Mis colecciones","Más","Perfil","Respaldo"\]\.includes\(tab\)/,
- "All library sections must share the same top header");
+assert.match(app,/\["Inicio","Canciones","Repertorios","Mis colecciones","Perfil"\]\.includes\(tab\)/,
+ "All five main sections have the same SHALOM brand header");
+assert.match(app,/\["Artistas","Categorías","Popurrís","Álbumes","Explorar","Más","Respaldo"\]\.includes\(tab\)/,
+ "Secondary sections retain their back navigation");
 assert.match(app,/PersonalCollectionsScreen/,"Local personal collections remain available as a native screen");
 assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.repTopLogo/,"Official SHALOM dove remains");
 assert.match(app,/setSectionSearchOpen\(v=>!v\)/,"Search icon must toggle section search");
