@@ -22,16 +22,19 @@ assert.doesNotMatch(app,/HOME_IMAGES\.waves/,"Do not add decorative lines behind
 
 // Tone changes are immediate local state updates; do not open a dialog.
 assert.match(app,/function adjustTone\(step\)\{setTranspose\(v=>Math\.max\(-11,Math\.min\(11,v\+step\)\)\);\}/);
-assert.match(app,/function renderToneStepper\(text\)/);
+assert.match(app,/function renderToneStepper\(text,compact=false\)/);
 assert.match(app,/accessibilityLabel:"Bajar un semitono"/);
 assert.match(app,/accessibilityLabel:"Subir un semitono"/);
 assert.match(app,/disabled:transpose<=-11/);
 assert.match(app,/disabled:transpose>=11/);
-assert.match(app,/renderToneStepper\("Tono "\+toned\)/,"Cantos must have direct semitone controls");
+assert.match(app,/renderToneStepper\(toned,true\)/,"Cantos must have direct semitone controls");
 assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,
  "Popurris and Repertorios must use the same tone controls");
-assert.match(app,/renderToneStepper\("Tono "\+toned\)/,"Song reader provides direct tone buttons");
+assert.match(app,/renderToneStepper\(toned,true\)/,"Song reader provides direct tone buttons");
 assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,"Multi-song reader provides direct tone buttons");
+assert.match(styles,/songCompactControls:/,"Read tone, font and capo in a compact row");
+assert.match(styles,/songToneStepperCompact:/,"Compact reader tone controls are provided");
+assert.match(app,/label\("CAPO",S.songControlCaption\)/);
 assert.doesNotMatch(app,/style:S\.songActionBar/,"No duplicate toolbar obscures lyrics");
 assert.doesNotMatch(app,/showSongToneMenu/);
 assert.match(app,/setReaderFont\(v=>Math\.max\(13,v-1\)\)/);
