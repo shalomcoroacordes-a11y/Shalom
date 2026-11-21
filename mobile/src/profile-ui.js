@@ -113,9 +113,10 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
   h(View,{style:S.infoBox},txt("🔒  La foto, la portada y el banner se guardan de forma privada en tu teléfono. No se suben a Supabase.",S.caption)),
   h(View,{style:S.rowActions},btn("Guardar cambios",save),
    btn("Cancelar",()=>{setDraft(profile);setEditing(false);},true)));
- const masses=(personal?.collections||personal?.items||[]).filter(x=>x.type==="misa"||x.kind==="misa").length;
- const medleys=(personal?.collections||personal?.items||[]).filter(x=>x.type==="popurri"||x.kind==="popurri").length;
- const reps=(personal?.collections||personal?.items||[]).filter(x=>x.type==="repertorio"||x.kind==="repertorio").length;
+ const entries=(personal?.collections||[]).flatMap(x=>Array.isArray(x.entries)?x.entries:[]);
+ const masses=entries.filter(x=>x.kind==="misa").length;
+ const medleys=entries.filter(x=>x.kind==="popurri").length;
+ const reps=entries.filter(x=>x.kind==="repertorio").length;
  return h(View,{style:S.page},
   txt("Mi perfil",S.title),
   profileHeader(profile),
