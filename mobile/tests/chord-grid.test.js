@@ -44,8 +44,8 @@ assert.match(web,/font-family:"Courier New",Courier,monospace/,"Use the website'
 assert.match(web,/white-space:pre/,"Preserve exactly the original chord columns");
 assert.match(web,/song-stacked-chords/,"Keep chords paired with their original lyrics");
 assert.doesNotMatch(ui,/anchoredTokens|token\.column|preserveColumns/,"Do not estimate glyph spacing in native Text");
-assert.match(app,/return h\(AlignedScore,\{rows,fontSize,variant:keyPrefix\}\)/,
- "Cantos, misas, repertorios y popurrís use the same web typography");
+assert.match(app,/return h\(AlignedScore,\{rows,fontSize,variant:keyPrefix,\s*onFontSizeChange:/,
+ "Cantos, misas, repertorios y popurrís comparten tipografía web y zoom nativo");
 assert.match(app,/renderAlignedScoreRows\(parsed,readerFont/);
 assert.match(app,/renderAlignedScoreRows\(parsed,fontOverride,keyPrefix\)/);
 console.log("SHALOM: browser-based text alignment, original columns and native fallback verified.");
