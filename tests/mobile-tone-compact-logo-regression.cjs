@@ -32,8 +32,8 @@ assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,
 assert.match(app,/\["T−","Tono −",\(\)=>adjustTone\(-1\)\]/,"Fixed reader bar must lower pitch without a dialog");
 assert.match(app,/\["T\+","Tono \+",\(\)=>adjustTone\(1\)\]/,"Fixed reader bar must raise pitch without a dialog");
 assert.doesNotMatch(app,/showSongToneMenu/);
-assert.match(app,/setReaderFont\(v=>Math\.max\(13,v-1\)\)/);
-assert.match(app,/setReaderFont\(v=>Math\.min\(22,v\+1\)\)/);
+assert.match(app,/setReaderFont\(v=>clampReaderFont\(v-1\)\)/);
+assert.match(app,/setReaderFont\(v=>clampReaderFont\(v\+1\)\)/);
 
 // Sizing checks: denser than the old 104dp cards without losing tap targets.
 assert.match(app,/repCard:\{minHeight:78/);

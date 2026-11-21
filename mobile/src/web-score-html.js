@@ -1,6 +1,7 @@
 // HTML autosuficiente para dibujar canciones como la web pública de SHALOM.
 // React Native Text no reproduce de manera consistente las columnas de Courier New
 // con acentos y espacios; Chromium utiliza las mismas reglas que el administrador.
+const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT}=require("./score-zoom");
 const escapeHTML=value=>String(value??"")
  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
@@ -27,7 +28,7 @@ function estimateScoreHeight(rows,fontSize){
  return Math.max(80,Math.ceil(units+16));
 }
 function scoreHtml(rows,fontSize=15){
- const size=Math.min(35,Math.max(10,Number(fontSize)||15));
+ const size=clampReaderFont(fontSize);
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
   'html,body{margin:0;padding:0;border:0;background:#0e1219;color:#f4f7f7;}',
@@ -61,6 +62,38 @@ function scoreHtml(rows,fontSize=15){
   'window.addEventListener("resize",send);',
   'if(document.fonts&&document.fonts.ready)document.fonts.ready.then(send);',
   'requestAnimationFrame(send);',
+  'var lyrics=target&&target.querySelector(".song-lyrics");',
+  'var zoom='+size+';var startZoom=zoom;var startDistance=0;var pinching=false;',
+  'function clampZoom(v){return Math.min('+MAX_READER_FONT+',Math.max('+MIN_READER_FONT+',Math.round(v*10)/10));}',
+  "function dist(a,b){var x=a.clientX-b.clientX;var y=a.clientY-b.clientY;return Math.sqrt(x*x+y*y);}",
+  "function pinchBegin(e){",
+  "if(!lyrics||e.touches.length!==2)return;",
+  "var d=dist(e.touches[0],e.touches[1]);if(d<8)return;",
+  "pinching=true;startDistance=d;startZoom=zoom;",
+  "}",
+  "function pinchMove(e){",
+  "if(!pinching){if(e.touches.length===2)pinchBegin(e);return;}",
+  "if(e.touches.length!==2)return;",
+  "e.preventDefault();",
+  "var d=dist(e.touches[0],e.touches[1]);",
+  "var next=clampZoom(startZoom*d/startDistance);",
+  "if(Math.abs(next-zoom)<0.05)return;",
+  "zoom=next;lyrics.style.fontSize=next+\"px\";requestAnimationFrame(send);",
+  "}",
+  "function pinchEnd(e){",
+  "if(!pinching)return;",
+  "if(e.touches.length>=2){startDistance=dist(e.touches[0],e.touches[1]);startZoom=zoom;return;}",
+  "pinching=false;send();",
+  'if(window.ReactNativeWebView&&Math.abs(zoom-'+size+')>=0.05){',
+  "window.ReactNativeWebView.postMessage(JSON.stringify({type:\"score-zoom\",fontSize:zoom}));",
+  "}",
+  "}",
+  "if(target){",
+  "target.addEventListener(\"touchstart\",pinchBegin,{passive:true});",
+  "target.addEventListener(\"touchmove\",pinchMove,{passive:false});",
+  "target.addEventListener(\"touchend\",pinchEnd,{passive:true});",
+  "target.addEventListener(\"touchcancel\",pinchEnd,{passive:true});",
+  "}",
   '})();'
  ].join("");
  return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
