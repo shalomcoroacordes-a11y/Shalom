@@ -257,7 +257,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   const symbol=kind==="misa"?"♧":kind==="popurri"?"♫":"▣";
   return h(Pressable,{key:kind,onPress:()=>startCreate(kind),
    style:styles.quickTile,accessibilityRole:"button",accessibilityLabel:"Crear "+name.toLowerCase()},
-   label(symbol,styles.quickTileIcon),label("Nueva "+name,styles.quickTileText),
+   label(symbol,styles.quickTileIcon), label(kind==="repertorio"?"Nuevo Repertorio":"Nueva "+name,styles.quickTileText),
    label(caption,styles.quickTileCaption));
  }
  function homeView(){

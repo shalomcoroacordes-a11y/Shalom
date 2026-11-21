@@ -84,6 +84,7 @@ function AppScreen() {
  const [repertoireSearchOpen,setRepertoireSearchOpen]=useState(false);
  const [sectionSearchOpen,setSectionSearchOpen]=useState(false);
  const [libraryFiltersVisible,setLibraryFiltersVisible]=useState(true);
+ const [songLibraryOpen,setSongLibraryOpen]=useState(false);
  const [artistTypeFilter,setArtistTypeFilter]=useState("");
  const [medleyTypeFilter,setMedleyTypeFilter]=useState("");
  const [folderType,setFolderType]=useState("");
@@ -158,7 +159,7 @@ function AppScreen() {
   personalNavRef.current=options.personalNav||(
    options.personalAction?{view:options.personalAction,kind:options.personalKind||"misa"}:null);
   setPersonalFilter(options.personalKind||null);
- }else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
+ }else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setSongLibraryOpen(next==="Canciones"&&Boolean(options.search||options.liked||options.openLibrary));setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function personalTotals(value){
@@ -277,6 +278,7 @@ function AppScreen() {
    setFolderId(parent&&model.categoryMap.has(parent)?parent:"");return true;
   }
   if(tab==="Categorías"&&folderType){setFolderType("");return true;}
+  if(tab==="Canciones"&&songLibraryOpen){setSongLibraryOpen(false);setQuery("");setOnlyLiked(false);setTypeFilter("");return true;}
   if(tab!=="Inicio"){const previous=tabHistoryRef.current.pop();goTab(previous||"Inicio",{replace:true});return true;}
   return false;
  }
@@ -284,7 +286,7 @@ function AppScreen() {
   if(Platform.OS!=="android")return;
   const subscription=BackHandler.addEventListener("hardwareBackPress",back);
   return()=>subscription.remove();
- },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter,profileMenuOpen]);
+ },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter,profileMenuOpen,songLibraryOpen]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);
@@ -531,63 +533,61 @@ function AppScreen() {
  }
  function renderSongs(){
   const chosen=onlyLiked?"liked":typeFilter||"all";
-  const options=[["all","Todos"],["liked","♥ Mis me gusta"],...SONG_TYPES.filter(([code])=>code)];
-  const showing=onlyLiked?"Mis me gusta":"Todos los cantos";
-  return h(View,{style:S.repPage},
-   h(LibraryHero,{title:"Cantos",
-    subtitle:"Letras, acordes y tonos para cantar y celebrar.",preset:"sunrise"}),
-   h(Pressable,{onPress:()=>goTab("Explorar"),accessibilityRole:"button",
-    accessibilityLabel:"Explorar artistas, álbumes, categorías y popurrís",
-    style:{paddingHorizontal:8,paddingVertical:10,alignSelf:"flex-start"}},
-    label("Explorar artistas, álbumes, categorías y popurrís  ›",S.libraryMore)),
-   !copy?.syncedAt?h(Card,null,
-    label("Descarga el cancionero",S.listTitle),
-    label("Necesitas descargar primero la biblioteca a este dispositivo.",S.info),
-    h(Btn,{text:busy?"Descargando…":"Descargar mis cantos",onPress:manualSync,disabled:busy}),
-    busy?h(ActivityIndicator,{color:C.green}):null,
-    error?label(error,S.error):null):null,
-   h(LibrarySearch,{value:query,onChangeText:v=>{setQuery(v);setCountLimit(80)},
-    placeholder:"Buscar canción, artista o letra…",showFilters:libraryFiltersVisible,
-    onFilters:()=>setLibraryFiltersVisible(v=>!v)}),
-   libraryFiltersVisible?h(LibraryChipRow,{options,value:chosen,
-    onChange:val=>{
-     setOnlyLiked(val==="liked");
-     setTypeFilter(val==="all"||val==="liked"?"":val);
-     setCountLimit(80);
-    }}):null,
-   !onlyLiked&&favorites.length?h(View,{style:S.libraryFavorites},
-    h(View,{style:S.libraryTitleRow},
-     label("♡  Tus favoritas",S.librarySectionTitle),
-     h(Pressable,{onPress:()=>{setOnlyLiked(true);setTypeFilter("");setCountLimit(80)},
-      accessibilityRole:"button",accessibilityLabel:"Ver todos mis Me gusta"},
-      label("Ver todo  ›",S.libraryMore))),
-    label("Cantos que marcaste como Me gusta en este teléfono.",S.librarySubtitle),
-    h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,
-     contentContainerStyle:S.libraryFavoriteRail},
-     ...favorites.slice(0,12).map(song=>h(FavoriteSongCard,{key:song.id,song,
-      artistName:names(song._artists)||type(song.song_type),
-      onOpen:()=>selectSong(song),onLike:()=>toggleLike(song.id)})))):null,
-   h(View,{style:S.libraryTitleRow},
-    label(showing,S.librarySectionTitle),
-    label(eligible.length+" "+(eligible.length===1?"canto":"cantos"),S.libraryCount)),
-   h(View,{style:S.libraryExploreIntro},
-    label("Explorar también por",S.libraryExploreTitle),
-    h(View,{style:S.libraryExploreGrid},
-     ...[["Artistas","Artistas"],["Categorías","Categorías"],["Álbumes","Álbumes"],
+  const options=[["all","Todos"],["catolico","Católicos"],
+   ["cristiano","Cristianos"],["liked","Mis me gusta"]];
+  const selectLibraryFilter=value=>{
+   setOnlyLiked(value==="liked");
+   setTypeFilter(value==="all"||value==="liked"?"":value);
+   setCountLimit(80);
+   setSongLibraryOpen(true);
+  };
+  const searchValue=h(View,{style:S.cantosSearch},
+   label("⌕",S.cantosSearchIcon),
+   h(TextInput,{value:query,onChangeText:value=>{setQuery(value);setCountLimit(80);},
+    style:S.cantosSearchInput,placeholder:"Buscar letras, acordes y títulos",
+    placeholderTextColor:C.muted,returnKeyType:"search",autoCorrect:false,
+    accessibilityLabel:"Buscar letras, acordes y títulos",
+    onSubmitEditing:()=>setSongLibraryOpen(true)}));
+  return h(View,{style:S.cantosPage},
+   songLibraryOpen?h(Pressable,{onPress:()=>{setSongLibraryOpen(false);setQuery("");setTypeFilter("");setOnlyLiked(false);},
+    style:S.cantosBack,accessibilityRole:"button",accessibilityLabel:"Volver a la portada de Cantos"},
+    label("‹  Cantos",S.cantosBackText)):null,
+   label(songLibraryOpen?"Biblioteca de cantos":"Cantos",S.cantosPageTitle),
+   searchValue,
+   h(LibraryChipRow,{options,value:chosen,onChange:selectLibraryFilter}),
+   !songLibraryOpen?h(View,{style:S.cantosOverviewContent},
+    h(Pressable,{style:S.cantosLibraryCard,onPress:()=>setSongLibraryOpen(true),
+     accessibilityRole:"button",accessibilityLabel:"Abrir Biblioteca de cantos"},
+     h(View,{style:{flex:1,minWidth:0}},
+      label("Biblioteca de cantos",S.cantosLibraryTitle),
+      label("Listado de canciones disponibles con su artista y opciones.",S.cantosLibraryDescription)),
+     label("♫",S.cantosLibraryIcon)),
+    h(View,{style:S.cantosExploreSection},
+     label("Explorar también por",S.cantosExploreHeading),
+     h(View,{style:S.cantosExploreGrid},
+      ...[["Artistas","Artistas"],["Categorías","Categorías"],["Álbumes","Álbumes"],
        ["Popurrís oficiales","Popurrís"]].map(([name,dest])=>
-       h(Pressable,{key:name,style:S.libraryExploreItem,onPress:()=>goTab(dest),
+       h(Pressable,{key:name,onPress:()=>goTab(dest),style:S.cantosExploreTile,
         accessibilityRole:"button",accessibilityLabel:"Explorar "+name},
-        label(name,S.libraryExploreItemText),label("›",S.libraryExploreItemArrow))))),
-   h(View,{style:S.libraryList},
-    ...eligible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,
-     artistName:names(song._artists)||type(song.song_type),tone:song.tone,
-     liked:likedSet.has(String(song.id)),
-     onOpen:()=>selectSong(song),onLike:()=>toggleLike(song.id),
-     onOptions:()=>setActionSongId(String(song.id))})),
-    eligible.length>countLimit?h(Btn,{text:"Mostrar más cantos",secondary:true,
-     onPress:()=>setCountLimit(v=>v+80)}):null,
-    !eligible.length?h(SectionEmpty,{message:copy?.syncedAt?
-     "No hay cantos que coincidan con tu búsqueda.":"Descarga la biblioteca para ver los cantos."}):null));
+        label(name,S.cantosExploreTileText))))),
+    !copy?.syncedAt?h(View,{style:S.cantosOfflinePrompt},
+     label("Descarga el cancionero para consultar todos los cantos sin conexión.",S.librarySubtitle),
+     h(Btn,{text:busy?"Descargando…":"Descargar biblioteca",onPress:manualSync,disabled:busy})):null
+   ):h(View,{style:S.cantosLibraryResults},
+    h(View,{style:S.libraryTitleRow},
+     label(onlyLiked?"Mis me gusta":typeFilter==="catolico"?"Cantos católicos":
+      typeFilter==="cristiano"?"Cantos cristianos":"Todos los cantos",S.librarySectionTitle),
+     label(eligible.length+" "+(eligible.length===1?"canto":"cantos"),S.libraryCount)),
+    h(View,{style:S.libraryList},
+     ...eligible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,
+      artistName:names(song._artists)||type(song.song_type),tone:song.tone,
+      liked:likedSet.has(String(song.id)),onOpen:()=>selectSong(song),
+      onLike:()=>toggleLike(song.id),onOptions:()=>setActionSongId(String(song.id))})),
+     eligible.length>countLimit?h(Btn,{text:"Mostrar más cantos",secondary:true,
+      onPress:()=>setCountLimit(v=>v+80)}):null,
+     !eligible.length?h(SectionEmpty,{message:copy?.syncedAt?
+      "No hay cantos que coincidan con tu búsqueda.":"Descarga la biblioteca para ver los cantos."}):null),
+    !copy?.syncedAt?h(Btn,{text:"Descargar cancionero",onPress:manualSync,disabled:busy}):null));
  }
  function renderArtists(){
   const filtered=filteredArtists;
@@ -1098,7 +1098,7 @@ function AppScreen() {
       {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
       {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:active?"Opciones de canción":"Opciones de lectura"},
      label("⋮",S.songTopMoreText))):
-  !immersiveActive&&!detail&&!settingsOpen&&["Repertorios","Canciones","Artistas","Categorías","Popurrís","Álbumes","Explorar","Mis colecciones","Más","Perfil","Respaldo"].includes(tab)?h(View,{style:S.repTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Artistas","Categorías","Popurrís","Álbumes","Explorar","Más","Respaldo"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Regresar"},
     label("←",S.repTopBackSymbol)),
    h(View,{style:S.repTopBrand},
@@ -1116,13 +1116,17 @@ function AppScreen() {
     accessibilityRole:"button",accessibilityLabel:tab==="Más"?"Abrir configuración":"Más opciones"},
     tab==="Más"?label("⚙",S.sectionHeaderGear):tab==="Perfil"?label("⋯",S.sectionHeaderGear):
      h(Image,{source:HOME_IMAGES.more,resizeMode:"contain",style:S.repTopActionIcon}))):
-  !immersiveActive&&tab==="Inicio"&&!detail&&!settingsOpen?h(View,{style:S.homeTopBar},
+  !immersiveActive&&!detail&&!settingsOpen&&["Inicio","Canciones","Repertorios","Mis colecciones","Perfil"].includes(tab)?h(View,{style:S.homeTopBar},
    h(View,{style:S.spotifyHomeBrand},
     h(Image,{source:HOME_IMAGES.logo,style:S.spotifyHomeLogo,resizeMode:"contain",accessibilityLabel:"Paloma original de SHALOM"}),
     h(View,null,label("SHALOM",S.spotifyHomeBrandName),label("Coro y Alabanza",S.spotifyHomeBrandSub))),
-   h(Pressable,{onPress:()=>goTab("Canciones"),accessibilityRole:"button",accessibilityLabel:"Buscar cantos",style:S.homeTopButton},
+   h(Pressable,{onPress:()=>{
+    if(tab==="Canciones")setSongLibraryOpen(true);
+    else if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v);setQuery("");}
+    else goTab("Canciones",{openLibrary:true});
+   },accessibilityRole:"button",accessibilityLabel:"Buscar cantos",style:S.homeTopButton},
     h(Image,{source:HOME_IMAGES.search,style:S.homeTopIcon,resizeMode:"contain"})),
-   h(Pressable,{onPress:()=>setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:"Configuración y sincronización del cancionero",style:S.homeTopButton},
+   h(Pressable,{onPress:()=>tab==="Perfil"?openProfileMenu():setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:tab==="Perfil"?"Más opciones del perfil":"Configuración y sincronización del cancionero",style:S.homeTopButton},
     label("⚙",S.sectionHeaderGear))):
   !immersiveActive&&settingsOpen?h(AppSectionHeader,{section:"Configuración",onBack:()=>setSettingsOpen(false)}):
   !immersiveActive&&detail&&!isReader?h(AppDetailHeader,{
@@ -1138,7 +1142,7 @@ function AppScreen() {
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
-  !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:[S.nav,tab==="Inicio"&&!detail&&S.homeNav]},
+  !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>{
     const selected=isSelectedTab(tab,name)&&!detail;
     const homeIcon=HOME_IMAGES[icon];

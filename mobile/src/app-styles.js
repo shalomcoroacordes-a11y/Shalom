@@ -4,6 +4,29 @@ const {StyleSheet}=require("react-native");
 // La tipografía se inyecta desde App.js; no depender de globales de Hermes.
 module.exports=function createAppStyles(C,MONO){
  return StyleSheet.create({
+ // Pantalla inicial de Cantos: coincide con la maqueta y conserva la biblioteca real.
+ cantosPage:{gap:13,paddingTop:12,paddingBottom:20},
+ cantosPageTitle:{fontSize:27,fontWeight:"900",color:C.text,lineHeight:34,marginBottom:3},
+ cantosSearch:{height:53,borderRadius:15,borderWidth:1,borderColor:"#3a3e44",
+  backgroundColor:"#11151b",flexDirection:"row",alignItems:"center",paddingHorizontal:14},
+ cantosSearchIcon:{fontSize:29,color:C.muted,marginRight:10},
+ cantosSearchInput:{flex:1,color:C.text,fontSize:13.5,paddingVertical:7,minWidth:0},
+ cantosOverviewContent:{gap:18,marginTop:2},
+ cantosLibraryCard:{minHeight:123,borderRadius:16,backgroundColor:"#24282e",
+  padding:15,flexDirection:"row",alignItems:"flex-start",gap:10},
+ cantosLibraryTitle:{fontSize:19,fontWeight:"900",color:C.text,marginBottom:12},
+ cantosLibraryDescription:{fontSize:14,lineHeight:21,color:C.muted},
+ cantosLibraryIcon:{fontSize:22,color:C.muted,marginTop:2},
+ cantosExploreSection:{gap:12},
+ cantosExploreHeading:{fontSize:20,fontWeight:"900",color:C.text},
+ cantosExploreGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:9},
+ cantosExploreTile:{width:"48.8%",borderColor:"#35383d",borderWidth:1,
+  minHeight:48,borderRadius:14,paddingHorizontal:13,justifyContent:"center"},
+ cantosExploreTileText:{fontSize:14,color:C.text,fontWeight:"700"},
+ cantosBack:{alignSelf:"flex-start",minHeight:40,paddingVertical:8,paddingHorizontal:2},
+ cantosBackText:{color:C.green,fontSize:14,fontWeight:"800"},
+ cantosLibraryResults:{gap:12,marginTop:5},
+ cantosOfflinePrompt:{gap:10,paddingTop:7},
  libraryList:{gap:9,paddingBottom:10},
  libraryTitleRow:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",
   gap:10,marginTop:12,marginBottom:8},
@@ -345,9 +368,9 @@ module.exports=function createAppStyles(C,MONO){
  chordText:{fontFamily:MONO,fontSize:14,color:C.green,lineHeight:18,fontWeight:"750"},
  lyricText:{fontFamily:MONO,fontSize:14,color:C.text,lineHeight:19},
  verse:{fontFamily:MONO,fontSize:14,color:C.green,fontWeight:"850",marginTop:10,marginBottom:6},
- nav:{backgroundColor:"#19222d",borderTopWidth:1,borderColor:C.border,flexDirection:"row",justifyContent:"space-around",paddingVertical:7,minHeight:62},
- navItem:{alignItems:"center",justifyContent:"center",flex:1,minWidth:0,paddingVertical:5,paddingHorizontal:1},
- navSelected:{backgroundColor:"#143b2c",borderRadius:10},
- navIcon:{fontSize:23,color:C.muted,lineHeight:26,textAlign:"center"},navText:{fontSize:9,fontWeight:"700",color:C.muted,marginTop:4,textAlign:"center",width:"100%"}
+ nav:{marginHorizontal:11,marginBottom:8,backgroundColor:"#0b1014",borderWidth:1,borderColor:"#323b3f",borderRadius:18,flexDirection:"row",justifyContent:"space-around",padding:6,minHeight:71,overflow:"hidden"},
+ navItem:{alignItems:"center",justifyContent:"center",flex:1,minWidth:0,minHeight:59,paddingVertical:5,paddingHorizontal:1,borderRadius:13},
+ navSelected:{backgroundColor:"#063221",borderRadius:13},
+ navIcon:{fontSize:23,color:C.muted,lineHeight:26,textAlign:"center"},navText:{fontSize:10.5,fontWeight:"700",color:C.muted,marginTop:4,textAlign:"center",width:"100%"}
 });
 };

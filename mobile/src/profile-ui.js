@@ -119,7 +119,7 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    avatar(profile,64),
    h(View,{style:{flex:1,minWidth:0}},
     txt(profile.name||"Mi perfil",S.simpleName),
-    txt(profile.subtitle||"Coro y Alabanza",S.simpleSubtitle)),
+    txt(profile.name==="Mi perfil"?"Nombre y foto personal":profile.subtitle||"Coro y Alabanza",S.simpleSubtitle)),
    h(Pressable,{onPress:()=>{setDraft(profile);setEditing(true);},
     accessibilityRole:"button",accessibilityLabel:"Editar perfil",style:S.simpleEdit},
     txt("✎",S.simpleEditIcon))),
