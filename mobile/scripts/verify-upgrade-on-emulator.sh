@@ -24,14 +24,14 @@ sleep 5
 adb install -r "$NEW"
 new_uid=$(package_uid)
 if [ -z "$new_uid" ]; then
-  echo "::error::No se pudo leer el UID de SHALOM 0.4.14 después de actualizar" >&2
+  echo "::error::No se pudo leer el UID de SHALOM 0.4.15 después de actualizar" >&2
   adb shell pm list packages -U "$PKG"
   exit 1
 fi
 test -n "$new_uid"
 test "$old_uid" = "$new_uid"
 adb shell pm path "$PKG" | grep -q '^package:'
-adb shell dumpsys package "$PKG" | grep -q 'versionCode=37'
+adb shell dumpsys package "$PKG" | grep -q 'versionCode=38'
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 sleep 12
