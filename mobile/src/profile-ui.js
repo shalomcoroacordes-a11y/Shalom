@@ -113,29 +113,47 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
   h(View,{style:S.infoBox},txt("🔒  La foto, la portada y el banner se guardan de forma privada en tu teléfono. No se suben a Supabase.",S.caption)),
   h(View,{style:S.rowActions},btn("Guardar cambios",save),
    btn("Cancelar",()=>{setDraft(profile);setEditing(false);},true)));
+ const masses=(personal?.collections||personal?.items||[]).filter(x=>x.type==="misa"||x.kind==="misa").length;
+ const medleys=(personal?.collections||personal?.items||[]).filter(x=>x.type==="popurri"||x.kind==="popurri").length;
+ const reps=(personal?.collections||personal?.items||[]).filter(x=>x.type==="repertorio"||x.kind==="repertorio").length;
  return h(View,{style:S.page},
   txt("Mi perfil",S.title),
-  h(View,{style:S.simpleIdentity},
-   avatar(profile,64),
-   h(View,{style:{flex:1,minWidth:0}},
-    txt(profile.name||"Mi perfil",S.simpleName),
-    txt(profile.subtitle||"Coro y Alabanza",S.simpleSubtitle)),
-   h(Pressable,{onPress:()=>{setDraft(profile);setEditing(true);},
-    accessibilityRole:"button",accessibilityLabel:"Editar perfil",style:S.simpleEdit},
-    txt("✎",S.simpleEditIcon))),
-  h(View,{style:S.simpleDivider}),
+  profileHeader(profile),
+  h(View,{style:S.profileStats},...[
+   ["♥",likedSongs?.length||0,"Me gusta"],["♧",masses,"Misas"],
+   ["♫",medleys,"Popurrís"],["▱",reps,"Repertorios"]
+  ].map(([symbol,count,name])=>h(View,{key:name,style:S.profileStat},
+   txt(symbol,S.profileStatIcon),txt(count,S.profileStatCount),txt(name,S.profileStatLabel)))),
+  txt("Tu espacio",S.sectionTitle),
+  txt("Tu perfil es personal y se guarda en este teléfono.",S.caption),
+  h(View,{style:S.profileShortcuts},
+   h(Pressable,{onPress:onCollections,style:S.profileShortcut,accessibilityRole:"button"},
+    txt("▱",S.profileShortcutIcon),txt("Mis creaciones",S.profileShortcutTitle),
+    txt("Misas, repertorios y popurrís  ›",S.profileShortcutSub)),
+   h(Pressable,{onPress:()=>onSongs(true),style:S.profileShortcut,accessibilityRole:"button"},
+    txt("♥",S.profileShortcutIcon),txt("Mis me gusta",S.profileShortcutTitle),
+    txt("Cantos que guardaste  ›",S.profileShortcutSub))),
+  btn("✎  Editar perfil",()=>{setDraft(profile);setEditing(true);}),
   h(View,{style:S.toolList},
-   toolRow("♡","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
    toolRow("⚙","Configuración","Sincronización y Wi-Fi",onSettings),
    toolRow("♢","Respaldo y restauración","Guardar tus datos personales",onBackup),
    toolRow("◌","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
-   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
-  h(View,{style:S.simpleDivider}),
-  txt("Mis creaciones están disponibles en la barra inferior.",S.simpleFootnote));
+   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)));
+
 
 }
 const S=StyleSheet.create({
  page:{gap:15,paddingBottom:25,paddingTop:8},
+ profileStats:{flexDirection:"row",backgroundColor:"#15332d",borderWidth:1,borderColor:"#426e60",borderRadius:18,paddingVertical:14},
+ profileStat:{flex:1,alignItems:"center",gap:4},
+ profileStatIcon:{color:GREEN,fontSize:23,fontWeight:"800"},
+ profileStatCount:{color:FG,fontSize:22,fontWeight:"900"},
+ profileStatLabel:{color:MUTED,fontSize:10.5},
+ profileShortcuts:{flexDirection:"row",gap:10},
+ profileShortcut:{flex:1,minHeight:110,padding:12,borderRadius:15,backgroundColor:"#17372f",borderWidth:1,borderColor:"#426e60",justifyContent:"center",gap:5},
+ profileShortcutIcon:{fontSize:24,color:GREEN},
+ profileShortcutTitle:{fontSize:15,color:FG,fontWeight:"850"},
+ profileShortcutSub:{fontSize:11,color:MUTED,lineHeight:16},
  simpleIdentity:{flexDirection:"row",alignItems:"center",gap:14,paddingVertical:10},
  simpleName:{fontSize:19,color:FG,fontWeight:"850"},
  simpleSubtitle:{fontSize:13,color:MUTED,marginTop:5},
