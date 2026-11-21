@@ -143,7 +143,7 @@ module.exports=function createAppStyles(C,MONO){
  repTitle:{fontSize:26,fontWeight:"900",lineHeight:33,color:C.text},
  repSubtitle:{fontSize:13,color:C.muted,lineHeight:19},
  repFilters:{flexDirection:"row",alignItems:"center",gap:7,paddingBottom:5,marginBottom:11},
- repFilterChip:{minHeight:40,borderRadius:99,borderWidth:1,borderColor:"#3a444c",backgroundColor:"#23272e",paddingHorizontal:13,alignItems:"center",justifyContent:"center",flexDirection:"row",gap:6},
+ repFilterChip:{minHeight:44,borderRadius:99,borderWidth:1,borderColor:"#3a444c",backgroundColor:"#23272e",paddingHorizontal:13,alignItems:"center",justifyContent:"center",flexDirection:"row",gap:6},
  repFilterActive:{backgroundColor:C.green,borderColor:C.green},
  repFilterIcon:{width:19,height:19},
  repFilterText:{fontSize:12.5,fontWeight:"800",color:C.text},
@@ -238,7 +238,7 @@ module.exports=function createAppStyles(C,MONO){
 
  songToneStepper:{flex:1.8,minHeight:44,borderRadius:22,borderWidth:1,borderColor:"#577179",
   backgroundColor:C.sub,flexDirection:"row",alignItems:"center",paddingHorizontal:1},
- songToneStepButton:{width:33,minHeight:43,alignItems:"center",justifyContent:"center"},
+ songToneStepButton:{width:40,minHeight:44,alignItems:"center",justifyContent:"center"},
  songToneStepText:{fontSize:24,fontWeight:"850",color:C.pale,lineHeight:29},
  songToneCurrent:{flex:1,fontSize:11.5,fontWeight:"800",color:C.text,textAlign:"center"},
  songSecondaryControls:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:8,paddingTop:4},

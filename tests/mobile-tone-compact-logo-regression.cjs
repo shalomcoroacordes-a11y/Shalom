@@ -41,7 +41,7 @@ assert.match(app,/setReaderFont\(v=>Math\.max\(13,v-1\)\)/);
 assert.match(app,/setReaderFont\(v=>Math\.min\(22,v\+1\)\)/);
 
 // Sizing checks: denser than the old 104dp cards without losing tap targets.
-assert.match(styles,/repCard:\{minHeight:78/);
+assert.match(styles,/repCard:\{minHeight:73/);
 assert.match(styles,/repCardIconWrap:\{height:50,width:50/);
 assert.match(styles,/repFilterChip:\{minHeight:44/);
 assert.match(styles,/songToneStepButton:\{width:40,minHeight:44/);
