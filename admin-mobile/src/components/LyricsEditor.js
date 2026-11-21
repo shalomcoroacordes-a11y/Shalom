@@ -37,7 +37,7 @@ function LyricsEditor({value,onChange}){
    accessibilityLabel:"Editor de letra y acordes",
    placeholder:"[Intro]\nG        D\nLetra del canto...\n\n[Coro]\nEm       C\nAcordes arriba de cada frase",
    placeholderTextColor:C.muted,
-   style:[S.lyricInput,{fontSize:font,lineHeight:Math.round(font*1.65)},isFull?
+   style:[S.lyricInput,{fontSize:font,fontFamily:"monospace",lineHeight:Math.round(font*1.65)},isFull?
     {flex:1,minHeight:0,marginTop:8,marginBottom:8}:
     {minHeight:Math.max(360,Math.round(height*.52)),height:Math.max(360,Math.round(height*.52))}]
   });
