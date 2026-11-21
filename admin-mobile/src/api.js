@@ -93,8 +93,9 @@ function createApi(fetcher,auth){
  async function invite(email,roles){
   return raw("/rest/v1/rpc/admin_invite_user","POST",{p_email:email,p_role_ids:roles});
  }
+ async function restoreSong(trashId){return raw("/rest/v1/rpc/admin_restore_song","POST",{p_trash_id:trashId});}
  async function blockUser(id,reason){return raw("/rest/v1/rpc/admin_block_user","POST",{p_user_id:id,p_reason:reason||""});}
  async function unblockUser(id){return raw("/rest/v1/rpc/admin_unblock_user","POST",{p_user_id:id});}
- return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,assignUserRoles,setPermissionOverride,invite,blockUser,unblockUser};
+ return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,assignUserRoles,setPermissionOverride,invite,restoreSong,blockUser,unblockUser};
 }
 module.exports={createApi};

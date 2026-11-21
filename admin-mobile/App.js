@@ -194,7 +194,7 @@ function Main(){
  const [search,setSearch]=useState(""),[offline,setOffline]=useState(false),[roles,setRoles]=useState([]),[profiles,setProfiles]=useState([]);
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
- const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null);
+ const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null),[trash,setTrash]=useState([]);
  const owner=session?.user_id;
  async function hydrate(s){
   setSession(s);setBoot(false);
@@ -232,8 +232,8 @@ function Main(){
  async function loadUsers(a=access){
   if(!a?.owner)return;
   try{
-   const [r,u,assignments,blocks,exceptions]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks"),api.list("admin_permission_overrides")]);
-   setRoles(r);setProfiles(u);setBlockedUsers(blocks);
+   const [r,u,assignments,blocks,exceptions,trashItems]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks"),api.list("admin_permission_overrides"),api.list("admin_trash")]);
+   setRoles(r);setProfiles(u);setBlockedUsers(blocks);setTrash(trashItems);
    setOverrides(Object.fromEntries(u.map(p=>[p.user_id,Object.fromEntries(exceptions.filter(x=>x.user_id===p.user_id).map(x=>[x.permission,x.allowed]))])));
    setAssigned(Object.fromEntries(u.map(p=>[p.user_id,assignments.filter(x=>x.user_id===p.user_id).map(x=>x.role_id)])));
   }catch(e){setMessage("Permisos: "+e.message);}
@@ -347,7 +347,15 @@ function Main(){
     h(View,{style:S.row},button("Bloquear acceso",()=>Alert.alert("Bloquear administrador","Sus permisos dejarán de funcionar al consultar el servidor.",[
       {text:"Cancelar"},{text:"Bloquear",style:"destructive",onPress:async()=>{try{await api.blockUser(u.user_id,"Revocado por propietario");await loadUsers();}catch(e){Alert.alert("Error",e.message);}}}
     ]),"danger"),button("Restaurar",async()=>{try{await api.unblockUser(u.user_id);await loadUsers();}catch(e){Alert.alert("Error",e.message);}},"secondary")))
-   )
+   ),
+   heading("Papelera de cantos"),
+   txt("Conserva el canto eliminado con sus enlaces, capos y relaciones para poder restaurarlo.",S.note),
+   trash.filter(t=>t.item_type==="song").map(t=>h(View,{key:t.id,style:S.card},
+    txt(t.item_name||"Canto eliminado",S.itemTitle),txt("Eliminado el "+String(t.deleted_at||"").slice(0,10),S.itemSub),
+    button("Restaurar canto",()=>Alert.alert("Restaurar canto","Se recuperará el canto con sus relaciones guardadas si los artistas y categorías todavía existen.",[
+     {text:"Cancelar"},{text:"Restaurar",onPress:async()=>{try{await api.restoreSong(t.id);await loadUsers();await reloadCatalog();setMessage("Canto restaurado de la papelera.");}catch(e){Alert.alert("No se pudo restaurar",e.message);}}}
+    ]),"secondary"))),
+   !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
   );
  }
  function editorPanel(){
