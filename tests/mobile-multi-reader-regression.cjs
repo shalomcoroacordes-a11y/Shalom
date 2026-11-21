@@ -34,7 +34,7 @@ assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/Courier New
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/overflow-x:auto/,"Support horizontal chord scrolling");
 assert.match(grid,/h\(WebView,\{/,"Browser score remains selectable");
 assert.match(score,/renderAlignedScoreRows\(parsed,fontOverride,keyPrefix\)/,"Misa, repertorios and popurrís share exact chord columns");
-assert.match(aligned,/h\(AlignedScore,\{rows,fontSize,variant:keyPrefix\}\)/,"Shared grid component renders every song");
+assert.match(aligned,/h\(AlignedScore,\{rows,fontSize,variant:keyPrefix,\s*onFontSizeChange:/,"Shared grid component renders every song with synchronized pinch zoom");
 assert.match(controls,/S\.songControls/,"Use same tone and font controls as Cantos");
 assert.match(controls,/setReaderFont/,"Text controls must be functional");
 assert.match(controls,/setImmersive/,"Full screen can be entered and exited");
