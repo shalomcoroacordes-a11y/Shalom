@@ -3,6 +3,7 @@ const {useMemo,useState,useEffect}=React;
 const {View,Text,StyleSheet}=require("react-native");
 const {WebView}=require("react-native-webview");
 const {scoreHtml,estimateScoreHeight}=require("./web-score-html");
+const {clampReaderFont}=require("./score-zoom");
 const LegacyScore=require("./aligned-score-legacy-ui");
 const h=React.createElement;
 
@@ -10,8 +11,8 @@ const h=React.createElement;
 // El contenido no procede de una URL: sigue disponible sin internet.
 // En Android, RN Text aplica tratamientos de espacios/fuentes distintos de
 // los de la vista del editor web, incluso con 'monospace' y espaciado cero.
-function AlignedScore({rows=[],fontSize=15,variant="default"}){
- const safeFont=Number.isFinite(fontSize)?fontSize:15;
+function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
+ const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
  const html=useMemo(()=>scoreHtml(rows,safeFont),[serialized,safeFont]);
  const [height,setHeight]=useState(()=>estimateScoreHeight(rows,safeFont));
@@ -23,6 +24,14 @@ function AlignedScore({rows=[],fontSize=15,variant="default"}){
  const onHeight=e=>{
   let value;
   try{value=JSON.parse(e.nativeEvent.data);}catch(_){return;}
+  // La WebView avisa solo al terminar el pellizco: no se reinicia en cada movimiento.
+  if(value?.type==="score-zoom"){
+   if(Number.isFinite(value.fontSize)&&onFontSizeChange){
+    const next=clampReaderFont(value.fontSize);
+    if(Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
+   }
+   return;
+  }
   if(value?.type!=="score-height"||!Number.isFinite(value.height))return;
   const next=Math.ceil(value.height);
   if(next<20||next>150000)return;

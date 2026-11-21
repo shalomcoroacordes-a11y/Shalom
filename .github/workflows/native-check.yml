@@ -42,10 +42,12 @@ jobs:
           node --check src/aligned-score-ui.js
           node --check src/aligned-score-legacy-ui.js
           node --check src/web-score-html.js
+          node --check src/score-zoom.js
       - name: Test lyrics, folders, videos and correction forms
         run: |
           node tests/chords.test.js
           node tests/chord-grid.test.js
+          node tests/score-pinch.test.js
           node tests/web-score-html.test.js
           node tests/reader-open-layout.test.js
           node tests/favorites.test.js

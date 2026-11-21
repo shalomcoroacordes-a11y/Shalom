@@ -10,6 +10,7 @@ const {getCatalog,getMetadata,setMetadata}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
 const {parseSong,transposeOne}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
+const {clampReaderFont}=require("./src/score-zoom");
 const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
 const {sendRequest,TYPES}=require("./src/requests");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
@@ -856,10 +857,10 @@ function AppScreen() {
    h(View,{style:S.songControls},
     renderToneStepper(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos"),
     h(View,{style:S.songFontControl},
-     h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),
+     h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v-1)),
       accessibilityRole:"button",accessibilityLabel:"Reducir letras",style:S.songFontButton},
       label("A−",S.songFontText)),
-     h(Pressable,{onPress:()=>setReaderFont(v=>Math.min(22,v+1)),
+     h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v+1)),
       accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
       label("A+",S.songFontText)))),
    h(View,{style:S.multiControlFooter},
@@ -873,7 +874,8 @@ function AppScreen() {
  // Todos los lectores usan una sola cuadrícula de texto monoespaciado:
  // en un único Text padre, los acordes mantienen sus columnas al cambiar dispositivo.
  function renderAlignedScoreRows(rows,fontSize,keyPrefix){
-  return h(AlignedScore,{rows,fontSize,variant:keyPrefix});
+  return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
+    onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
   function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
   const parsed=parseSong(lyrics,delta);
@@ -1127,10 +1129,10 @@ function AppScreen() {
     h(View,{style:S.songControls},
      renderToneStepper("Tono "+toned),
      h(View,{style:S.songFontControl},
-      h(Pressable,{onPress:()=>setReaderFont(v=>Math.max(13,v-1)),
+      h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v-1)),
        accessibilityRole:"button",accessibilityLabel:"Reducir tamaño de letra",style:S.songFontButton},
        label("A−",S.songFontText)),
-      h(Pressable,{onPress:()=>setReaderFont(v=>Math.min(22,v+1)),
+      h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v+1)),
        accessibilityRole:"button",accessibilityLabel:"Aumentar tamaño de letra",style:S.songFontButton},
        label("A+",S.songFontText)))),
     h(View,{style:S.songSecondaryControls},
@@ -1259,8 +1261,8 @@ function AppScreen() {
     ["T−","Tono −",()=>adjustTone(-1)],
     ["T+","Tono +",()=>adjustTone(1)],
     ["↗","Compartir",shareMultiReading],
-    ["A−","Letra −",()=>setReaderFont(v=>Math.max(13,v-1))],
-    ["A+","Letra +",()=>setReaderFont(v=>Math.min(22,v+1))]
+    ["A−","Letra −",()=>setReaderFont(v=>clampReaderFont(v-1))],
+    ["A+","Letra +",()=>setReaderFont(v=>clampReaderFont(v+1))]
    ].map(([symbol,name,onPress])=>h(Pressable,{key:name,style:S.songActionItem,
     onPress,accessibilityRole:"button",accessibilityLabel:name},
     label(symbol,S.songActionIcon),label(name,S.songActionLabel)))):null,
