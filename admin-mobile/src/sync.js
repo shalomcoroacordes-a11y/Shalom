@@ -12,7 +12,9 @@ function createSync(api,auth,network){
    const s=await auth.requireFresh();
    if(s.user_id!==owner)throw Error("La sesión no corresponde al propietario de los borradores");
    await api.myAccess(); // En servidor se comprueba revocación de roles y bloqueo.
-   const queue=(await listDrafts(owner)).filter(x=>x.status==="queued"||x.status==="error");
+   const priority=["artists","categories","albums","songs","medleys","repertoires","contact_messages","home_recommendations","site_content"];
+   const queue=(await listDrafts(owner)).filter(x=>x.status==="queued"||x.status==="error")
+    .sort((a,b)=>priority.indexOf(a.type)-priority.indexOf(b.type));
    for(const draft of queue){
     try{
      await api.publish(draft.type,draft.body,draft.expected_updated);

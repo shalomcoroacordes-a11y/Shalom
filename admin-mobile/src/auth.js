@@ -32,12 +32,24 @@ function createAuth(fetcher,secure) {
   return s;
  }
  async function verifiedAccess(s){
-  const response=await fetcher(BASE+"/rest/v1/jhd_admin_users?select=user_id&user_id=eq."+encodeURIComponent(s.user_id),{headers:{"apikey":KEY,Authorization:"Bearer "+s.access_token}});
-  if(!response.ok)throw Error("No fue posible verificar los permisos de administrador");
-  const rows=await response.json();
-  // Compatibilidad: la base actual autoriza exclusivamente usuarios en jhd_admin_users.
-  if(!Array.isArray(rows)||!rows.some(row=>row.user_id===s.user_id))throw Error("Esta cuenta no tiene permisos administrativos");
-  return true;
+  try{await request("/rest/v1/rpc/admin_redeem_invite","POST",{},s.access_token);}
+  catch(e){if(!/could not find the function|schema cache|not found/i.test(e.message))throw e;}
+  try{
+   const a=await request("/rest/v1/rpc/admin_my_access","POST",{},s.access_token);
+   if(!a||!a.authorized)throw Error("Cuenta bloqueada o sin permisos administrativos");
+   return a;
+  }catch(e){
+   if(!/could not find the function|schema cache|not found/i.test(e.message))throw e;
+   // Compatibilidad SOLO para el propietario histórico antes de desplegar roles.
+   const response=await fetcher(BASE+"/rest/v1/jhd_admin_users?select=user_id&user_id=eq."+encodeURIComponent(s.user_id),{headers:{apikey:KEY,Authorization:"Bearer "+s.access_token}});
+   if(!response.ok)throw Error("No fue posible verificar los permisos");
+   const rows=await response.json();
+   if(!rows.some(row=>row.user_id===s.user_id))throw Error("Esta cuenta no tiene permisos administrativos");
+   return{authorized:true,owner:true,blocked:false,permissions:[]};
+  }
+ }
+ async function signUp(email,password){
+  return request("/auth/v1/signup","POST",{email:String(email||"").trim(),password});
  }
  async function signIn(email,password){
   const data=await request("/auth/v1/token?grant_type=password","POST",{email:String(email||"").trim(),password});
@@ -49,6 +61,6 @@ function createAuth(fetcher,secure) {
   const s=await read();await clear();
   if(s&&s.expires_at>Date.now())try{await request("/auth/v1/logout","POST",undefined,s.access_token);}catch(_){}
  }
- return{session,read,requireFresh,verifiedAccess,signIn,signOut,clear};
+ return{session,read,requireFresh,verifiedAccess,signIn,signUp,signOut,clear};
 }
 module.exports={createAuth,SESSION_KEY};

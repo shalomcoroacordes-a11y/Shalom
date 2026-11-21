@@ -106,10 +106,12 @@ function NestedEditor({kind,value,onChange}){
  );
 }
 function Login({onSuccess}){
- const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
+ const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[creating,setCreating]=useState(false);
  async function go(){
   setBusy(true);setMessage("");
-  try{const s=await auth.signIn(email,pass);await onSuccess(s);}catch(e){setMessage(e.message);}finally{setBusy(false);}
+  try{if(creating){await auth.signUp(email,pass);setMessage("Registro solicitado. Confirma tu correo, después inicia sesión. Solo se permite acceso con una invitación administrativa.");setCreating(false);}
+   else{const s=await auth.signIn(email,pass);await onSuccess(s);}}
+  catch(e){setMessage(e.message);}finally{setBusy(false);}
  }
  return h(View,{style:{flex:1,justifyContent:"center",padding:26,gap:14,backgroundColor:C.bg}},
   txt("SHALOM  ·  ADMIN",S.kicker),
@@ -117,7 +119,8 @@ function Login({onSuccess}){
   txt("Acceso privado con correo y contraseña. Solo usuarios autorizados.",S.subtitle),
   input("Correo electrónico",email,setEmail,{email:true}),
   input("Contraseña",pass,setPass,{secure:true}),
-  button(busy?"Verificando...":"Entrar a SHALOM Admin",go,null,busy),
+  button(busy?"Verificando...":creating?"Registrarme con invitación":"Entrar a SHALOM Admin",go,null,busy),
+  button(creating?"Ya tengo cuenta":"Tengo una invitación: crear cuenta",()=>{setCreating(!creating);setMessage("");},"secondary"),
   !!message&&txt(message,S.error),
   txt("La primera sesión requiere internet. Tus borradores posteriores se guardan en el dispositivo.",S.note)
  );
@@ -128,7 +131,7 @@ function Main(){
  const [section,setSection]=useState("Datos"),[lists,setLists]=useState({}),[drafts,setDrafts]=useState([]),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
  const [search,setSearch]=useState(""),[offline,setOffline]=useState(false),[roles,setRoles]=useState([]),[profiles,setProfiles]=useState([]);
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
- const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false);
+ const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
  const owner=session?.user_id;
  async function hydrate(s){
   setSession(s);setBoot(false);
@@ -166,8 +169,9 @@ function Main(){
  async function loadUsers(a=access){
   if(!a?.owner)return;
   try{
-   const [r,u]=await Promise.all([api.roles(),api.list("admin_profiles")]);
-   setRoles(r);setProfiles(u);
+   const [r,u,assignments,blocks]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks")]);
+   setRoles(r);setProfiles(u);setBlockedUsers(blocks);
+   setAssigned(Object.fromEntries(u.map(p=>[p.user_id,assignments.filter(x=>x.user_id===p.user_id).map(x=>x.role_id)])));
   }catch(e){setMessage("Permisos: "+e.message);}
  }
  async function sendQueue(){
@@ -186,13 +190,13 @@ function Main(){
  }
  function begin(table,record,fromDraft){
   setSelectedType(table);setSection("Datos");setTab("Editor");
-  setEditing({id:fromDraft?.id||record?.id||record?.content_key||localId(),expected:fromDraft?.expected_updated||record?.updated_at||null});
+  setEditing({id:fromDraft?.id||record?.id||record?.content_key||(table==="site_content"?"new":localId()),expected:fromDraft?.expected_updated||record?.updated_at||null});
   setForm(fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table));
  }
  async function saveDraft(queue=false){
   if(!owner||!form||!editing)return;
   try{
-   const clean=baseRecord(selectedType,form,selectedType==="site_content"?editing.id:null);
+   const clean=baseRecord(selectedType,form,selectedType==="site_content"&&editing.id!=="new"?editing.id:null);
    if(selectedType!=="site_content")clean.id=editing.id;
    if(selectedType==="songs")clean.artist_id=clean.artist_id||null;
    if(selectedType==="albums")clean.artist_id=clean.artist_id||null;
@@ -201,7 +205,7 @@ function Main(){
    if(selectedType==="contact_messages")clean.id=editing.id;
    if(selectedType==="home_recommendations")clean.id=editing.id;
    if(selectedType==="site_content")clean.content_key=editing.id==="new"||!editing.id?clean.content_key:editing.id;
-   await store.upsertDraft(owner,{id:editing.id,type:selectedType,body:clean,status:queue?"queued":"draft",expected_updated:editing.expected});
+   await store.upsertDraft(owner,{id:selectedType==="site_content"?clean.content_key:editing.id,type:selectedType,body:clean,status:queue?"queued":"draft",expected_updated:editing.expected});
    await reloadDrafts();setTab("Pendientes");setForm(null);
    setMessage(queue?"Guardado en cola; se publicará al recuperar internet y validar permisos.":"Borrador guardado solo en tu teléfono.");
    if(queue&&await network())await sendQueue();
@@ -220,8 +224,9 @@ function Main(){
  async function logout(){await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
-  try{await api.createRole({name:newRole,description:roleDescription,permissions:rolePermissions});
-   setShowRoleEditor(false);setNewRole("");setRoleDescription("");setRolePermissions([]);await loadUsers();setMessage("Rol guardado.");
+  try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
+   else await api.createRole({name:newRole,description:roleDescription,permissions:rolePermissions});
+   setEditingRole(null);setShowRoleEditor(false);setNewRole("");setRoleDescription("");setRolePermissions([]);await loadUsers();setMessage("Rol guardado.");
   }catch(e){Alert.alert("Error de rol",e.message);}
  }
  async function sendInvite(){
@@ -245,7 +250,7 @@ function Main(){
    ):null,
    heading("Roles existentes"),
    roles.map(r=>h(View,{key:r.id,style:S.card},txt(r.name,S.itemTitle),txt(r.description||"Sin descripción",S.note),txt((r.permissions||[]).join(" · "),S.caption),
-    button("Editar este rol",()=>{setNewRole(r.name);setRoleDescription(r.description||"");setRolePermissions(r.permissions||[]);setShowRoleEditor(true);setMessage("Edición de rol existente: la actualización de permisos se completará con el módulo de asignación.");},"secondary"))),
+    button("Editar este rol",()=>{setEditingRole(r.id);setNewRole(r.name);setRoleDescription(r.description||"");setRolePermissions(r.permissions||[]);setShowRoleEditor(true);},"secondary"))),
    heading("Invitar a un administrador"),
    input("Correo del invitado",inviteEmail,setInviteEmail,{email:true}),
    txt("Asignar uno o varios roles",S.label),
@@ -254,6 +259,11 @@ function Main(){
    heading("Usuarios autorizados"),
    profiles.map(u=>h(View,{key:u.user_id,style:S.card},
     txt(u.display_name||u.email||u.user_id,S.itemTitle),txt(u.email||"",S.itemSub),
+    txt(blockedUsers.some(b=>b.user_id===u.user_id)?"ACCESO BLOQUEADO":"Roles activos",blockedUsers.some(b=>b.user_id===u.user_id)?S.error:S.caption),
+    wrapChips(roles.map(r=>[r.id,r.name]),assigned[u.user_id]||[],async id=>{
+     const current=assigned[u.user_id]||[];const next=current.includes(id)?current.filter(x=>x!==id):[...current,id];
+     try{await api.assignUserRoles(u.user_id,next);setAssigned(old=>({...old,[u.user_id]:next}));}catch(e){Alert.alert("Error",e.message);}
+    }),
     h(View,{style:S.row},button("Bloquear acceso",()=>Alert.alert("Bloquear administrador","Sus permisos dejarán de funcionar al consultar el servidor.",[
       {text:"Cancelar"},{text:"Bloquear",style:"destructive",onPress:async()=>{try{await api.blockUser(u.user_id,"Revocado por propietario");await loadUsers();}catch(e){Alert.alert("Error",e.message);}}}
     ]),"danger"),button("Restaurar",async()=>{try{await api.unblockUser(u.user_id);await loadUsers();}catch(e){Alert.alert("Error",e.message);}},"secondary")))

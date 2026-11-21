@@ -11,7 +11,7 @@ function createApi(fetcher,auth){
   let result;try{result=t?JSON.parse(t):null;}catch(_){result=t;}
   if(!response.ok){
    const error=new Error(result?.message||result?.error||"Error de servidor ("+response.status+")");
-   error.status=response.status;error.code=result?.code;throw error;
+   error.status=response.status;error.code=/CONFLICT/.test(error.message)?"CONFLICT":result?.code;throw error;
   }
   return result;
  }
@@ -43,7 +43,7 @@ function createApi(fetcher,auth){
    });
   }
   const previous=await find(table,id);
-  if(previous && (!expected || (previous.updated_at&&previous.updated_at!==expected))){
+  if(previous && previous.updated_at && (!expected || previous.updated_at!==expected)){
    const error=new Error("Otra persona modificó este contenido. Revisa los cambios antes de publicar.");
    error.code="CONFLICT";throw error;
   }
@@ -67,11 +67,12 @@ function createApi(fetcher,auth){
  }
  async function createRole(role){return raw("/rest/v1/rpc/admin_create_role","POST",{p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
  async function changeRole(role){return raw("/rest/v1/rpc/admin_update_role","POST",{p_id:role.id,p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
+ async function assignUserRoles(userId,roleIds){return raw("/rest/v1/rpc/admin_assign_user_roles","POST",{p_user_id:userId,p_role_ids:roleIds});}
  async function invite(email,roles){
   return raw("/rest/v1/rpc/admin_invite_user","POST",{p_email:email,p_role_ids:roles});
  }
  async function blockUser(id,reason){return raw("/rest/v1/rpc/admin_block_user","POST",{p_user_id:id,p_reason:reason||""});}
  async function unblockUser(id){return raw("/rest/v1/rpc/admin_unblock_user","POST",{p_user_id:id});}
- return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,invite,blockUser,unblockUser};
+ return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,assignUserRoles,invite,blockUser,unblockUser};
 }
 module.exports={createApi};
