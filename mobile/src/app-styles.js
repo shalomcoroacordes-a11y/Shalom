@@ -97,6 +97,7 @@ module.exports=function createAppStyles(C,MONO){
  spotifyBannerMini:{marginTop:2,marginBottom:15,padding:12,backgroundColor:"#23272e",
   borderRadius:14,borderWidth:1,borderColor:"#363f44",flexDirection:"row",alignItems:"center",gap:10},
  spotifyBannerMiniTitle:{fontSize:13.5,fontWeight:"800",color:C.text,marginTop:4},
+ spotifyBannerMiniCover:{width:66,height:53,borderRadius:9,overflow:"hidden",backgroundColor:"#29483a"},
  libraryExploreIntro:{marginTop:14,marginBottom:11,gap:8},
  libraryExploreTitle:{fontSize:14,color:C.text,fontWeight:"850"},
  libraryExploreGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:7},
