@@ -41,4 +41,27 @@ if ! adb shell pidof "$PKG" >/dev/null 2>&1; then
   exit 1
 fi
 echo "SHALOM: emulador aceptó instalación encima de 0.4.10 con UID conservado y la app sigue viva después del splash."
+# Capturas de una instalación fresca de prueba; no incluyen datos personales del usuario.
+SCREEN_DIR="$RUNNER_TEMP/shalom-upgrade/screenshots"
+mkdir -p "$SCREEN_DIR"
+take_screen(){
+  adb exec-out screencap -p > "$SCREEN_DIR/$1.png"
+  test -s "$SCREEN_DIR/$1.png"
+}
+take_screen "01-inicio"
+RES=$(adb shell wm size | tr -d '\r' | sed -n 's/.*Physical size: \([0-9][0-9]*x[0-9][0-9]*\).*/\1/p' | head -1)
+if [[ "$RES" =~ ^[0-9]+x[0-9]+$ ]]; then
+  WIDTH="${RES%x*}"
+  HEIGHT="${RES#*x}"
+  Y=$((HEIGHT * 93 / 100))
+  for spec in "30:cantos" "50:repertorios" "70:mis-creaciones" "90:perfil"; do
+    fraction="${spec%%:*}"
+    name="${spec#*:}"
+    X=$((WIDTH * fraction / 100))
+    adb shell input tap "$X" "$Y"
+    sleep 3
+    take_screen "0$((fraction / 20 + 1))-$name"
+  done
+fi
+echo "SHALOM: capturas de Inicio y pestañas principales guardadas para revisión visual."
 echo "No se probaron colecciones o fotos reales: prueba manual sigue pendiente."
