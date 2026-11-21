@@ -434,7 +434,7 @@ function AppScreen() {
    ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
    ["medleys","Mis popurrís","Cantos enlazados",counts.medleys,()=>goTab("Mis colecciones",{personalKind:"popurri"})],
    ["mass","Mis misas","Celebraciones guardadas",counts.masses,()=>goTab("Mis colecciones",{personalKind:"misa"})],
-   ["repertoires","Mis repertorios","Tu biblioteca personal",counts.creations,()=>goTab("Mis colecciones",{personalKind:"repertorio"})]
+   ["repertoires","Mis repertorios","Ensayos y selecciones",Math.max(0,counts.creations-counts.medleys-counts.masses),()=>goTab("Mis colecciones",{personalKind:"repertorio"})]
   ];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
