@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "SHALOM Admin",
+    "slug": "shalom-admin",
+    "scheme": "shalomadmin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.shalomcoroacordes.admin",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#063221"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.shalomcoroacordes.admin",
+      "supportsTablet": true
+    },
+    "icon": "./assets/icon.png",
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ]
+    ]
+  }
+}
