@@ -15,7 +15,7 @@ const btn=(s,fn,outline=false,disabled=false)=>h(Pressable,{onPress:fn,disabled,
  style:[S.button,outline&&S.outline,disabled&&{opacity:.4}]},
  txt(s,[S.buttonText,outline&&S.outlineText]));
 function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
- editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal}){
+ editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal,onSettings,onBackup,onRequest,onMore}){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState(profile);
  const [loadingImage,setLoadingImage]=useState(false);
@@ -77,6 +77,13 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
  const section=(title,more)=>h(View,{style:S.sectionHead},txt(title,S.sectionTitle),
   more?h(Pressable,{onPress:more,accessibilityRole:"button",accessibilityLabel:"Ver todo "+title},
    txt("Ver todo  ›",S.more)):null);
+ function toolRow(symbol,name,description,onPress){
+  return h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,
+   style:S.toolRow},
+   h(View,{style:S.toolIcon},txt(symbol,S.toolSymbol)),
+   h(View,{style:{flex:1,minWidth:0}},txt(name,S.toolName),txt(description,S.toolDescription)),
+   txt("›",S.toolChevron));
+ }
  function shortcut([symbol,name,description,onPress]){
   return h(Pressable,{key:name,onPress,style:S.shortcut,accessibilityRole:"button",accessibilityLabel:name},
    h(View,{style:S.shortcutIcon},txt(symbol,S.shortcutSymbol)),
@@ -135,6 +142,12 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    shortcut(["♥","Mis me gusta","Cantos que guardaste",()=>onSongs(true)])),
   h(View,{style:S.rowActions},
    btn("✎ Editar perfil",()=>{setDraft(profile);setEditing(true);})),
+  section("Herramientas"),
+  h(View,{style:S.toolList},
+   toolRow("⚙","Configuración","Sincronización y uso de Wi-Fi",onSettings),
+   toolRow("↥","Respaldo y restauración","Protege tus fotos, favoritos y creaciones",onBackup),
+   toolRow("✉","Solicitar un canto","Enviar sugerencias o correcciones",onRequest),
+   toolRow("⋯","Más información","Ayuda, acerca de SHALOM y donaciones",onMore)),
   txt("Para preparar o recibir composiciones, abre Mis creaciones en la barra inferior.",S.caption));
 
 }
@@ -142,7 +155,7 @@ const S=StyleSheet.create({
  page:{gap:12,paddingBottom:25,paddingTop:6},
  title:{fontSize:28,fontWeight:"900",color:FG,lineHeight:36},
  caption:{fontSize:12,color:MUTED,lineHeight:18},
- hero:{borderRadius:17,overflow:"hidden",height:269,backgroundColor:"#073b32"},
+ hero:{borderRadius:17,overflow:"hidden",height:232,backgroundColor:"#073b32"},
  heroGradient:{position:"absolute",left:0,right:0,bottom:0,height:173},
  profileIdentity:{position:"absolute",left:12,right:10,bottom:12,flexDirection:"row",alignItems:"center",gap:12},
  avatar:{borderWidth:3,borderColor:"#a9ffe3",backgroundColor:"#14533f",justifyContent:"center",alignItems:"center",overflow:"hidden"},
@@ -168,6 +181,14 @@ const S=StyleSheet.create({
  shortcutLabel:{fontSize:13,color:"#fff",fontWeight:"850"},
  shortcutDescription:{fontSize:10,color:MUTED,marginTop:3},
  shortcutArrow:{color:GREEN,fontSize:24,fontWeight:"600"},
+ toolList:{gap:0,borderTopWidth:1,borderColor:"#354d49"},
+ toolRow:{minHeight:63,paddingVertical:9,flexDirection:"row",gap:10,alignItems:"center",
+  borderBottomWidth:1,borderColor:"#354d49"},
+ toolIcon:{width:33,height:34,alignItems:"center",justifyContent:"center"},
+ toolSymbol:{fontSize:21,fontWeight:"800",color:GREEN},
+ toolName:{fontSize:13.5,color:FG,fontWeight:"850"},
+ toolDescription:{fontSize:11,color:MUTED,marginTop:3,lineHeight:15},
+ toolChevron:{fontSize:23,color:GREEN},
  receiveButton:{backgroundColor:"#1d3036",borderWidth:1,borderColor:"#45635b",
   borderRadius:14,padding:12,flexDirection:"row",alignItems:"center",gap:11,minHeight:72},
  receiveIcon:{color:GREEN,fontSize:25},

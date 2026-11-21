@@ -209,7 +209,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     {text:"Cancelar",style:"cancel"},
     {text:"Guardar",onPress:()=>{
      try{
-      // Usa el mismo flujo validado que Perfil > Recibir composición.
+      // Recibir composiciones vive en Mis creaciones > Recibir composición.
       const result=receivePersonal(store,shareInput,folder?.id||null);
       commit(result.store,{notice:"Composición recibida y guardada"});
       setFolderId(result.folder.id);setEntryId(result.entry.id);
@@ -386,7 +386,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   let code="";
   try{code=exportCode(entry);}catch(_){}
   const shareMessage="🕊️ SHALOM · "+kindName(entry.kind)+"\n"+entry.title+
-   "\n\n"+code+"\n\nPara guardarlo: abre SHALOM → Perfil → Recibir composición → Pegar mensaje.";
+   "\n\n"+code+"\n\nPara guardarlo: abre SHALOM → Mis creaciones → Recibir composición → Pegar mensaje.";
   async function shareNative(){
    try{
     if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
@@ -412,7 +412,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    h(View,{style:styles.infoCard},
     label("¿Qué recibe la otra persona?",styles.cardTitle),
     label("El orden de los cantos, los fragmentos y sus tonos. No se envían tus fotos ni las letras completas.",styles.description),
-    label("Solo tiene que abrir Perfil → Recibir composición y pegar el mensaje.",styles.meta)),
+    label("Solo tiene que abrir Mis creaciones → Recibir composición y pegar el mensaje.",styles.meta)),
    action(showRawCode?"Ocultar código":"Ver código de SHALOM",()=>setShowRawCode(v=>!v),true),
    showRawCode?h(Text,{selectable:true,style:styles.codePreview},code):null);
  }

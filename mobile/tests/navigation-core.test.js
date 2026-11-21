@@ -1,15 +1,16 @@
 const assert=require("node:assert/strict");
 const {tabs,isSelectedTab,routeForTab,matchesSearch}=require("../src/navigation-core");
 assert.deepEqual(tabs.map(([name])=>name),
- ["Inicio","Canciones","Repertorios","Mis creaciones","Perfil"],
+ ["Inicio","Cantos","Repertorios","Mis creaciones","Perfil"],
  "Conservar las cinco rutas principales organizadas por tareas");
 assert.equal(routeForTab("Mis creaciones"),"Mis colecciones");
-assert.equal(routeForTab("Canciones"),"Canciones");
+assert.equal(routeForTab("Cantos"),"Canciones");
 assert.equal(isSelectedTab("Inicio","Inicio"),true);
 assert.equal(isSelectedTab("Inicio","Perfil"),false);
+assert.equal(isSelectedTab("Canciones","Cantos"),true);
 assert.equal(isSelectedTab("Mis colecciones","Mis creaciones"),true);
 for(const section of ["Explorar","Artistas","Categorías","Álbumes","Popurrís"]){
- assert.equal(isSelectedTab(section,"Canciones"),true,section+" pertenece a Cantos/Explorar");
+ assert.equal(isSelectedTab(section,"Cantos"),true,section+" pertenece a Cantos/Explorar");
  assert.equal(isSelectedTab(section,"Perfil"),false,section+" no pertenece al perfil");
 }
 for(const section of ["Solicitar","Más","Respaldo"])
