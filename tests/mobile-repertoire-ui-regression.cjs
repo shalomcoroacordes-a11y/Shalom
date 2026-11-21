@@ -2,6 +2,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const ui=require("../mobile/src/repertoire-ui.js");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const components=fs.readFileSync("mobile/src/app-components.js","utf8");
 const iconGenerator=fs.readFileSync("mobile/scripts/generate_icons.py","utf8");
 const sections=[
  {id:"m",kind:"misa",title:"Misa en parroquia",items:[{},{},{}]},
@@ -19,11 +20,15 @@ assert.match(app,/\["ensayo","Ensayo","artists"\]/);
 assert.match(app,/\["otras","Otras","calendar"\]/);
 assert.match(app,/const count=Array\.isArray\(rep\.items\)\?rep\.items\.length:0/);
 assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.repTopLogo/);
-assert.match(app,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.sectionHeaderLogo/);
+assert.match(components,/source:HOME_IMAGES\.logo,resizeMode:"contain",style:S\.sectionHeaderLogo/);
 assert.match(app,/setRepertoireSearchOpen\(v=>!v\)/);
 assert.match(app,/accessibilityLabel:"Sugerir un repertorio al administrador"/);
 assert.match(app,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
-assert.match(app,/const tabs=\[\["Inicio","home"\],\["Canciones","song"\],\["Repertorios","repertoires"\],\["Artistas","artists"\],\["Perfil","profile"\]\]/);
+assert.deepEqual(require("../mobile/src/navigation-core.js").tabs,
+ [["Inicio","home"],["Cantos","song"],["Repertorios","calendar"],["Mis creaciones","repertoires"],["Perfil","profile"]],
+ "La estructura incluye Mis creaciones sin alterar los repertorios oficiales");
+assert.ok(app.includes('require("./src/navigation-core")'),"La app importa la navegación desde su módulo");
+assert.match(app,/goTab\(routeForTab\(name\)\)/,"La pestaña Mis creaciones utiliza su ruta existente");
 assert.match(iconGenerator,/home-.*\.png/);
 assert.match(iconGenerator,/"mass":/);
 assert.match(iconGenerator,/"calendar":/);

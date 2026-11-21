@@ -1,0 +1,82 @@
+name: SHALOM Android Preview (instalación paralela)
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-preview.yml"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+# Only one expensive Gradle preview build per PR/branch.
+concurrency:
+  group: shalom-android-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  preview-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install JavaScript dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify Expo compatibility and native unit tests
+        run: |
+          npx expo install --check
+          npm run test:syntax
+          npm test
+      - name: Generate official SHALOM dove icons for preview
+        run: |
+          python3 -m venv /tmp/shalom-preview-icons
+          /tmp/shalom-preview-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
+          /tmp/shalom-preview-icons/bin/python scripts/generate_icons.py
+          test -s assets/icon.png
+      - name: Check current SHALOM identity before creating isolated preview
+        run: node scripts/release-preflight.js
+      - name: Give the preview its own Android package and title
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const file='app.json';
+          const config=JSON.parse(fs.readFileSync(file,'utf8'));
+          config.expo.name='SHALOM Pruebas';
+          config.expo.slug='shalom-offline-preview';
+          config.expo.android.package='com.shalomcoroacordes.cancionero.preview';
+          config.expo.ios.bundleIdentifier='com.shalomcoroacordes.cancionero.preview';
+          fs.writeFileSync(file,JSON.stringify(config,null,2)+'\n');
+          if(config.expo.android.package==='com.shalomcoroacordes.cancionero')
+            throw new Error('La APK de prueba nunca debe reemplazar la aplicación real');
+          NODE
+      - name: Generate isolated Android preview project
+        run: npx expo prebuild --platform android --non-interactive --no-install
+      - name: Compile standalone Android preview APK
+        working-directory: mobile/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleRelease
+      - name: Verify preview APK and digest
+        run: |
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          sha256sum android/app/build/outputs/apk/release/app-release.apk
+      - name: Upload isolated preview APK (no Release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM-Preview-${{ github.sha }}
+          path: mobile/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14

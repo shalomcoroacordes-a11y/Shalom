@@ -1,6 +1,7 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const styles=fs.readFileSync("mobile/src/app-styles.js","utf8");
 function section(name,next){
  const i=app.indexOf(" function "+name+"(");
  const j=app.indexOf(" function "+next+"(",i+1);
@@ -24,6 +25,7 @@ assert.match(medley,/const delta=transpose\+/,"Keep original per-fragment pitch 
 assert.match(medley,/capoPosition/,"Retain capo instructions per fragment");
 assert.match(medley,/otherCapos/,"Retain variant capo choices");
 assert.match(medley,/tutorials\.map/,"Preserve YouTube/tutorial links");
+assert.doesNotMatch(medley,/\.slice\(0,3\)/,"Every tutorial should remain available");
 assert.match(score,/parseSong\(lyrics,delta\)/,"Use the same parser as Cantos");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Use saved section labels in all readers");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/song-section-label/,"Use green chorus and verse labels");
@@ -42,8 +44,10 @@ assert.match(app,/!immersiveActive&&detail&&!isReader\?h\(AppDetailHeader/,
  "Do not render a duplicate header above the multi-song readers");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View/,
  "Hide regular navigation in ALL readers");
-assert.match(app,/detail\?\.type!=="song"\?h\(View,\{style:S\.songActionBar\}/,
- "Multi-song reader has Cantos-style fixed actions");
+assert.match(app,/\{text:"Compartir",onPress:shareMultiReading\}/,
+ "Multi-song reader keeps Share inside the upper options menu");
+assert.doesNotMatch(app,/style:S\.songActionBar/,
+ "No second toolbar under the lyrics");
 assert.match(app,/shareMultiReading/);
-assert.match(app,/multiPage:\{paddingHorizontal:18/,"Keep comfortable side margins");
+assert.match(styles,/multiPage:\{paddingHorizontal:18/,"Keep comfortable side margins");
 console.log("SHALOM medley and misa readers match Cantos styling, preserve content, and have usable controls.");

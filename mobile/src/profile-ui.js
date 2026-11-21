@@ -15,7 +15,7 @@ const btn=(s,fn,outline=false,disabled=false)=>h(Pressable,{onPress:fn,disabled,
  style:[S.button,outline&&S.outline,disabled&&{opacity:.4}]},
  txt(s,[S.buttonText,outline&&S.outlineText]));
 function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
- editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal}){
+ editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal,onSettings,onBackup,onRequest,onMore}){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState(profile);
  const [loadingImage,setLoadingImage]=useState(false);
@@ -35,16 +35,6 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
   onEditRequestConsumed?.();
  },[editNonce]);
  const change=(key,value)=>setDraft(v=>({...v,[key]:value}));
- const collections=personal?.collections||[];
- const popurris=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="popurri").length,0);
- const misas=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="misa").length,0);
- const repertoireCount=collections.reduce((n,c)=>n+c.entries.filter(e=>e.kind==="repertorio").length,0);
- const counts=[["♥",likedSongs.length,"Me gusta"],["♧",misas,"Misas"],
-  ["♫",popurris,"Popurrís"],["▣",repertoireCount,"Repertorios"]];
- const recentPersonal=collections.flatMap(folder=>folder.entries.map(entry=>({folder,entry}))).slice(-6).reverse();
- const actions=[["♧","Crear misa","Para la celebración",()=>onCollections("misa","create")],
-  ["▣","Crear repertorio","Para un ensayo",()=>onCollections("repertorio","create")],
-  ["♫","Crear popurrí","Unir varios cantos",()=>onCollections("popurri","create")]];
  async function pick(which){
   if(loadingImage)return;
   setLoadingImage(true);
@@ -78,14 +68,12 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    edit?h(Pressable,{style:S.editBubble,onPress:()=>pick("cover"),accessibilityRole:"button",
     accessibilityLabel:"Cambiar portada del perfil"},txt("✎",S.editBubbleText)):null);
  }
- const section=(title,more)=>h(View,{style:S.sectionHead},txt(title,S.sectionTitle),
-  more?h(Pressable,{onPress:more,accessibilityRole:"button",accessibilityLabel:"Ver todo "+title},
-   txt("Ver todo  ›",S.more)):null);
- function shortcut([symbol,name,description,onPress]){
-  return h(Pressable,{key:name,onPress,style:S.shortcut,accessibilityRole:"button",accessibilityLabel:name},
-   h(View,{style:S.shortcutIcon},txt(symbol,S.shortcutSymbol)),
-   h(View,{style:{flex:1}},txt(name,S.shortcutLabel),txt(description,S.shortcutDescription)),
-   txt("›",S.shortcutArrow));
+ function toolRow(symbol,name,description,onPress){
+  return h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,
+   style:S.toolRow},
+   h(View,{style:S.toolIcon},txt(symbol,S.toolSymbol)),
+   h(View,{style:{flex:1,minWidth:0}},txt(name,S.toolName),txt(description,S.toolDescription)),
+   txt("›",S.toolChevron));
  }
  if(editing)return h(View,{style:S.page},
   h(View,{style:S.editHeading},
@@ -127,62 +115,48 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
    btn("Cancelar",()=>{setDraft(profile);setEditing(false);},true)));
  return h(View,{style:S.page},
   txt("Mi perfil",S.title),
-  profileHeader(profile),
-  h(View,{style:S.metrics},...counts.map(([symbol,n,name])=>
-   h(View,{key:name,style:S.metric},
-    txt(symbol,S.metricIcon),txt(n,S.metricNum),txt(name,S.metricCaption)))),
-  h(View,{style:S.sectionHeader},
-   txt("¿Qué quieres preparar?",S.sectionTitle),
-   txt("Comienza en un solo paso, sin crear carpetas.",S.caption)),
-  h(View,{style:S.quickGrid},...actions.map(shortcut)),
-  h(Pressable,{style:S.receiveButton,onPress:()=>onCollections(null,"import"),
-   accessibilityRole:"button",accessibilityLabel:"Recibir una composición"},
-   txt("↓",S.receiveIcon),
-   h(View,{style:{flex:1}},txt("Recibir composición",S.receiveTitle),
-    txt("Pega un mensaje de SHALOM recibido por WhatsApp.",S.caption)),
-   txt("›",S.shortcutArrow)),
-  section("Mis creaciones",()=>onCollections(null)),
-  h(View,{style:S.presetRow},
-   btn("Misas · "+misas,()=>onCollections("misa"),true),
-   btn("Repertorios · "+repertoireCount,()=>onCollections("repertorio"),true),
-   btn("Popurrís · "+popurris,()=>onCollections("popurri"),true)),
-  ...recentPersonal.map(({folder,entry})=>h(Pressable,{key:folder.id+"-"+entry.id,
-   style:S.personalItem,accessibilityRole:"button",accessibilityLabel:"Abrir "+entry.title,
-   onPress:()=>onOpenPersonal?.(folder.id,entry.id,entry.parts.length)},
-   h(View,{style:S.personalIcon},
-    txt(entry.kind==="misa"?"♧":entry.kind==="repertorio"?"▣":"♫",S.personalIconText)),
+  h(View,{style:S.simpleIdentity},
+   avatar(profile,64),
    h(View,{style:{flex:1,minWidth:0}},
-    h(Text,{style:S.songTitle,numberOfLines:2},entry.title),
-    txt((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+
-     " · "+entry.parts.length+" "+(entry.parts.length===1?"canto":"cantos"),S.songDesc)),
-   txt("›",S.more))),
-  !recentPersonal.length?h(View,{style:S.simpleEmpty},
-   txt("Aún no tienes composiciones. Puedes crear tu primera misa, repertorio o popurrí desde arriba.",S.caption)):null,
-  section("♡  Mis me gusta",()=>onSongs(true)),
-  txt("Tus cantos favoritos, guardados solo en este dispositivo.",S.caption),
-  ...likedSongs.slice(0,4).map(song=>h(Pressable,{
-   key:song.id,onPress:()=>openSong(song),style:S.songItem,accessibilityRole:"button",
-   accessibilityLabel:"Abrir "+song.title},
-   h(InitialCover,{title:song.title,size:59}),
-   h(View,{style:{flex:1,minWidth:0}},
-    h(Text,{style:S.songTitle,numberOfLines:2},song.title),
-    txt((song._artists||[]).map(a=>a.name).filter(Boolean).join(" · ")||"Canto SHALOM",S.songDesc)),
-   h(Pressable,{onPress:e=>{e?.stopPropagation?.();onLiked(song.id);},
-    accessibilityRole:"button",accessibilityLabel:"Quitar de Mis me gusta"},
-    txt("♥",S.heart)))),
-  !likedSongs.length?h(View,{style:S.simpleEmpty},
-   txt("Marca el corazón de cualquier canto para verlo aquí.",S.caption),
-   btn("Explorar cantos",()=>onSongs(false),true)):null,
-  h(View,{style:S.bottomActions},
-   btn("▣  Organizar por carpetas",()=>onCollections(null,"folders"),true),
-   btn("Ver repertorios oficiales",onRepertoires,true)));
+    txt(profile.name||"Mi perfil",S.simpleName),
+    txt(profile.name==="Mi perfil"?"Nombre y foto personal":profile.subtitle||"Coro y Alabanza",S.simpleSubtitle)),
+   h(Pressable,{onPress:()=>{setDraft(profile);setEditing(true);},
+    accessibilityRole:"button",accessibilityLabel:"Editar perfil",style:S.simpleEdit},
+    txt("✎",S.simpleEditIcon))),
+  h(View,{style:S.simpleDivider}),
+  h(View,{style:S.toolList},
+   toolRow("♡","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
+   toolRow("⚙","Configuración","Sincronización y Wi-Fi",onSettings),
+   toolRow("♢","Respaldo y restauración","Guardar tus datos personales",onBackup),
+   toolRow("◌","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
+   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
+  h(View,{style:S.simpleDivider}),
+  txt("Misas, repertorios, popurrís y composiciones: entra a Mis creaciones en la barra inferior.",S.simpleFootnote));
+
 
 }
 const S=StyleSheet.create({
- page:{gap:12,paddingBottom:25,paddingTop:6},
+ page:{gap:13,paddingBottom:18,paddingTop:4},
+ profileStats:{flexDirection:"row",backgroundColor:"#15332d",borderWidth:1,borderColor:"#426e60",borderRadius:18,paddingVertical:14},
+ profileStat:{flex:1,alignItems:"center",gap:4},
+ profileStatIcon:{color:GREEN,fontSize:23,fontWeight:"800"},
+ profileStatCount:{color:FG,fontSize:22,fontWeight:"900"},
+ profileStatLabel:{color:MUTED,fontSize:10.5},
+ profileShortcuts:{flexDirection:"row",gap:10},
+ profileShortcut:{flex:1,minHeight:110,padding:12,borderRadius:15,backgroundColor:"#17372f",borderWidth:1,borderColor:"#426e60",justifyContent:"center",gap:5},
+ profileShortcutIcon:{fontSize:24,color:GREEN},
+ profileShortcutTitle:{fontSize:15,color:FG,fontWeight:"850"},
+ profileShortcutSub:{fontSize:11,color:MUTED,lineHeight:16},
+ simpleIdentity:{flexDirection:"row",alignItems:"center",gap:14,paddingVertical:10,minHeight:82},
+ simpleName:{fontSize:19,color:FG,fontWeight:"850"},
+ simpleSubtitle:{fontSize:13,color:MUTED,marginTop:5},
+ simpleEdit:{height:44,width:44,alignItems:"center",justifyContent:"center",borderRadius:22},
+ simpleEditIcon:{fontSize:23,color:FG},
+ simpleDivider:{height:1,backgroundColor:"#34383f",marginVertical:10},
+ simpleFootnote:{fontSize:11.5,lineHeight:17,color:MUTED,marginTop:6},
  title:{fontSize:28,fontWeight:"900",color:FG,lineHeight:36},
  caption:{fontSize:12,color:MUTED,lineHeight:18},
- hero:{borderRadius:17,overflow:"hidden",height:269,backgroundColor:"#073b32"},
+ hero:{borderRadius:17,overflow:"hidden",height:232,backgroundColor:"#073b32"},
  heroGradient:{position:"absolute",left:0,right:0,bottom:0,height:173},
  profileIdentity:{position:"absolute",left:12,right:10,bottom:12,flexDirection:"row",alignItems:"center",gap:12},
  avatar:{borderWidth:3,borderColor:"#a9ffe3",backgroundColor:"#14533f",justifyContent:"center",alignItems:"center",overflow:"hidden"},
@@ -208,6 +182,13 @@ const S=StyleSheet.create({
  shortcutLabel:{fontSize:13,color:"#fff",fontWeight:"850"},
  shortcutDescription:{fontSize:10,color:MUTED,marginTop:3},
  shortcutArrow:{color:GREEN,fontSize:24,fontWeight:"600"},
+ toolList:{gap:0,borderTopWidth:1,borderColor:"#354d49"},
+ toolRow:{minHeight:70,paddingVertical:12,flexDirection:"row",gap:12,alignItems:"center"},
+ toolIcon:{width:30,height:34,alignItems:"center",justifyContent:"center"},
+ toolSymbol:{fontSize:21,fontWeight:"600",color:MUTED},
+ toolName:{fontSize:15,color:FG,fontWeight:"750"},
+ toolDescription:{fontSize:12,color:MUTED,marginTop:4,lineHeight:17},
+ toolChevron:{fontSize:23,color:MUTED},
  receiveButton:{backgroundColor:"#1d3036",borderWidth:1,borderColor:"#45635b",
   borderRadius:14,padding:12,flexDirection:"row",alignItems:"center",gap:11,minHeight:72},
  receiveIcon:{color:GREEN,fontSize:25},

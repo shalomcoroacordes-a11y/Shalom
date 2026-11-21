@@ -1,0 +1,99 @@
+name: SHALOM Android upgrade rehearsal (no publishing)
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-upgrade-rehearsal.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shalom-upgrade-rehearsal-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install APK inspection tools
+        run: sdkmanager --install "build-tools;35.0.0"
+      - name: Install and test candidate code
+        run: |
+          npm install --no-audit --no-fund
+          npx expo install --check
+          npm run test:syntax
+          npm test
+      - name: Generate original SHALOM icons and verify baseline
+        run: |
+          python3 -m venv /tmp/shalom-upgrade-icons
+          /tmp/shalom-upgrade-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
+          /tmp/shalom-upgrade-icons/bin/python scripts/generate_icons.py
+          node scripts/release-preflight.js
+      - name: Verify candidate v0.4.19 and versionCode 42
+        run: node scripts/release-preflight.js --publish
+      - name: Generate official-package Android project
+        run: npx expo prebuild --platform android --non-interactive --no-install
+      - name: Build release candidate without publishing
+        working-directory: mobile/android
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleRelease
+      - name: Download actual official v0.4.18 APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/shalom-upgrade"
+          gh release download android-v0.4.18 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'SHALOM-Android-v0.4.18.apk' --dir "$RUNNER_TEMP/shalom-upgrade"
+          test -s "$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.18.apk"
+      - name: REQUIRE matching real certificate, package and versionCode
+        run: bash scripts/verify-upgrade-candidate.sh
+      - name: Preserve VERIFIED rehearsal candidate as temporary artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM-UPGRADE-TEST-0.4.19-${{ github.sha }}
+          path: mobile/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Enable hardware acceleration for Android emulator
+        run: |
+          if [ ! -c /dev/kvm ]; then
+            echo "::error::GitHub runner does not expose /dev/kvm. Cannot claim emulator coverage." >&2
+            exit 1
+          fi
+          sudo chmod a+rw /dev/kvm
+          ls -l /dev/kvm
+      - name: Rehearse 0.4.18 to 0.4.19 on emulator with adb install -r
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          disable-linux-hw-accel: false
+          target: google_apis
+          arch: x86_64
+          profile: pixel_4
+          script: bash mobile/scripts/verify-upgrade-on-emulator.sh
+      - name: Preserve emulator UI screenshots for visual inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM-0.4.19-UI-${{ github.sha }}
+          path: ${{ runner.temp }}/shalom-upgrade/screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14

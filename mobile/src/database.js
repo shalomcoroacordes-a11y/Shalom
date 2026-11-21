@@ -69,12 +69,30 @@ async function saveSQLite(data,syncedAt){
    "ON CONFLICT(meta_key) DO UPDATE SET meta_value=excluded.meta_value",syncedAt);
  });
 }
+function newerTimestamp(...values){
+ const newest=Math.max(0,...values.map(value=>Date.parse(value||""))
+  .filter(value=>Number.isFinite(value)));
+ return new Date(Math.max(Date.now(),newest+1)).toISOString();
+}
 async function commitCatalog(data){
  validate(data);
  let fileSaved=null,sqlSaved=false,errors=[];
+ // La copia nueva debe ser más reciente que SQLite anterior, aun si
+ // una sincronización previa sólo consiguió escribir en SQLite.
+ let previousSqlSync=null;
+ try{
+  const db=await openDb();
+  const row=await db.getFirstAsync("SELECT meta_value FROM metadata WHERE meta_key='last_sync'");
+  previousSqlSync=row?.meta_value||null;
+ }catch(_){}
  // Guardamos primero una copia en Documentos; si SQLite falla la aplicación conserva el catálogo.
- try{fileSaved=await backup.saveSnapshot(data)}catch(err){errors.push("Archivos: "+err.message)}
- const syncedAt=fileSaved||new Date().toISOString();
+ try{fileSaved=await backup.saveSnapshot(data,previousSqlSync)}catch(err){errors.push("Archivos: "+err.message)}
+ let syncedAt=fileSaved;
+ if(!syncedAt){
+  let previousFileSync=null;
+  try{previousFileSync=(await backup.readSnapshot()).syncedAt}catch(_){}
+  syncedAt=newerTimestamp(previousSqlSync,previousFileSync);
+ }
  try{await saveSQLite(data,syncedAt);sqlSaved=true}catch(err){errors.push("SQLite: "+err.message)}
  if(!fileSaved&&!sqlSaved)throw new Error("No se pudo guardar el cancionero: "+errors.join(" / "));
  return syncedAt;

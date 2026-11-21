@@ -15,10 +15,28 @@ assert.ok(reader.includes("toggleLike(song.id)"),"The song reader must allow loc
 assert.ok(!/Editar|Reportar letra|Corregir acordes|requestForm\(/.test(reader),"No editor or correction requests inside the reader");
 assert.match(app,/setMetadata\(FAVORITES_KEY,payload\)/,"Likes must be written to local metadata");
 assert.match(app,/getMetadata\(FAVORITES_KEY,"\[\]"\)/,"Likes must be restored locally on startup");
-assert.match(app,/setOnlyLiked\(val==="liked"\)/,"Users need to filter their liked songs");
+assert.match(app,/setOnlyLiked\(value==="liked"\)/,"Users need to filter their liked songs");
+assert.match(app,/\["liked","Mis me gusta"\]/,"The favorites chip must remain visible in Cantos");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View/,"Native bottom navigation is hidden for all readers");
-assert.match(app,/shareSong\(active\)/,"Sharing must remain available without editing");
-assert.match(app,/printSong\(active\)/,"Printing must use a real action");
+const songActions=fs.readFileSync("mobile/src/song-actions-ui.js","utf8");
+assert.match(app,/onPress:\(\)=>active\?setActionSongId\(String\(active\.id\)\)/,
+ "The reader menu opens actions for the active song");
+assert.match(app,/onShare:\(\)=>shareSong\(actionSong\)/,
+ "The actions panel preserves sharing without editing");
+assert.match(app,/onPrint:\(\)=>printSong\(actionSong\)/,
+ "The actions panel preserves native printing");
+assert.match(songActions,/Compartir canción/,"Sharing remains visible in the actions panel");
+assert.match(songActions,/Imprimir letra y acordes/,"Printing remains visible in the actions panel");
+assert.match(songActions,/Ver enlaces y tutoriales/,"All song references accessible");
+assert.match(songActions,/Ver canto en la página SHALOM/,"Original permalink remains accessible");
+assert.match(songActions,/youtubeAvailable\?button/,"YouTube shortcut visible when available");
+assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"External links open with validation");
+assert.match(app,/onOpenSongPage:\(\)=>openWeb\(songPermalink\(actionSong\)\)/,
+ "Song page permalink remains visible");
+assert.match(app,/onVideo:\(\)=>openSongVideo\(actionSong\)/,
+ "YouTube is connected to the actions sheet");
+assert.doesNotMatch(app,/style:S.songActionBar/,
+ "Do not duplicate tone and font controls in a second reader footer");
 assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Supabase calls");
 assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
 assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
