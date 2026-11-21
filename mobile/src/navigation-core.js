@@ -3,8 +3,8 @@ const {normalize}=require("./catalog");
 const tabs=Object.freeze([
  Object.freeze(["Inicio","home"]),
  Object.freeze(["Cantos","song"]),
- Object.freeze(["Repertorios","repertoires"]),
- Object.freeze(["Mis creaciones","medleys"]),
+ Object.freeze(["Repertorios","calendar"]),
+ Object.freeze(["Mis creaciones","repertoires"]),
  Object.freeze(["Perfil","profile"])
 ]);
 const exploreTabs=new Set(["Explorar","Artistas","Categorías","Álbumes","Popurrís"]);

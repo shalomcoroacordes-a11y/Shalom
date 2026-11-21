@@ -7,6 +7,8 @@ const personal=fs.readFileSync("src/personal-ui.js","utf8");
 const {tabs,routeForTab}=require("../src/navigation-core");
 assert.deepEqual(tabs.map(x=>x[0]),["Inicio","Cantos","Repertorios","Mis creaciones","Perfil"]);
 assert.equal(routeForTab("Cantos"),"Canciones");
+assert.equal(tabs.find(x=>x[0]==="Repertorios")[1],"calendar");
+assert.equal(tabs.find(x=>x[0]==="Mis creaciones")[1],"repertoires");
 assert.match(app,/const \[songLibraryOpen,setSongLibraryOpen\]=useState\(false\)/);
 assert.match(app,/placeholder:"Buscar letras, acordes y títulos"/);
 for(const x of ['["all","Todos"]','["catolico","Católicos"]',

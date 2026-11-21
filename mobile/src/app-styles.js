@@ -203,7 +203,7 @@ module.exports=function createAppStyles(C,MONO){
  repSuggestIcon:{fontSize:22,color:C.green,fontWeight:"600"},
  repSuggestCaption:{fontSize:13,fontWeight:"750",color:C.text,flex:1},
 
- homeTopBar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingHorizontal:20,paddingTop:3,backgroundColor:C.bg},
+ homeTopBar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",paddingHorizontal:16,paddingTop:3,paddingBottom:8,minHeight:67,backgroundColor:C.bg,borderBottomWidth:1,borderBottomColor:"#30353b"},
  homeTopButton:{width:46,height:46,justifyContent:"center",alignItems:"center",position:"relative"},
  homeTopIcon:{height:27,width:27,tintColor:C.text},
  homeBellDot:{position:"absolute",right:6,top:7,width:9,height:9,borderRadius:5,backgroundColor:C.green},
