@@ -20,6 +20,7 @@ assert.equal(parseProfile("{bad").name,"Mi perfil","Una preferencia dañada no d
 assert.equal(parseProfile(JSON.stringify({...custom,avatar:"../../unsafe.jpg"})).avatar,null);
 assert.equal(parseProfile(JSON.stringify({...custom,bannerAction:"pay"})).bannerAction,"explorar");
 const app=fs.readFileSync("App.js","utf8");
+const shared=fs.readFileSync("src/app-components.js","utf8");
 const profile=fs.readFileSync("src/profile-ui.js","utf8");
 const cover=fs.readFileSync("src/collection-covers.js","utf8");
 assert.match(app,/h\(ProfileScreen,/,"Perfil como quinta sección");
@@ -28,7 +29,7 @@ assert.match(app,/setMetadata\(PROFILE_KEY,JSON\.stringify\(clean\)\)/,"Guardar 
 assert.match(app,/onPress:\(\)=>tab==="Perfil"\?openProfileMenu\(\)/,"Opciones de perfil en tres puntos");
 assert.match(app,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,
  "El destacado usa la foto local seleccionada");
-assert.match(app,/h\(InitialCover,\{title:title\|\|"Canto",size:53\}/,
+assert.match(shared,/h\(InitialCover,\{title:title\|\|"Canto",size:53\}/,
  "Las listas de cantos utilizan iniciales de color");
 assert.match(app,/h\(InitialCover,\{title:rep\.title\|\|"Repertorio",size:53\}/,
  "Los repertorios usan iniciales de color");

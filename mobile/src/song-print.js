@@ -1,22 +1,10 @@
 // Impresión directa de los datos ya descargados: no necesita abrir SHALOM web.
 const {parseSong,transposeOne}=require("./chords");
+const {capoSelection}=require("./song-capo-core");
 const esc=value=>String(value==null?"":value).replace(/&/g,"&amp;").replace(/</g,"&lt;")
  .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 function readerShiftForPrint(song,transpose=0,capo="none"){
- const choices=[{id:"none",position:0,key:""}];
- if(Number(song?.capo_position)>0)choices.push({id:"main",position:Number(song.capo_position),key:song.capo_key||""});
- for(const item of song?._capos||[])choices.push({id:item.id,position:Number(item.capo_position||0),key:item.capo_key||""});
- const chosen=choices.find(c=>c.id===capo)||choices[0];
- if(chosen.id==="none")return transpose;
- const root=str=>String(str||"").match(/[A-G](?:#|b)?/)?.[0]||"";
- const flat={Db:"C#",Eb:"D#",Gb:"F#",Ab:"G#",Bb:"A#"};
- const norm=str=>flat[str]||str;
- const notes=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
- const from=notes.indexOf(norm(root(song?.tone)));
- const to=notes.indexOf(norm(root(chosen.key)));
- let offset=from>=0&&to>=0?((to-from+12)%12):(-chosen.position||0);
- if(offset>6)offset-=12;
- return transpose+offset;
+ return transpose+capoSelection(song,capo).offset;
 }
 function buildPrintableSong(song,shift=0){
  if(!song||!song.id)throw new Error("Selecciona un canto guardado.");
