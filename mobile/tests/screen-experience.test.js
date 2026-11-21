@@ -23,6 +23,7 @@ assert.doesNotMatch(app,/!immersiveActive\?h\(AppSectionHeader/,"No dibujar dobl
 assert.match(profile,/profileHeader\(profile\)/,"The profile uses the original editable cover and avatar");
 assert.match(profile,/style:S.profileStats/,"Profile shows personal counters");
 assert.match(profile,/style:S.profileShortcuts/,"Profile links to local collections and favorites");
+assert.match(profile,/onPress:\(\)=>onCollections\(null\)/,"Profile must not pass touch event as personal collection filter");
 assert.match(profile,/Cantos que guardaste/,"Favorites are visible in profile");
 assert.match(profile,/Acerca de y donaciones/,"Existing information links are easy to find");
 assert.match(profile,/Editar perfil/);

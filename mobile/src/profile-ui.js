@@ -128,7 +128,7 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
   txt("Tu espacio",S.sectionTitle),
   txt("Tu perfil es personal y se guarda en este teléfono.",S.caption),
   h(View,{style:S.profileShortcuts},
-   h(Pressable,{onPress:onCollections,style:S.profileShortcut,accessibilityRole:"button"},
+   h(Pressable,{onPress:()=>onCollections(null),style:S.profileShortcut,accessibilityRole:"button"},
     txt("▱",S.profileShortcutIcon),txt("Mis creaciones",S.profileShortcutTitle),
     txt("Misas, repertorios y popurrís  ›",S.profileShortcutSub)),
    h(Pressable,{onPress:()=>onSongs(true),style:S.profileShortcut,accessibilityRole:"button"},
