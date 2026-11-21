@@ -27,3 +27,21 @@ assert.match(fs.readFileSync("../sql/SHALOM_ADMIN_DONATIONS_RBAC_20261121.sql","
 
 assert.match(app,/api\.restoreSong/);
 assert.match(fs.readFileSync("../sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql","utf8"),/admin_restore_song/);
+
+const styles=fs.readFileSync("src/styles.js","utf8");
+const picker=fs.readFileSync("src/components/Picker.js","utf8");
+const lyrics=fs.readFileSync("src/components/LyricsEditor.js","utf8");
+assert.match(app,/useSafeAreaInsets/,"Utilizar insets del sistema Android");
+assert.match(app,/S\.navShell/,"La barra inferior debe fluir fuera del scroll");
+assert.match(app,/paddingBottom:Math\.max\(insets\.bottom/);
+assert.doesNotMatch(styles,/position:"absolute",bottom:7/,"Prohibido solapar barra nativa");
+assert.match(styles,/minHeight:53/,"Objetivos táctiles grandes");
+assert.match(app,/categoryChoices/);
+assert.match(picker,/filterChoices/);
+assert.match(picker,/selectedNames/);
+assert.match(lyrics,/presentationStyle:"fullScreen"/);
+assert.match(lyrics,/Math\.max\(360/);
+assert.match(lyrics,/fontFamily:"monospace"/);
+assert.equal(pkg.expo.android.edgeToEdgeEnabled,false);
+assert.equal(pkg.expo.android.versionCode,2);
+console.log("Navegación segura, selectores y editor amplio comprobados.");
