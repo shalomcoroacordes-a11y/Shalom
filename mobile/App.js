@@ -446,7 +446,7 @@ function AppScreen() {
       label("♧",S.todayTitleIcon),
       label("Hoy en SHALOM",S.shalomTodayHeading)),
      h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
-      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones oficiales"},
+      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
       label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
     ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
      style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{

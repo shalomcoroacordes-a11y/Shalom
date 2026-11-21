@@ -61,8 +61,8 @@ assert.match(styles,/spotifyShortcutCountText/,"Every tile has a numeric count")
 assert.doesNotMatch(styles,/spotifyShortcutShade:/,"Remove poster backgrounds and double-overlay icon");
 assert.match(app,/Hoy en SHALOM/);
 assert.match(app,/selectRepertoire\(rep\)/,"Tap opens official repertoire or mass");
-assert.match(app,/selectMedley\(m\)/,"Tap opens official medley");
+assert.match(app,/selectMedley\(medley\)/,"Tap opens official medley");
 assert.match(app,/accessibilityLabel:"Actualizar publicaciones del coro"/,"User can refresh admin content");
-assert.match(app,/Cuando publiquen una misa, repertorio o popurrí desde el administrador/,
+assert.match(app,/Aquí aparecerán las misas, repertorios y popurrís que publique el coro/,
  "Empty state explains source and avoids invented content");
 console.log("SHALOM: minimalistic counters, official publication selection and Home navigation verified.");
