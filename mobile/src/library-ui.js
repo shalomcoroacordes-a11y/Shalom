@@ -10,15 +10,12 @@ const {safeWebUrl}=require("./catalog");
 const h=React.createElement;
 const T={green:"#27c98b",fg:"#f4f7f7",sub:"#c3d5d5",bg:"#0e1219"};
 const txt=(text,style)=>h(Text,{style},String(text??""));
-function LibraryHero({title,subtitle,preset="sunrise"}){
+function LibraryHero({title,subtitle}){
  return h(View,{style:S.hero},
-  h(CoverArt,{preset,height:168,color:T.green}),
-  h(LinearGradient,{colors:["rgba(0,20,20,.84)","rgba(0,20,20,.42)","rgba(0,0,0,.26)"],
-   start:{x:0,y:0},end:{x:1,y:0},style:S.heroShade}),
-  h(View,{style:S.heroText},
-   h(Text,{style:S.heroTitle,numberOfLines:2},title),
-   h(Text,{style:S.heroSubtitle,numberOfLines:2},subtitle)));
+  h(Text,{style:S.heroTitle},title),
+  h(Text,{style:S.heroSubtitle},subtitle));
 }
+
 function LibrarySearch({value,onChangeText,placeholder,showFilters=true,onFilters}){
  return h(View,{style:S.searchArea},
   h(View,{style:S.searchBox},
@@ -85,32 +82,31 @@ function LibraryArtistCard({artist,count,type,onOpen}){
    h(Text,{style:S.artistCount,numberOfLines:1},count+" "+(count===1?"canto":"cantos"))));
 }
 const S=StyleSheet.create({
- hero:{borderRadius:18,overflow:"hidden",height:168,marginBottom:14,
-  borderColor:"#32664e",borderWidth:1,backgroundColor:"#194b3e"},
+ hero:{gap:5,paddingHorizontal:1,paddingVertical:6,marginBottom:12},
  heroShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
  heroText:{position:"absolute",left:16,right:16,bottom:18},
- heroTitle:{fontSize:27,fontWeight:"900",lineHeight:33,color:T.fg},
- heroSubtitle:{color:"#e0f0e9",fontSize:12.5,lineHeight:18,marginTop:6,maxWidth:"91%"},
+ heroTitle:{fontSize:26,fontWeight:"900",lineHeight:33,color:T.fg},
+ heroSubtitle:{color:"#b0c0c7",fontSize:12.5,lineHeight:19,maxWidth:"100%"},
  searchArea:{flexDirection:"row",gap:8,alignItems:"center",marginBottom:14},
  searchBox:{flex:1,minWidth:0,flexDirection:"row",alignItems:"center",height:47,
-  backgroundColor:"#15332f",borderColor:"#527b6b",borderWidth:1,borderRadius:25,
+  backgroundColor:"#181d24",borderColor:"#3a444c",borderWidth:1,borderRadius:14,
   paddingHorizontal:13},
  searchIcon:{fontSize:29,color:"#9eeac3",marginRight:9,lineHeight:33},
  searchInput:{fontSize:13,color:T.fg,flex:1,paddingVertical:7},
- filterButton:{width:48,height:47,borderRadius:16,borderColor:"#416d58",borderWidth:1,
-  alignItems:"center",justifyContent:"center",backgroundColor:"#17332e"},
+ filterButton:{width:48,height:47,borderRadius:14,borderColor:"#3a444c",borderWidth:1,
+  alignItems:"center",justifyContent:"center",backgroundColor:"#23272e"},
  filterActive:{borderColor:"#67a98a"},
  filterText:{fontSize:24,color:T.green,lineHeight:29},
  filters:{marginBottom:5},
  filtersBody:{flexDirection:"row",gap:7,paddingVertical:2,paddingBottom:10},
- chip:{minHeight:40,borderRadius:99,borderWidth:1,borderColor:"#4a7463",
-  paddingHorizontal:14,alignItems:"center",justifyContent:"center",backgroundColor:"#122b2a"},
+ chip:{minHeight:39,borderRadius:99,borderWidth:1,borderColor:"#3a444c",
+  paddingHorizontal:14,alignItems:"center",justifyContent:"center",backgroundColor:"#23272e"},
  chipSelected:{backgroundColor:T.green,borderColor:T.green},
  chipText:{fontSize:12,fontWeight:"750",color:T.fg},
  chipSelectedText:{color:"#052d1c"},
- songRow:{minHeight:78,flexDirection:"row",alignItems:"center",gap:9,paddingHorizontal:8,
-  paddingVertical:9,backgroundColor:"#1c2c34",borderRadius:15,
-  borderWidth:1,borderColor:"#34524f"},
+ songRow:{minHeight:75,flexDirection:"row",alignItems:"center",gap:9,paddingHorizontal:8,
+  paddingVertical:8,backgroundColor:"#23272e",borderRadius:14,
+  borderWidth:1,borderColor:"#363f44"},
  songTitle:{fontSize:14.5,fontWeight:"850",color:T.fg,lineHeight:19},
  songMeta:{color:T.sub,fontSize:11,marginTop:4},
  smallTouch:{width:32,height:45,alignItems:"center",justifyContent:"center"},

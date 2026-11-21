@@ -1,7 +1,11 @@
 // Almacenamiento de rescate en Documentos internos de la APP, NO en caché de Android/Chrome.
 // Dos copias alternas: una descarga interrumpida no reemplaza la última copia válida.
 const { File, Paths } = require("expo-file-system");
-const { TABLES } = require("./config");
+const { TABLES, SUPABASE_URL } = require("./config");
+// Hermes puede no implementar new URL(...) sin un polyfill.
+// Nunca interpretar la URL en la carga inicial de la app: un error aquí
+// cerraría SHALOM antes de montar la pantalla y abrir las colecciones.
+const SHALOM_SOURCE = String(SUPABASE_URL).match(/^https:\/\/([a-z0-9]+)\.supabase\.co\/?$/)?.[1] || "";
 
 function fileFor(slot) {
   return new File(Paths.document, "shalom-offline-" + slot + ".json");
@@ -12,11 +16,37 @@ function prefsFile() {
 function emptyData() {
   return Object.fromEntries(TABLES.map(table => [table, []]));
 }
-function validSnapshot(data) {
-  return Boolean(data && typeof data === "object" &&
-    typeof data.syncedAt === "string" &&
-    Number.isFinite(Date.parse(data.syncedAt)) &&
-    data.data && TABLES.every(table => ["medleys","repertoires"].includes(table) && data.data[table] == null ? true : Array.isArray(data.data[table])));
+// Suma de comprobación no criptográfica: detecta escrituras incompletas
+// o contenidos cambiados, sin invalidar respaldos antiguos sin checksum.
+function snapshotChecksum(data) {
+  const payload = JSON.stringify(data);
+  let hash = 2166136261;
+  for (let i = 0; i < payload.length; i++) {
+    hash = Math.imul(hash ^ payload.charCodeAt(i), 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+function validSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object" ||
+      typeof snapshot.syncedAt !== "string" ||
+      !Number.isFinite(Date.parse(snapshot.syncedAt)) ||
+      !snapshot.data || typeof snapshot.data !== "object") return false;
+  // Versiones anteriores no tenían necesariamente el campo source.
+  // Cuando está presente debe identificar inequívocamente la base SHALOM.
+  if (snapshot.source != null && snapshot.source !== SHALOM_SOURCE) return false;
+  if (snapshot.revision != null && (!Number.isSafeInteger(snapshot.revision) || snapshot.revision < 0)) return false;
+  if (snapshot.checksum != null && snapshot.checksum !== snapshotChecksum(snapshot.data)) return false;
+  return TABLES.every(table => {
+    const rows = snapshot.data[table];
+    if (rows == null && ["medleys","repertoires"].includes(table)) return true;
+    if (!Array.isArray(rows)) return false;
+    const ids = new Set();
+    for (const row of rows) {
+      if (!row || typeof row.id !== "string" || !row.id || ids.has(row.id)) return false;
+      ids.add(row.id);
+    }
+    return true;
+  });
 }
 async function readSlot(slot) {
   try {
@@ -33,27 +63,53 @@ async function readSnapshot() {
   const [a, b] = await Promise.all([readSlot("A"), readSlot("B")]);
   if (!a && !b) return { data: emptyData(), syncedAt: null, storage: "archivo-local" };
   const latest = !a ? b : !b ? a
-    : Date.parse(a.syncedAt) >= Date.parse(b.syncedAt) ? a : b;
-  return { data: {...emptyData(),...latest.data}, syncedAt: latest.syncedAt, storage: "archivo-local", slot: latest.slot };
+    : (a.revision || 0) !== (b.revision || 0)
+      ? (a.revision || 0) > (b.revision || 0) ? a : b
+      : Date.parse(a.syncedAt) >= Date.parse(b.syncedAt) ? a : b;
+  return {
+    data: {...emptyData(),...latest.data}, syncedAt: latest.syncedAt,
+    storage: "archivo-local", slot: latest.slot, revision: latest.revision || 0
+  };
 }
 
-async function saveSnapshot(data) {
+async function saveSnapshot(data, lastSqlSync = null) {
   if (!data || !TABLES.every(table => Array.isArray(data[table]))) {
     throw new Error("El cancionero recibido está incompleto.");
   }
   const last = await readSnapshot();
   const nextSlot = last.slot === "A" ? "B" : "A";
   const next = fileFor(nextSlot);
-  const syncedAt = new Date().toISOString();
-  const snapshot = { source: "ehpvsasyzlrlypjjpzuk", syncedAt, data, version: 1 };
+  // Hora estrictamente creciente, incluso ante dos escrituras en un mismo ms.
+  // SQLite puede comparar esta fecha con su última sincronización.
+  const oldTime = Date.parse(last.syncedAt || "");
+  const sqlTime = Date.parse(lastSqlSync || "");
+  // También superar el último guardado SQLite, incluso cuando una copia
+  // de archivo anterior falló y ambos almacenamientos se desfasaron.
+  const nextTime = Math.max(Date.now(),
+    Number.isFinite(oldTime) ? oldTime + 1 : 0,
+    Number.isFinite(sqlTime) ? sqlTime + 1 : 0);
+  const syncedAt = new Date(nextTime).toISOString();
+  const snapshot = {
+    source: SHALOM_SOURCE, syncedAt, data, version: 1,
+    revision: (last.revision || 0) + 1,
+    checksum: snapshotChecksum(data)
+  };
   // Sólo sobrescribe la ranura inactiva. La última copia buena sigue intacta.
-  next.create({ overwrite: true });
-  await next.write(JSON.stringify(snapshot));
-  const test = await readSlot(nextSlot);
-  if (!test || !TABLES.every(table => test.data[table].length === data[table].length)) {
-    throw new Error("No se pudo verificar que el archivo del cancionero se guardara completo.");
+  try {
+    next.create({ overwrite: true });
+    await next.write(JSON.stringify(snapshot));
+    const test = await readSlot(nextSlot);
+    if (!test || test.source !== SHALOM_SOURCE ||
+        JSON.stringify(test.data) !== JSON.stringify(data)) {
+      throw new Error("No se pudo verificar que el archivo del cancionero se guardara completo.");
+    }
+    return syncedAt;
+  } catch (error) {
+    // La ranura fallida nunca debe superar a la última copia buena.
+    // File.delete es la API de expo-file-system SDK 58.
+    try { if (next.exists) next.delete(); } catch (_) {}
+    throw error;
   }
-  return syncedAt;
 }
 
 async function getPreference(key, fallback = null) {

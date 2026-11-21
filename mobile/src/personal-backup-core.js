@@ -3,7 +3,8 @@ const {COVER_FILE,parseStore}=require("./personal-collections");
 const {parseProfile}=require("./profile-core");
 const {parseFavorites}=require("./favorites");
 const FORMAT="SHALOM-PERSONAL-BACKUP",VERSION=1;
-const MAX_JSON_BYTES=42*1024*1024,MAX_IMAGE_B64=3*1024*1024,MAX_IMAGES=160;
+// Limite de archivo para respaldos v1 (incluidas fotos). Se comprueba tambien en bytes reales al exportar.
+const MAX_JSON_BYTES=64*1024*1024,MAX_IMAGE_B64=3*1024*1024,MAX_IMAGES=160;
 const MAX_ITEMS=100; // límite del almacenamiento de colecciones existente
 const MAX_FAVS=25000;
 function referencedImages(profile,personal){
@@ -75,7 +76,7 @@ function buildBackup(source,images,createdAt=new Date().toISOString()){
  const body={format:FORMAT,version:VERSION,createdAt,profile:clean.profile,
   personal:clean.personal,likedIds:clean.likedIds,lastRead:clean.lastRead,images:media};
  const content=JSON.stringify(body);
- if(content.length>MAX_JSON_BYTES)throw new Error("El respaldo excede 42 MB. Reduce algunas portadas para continuar.");
+ if(content.length>MAX_JSON_BYTES)throw new Error("El respaldo supera 64 MB. Reduce algunas portadas para continuar.");
  return JSON.stringify({...body,checksum:checksum(content)});
 }
 function readBackup(raw){

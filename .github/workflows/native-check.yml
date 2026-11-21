@@ -22,43 +22,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify Expo SDK compatibility
         run: npx expo install --check
-      - name: Validate JavaScript syntax of all native screens
-        run: |
-          node --check App.js
-          node --check src/song-actions-core.js
-          node --check src/song-actions-ui.js
-          node --check src/song-print.js
-          node --check src/personal-ui.js
-          node --check src/personal-collections.js
-          node --check src/profile-ui.js
-          node --check src/home-spotlight.js
-          node --check src/personal-workflows.js
-          node --check src/personal-backup-core.js
-          node --check src/personal-backup-io.js
-          node --check src/personal-backup-ui.js
-          node --check src/local-notice.js
-          node --check src/profile-options-menu.js
-          node --check src/chord-grid.js
-          node --check src/aligned-score-ui.js
-          node --check src/aligned-score-legacy-ui.js
-          node --check src/web-score-html.js
-          node --check src/score-zoom.js
-      - name: Test lyrics, folders, videos and correction forms
-        run: |
-          node tests/chords.test.js
-          node tests/chord-grid.test.js
-          node tests/score-pinch.test.js
-          node tests/web-score-html.test.js
-          node tests/reader-open-layout.test.js
-          node tests/favorites.test.js
-          node tests/repertoire-ui.test.js
-          node tests/catalog.test.js
-          node tests/requests.test.js
-          node tests/medleys.test.js
-          node tests/personal-collections.test.js
-          node tests/personal-workflows.test.js
-          node tests/personal-cover-ui.test.js
-          node tests/local-profile.test.js
-          node tests/home-spotlight.test.js
-          node tests/song-actions.test.js
-          node tests/personal-backup.test.js
+      - name: Check JavaScript syntax across Android modules
+        run: npm run test:syntax
+      - name: Run every Android regression test
+        run: npm test
