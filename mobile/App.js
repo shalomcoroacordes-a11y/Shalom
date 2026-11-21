@@ -438,18 +438,18 @@ function AppScreen() {
   ];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
-    label("Hola, bienvenido",S.spotifyWelcomeTitle),
-    label("Bienvenido a SHALOM 💚",S.spotifyWelcomeText)),
+    label("Bienvenido a SHALOM",S.spotifyWelcomeTitle),
+    label("Tu música para celebrar y ensayar.",S.spotifyWelcomeText)),
    h(View,{style:S.shalomToday},
     h(View,{style:S.shalomTodayHeader},
      h(View,{style:S.todayTitleWrap},
-      label("Hoy en SHALOM",S.shalomTodayHeading)),
+      label("▦",S.todayTitleIcon),label("Hoy en SHALOM",S.shalomTodayHeading)),
      h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
       accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
       label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
-    label("Lo que cantaremos y ensayaremos como coro",S.shalomTodaySubheading),
+    
     ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
-     style:S.shalomTodayCard,onPress:()=>{
+     style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{
       if(item.type==="medley"){
        const medley=model.medleys.find(x=>String(x.id)===item.id);
        if(medley)selectMedley(medley);
@@ -458,10 +458,7 @@ function AppScreen() {
        if(rep)selectRepertoire(rep);
       }
      },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
-     h(View,{style:S.shalomTodayIconBox},
-      h(Image,{source:HOME_IMAGES[item.type==="medley"?"medleys":"mass"],style:S.shalomTodayImage,resizeMode:"contain"})),
      h(View,{style:S.todayEntryBody},
-      label(item.label.toUpperCase(),S.shalomTodayLabel),
       h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
       h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
        [item.label,item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle]
@@ -508,17 +505,12 @@ function AppScreen() {
      h(View,{style:S.spotifyShortcutText},
       label(name,S.spotifyShortcutName),
       label(subtitle,S.spotifyShortcutSubtitle))))),
-   h(View,{style:S.spotifyBanner},
-    h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,color:C.green,height:176}),
-    h(LinearGradient,{colors:["rgba(0,12,13,.62)","rgba(0,20,17,.1)","rgba(0,0,0,.72)"],
-     style:S.spotifyBannerOverlay}),
-    h(View,{style:S.spotifyBannerContent},
-     label("♫  DESTACADO",S.spotifyBannerEyebrow),
-     h(Text,{style:S.spotifyBannerTitle,numberOfLines:2},profile.bannerTitle),
-     label("Cantos y acordes para acompañar tu alabanza",S.spotifyBannerSubtitle),
-     h(Pressable,{onPress:goBanner,style:S.spotifyBannerButton,accessibilityRole:"button",
-      accessibilityLabel:ACTION_LABEL[profile.bannerAction]||"Explorar cantos"},
-      label((ACTION_LABEL[profile.bannerAction]||"Explorar cantos")+"  ›",S.spotifyBannerButtonLabel)))),
+   h(Pressable,{style:S.spotifyBannerMini,onPress:goBanner,accessibilityRole:"button",
+    accessibilityLabel:"Destacado: "+(profile.bannerTitle||"Explorar cantos")},
+    h(View,{style:{flex:1,minWidth:0}},
+     label("DESTACADO DE TU PERFIL",S.spotifyBannerEyebrow),
+     h(Text,{style:S.spotifyBannerMiniTitle,numberOfLines:1},profile.bannerTitle||"Cantos de SHALOM")),
+    label("›",S.homeRecentArrow)),
    h(View,{style:S.spotifyBlock},
     label("Descubre más en SHALOM",S.spotifyHeading),
     h(View,{style:S.homeGrid},...[
@@ -531,10 +523,7 @@ function AppScreen() {
      h(View,{style:S.homeTileIcon},
       h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
      h(View,{style:{flex:1,minWidth:0}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)))))),
-   likes.length?h(View,{style:S.spotifyBlock},
-    label("Mis me gusta",S.spotifyHeading),
-    ...likes.slice(0,3).map(song=>h(SectionListCard,{key:song.id,title:song.title,
-     subtitle:names(song._artists)||"Canto SHALOM",onPress:()=>selectSong(song)}))):null,
+
    !copy?.syncedAt?h(Pressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
     label("↓ Descargar cancionero sin conexión  ›",S.homeSyncText)):null,
    busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
@@ -580,6 +569,14 @@ function AppScreen() {
    h(View,{style:S.libraryTitleRow},
     label(showing,S.librarySectionTitle),
     label(eligible.length+" "+(eligible.length===1?"canto":"cantos"),S.libraryCount)),
+   h(View,{style:S.libraryExploreIntro},
+    label("Explorar también por",S.libraryExploreTitle),
+    h(View,{style:S.libraryExploreGrid},
+     ...[["Artistas","Artistas"],["Categorías","Categorías"],["Álbumes","Álbumes"],
+       ["Popurrís oficiales","Popurrís"]].map(([name,dest])=>
+       h(Pressable,{key:name,style:S.libraryExploreItem,onPress:()=>goTab(dest),
+        accessibilityRole:"button",accessibilityLabel:"Explorar "+name},
+        label(name,S.libraryExploreItemText),label("›",S.libraryExploreItemArrow))))),
    h(View,{style:S.libraryList},
     ...eligible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,
      artistName:names(song._artists)||type(song.song_type),tone:song.tone,
@@ -706,8 +703,6 @@ function AppScreen() {
   const iconFor=kind=>kind==="misa"?"mass":kind==="ensayo"?"artists":"calendar";
   return h(View,{style:S.repPage},
    h(View,{style:S.repHeading},
-    h(Image,{source:HOME_IMAGES.repertoires,resizeMode:"contain",
-     style:S.repHeadingIcon}),
     h(View,{style:{flex:1,minWidth:0}},
      h(Text,{style:S.repTitle,numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.8},"Repertorios"),
      label("Publicados por SHALOM · Misas, ensayos y celebraciones",S.repSubtitle))),
@@ -747,8 +742,9 @@ function AppScreen() {
    h(Pressable,{style:S.repSuggest,onPress:()=>{
      requestForm("other");setRequestTitle("Sugerencia de repertorio");
     },accessibilityRole:"button",accessibilityLabel:"Sugerir un repertorio al administrador"},
-    label("+",S.repSuggestIcon)),
-   label("Sugerir repertorio",S.repSuggestCaption)
+    label("＋",S.repSuggestIcon),
+    label("Sugerir un repertorio",S.repSuggestCaption),
+    label("›",S.homeRecentArrow))
   );
  }
  async function shareMultiReading(){

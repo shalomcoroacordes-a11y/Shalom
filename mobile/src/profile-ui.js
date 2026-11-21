@@ -113,38 +113,30 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
   h(View,{style:S.infoBox},txt("🔒  La foto, la portada y el banner se guardan de forma privada en tu teléfono. No se suben a Supabase.",S.caption)),
   h(View,{style:S.rowActions},btn("Guardar cambios",save),
    btn("Cancelar",()=>{setDraft(profile);setEditing(false);},true)));
- const entries=(personal?.collections||[]).flatMap(x=>Array.isArray(x.entries)?x.entries:[]);
- const masses=entries.filter(x=>x.kind==="misa").length;
- const medleys=entries.filter(x=>x.kind==="popurri").length;
- const reps=entries.filter(x=>x.kind==="repertorio").length;
  return h(View,{style:S.page},
   txt("Mi perfil",S.title),
-  profileHeader(profile),
-  h(View,{style:S.profileStats},...[
-   ["♥",likedSongs?.length||0,"Me gusta"],["♧",masses,"Misas"],
-   ["♫",medleys,"Popurrís"],["▱",reps,"Repertorios"]
-  ].map(([symbol,count,name])=>h(View,{key:name,style:S.profileStat},
-   txt(symbol,S.profileStatIcon),txt(count,S.profileStatCount),txt(name,S.profileStatLabel)))),
-  txt("Tu espacio",S.sectionTitle),
-  txt("Tu perfil es personal y se guarda en este teléfono.",S.caption),
-  h(View,{style:S.profileShortcuts},
-   h(Pressable,{onPress:()=>onCollections(null),style:S.profileShortcut,accessibilityRole:"button"},
-    txt("▱",S.profileShortcutIcon),txt("Mis creaciones",S.profileShortcutTitle),
-    txt("Misas, repertorios y popurrís  ›",S.profileShortcutSub)),
-   h(Pressable,{onPress:()=>onSongs(true),style:S.profileShortcut,accessibilityRole:"button"},
-    txt("♥",S.profileShortcutIcon),txt("Mis me gusta",S.profileShortcutTitle),
-    txt("Cantos que guardaste  ›",S.profileShortcutSub))),
-  btn("✎  Editar perfil",()=>{setDraft(profile);setEditing(true);}),
+  h(View,{style:S.simpleIdentity},
+   avatar(profile,64),
+   h(View,{style:{flex:1,minWidth:0}},
+    txt(profile.name||"Mi perfil",S.simpleName),
+    txt(profile.subtitle||"Coro y Alabanza",S.simpleSubtitle)),
+   h(Pressable,{onPress:()=>{setDraft(profile);setEditing(true);},
+    accessibilityRole:"button",accessibilityLabel:"Editar perfil",style:S.simpleEdit},
+    txt("✎",S.simpleEditIcon))),
+  h(View,{style:S.simpleDivider}),
   h(View,{style:S.toolList},
+   toolRow("♡","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
    toolRow("⚙","Configuración","Sincronización y Wi-Fi",onSettings),
    toolRow("♢","Respaldo y restauración","Guardar tus datos personales",onBackup),
    toolRow("◌","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
-   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)));
+   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
+  h(View,{style:S.simpleDivider}),
+  txt("Misas, repertorios, popurrís y composiciones: entra a Mis creaciones en la barra inferior.",S.simpleFootnote));
 
 
 }
 const S=StyleSheet.create({
- page:{gap:15,paddingBottom:25,paddingTop:8},
+ page:{gap:13,paddingBottom:18,paddingTop:4},
  profileStats:{flexDirection:"row",backgroundColor:"#15332d",borderWidth:1,borderColor:"#426e60",borderRadius:18,paddingVertical:14},
  profileStat:{flex:1,alignItems:"center",gap:4},
  profileStatIcon:{color:GREEN,fontSize:23,fontWeight:"800"},
@@ -155,12 +147,12 @@ const S=StyleSheet.create({
  profileShortcutIcon:{fontSize:24,color:GREEN},
  profileShortcutTitle:{fontSize:15,color:FG,fontWeight:"850"},
  profileShortcutSub:{fontSize:11,color:MUTED,lineHeight:16},
- simpleIdentity:{flexDirection:"row",alignItems:"center",gap:14,paddingVertical:10},
+ simpleIdentity:{flexDirection:"row",alignItems:"center",gap:14,paddingVertical:10,minHeight:82},
  simpleName:{fontSize:19,color:FG,fontWeight:"850"},
  simpleSubtitle:{fontSize:13,color:MUTED,marginTop:5},
  simpleEdit:{height:44,width:44,alignItems:"center",justifyContent:"center",borderRadius:22},
  simpleEditIcon:{fontSize:23,color:FG},
- simpleDivider:{height:1,backgroundColor:"#293038",marginVertical:12},
+ simpleDivider:{height:1,backgroundColor:"#34383f",marginVertical:10},
  simpleFootnote:{fontSize:11.5,lineHeight:17,color:MUTED,marginTop:6},
  title:{fontSize:28,fontWeight:"900",color:FG,lineHeight:36},
  caption:{fontSize:12,color:MUTED,lineHeight:18},
@@ -191,10 +183,10 @@ const S=StyleSheet.create({
  shortcutDescription:{fontSize:10,color:MUTED,marginTop:3},
  shortcutArrow:{color:GREEN,fontSize:24,fontWeight:"600"},
  toolList:{gap:0,borderTopWidth:1,borderColor:"#354d49"},
- toolRow:{minHeight:72,paddingVertical:12,flexDirection:"row",gap:14,alignItems:"center"},
+ toolRow:{minHeight:70,paddingVertical:12,flexDirection:"row",gap:12,alignItems:"center"},
  toolIcon:{width:30,height:34,alignItems:"center",justifyContent:"center"},
- toolSymbol:{fontSize:22,fontWeight:"600",color:MUTED},
- toolName:{fontSize:16,color:FG,fontWeight:"750"},
+ toolSymbol:{fontSize:21,fontWeight:"600",color:MUTED},
+ toolName:{fontSize:15,color:FG,fontWeight:"750"},
  toolDescription:{fontSize:12,color:MUTED,marginTop:4,lineHeight:17},
  toolChevron:{fontSize:23,color:MUTED},
  receiveButton:{backgroundColor:"#1d3036",borderWidth:1,borderColor:"#45635b",
