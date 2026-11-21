@@ -51,6 +51,9 @@ jobs:
       - name: Test category parent hierarchy validation
         run: node tests/category-hierarchy-regression.cjs
 
+      - name: Test admin category path and descendant selectors
+        run: node tests/admin-category-hierarchy-regression.cjs
+
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
@@ -62,6 +65,9 @@ jobs:
 
       - name: Test native SHALOM reader and private likes
         run: node tests/mobile-song-reader-regression.cjs
+
+      - name: Protect web and Android music links
+        run: node tests/shalom-links-regression.cjs
 
       - name: Test SHALOM repertoire layout, icons and real filters
         run: node tests/mobile-repertoire-ui-regression.cjs
@@ -93,6 +99,18 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Test retryable song persistence and partial relation errors
+        run: node tests/admin-song-persistence-regression.cjs
+
+      - name: Test transactional song RPC compatibility and multi-category fallback
+        run: node tests/admin-song-rpc-regression.cjs
+
+      - name: Validate staged atomic multi-category SQL proposal
+        run: node tests/admin-song-v2-proposal-regression.cjs
+
+      - name: Test editor cursor and scroll persistence across forms
+        run: node tests/admin-editor-position-regression.cjs
+
       - name: Verify legacy admin cleanup and active dependencies
         run: node tests/legacy-admin-cleanup-regression.cjs
 
@@ -117,8 +135,26 @@ jobs:
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
 
+      - name: Verify clean web and Android module boundaries
+        run: node tests/architecture-modules-regression.cjs
+
+      - name: Test safe Android release permissions and signing gate
+        run: node tests/android-release-workflow-regression.cjs
+
+      - name: Verify isolated signed Android upgrade rehearsal cannot publish or uninstall
+        run: node tests/android-upgrade-rehearsal-regression.cjs
+
+      - name: Validate read-only historical Android certificate audit
+        run: node tests/android-signature-audit-regression.cjs
+
+      - name: Verify isolated Android pull request preview workflow
+        run: node tests/android-preview-workflow-regression.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
+
+      - name: Verify integrated Admin to web to Android offline contract
+        run: node tests/launch-critical-path-regression.cjs
 
       - name: Validate HTML and local assets
         shell: bash

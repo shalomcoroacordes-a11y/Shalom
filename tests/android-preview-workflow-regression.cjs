@@ -1,0 +1,18 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const preview=fs.readFileSync(".github/workflows/android-preview.yml","utf8");
+const release=fs.readFileSync(".github/workflows/android-apk.yml","utf8");
+assert.match(preview,/pull_request:/);
+assert.match(preview,/shalom-android-preview-/);
+assert.match(preview,/cancel-in-progress: true/);
+assert.match(preview,/contents: read/);
+assert.match(preview,/node scripts\/release-preflight\.js/);
+assert.match(preview,/npm test/);
+assert.match(preview,/com\.shalomcoroacordes\.cancionero\.preview/);
+assert.match(preview,/SHALOM Pruebas/);
+assert.match(preview,/assembleRelease/);
+assert.match(preview,/actions\/upload-artifact@v4/);
+assert.doesNotMatch(preview,/gh release|--clobber|contents: write/);
+assert.match(release,/if: github\.ref == 'refs\/heads\/main'/);
+assert.doesNotMatch(release,/\.cancionero\.preview/);
+console.log("SHALOM: APK aislada de prueba sin sustitución ni publicación de producción.");

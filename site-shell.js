@@ -1,3 +1,5 @@
+// Navegación, metadatos y pie de página del sitio público SHALOM.
+// Cargado explícitamente como parte del HTML; nunca desde la conexión Supabase.
 (() => {
   const ensureLink = (menu, href, label, beforeHref) => {
     let link = menu.querySelector(`a[href="${href}"]`);
@@ -92,4 +94,19 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addPublicLinks, { once: true });
   else addPublicLinks();
+})();
+
+(() => {
+  const addLinks = () => {
+    if (/(^|\/)admin\.html$/i.test(location.pathname)) return;
+    document.querySelectorAll("footer p:last-child").forEach((line) => {
+      if (line.querySelector("[data-jhd-footer-info]")) return;
+      const wrapper = document.createElement("span");
+      wrapper.dataset.jhdFooterInfo = "true";
+      wrapper.innerHTML = ' · <a href="acerca.html">Acerca de</a> · <a href="contacto.html">Contacto</a>';
+      line.append(wrapper);
+    });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addLinks, { once: true });
+  else addLinks();
 })();

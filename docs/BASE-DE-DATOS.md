@@ -76,3 +76,11 @@ Se consultó **directamente y en modo de solo lectura** el proyecto Supabase SHA
 - El asesor de seguridad de Supabase reportó **una advertencia**: protección contra contraseñas filtradas deshabilitada. Referencia: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 
 **Límites de esta comprobación:** no se auditaron aún todas las condiciones de las 19 tablas, ni la exposición de vistas/funciones, ni la eficacia de las políticas mediante sesiones de prueba. Tener RLS activado no garantiza por sí solo permisos correctos. No se consultaron datos personales, no se cambiaron permisos y no se ejecutó ningún SQL de modificación.
+
+## Comprobación del guardado RPC — 20 de noviembre de 2026
+
+Se verificó en modo de solo lectura que `public.jhd_save_song_bundle` admite un único `p_category_id`, no una lista, que es `SECURITY INVOKER` y que solo el rol `authenticated` tiene permiso `EXECUTE`. Esta función comprueba `jhd_is_admin()` y escribe la canción y relaciones dentro de una llamada SQL. Se activó su uso **en la rama de refactorización** cuando hay 0–1 categorías; con múltiples se preserva el flujo heredado hasta que exista una función compatible. No se ejecutó la función contra los datos reales ni se modificó Supabase.
+
+## Propuesta de RPC v2 multicategroría — 20 de noviembre de 2026
+
+El SQL **pendiente de pruebas e instalación** se encuentra en `docs/sql-proposals/shalom-save-song-bundle-v2.sql`. Es una función nueva: no reemplaza el RPC existente y usa `SECURITY INVOKER`, `jhd_is_admin()`, límites de ejecución y 5 tablas de relaciones en una sola llamada. El cliente de la rama intenta usar la versión v2 únicamente para cantos con varias categorías; en ausencia del RPC se mantiene el procedimiento heredado. **La migración no se ha ejecutado y la atomicidad multicategroría no está activa en producción.**

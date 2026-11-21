@@ -8,7 +8,7 @@ SHALOM tiene tres partes conectadas:
 
 1. **Sitio público**: HTML, CSS y JavaScript sin compilador; GitHub Pages publica los archivos de la raíz. Entradas: `index.html`, `canciones.html`, `cancion.html`, `artistas.html`, `artista.html`, `categorias.html`, `albumes.html`, `popurris.html`, `repertorios.html` y páginas informativas.
 2. **Administrador**: `admin.html` carga módulos `admin-*.js` y estilos `admin-*.css`. Acceso con Supabase Auth y permisos en la base de datos. Funciones para gestionar cantos, artistas, categorías, álbumes, popurrís, repertorios y solicitudes.
-3. **App móvil**: `mobile/` contiene React Native + Expo. `mobile/App.js` reúne la interfaz y navegación; `mobile/src/` contiene catálogo, acordes, sincronización, almacenamiento y solicitudes. Su copia local usa SQLite para consultar cantos sin conexión.
+3. **App móvil**: `mobile/` contiene React Native + Expo. `mobile/App.js` sigue coordinando las pantallas; las reglas de navegación están en `mobile/src/navigation-core.js`, los estilos principales en `mobile/src/app-styles.js` y la biblioteca personal separa estilos (`personal-styles.js`) de operaciones inmutables (`personal-store.js`). `mobile/src/` también contiene catálogo, acordes, sincronización, almacenamiento y solicitudes. Su copia local usa SQLite para consultar cantos sin conexión.
 
 ## Mapa rápido: ¿dónde cambio algo?
 
@@ -20,11 +20,21 @@ SHALOM tiene tres partes conectadas:
 | Artistas web | `artistas.html`, `artistas.js`, `artista.html`, `artist-page.js` |
 | Popurrís web | `popurris.html`, `popurris.js`, `medley-core.js` |
 | Repertorios web | `repertorios.html`, `repertoires.js`, `repertoires-core.js` |
-| Inicio, pestañas y lectores Android | `mobile/App.js` |
+| Inicio y lectores Android | `mobile/App.js`, `mobile/src/app-styles.js`, `mobile/src/app-components.js` |
+| Capo compartido e impresión | `mobile/src/song-capo-core.js`, `mobile/src/song-print.js` |
+| Solicitudes Android | `mobile/src/request-screen-ui.js` (presentación), `mobile/src/requests.js` (validación/envío) |
+| Pestañas y búsqueda Android | `mobile/src/navigation-core.js` |
+| Listados y favoritos Android | `mobile/src/library-selectors.js` |
+| Mis colecciones Android | `mobile/src/personal-ui.js`, `mobile/src/personal-styles.js`, `mobile/src/personal-store.js`, `mobile/src/personal-workflows.js`, `mobile/src/personal-reader-core.js` |
 | Catálogo Android | `mobile/src/catalog.js` |
 | Acordes Android | `mobile/src/chords.js` |
 | Sincronización Android | `mobile/src/sync.js`, `mobile/src/config.js` |
 | Almacenamiento sin conexión | `mobile/src/database.js`, `mobile/src/file-storage.js` |
+| Navegación/metadatos del sitio | `site-shell.js`, incorporado expresamente en HTML público |
+| Formularios de administración | `admin-form-layout.js`, `admin-form-layout.css`, `admin-pro.js` |
+| Guardado y recuperación parcial de cantos Admin | `admin-song-persistence.js`, `admin-pro.js` |
+| Cursor y scroll de edición de cantos | `admin-editor-position.js` |
+| Rutas y jerarquías de categorías Admin | `admin-category-hierarchy.js` |
 | Administración de repertorios | `admin-repertoires.js`, `admin.html` |
 | Administración de popurrís | `admin-medleys.js`, `admin.html` |
 | Acceso al administrador | `admin-auth-controller.js`, `admin-access-guard.js`, políticas SQL |
@@ -43,7 +53,8 @@ SHALOM tiene tres partes conectadas:
 - Muchos archivos públicos y de administración están mezclados en la raíz.
 - El administrador carga numerosos scripts dependientes del orden de `admin.html`; **no mover ni fusionar sin verificar referencias y dependencias**.
 - Nombres `*-fix.js`, `*-v2.js` y `*-polish.css` requieren auditoría de uso antes de decidir si se consolidan; **no asumir que son obsoletos**.
-- `mobile/App.js` contiene varias pantallas y lógica de navegación en un solo archivo; conviene extraer módulos por etapas.
+- `mobile/App.js` todavía contiene varias pantallas en un solo archivo. Se extrajeron estilos y la lógica de selección de pestañas; faltan separar controladores y pantallas por responsabilidad.
+- `mobile/src/personal-ui.js` conserva varias vistas. Sus estilos y su lógica inmutable ya están separados en módulos con pruebas; falta extraer vistas pequeñas sin modificar navegación, importaciones ni almacenamiento.
 - Los scripts SQL mezclan pasos históricos, ajustes y esquema: antes de migrarlos, documentar cuáles se ejecutaron y en qué orden. **Nunca reejecutarlos en producción a ciegas**.
 - Existen varios workflows de publicación; documentar sus disparadores y destinos antes de simplificarlos.
 - `mobile/README.md` debe revisarse cada vez que cambien las tablas sincronizadas; no asumir que la lista histórica es completa.
@@ -65,4 +76,4 @@ SHALOM tiene tres partes conectadas:
 - Futuro `docs/DESARROLLO.md`: instalación, pruebas, compilación y despliegue.
 - Futuro `docs/GUIA-PARA-APRENDER.md`: recorrido didáctico para aprender el proyecto.
 
-Este documento es el **punto de partida**: no afirma que la reorganización ya esté hecha.
+**Estado:** el mapa describe el código de la rama de revisión `refactor/clean-architecture-phase-1`. No significa que los cambios estén publicados en `main` ni que se haya completado la auditoría de lanzamiento. Consulta `docs/REFACTORIZACION-PROFESIONAL.md` y las pruebas del PR antes de integrar.

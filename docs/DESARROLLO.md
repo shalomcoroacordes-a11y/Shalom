@@ -30,15 +30,16 @@ Requiere Node.js 22 o compatible con el SDK Expo configurado.
 cd mobile
 npm install
 npx expo install --check
-node tests/chords.test.js
-node tests/catalog.test.js
-node tests/requests.test.js
-node tests/medleys.test.js
+npm run test:syntax
+npm test
 npx expo start
 ```
 
-- `mobile/App.js`: interfaz, pantallas, navegación y estado.
+El comando `npm test` descubre todos los archivos `mobile/tests/*.test.js` y ejecuta cada uno en un proceso de Node independiente; no hace falta editar listas al agregar pruebas. `npm run test:syntax` revisa `App.js`, `src/`, `scripts/` y `tests/`. Ambos comandos se ejecutan también en `.github/workflows/native-check.yml`. Las verificaciones automáticas no sustituyen las pruebas en un teléfono real.
+
+- `mobile/App.js`: coordinación de pantallas, navegación y estado.
 - `mobile/src/catalog.js`: relaciones y búsquedas del catálogo.
+- `mobile/src/library-selectors.js`: consultas de canciones, artistas, favoritos y resultados de Inicio.
 - `mobile/src/chords.js`: procesamiento de acordes.
 - `mobile/src/sync.js`: descarga de datos públicos de Supabase.
 - `mobile/src/database.js`: SQLite local.
@@ -46,7 +47,7 @@ npx expo start
 - `mobile/src/requests.js`: solicitudes de cantos/correcciones.
 - `mobile/src/config.js`: URL y clave **publicable**; nunca colocar secretos.
 
-Para publicar Android, actualizar de forma coherente `mobile/package.json` (`version`) y `mobile/app.json` (`version` y `android.versionCode`). El workflow `.github/workflows/android-apk.yml` compila y publica una versión de prueba en GitHub Releases. No afirmar que un APK está listo hasta verificar que el workflow terminó y que existe el archivo en la versión publicada.
+Para obtener un APK de revisión, el workflow `.github/workflows/android-apk.yml` compila en `main` y guarda el artefacto en Actions, **sin publicar automáticamente**. Para publicar una nueva versión se debe incrementar de manera coherente `mobile/package.json.version`, `mobile/app.json.expo.version` y `android.versionCode`, ejecutar `node scripts/release-preflight.js` dentro de `mobile/`, completar las pruebas físicas y lanzar `workflow_dispatch` sobre `main` con `publish_release=true`. El workflow bloqueará un tag repetido y verificará que el certificado coincida con Android 0.4.10. Una firma diferente significa que no puede actualizarse con seguridad sin arriesgar los datos locales.
 
 ## Pruebas web
 
@@ -76,6 +77,10 @@ Para la verificación completa de HTML y rutas, usar el workflow de GitHub Actio
 - Los SQL actuales están en la raíz y **no constituyen aún un historial ordenado de migraciones**.
 - Antes de ejecutar un SQL, verificar qué objetos existen, qué cambios ya se aplicaron, sus dependencias y un respaldo. No ejecutar todos los archivos SQL por orden alfabético.
 - No publicar claves privadas, tokens ni datos de usuarios.
+
+Para verificar una futura actualización antes de publicarla usa el ensayo no publicador `.github/workflows/android-upgrade-rehearsal.yml`. Construye una APK 0.4.11 temporal sin cambiar el repositorio y bloquea cualquier firma distinta a 0.4.10; solo si coincide comprueba `adb install -r` en emulador. **Nunca desinstales 0.4.10 para forzar una actualización de prueba** ni declares preservadas las colecciones hasta hacer una prueba física con respaldo.
+
+Consulta también `docs/LANZAMIENTO-CHECKLIST.md` para la aceptación de versiones y actualización sin pérdida de datos. Las pruebas en dispositivos reales son obligatorias.
 
 ## Antes de aceptar una modificación
 

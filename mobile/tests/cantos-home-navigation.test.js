@@ -1,0 +1,38 @@
+// Regresión de la maqueta solicitada por el coro: Cantos y la barra son pantallas reales.
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const app=fs.readFileSync("App.js","utf8");
+const styles=fs.readFileSync("src/app-styles.js","utf8");
+const profile=fs.readFileSync("src/profile-ui.js","utf8");
+const personal=fs.readFileSync("src/personal-ui.js","utf8");
+const {tabs,routeForTab}=require("../src/navigation-core");
+assert.deepEqual(tabs.map(x=>x[0]),["Inicio","Cantos","Repertorios","Mis creaciones","Perfil"]);
+assert.equal(routeForTab("Cantos"),"Canciones");
+assert.equal(tabs.find(x=>x[0]==="Repertorios")[1],"calendar");
+assert.equal(tabs.find(x=>x[0]==="Mis creaciones")[1],"repertoires");
+assert.match(app,/const \[songLibraryOpen,setSongLibraryOpen\]=useState\(false\)/);
+assert.match(app,/placeholder:"Buscar letras, acordes y títulos"/);
+for(const x of ['["all","Todos"]','["catolico","Católicos"]',
+ ['"cristiano","Cristianos"'].join(""),'["liked","Mis me gusta"]'])
+ assert.ok(app.includes(x),"Filtro de Cantos: "+x);
+assert.match(app,/label\("Biblioteca de cantos",S.cantosLibraryTitle\)/);
+assert.match(app,/Listado de canciones disponibles con su artista y opciones/);
+assert.match(app,/label\("Explorar también por",S.cantosExploreHeading\)/);
+for(const x of ["Artistas","Categorías","Álbumes","Popurrís oficiales"])assert.ok(app.includes(x));
+assert.match(app,/onPress:\(\)=>setSongLibraryOpen\(true\)/);
+assert.match(app,/eligible\.slice\(0,countLimit\)\.map\(song=>h\(LibrarySongRow/);
+assert.match(app,/onOptions:\(\)=>setActionSongId\(String\(song.id\)\)/);
+assert.match(app,/onLike:\(\)=>toggleLike\(song.id\)/);
+assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"Tutorial links remain available");
+assert.match(styles,/cantosLibraryCard:/);
+assert.match(styles,/cantosFilterChip:/);
+assert.match(styles,/cantosExploreGrid:/);
+assert.match(app,/\["Inicio","Canciones","Repertorios","Mis colecciones","Perfil"\]\.includes\(tab\)/,
+ "All five pages use the same header");
+assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View,\{style:S.nav\}/,
+ "All five pages use one common bottom navigation bar");
+assert.match(styles,/nav:\{marginHorizontal:11,marginBottom:8/);
+assert.match(styles,/navSelected:\{backgroundColor:"#063221"/);
+assert.match(profile,/toolRow\("⚙","Configuración"/);
+assert.match(personal,/label\("Mis creaciones",styles.collectionTitle\)/);
+assert.match(app,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
+console.log("SHALOM: Cantos fiel a la maqueta, barra uniforme, favoritos, rutas y enlaces conservados.");

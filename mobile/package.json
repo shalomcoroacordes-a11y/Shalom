@@ -7,7 +7,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "check": "expo install --check"
+    "check": "expo install --check",
+    "test": "node scripts/run-tests.js",
+    "test:syntax": "node scripts/check-syntax.js"
   },
   "dependencies": {
     "expo": "~58.0.0",
@@ -25,5 +27,9 @@
     "expo-document-picker": "~58.0.5",
     "react-native-webview": "14.0.1",
     "expo-clipboard": "~58.0.4"
+  },
+  "overrides": {
+    "@babel/traverse": "7.29.14",
+    "@babel/plugin-transform-block-scoping": "7.29.13"
   }
 }
