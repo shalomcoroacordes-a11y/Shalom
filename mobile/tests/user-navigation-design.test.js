@@ -40,13 +40,14 @@ assert.ok(today>=0&&search>today&&recent>search&&access>recent&&banner>access,
  "Prioritize liturgy, search and recent reading before the personalized banner");
 assert.match(app,/h\(View,\{style:S.todayTitleWrap\}/,"Unified Today panel");
 assert.match(app,/style:\[S.shalomTodayCard,index>0&&S.todayEntryDivider\]/,"Published items inside single Today card");
-assert.match(app,/style:S.libraryExploreGrid/,"Secondary music exploration is grouped in Cantos");
+assert.match(app,/style:S.cantosExploreGrid/,"Secondary music exploration is grouped in the Cantos overview");
+assert.match(app,/style:S.cantosLibraryCard/,"Cantos begins with a tappable song library card");
 assert.match(app,/style:S.repSuggest/,"Suggestion is a compact working repertoire row");
 assert.match(app,/style:S.homeRecentCard/,"Native Resume card");
 assert.doesNotMatch(app,/style:S.spotifyShortcutBackground/,"Personal shortcuts do not use oversized green gradients");
 assert.match(styles,/spotifyShortcut:\{width:"48\.6%",minHeight:78/,"Compact neutral Home access cards");
 assert.match(app,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,"User-selected featured banner photo remains visible in the compact card");
-assert.match(app,/numberOfLines:1,[\s\S]*?minimumFontScale:.65/,"Keep nav captions on one line");
+assert.match(app,/numberOfLines:2,[\s\S]*?minimumFontScale:.78/,"Keep all five labels readable, wrapping if needed");
 assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"Maintain tutorial links");
 assert.match(app,/onOpenSongPage:\(\)=>openWeb\(songPermalink\(actionSong\)\)/,"Maintain official song URL");
 console.log("SHALOM: five tabs, compact reader and retained links verified.");
