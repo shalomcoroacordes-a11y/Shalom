@@ -3,7 +3,7 @@ const React=require("react");
 const {useState,useEffect,useRef}=React;
 const RN=require("react-native");
 const {View,Text,TextInput,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator}=RN;
-const {SafeAreaProvider,SafeAreaView}=require("react-native-safe-area-context");
+const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
 const NetInfo=require("@react-native-community/netinfo").default;
@@ -12,6 +12,9 @@ const {TITLES,FIELDS,OPTIONS,baseRecord,displayTitle}=require("./src/model");
 const {RESOURCES,ACTIONS,effective,canPublish,canEdit,mapped}=require("./src/permissions");
 const {TABLES}=require("./src/config");
 const {renderLines}=require("./src/score");
+const Picker=require("./src/components/Picker");
+const LyricsEditor=require("./src/components/LyricsEditor");
+const {categoryChoices}=require("./src/selector");
 const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
 const {createSync}=require("./src/sync");
@@ -126,16 +129,20 @@ function Field({spec,form,onChange,lists}){
  const set=v=>onChange(key,v);
  if(OPTIONS[kind])return h(View,{style:{gap:7}},txt(label,S.label),wrapChips(OPTIONS[kind],value,set));
  if(kind==="boolean")return h(View,{style:S.apart},txt(label,S.label),chip(value?"Sí":"No",!!value,()=>set(!value)));
- if(["artist","album","category"].includes(kind)){
-  const other=kind==="artist"?"artists":kind==="album"?"albums":"categories";
-  const opt=[["","Ninguno"],...(lists[other]||[]).map(x=>[x.id,displayTitle(other,x)])];
-  return h(View,{style:{gap:7}},txt(label,S.label),wrapChips(opt,value,set));
+ if(["artist","album","category","artists","categories","featured"].includes(kind)){
+  const multiple=["artists","categories","featured"].includes(kind);
+  const table=["artist","artists"].includes(kind)?"artists":
+              kind==="album"?"albums":
+              ["category","categories"].includes(kind)?"categories":"songs";
+  const records=lists[table]||[];
+  const options=table==="categories"?categoryChoices(records):records.map(x=>[x.id,displayTitle(table,x)]);
+  const noneLabel=kind==="album"?"Sin álbum":"Ninguno";
+  return h(Picker,{title:label,options,value,onChange:set,multiple,
+   maxSelected:kind==="featured"?3:0,noneLabel,
+   hint:multiple?"Busca y selecciona sin mostrar toda la lista":"Toca para buscar o cambiar",
+   placeholder:"Buscar "+label.toLowerCase()+"..."});
  }
- if(["artists","categories","featured"].includes(kind)){
-  const type=kind==="artists"?"artists":kind==="featured"?"songs":"categories";
-  const opt=(lists[type]||[]).map(x=>[x.id,displayTitle(type,x)]);
-  return h(View,{style:{gap:8}},txt(label,S.label),wrapChips(opt,value||[],v=>{const next=(value||[]).includes(v)?value.filter(x=>x!==v):[...(value||[]),v];if(kind==="featured"&&next.length>3)return Alert.alert("Límite","Solo tres canciones destacadas");set(next);}));
- }
+ if(key==="lyrics")return h(LyricsEditor,{value:value||"",onChange:set});
  if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
  if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa"});
  return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});
@@ -188,6 +195,7 @@ function Login({onSuccess}){
  );
 }
 function Main(){
+ const insets=useSafeAreaInsets();
  const [session,setSession]=useState(null),[access,setAccess]=useState(null),[boot,setBoot]=useState(true);
  const [tab,setTab]=useState("Inicio"),[selectedType,setSelectedType]=useState("songs"),[form,setForm]=useState(null),[editing,setEditing]=useState(null);
  const [section,setSection]=useState("Datos"),[lists,setLists]=useState({}),[drafts,setDrafts]=useState([]),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
@@ -373,8 +381,12 @@ function Main(){
    section==="Vista previa"&&song?h(View,{style:S.preview},
     txt(form.title||"Canto sin título",S.section),
     txt("TONO "+(form.tone||"—")+" · CAPO "+(form.capo_position||0),S.caption),
-    renderLines(form.lyrics).map((r,i)=>txt(r.text,[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,{marginTop:r.type==="section"?10:0}]))
-   ):h(View,{style:{gap:12}},song&&section==="Letra"?h(View,{style:{gap:6}},txt("Insertar secciones",S.label),wrapChips(["Intro","Verso 1","Pre-coro","Coro","Puente","Intermedio","Final"].map(x=>[x,x]),"",v=>update("lyrics",String(form.lyrics||"")+"\n["+v+"]\n"))):null,available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
+    h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
+      contentContainerStyle:{paddingVertical:8,minWidth:"100%"}},
+      h(View,{style:{gap:2}},renderLines(form.lyrics).map((r,i)=>h(Text,{key:"line"+i,
+       style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
+        {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
+   ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
     button("Enviar a publicación",()=>saveDraft(true),null,!canPublish(access,selectedType)&&!offline)),
@@ -422,19 +434,30 @@ function Main(){
   );
  }
  if(boot)return h(View,{style:{flex:1,backgroundColor:C.bg,justifyContent:"center",alignItems:"center"}},h(ActivityIndicator,{color:C.green}),txt("Preparando SHALOM Admin...",S.subtitle));
- if(!session)return h(Login,{onSuccess:hydrate});
- return h(SafeAreaView,{style:S.screen,edges:["top","bottom"]},
+ if(!session)return h(SafeAreaView,{style:S.screen,edges:["top","bottom"]},h(Login,{onSuccess:hydrate}));
+ return h(SafeAreaView,{style:S.screen,edges:["top"]},
   h(View,{style:{paddingHorizontal:18,paddingVertical:13,borderBottomColor:C.border,borderBottomWidth:1}},
    h(View,{style:S.apart},h(View,null,txt("SHALOM  ·  ADMIN",S.brand),txt("Panel privado · minimalista",S.caption)),
     h(Pressable,{onPress:refresh,disabled:busy},txt(offline?"SIN CONEXIÓN":"● CONECTADO",{color:offline?C.danger:C.green,fontSize:10,fontWeight:"800"})))),
-  h(ScrollView,{keyboardShouldPersistTaps:"handled",contentContainerStyle:S.body},
-   !!message&&h(View,{style:S.warning},txt(message,S.note),button("Cerrar aviso",()=>setMessage(""),"secondary")),
+  h(ScrollView,{style:{flex:1},keyboardShouldPersistTaps:"handled",keyboardDismissMode:"on-drag",
+    contentContainerStyle:[S.body,{paddingBottom:tab==="Editor"?Math.max(32,insets.bottom+24):24}]},
+   !!message&&h(View,{style:S.warning},h(View,{style:{flex:1}},txt(message,S.note)),
+    h(Pressable,{onPress:()=>setMessage(""),accessibilityRole:"button",accessibilityLabel:"Cerrar aviso",style:{paddingHorizontal:7,paddingVertical:5}},txt("✕",{fontSize:17,color:C.muted}))),
    tab==="Inicio"?homePanel():tab==="Editor"?editorPanel():tab==="Cantos"?catalogPanel("songs"):tab==="Catálogo"?
     h(View,{style:{gap:13}},wrapChips(catalogTabs.map(x=>[x,TITLES[x]]),selectedType,v=>{setSelectedType(v);setSearch("");}),catalogPanel(catalogTabs.includes(selectedType)?selectedType:"artists")):
     tab==="Pendientes"?pendingPanel():usersPanel()
   ),
-  tab!=="Editor"?h(View,{style:S.nav},tabs.map(([name,symbol])=>h(Pressable,{key:name,style:[S.navItem,tab===name&&S.navCurrent],onPress:()=>{setTab(name);setSearch("");if(name==="Catálogo"&&!catalogTabs.includes(selectedType))setSelectedType("artists");}},
-   txt(symbol,[S.navSymbol,tab===name&&{color:C.green}]),txt(name,[S.navText,tab===name&&{color:C.text}])))):null
+  tab!=="Editor"?h(View,{style:[S.navShell,{paddingBottom:Math.max(insets.bottom,Platform.OS==="android"?24:12)}]},
+   h(View,{style:S.nav},tabs.map(([name,symbol])=>h(Pressable,{
+     key:name,
+     style:[S.navItem,tab===name&&S.navCurrent],
+     accessibilityRole:"tab",
+     accessibilityState:{selected:tab===name},
+     accessibilityLabel:name,
+     onPress:()=>{setTab(name);setSearch("");if(name==="Catálogo"&&!catalogTabs.includes(selectedType))setSelectedType("artists");}
+    },
+    txt(symbol,[S.navSymbol,tab===name&&{color:C.green}]),
+    txt(name,[S.navText,tab===name&&{color:C.text}]))))):null
  );
 }
 module.exports=function App(){return h(SafeAreaProvider,null,h(Main));};
