@@ -10,7 +10,7 @@ return StyleSheet.create({
  privacyNote:{fontSize:11,color:theme.muted,paddingTop:3},
 
  quickGrid:{flexDirection:"row",justifyContent:"space-between",gap:7,marginTop:5,marginBottom:8},
- quickTile:{width:"31.8%",minHeight:116,padding:9,borderRadius:15,
+ quickTile:{width:"31%",minHeight:116,padding:9,borderRadius:15,
   backgroundColor:"#17342f",borderWidth:1,borderColor:"#386d5c",gap:4,justifyContent:"center"},
  quickTileIcon:{fontSize:24,color:theme.green,fontWeight:"850"},
  quickTileText:{fontSize:12,color:theme.text,fontWeight:"850",lineHeight:16},

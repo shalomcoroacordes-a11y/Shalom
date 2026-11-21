@@ -14,12 +14,14 @@ assert.match(app,/label\("LETRA",S.songControlCaption\)/);
 assert.match(app,/label\("CAPO",S.songControlCaption\)/);
 assert.match(app,/onResetTone:resetTone/,"Tone can be reset in the actions sheet");
 assert.match(styles,/songCompactControls:/);
-assert.match(personalStyles,/quickTile:\{width:"31\.8%"/);
+assert.match(personalStyles,/quickTile:\{width:"31%"/);
 assert.match(personal,/SHALOM → Mis creaciones → Recibir composición → Pegar mensaje/);
 assert.match(personal,/Solo tiene que abrir Mis creaciones → Recibir composición/);
 assert.doesNotMatch(personal,/Perfil → Recibir composición/);
 assert.match(profile,/Respaldo y restauración/);
 assert.match(profile,/Solicitar un canto/);
+for(const url of ["acerca.html","contacto.html","donaciones.html"])
+ assert.ok(app.includes("https://shalomcoroacordes-a11y.github.io/Shalom/"+url),"Keep existing public link "+url);
 assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);
 const today=app.indexOf("style:S.shalomToday}");
 const search=app.indexOf("style:S.homeSearchWrap}");

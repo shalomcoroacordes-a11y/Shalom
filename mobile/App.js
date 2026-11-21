@@ -661,7 +661,13 @@ function AppScreen() {
    ["Explorar música","Artistas, álbumes, categorías y popurrís","categories",()=>goTab("Explorar")],
    ["Solicitar canto o corrección","Envía una solicitud al administrador","song",()=>requestForm("song")],
    ["Configuración","Sincronización, respaldo e información","more",()=>setSettingsOpen(true)],
-   ["Mis me gusta","Tus cantos guardados en este teléfono","song",()=>goTab("Canciones",{liked:true})]
+   ["Mis me gusta","Tus cantos guardados en este teléfono","song",()=>goTab("Canciones",{liked:true})],
+   ["Acerca de SHALOM","Conoce el proyecto y su propósito","more",
+    ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")],
+   ["Contacto","Envía comentarios o consultas","more",
+    ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/contacto.html")],
+   ["Donaciones","Apoya el crecimiento del cancionero","more",
+    ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")]
   ];
   return h(View,{style:S.repPage},
    h(SectionHero,{title:"Más opciones",subtitle:"Ayuda, preferencias y accesos",icon:"more"}),
