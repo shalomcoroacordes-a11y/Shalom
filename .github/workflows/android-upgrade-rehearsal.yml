@@ -43,7 +43,7 @@ jobs:
           /tmp/shalom-upgrade-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
           /tmp/shalom-upgrade-icons/bin/python scripts/generate_icons.py
           node scripts/release-preflight.js
-      - name: Stage v0.4.13 and versionCode 36 ONLY in disposable runner
+      - name: Stage v0.4.14 and versionCode 36 ONLY in disposable runner
         run: |
           node - <<'NODE'
           const fs=require("node:fs");
@@ -53,9 +53,9 @@ jobs:
             app.expo.android.versionCode!==33 ||
             app.expo.android.package!=="com.shalomcoroacordes.cancionero")
             throw Error("Baseline Android changed; refusing to build an unreviewed upgrade");
-          app.expo.version="0.4.13";
-          app.expo.android.versionCode=36;
-          pkg.version="0.4.13";
+          app.expo.version="0.4.14";
+          app.expo.android.versionCode=37;
+          pkg.version="0.4.14";
           fs.writeFileSync("app.json",JSON.stringify(app,null,2)+"\n");
           fs.writeFileSync("package.json",JSON.stringify(pkg,null,2)+"\n");
           NODE
@@ -83,7 +83,7 @@ jobs:
       - name: Preserve VERIFIED rehearsal candidate as temporary artifact only
         uses: actions/upload-artifact@v4
         with:
-          name: SHALOM-UPGRADE-TEST-0.4.13-${{ github.sha }}
+          name: SHALOM-UPGRADE-TEST-0.4.14-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
@@ -95,7 +95,7 @@ jobs:
           fi
           sudo chmod a+rw /dev/kvm
           ls -l /dev/kvm
-      - name: Rehearse 0.4.10 to 0.4.13 on emulator with adb install -r
+      - name: Rehearse 0.4.10 to 0.4.14 on emulator with adb install -r
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
