@@ -438,8 +438,8 @@ function AppScreen() {
   ];
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
-    label("Bienvenido a SHALOM",S.spotifyWelcomeTitle),
-    label("Tu música para celebrar y ensayar.",S.spotifyWelcomeText)),
+    label("Hola, bienvenido",S.spotifyWelcomeTitle),
+    label("Bienvenido a SHALOM 💚",S.spotifyWelcomeText)),
    h(View,{style:S.shalomToday},
     h(View,{style:S.shalomTodayHeader},
      h(View,{style:S.todayTitleWrap},
@@ -449,7 +449,7 @@ function AppScreen() {
       accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
       label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
     ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
-     style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{
+     style:S.shalomTodayCard,onPress:()=>{
       if(item.type==="medley"){
        const medley=model.medleys.find(x=>String(x.id)===item.id);
        if(medley)selectMedley(medley);
