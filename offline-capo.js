@@ -24,7 +24,7 @@
       if (seen.has(unique)) return;
       seen.add(unique);
       const title = String(item?.label || "").trim() || "Capo " + position;
-      const label = key && !title.toLowerCase().includes(key.toLowerCase())
+      const label = key && !/figuras?\s*(en|:)/i.test(title)
         ? title + " · Figuras en " + key : title;
       options.push({id,label,position,key,offset:offset(song,position,key)});
     }
