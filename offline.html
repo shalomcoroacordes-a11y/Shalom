@@ -10,9 +10,10 @@
   <title>SHALOM Offline</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="site.webmanifest">
-  <link rel="stylesheet" href="offline.css?v=1">
+  <link rel="stylesheet" href="offline.css?v=2">
   <script src="song-chords.js?v=3" defer></script>
-  <script src="offline.js?v=1" defer></script>
+  <script src="offline-capo.js?v=1" defer></script>
+  <script src="offline.js?v=2" defer></script>
 </head>
 <body>
   <header class="app-header">
@@ -60,6 +61,10 @@
         <strong id="transposeLabel">Tono original</strong>
         <button class="small-btn" id="transposeUp" type="button" aria-label="Subir medio tono">+ tono</button>
         <button class="small-btn" id="transposeReset" type="button">Restablecer</button>
+      </div>
+      <div class="capo-panel" id="capoPanel" hidden>
+        <span class="capo-heading">Versiones con capo</span>
+        <div class="capo-choices" id="capoChoices" role="group" aria-label="Elegir versión con capo"></div>
       </div>
       <article class="lyrics" id="offlineLyrics"></article>
       <div id="readerAdditional" class="reader-additional"></div>
