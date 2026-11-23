@@ -14,7 +14,7 @@
   const WIFI_PREF_KEY = "shalom-offline-auto-wifi-v1";
   const AUTO_INTERVAL_MS = 20 * 60 * 1000;
   const $ = (selector) => document.querySelector(selector);
-  const state = { snapshot: null, songs: [], activeId: "", shift: 0, busy: false, limit: 80, lastAuto: 0, autoFailures: 0 };
+  const state = { snapshot: null, songs: [], activeId: "", shift: 0, capoChoice: "original", busy: false, limit: 80, lastAuto: 0, autoFailures: 0 };
 
   const normalize = (value) => String(value || "").toLocaleLowerCase("es")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -348,24 +348,66 @@
       return shift(root) + suffix.replace(/\/([A-G](?:#|b)?)/g, (_all2, bass) => "/" + shift(bass));
     });
   }
+  function selectedCapo(song) {
+    const options = window.ShalomOfflineCapo?.optionsForSong(song) || [];
+    return options.find((item) => item.id === state.capoChoice)
+      || { id:"original", label:"Sin capo", offset:0 };
+  }
+
+  function renderCapoControls(song) {
+    const options = window.ShalomOfflineCapo?.optionsForSong(song) || [];
+    const panel = $("#capoPanel");
+    const choices = $("#capoChoices");
+    choices.replaceChildren();
+    panel.hidden = options.length < 2;
+    if (panel.hidden) {
+      state.capoChoice = "original";
+      return;
+    }
+    if (!options.some((item) => item.id === state.capoChoice)) state.capoChoice = "original";
+    for (const item of options) {
+      const button = simple("button", "capo-btn", item.label);
+      button.type = "button";
+      const active = item.id === state.capoChoice;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+      button.addEventListener("click", () => {
+        state.capoChoice = item.id;
+        for (const other of choices.querySelectorAll("button")) {
+          const pressed = other === button;
+          other.classList.toggle("active", pressed);
+          other.setAttribute("aria-pressed", String(pressed));
+        }
+        renderLyrics(song);
+      });
+      choices.append(button);
+    }
+  }
+
   function renderLyrics(song) {
     const target = $("#offlineLyrics");
+    const capo = selectedCapo(song);
+    const shift = state.shift + capo.offset;
     if (window.ShalomChords?.render) {
       target.innerHTML = window.ShalomChords.render(song.lyrics || "Sin letra.", {
         transpose: (value) => String(value || "").split(/(\s+)/).map((token) =>
-          /^[A-G](?:#|b)?/.test(token) ? transposeChord(token, state.shift) : token).join("")
+          /^[A-G](?:#|b)?/.test(token) ? transposeChord(token, shift) : token).join("")
       });
     } else {
       target.textContent = song.lyrics || "Sin letra.";
     }
-    $("#transposeLabel").textContent = state.shift === 0 ? "Tono original"
+    const tone = state.shift === 0 ? "Tono original"
       : (state.shift > 0 ? "+" : "") + state.shift + " semitonos";
+    $("#transposeLabel").textContent = ($("#capoPanel").hidden ? tone : tone + " · " + capo.label);
   }
 
   function showSong(id, scroll = true) {
     const song = state.songs.find((row) => row.id === id);
     if (!song) return;
-    if (state.activeId !== id) state.shift = 0;
+    if (state.activeId !== id) {
+      state.shift = 0;
+      state.capoChoice = "original";
+    }
     state.activeId = id;
     $("#browseSection").hidden = true;
     $("#mainIntro").hidden = true;
@@ -379,11 +421,11 @@
       song.difficulty,
       ...song._categories.map((category) => state.categoryPath(category))
     ].filter(Boolean).join(" · ");
+    renderCapoControls(song);
     renderLyrics(song);
     const more = $("#readerAdditional");
     more.replaceChildren();
     if (song._albums.length) more.append(simple("p", "", "Álbumes: " + song._albums.map((item) => item.title).join(" · ")));
-    if (song._capos.length) more.append(simple("p", "", "Versiones con capo: " + song._capos.map((item) => item.label || ("Capo " + item.capo_position + " · " + item.capo_key)).join(" · ")));
     if (song._links.length) {
       more.append(simple("p", "", "Recursos externos (necesitan internet):"));
       for (const item of song._links) {
@@ -407,6 +449,7 @@
     $("#mainIntro").hidden = false;
     document.querySelector(".sync-card").hidden = false;
     state.activeId = "";
+    state.capoChoice = "original";
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
