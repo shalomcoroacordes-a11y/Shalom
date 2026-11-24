@@ -5,7 +5,7 @@ const {SafeAreaView}=require("react-native-safe-area-context");
 const {WebView}=require("react-native-webview");
 const makeHtml=require("./studio-bundle");
 const h=React.createElement;
-function StudioScreen({payload,onClose,onSaveDraft,onPublish}){
+function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
  const web=React.useRef(null),busy=React.useRef(false),alive=React.useRef(true);
  const source=React.useMemo(()=>({html:makeHtml(payload),baseUrl:"about:blank"}),[payload]);
  React.useEffect(()=>{alive.current=true;const sub=AppState.addEventListener("change",s=>{if(s!=="active")web.current?.injectJavaScript('document.getElementById("pause")?.click();true;')});return()=>{alive.current=false;sub.remove()}},[]);
@@ -23,6 +23,10 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish}){
    h(View,{style:{flexDirection:"row",alignItems:"center",padding:12,borderBottomWidth:1,borderColor:"#34463b"}},
     h(Pressable,{onPress:close,accessibilityRole:"button",accessibilityLabel:"Regresar al canto",style:{padding:8}},h(Text,{style:{color:"#a8d9b5",fontSize:17}},"‹ Regresar")),
     h(Text,{style:{color:"#edf3ee",fontWeight:"700",marginLeft:12}},"SHALOM Studio")),
+   queue?h(View,{style:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",paddingHorizontal:16,paddingVertical:8}},
+    h(Pressable,{disabled:queue.index===0,onPress:()=>onNext(-1),accessibilityRole:"button"},h(Text,{style:{color:queue.index===0?"#64746a":"#a8d9b5"}},"‹ Anterior")),
+    h(Text,{style:{color:"#edf3ee"}},(queue.index+1)+" de "+queue.entries.length),
+    h(Pressable,{disabled:queue.index===queue.entries.length-1,onPress:()=>onNext(1),accessibilityRole:"button"},h(Text,{style:{color:queue.index===queue.entries.length-1?"#64746a":"#a8d9b5"}},"Siguiente ›"))):null,
    h(WebView,{ref:web,source,style:{flex:1,backgroundColor:"#131c18"},originWhitelist:["*"],onShouldStartLoadWithRequest:r=>r.url==="about:blank"||r.url.startsWith("data:text/html"),onMessage:receive,javaScriptEnabled:true,domStorageEnabled:false,allowFileAccess:false,allowUniversalAccessFromFileURLs:false,allowFileAccessFromFileURLs:false,mixedContentMode:"never",setSupportMultipleWindows:false,mediaPlaybackRequiresUserAction:true,onError:()=>Alert.alert("Studio","No se pudo iniciar la vista de práctica.")})
   ));
 }
