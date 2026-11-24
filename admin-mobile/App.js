@@ -108,6 +108,7 @@ function CompositeEditor({kind,value,onChange,songs,mode}){
     h(View,{style:{gap:7}},
      input("Nombre del fragmento",e.title||"",v=>change(i,"title",v)),
      input("Transponer (−11 a +11 semitonos)",String(e.shift||0),v=>change(i,"shift",Number(v)||0)),
+     i<entries.length-1?input("Studio: pausa al siguiente fragmento (ms, vacío = sin configurar)",String(e.studio_gap_ms??""),v=>change(i,"studio_gap_ms",v.trim()===""?null:Number(v))):null,
      txt("Usar sección del canto original",S.label),
      wrapChips([...String(songs.find(x=>x.id===e.song_id)?.lyrics||"").matchAll(/^\[([^\]]+)\]\s*$/gm)].slice(0,12).map(x=>[x[1],x[1]]),"",section=>chooseSection(i,section)),
      input("Letra y acordes de esta parte",e.lyrics||"",v=>change(i,"lyrics",v),{multi:true})):
