@@ -19,6 +19,7 @@ function encode(anchors,config){
  const value={v:1,m:config.meter,b:config.bpm,d:core.resolution(config.meter,config.division).division,n:config.totalSteps,s:config.source,c:config.changes.map(c=>c.step),p:dictionary,r:sections};
  if(config.endStep!==undefined&&config.endStep!==config.totalSteps)value.e=config.endStep;
  if(config.sections?.length)value.q=config.sections.map(p=>[p.index,p.bpm,p.hits?p.hits.map(h=>h.accent?symbols[h.hit].toUpperCase():symbols[h.hit]).join(""):null,p.transition,p.pauseMs]);
+ const local=(config.sections||[]).filter(p=>p.patterns?.length).map(p=>[p.index,p.patterns.map(r=>[r.start,r.hits.map(h=>h.accent?symbols[h.hit].toUpperCase():symbols[h.hit]).join("")])]);if(local.length)value.z=local;
  const h=config.changes.map(c=>c.hold==="ring"?1:c.hold==="mute"?2:0);if(h.some(Boolean))value.h=h;
  const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
@@ -39,6 +40,10 @@ function decode(anchors,value){
      if(!Array.isArray(p)||p.length!==5||(p[2]!==null&&(typeof p[2]!=="string"||p[2].length!==size||!/^[durmDURM]+$/.test(p[2]))))throw Error("Rasgueo de sección inválido.");
      return {index:p[0],bpm:p[1],hits:p[2]===null?null:[...p[2]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()})),transition:p[3],pauseMs:p[4]};
    });
+ }
+ if(value.z!==undefined){
+   if(!Array.isArray(value.z)||!config.sections)throw Error("Patrones locales inválidos.");
+   const seen=new Set();for(const pair of value.z){const p=config.sections.find(s=>s.index===pair?.[0]);if(!Array.isArray(pair)||pair.length!==2||!p||seen.has(p.index)||!Array.isArray(pair[1]))throw Error("Referencia local inválida.");seen.add(p.index);p.patterns=pair[1].map(r=>{if(!Array.isArray(r)||r.length!==2||typeof r[1]!=="string"||r[1].length!==size||!/^[durmDURM]+$/.test(r[1]))throw Error("Patrón local inválido.");return {start:r[0],hits:[...r[1]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()}))}});}
  }
  config.fragments=ranges(value.f,config.totalSteps);core.compile(anchors,config);return config;
 }

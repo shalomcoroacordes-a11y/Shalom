@@ -44,8 +44,8 @@
     if(!delta)return config;
     const endStep=(config.endStep??config.totalSteps)+delta,total=Math.ceil(endStep/bar)*bar;
     requireInt(total,bar,Math.min(100000,512*bar),"Duración total");
-    if(config.patterns.some(p=>p.start>=total))throw Error("Quita primero los patrones de los compases que desaparecerían.");
-    return {...config,totalSteps:total,endStep,changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
+    if(config.patterns.some(p=>p.start>=total)&&!(config.sections?.length&&config.sections.every(p=>p.hits)))throw Error("Quita primero los patrones de los compases que desaparecerían.");
+    return {...config,totalSteps:total,endStep,patterns:config.patterns.filter(p=>p.start<total),changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
   }
   function compile(anchors,config,transpose=c=>c){
     if(!config||config.version!==1||!meters[config.meter])throw new Error("Configuración incompatible.");
@@ -73,7 +73,7 @@
     });
     if(patterns[0].start!==0)throw new Error("Falta el patrón inicial.");
     const parts=validateSections(config,anchors.length,size);
-    let ci=0,pi=0,si=-1,active=null,time=0,part=null,previousTempo=bpm;
+    let ci=0,pi=0,si=-1,li=0,active=null,time=0,part=null,previousTempo=bpm;
     const positioned=parts.map(p=>({...p,start:changes[p.index].step}));
 
     return Array.from({length:total},(_,step)=>{
@@ -82,13 +82,13 @@
       if(step>=musicalEnd)active=null;
       let gap=0;
       if(si+1<positioned.length&&positioned[si+1].start===step){
-        previousTempo=part?.bpm??bpm;part=positioned[++si];
+        previousTempo=part?.bpm??bpm;part=positioned[++si];li=0;
         if(part.transition==="pause"&&step>0){gap=part.pauseMs/1000;time+=gap;}
       }
       const phase=part?step-part.start:0,span=part?Math.min(size,Math.max(1,(positioned[si+1]?.start??musicalEnd)-part.start)):size;
       const tempo=part?.transition==="gradual"&&span>1?previousTempo+(part.bpm-previousTempo)*Math.min(1,phase/(span-1)):part?.bpm??bpm;
       const seconds=60/tempo/m.division;
-      const hit=part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
+      while(part?.patterns&&li+1<part.patterns.length&&part.patterns[li+1].start<=phase)li++;const local=part?.patterns?.[li];const hit=local?local.hits[(phase-local.start)%size]:part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
       const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};time+=seconds;return event;
     });
@@ -102,19 +102,103 @@
       last=p.index;requireInt(p.bpm,40,240,"Tempo de sección");
       if(!["immediate","gradual","pause"].includes(p.transition)||!Number.isInteger(p.pauseMs)||p.pauseMs<0||p.pauseMs>10000)throw Error("Transición inválida.");
       if(p.hits!=null&&(!Array.isArray(p.hits)||p.hits.length!==size||p.hits.some(h=>!h||!hits.has(h.hit)||typeof h.accent!=="boolean")))throw Error("Rasgueo de sección inválido.");
+      if(p.patterns!==undefined){if(!Array.isArray(p.patterns)||!p.patterns.length||p.patterns.length>512||p.patterns[0]?.start!==0)throw Error("Patrones locales inválidos.");let prev=-1;for(const r of p.patterns){if(!r||!Number.isInteger(r.start)||r.start<=prev||r.start>100000||!Array.isArray(r.hits)||r.hits.length!==size||r.hits.some(h=>!h||!hits.has(h.hit)||typeof h.accent!=="boolean"))throw Error("Patrón local inválido.");prev=r.start;}}
       return p;
     });
   }
   function sectionConfig(config,index){
     const p=(config.sections||[]).find(p=>p.index===index);
     requireInt(index,0,config.changes.length-1,"Sección");
-    return p?{...p,hits:p.hits?.map(h=>({...h}))??null}:{index,bpm:config.bpm,transition:"immediate",pauseMs:0,hits:null};
+    return p?{...p,hits:p.hits?.map(h=>({...h}))??null,...(p.patterns?{patterns:p.patterns.map(r=>({start:r.start,hits:r.hits.map(h=>({...h}))}))}:{})}:{index,bpm:config.bpm,transition:"immediate",pauseMs:0,hits:null};
   }
   function setSection(config,index,patch){
-    const p={...sectionConfig(config,index),...patch,index};if(p.hits)p.hits=p.hits.map(h=>({...h}));
+    const p={...sectionConfig(config,index),...patch,index};if(Object.prototype.hasOwnProperty.call(patch,"hits")&&!Object.prototype.hasOwnProperty.call(patch,"patterns"))delete p.patterns;if(p.hits)p.hits=p.hits.map(h=>({...h}));if(p.patterns)p.patterns=p.patterns.map(r=>({start:r.start,hits:r.hits.map(h=>({...h}))}));
     const sections=[...(config.sections||[]).filter(s=>s.index!==index),p].sort((a,b)=>a.index-b.index);
     const m=resolution(config.meter,config.division);validateSections({...config,sections},config.changes.length,m.beats*m.division);
     return {...config,sections};
+  }
+  const cloneHits=h=>h.map(x=>({...x}));
+  const rotate=(h,offset)=>Array.from({length:h.length},(_,i)=>({...h[(offset+i)%h.length]}));
+  function groupBounds(config,g){
+    const index=g.indices[0],last=g.indices.at(-1);
+    return {index,start:config.changes[index].step,end:config.changes[last+1]?.step??config.endStep??config.totalSteps};
+  }
+  // Convert inherited global rhythm to independent, section-relative snapshots,
+  // preserving phase and any existing pattern switches inside the section.
+  function isolateSections(config,groups){
+    let next=config;
+    for(const g of groups){
+      const {index,start,end}=groupBounds(config,g),p=sectionConfig(config,index);
+      if(p.hits){if(!(config.sections||[]).some(s=>s.index===index))next=setSection(next,index,p);continue;}
+      const base=config.patterns.filter(r=>r.start<=start).at(-1),initial=rotate(base.hits,start-base.start);
+      const local=[{start:0,hits:initial},...config.patterns.filter(r=>r.start>start&&r.start<end).map(r=>({start:r.start-start,hits:cloneHits(r.hits)}))];
+      next=setSection(next,index,{...p,hits:initial,...(local.length>1?{patterns:local}:{})});
+    }
+    return next;
+  }
+  function sectionHit(config,g,offset){
+    const {index,start}=groupBounds(config,g),p=(config.sections||[]).find(p=>p.index===index),local=p?.patterns?.filter(r=>r.start<=offset).at(-1);
+    if(local)return {...local.hits[(offset-local.start)%local.hits.length]};
+    if(p?.hits)return {...p.hits[offset%p.hits.length]};
+    const base=config.patterns.filter(r=>r.start<=start+offset).at(-1);return {...base.hits[(start+offset-base.start)%base.hits.length]};
+  }
+  function sectionBarHits(config,g,bar){
+    const m=resolution(config.meter,config.division),n=m.beats*m.division;return Array.from({length:n},(_,i)=>sectionHit(config,g,(bar-1)*n+i));
+  }
+  function applySectionPattern(config,groups,g,bar,hits,scope){
+    const base=isolateSections(config,groups),{index,start,end}=groupBounds(base,g),m=resolution(base.meter,base.division),n=m.beats*m.division;
+    requireInt(bar,1,Math.max(1,Math.ceil((end-start)/n)),"Compás de sección");
+    if(!["one","all","forward"].includes(scope)||!Array.isArray(hits)||hits.length!==n)throw Error("Patrón de sección inválido.");
+    if(scope==="all")return setSection(base,index,{hits:cloneHits(hits)});
+    const p=sectionConfig(base,index),at=(bar-1)*n,until=at+n,old=p.patterns||[{start:0,hits:p.hits}];
+    let local=old.filter(r=>r.start<at||(scope==="one"&&r.start>=until));
+    if(scope==="one"&&until<end-start&&!local.some(r=>r.start===until)){
+      const previous=old.filter(r=>r.start<=until).at(-1);local.push({start:until,hits:rotate(previous.hits,until-previous.start)});
+    }
+    local.push({start:at,hits:cloneHits(hits)});local.sort((x,y)=>x.start-y.start);
+    return setSection(base,index,{hits:cloneHits(local[0].hits),patterns:local});
+  }
+  function copySection(config,groups,source,target,copyTiming=false){
+    if(source===target||!groups.includes(source)||!groups.includes(target))throw Error("Selecciona otra sección.");
+    const base=isolateSections(config,groups),from=groupBounds(base,source),to=groupBounds(base,target),p=sectionConfig(base,from.index);
+    let next=setSection(base,to.index,{...p,index:to.index,transition:to.index===0?"immediate":p.transition,pauseMs:to.index===0?0:p.pauseMs});
+    if(!copyTiming)return next;
+    if(source.indices.length!==target.indices.length)throw Error("Las secciones tienen diferente cantidad de acordes. Copia solo el ritmo.");
+    const durations=base.changes.map((_,i)=>durationSteps(base,i)),holds=base.changes.map(c=>c.hold||"strum");
+    target.indices.forEach((i,k)=>{durations[i]=durationSteps(base,source.indices[k]);holds[i]=base.changes[source.indices[k]].hold||"strum"});
+    let step=base.changes[0].step;const changes=base.changes.map((c,i)=>{const out={...c,step,hold:holds[i]};step+=durations[i];return out});
+    const m=resolution(base.meter,base.division),bar=m.beats*m.division,total=Math.ceil(step/bar)*bar;requireInt(total,bar,Math.min(100000,512*bar),"Duración total");
+    const moved=changes.some((c,i)=>c.step!==base.changes[i].step)||step!==(base.endStep??base.totalSteps);
+    return {...next,changes,totalSteps:total,endStep:step,patterns:base.patterns.filter(r=>r.start<total),fragments:moved?[]:base.fragments};
+  }
+  // Find the actual chord, including sustained chords that entered before this bar.
+  function barContext(anchors,config,g,bar,position=0){
+    const b=groupBounds(config,g),m=resolution(config.meter,config.division),n=m.beats*m.division;
+    requireInt(bar,1,Math.ceil((b.end-b.start)/n),"Compás de sección");
+    requireInt(position,0,n-1,"Posición");
+    const start=b.start+(bar-1)*n,end=Math.min(start+n,b.end),step=start+position;
+    const indices=g.indices.filter(i=>config.changes[i].step<end&&(config.changes[i+1]?.step??config.endStep??config.totalSteps)>start);
+    const active=step<end?indices.find(i=>config.changes[i].step<=step&&(config.changes[i+1]?.step??config.endStep??config.totalSteps)>step):undefined;
+    return {start,end,indices,active,continuing:indices.length>0&&config.changes[indices[0]].step<start,lines:[...new Set(indices.map(i=>anchors[i].line))]};
+  }
+  // Convert subdivisions without shifting an existing musical event.
+  // A less precise grid is allowed only when every authored event fits exactly.
+  function redivide(config,division){
+    const old=resolution(config.meter,config.division),next=resolution(config.meter,division);
+    if(old.division===next.division)return config;
+    const scale=v=>{const x=v*next.division/old.division;if(!Number.isInteger(x))throw Error("La nueva cuadrícula no puede representar todos los tiempos o golpes existentes. Usa una subdivisión compatible.");return x;};
+    const n=next.beats*next.division;
+    const pattern=hits=>{
+      const out=Array.from({length:n},()=>({hit:"rest",accent:false}));
+      hits.forEach((h,i)=>{if(h.hit!=="rest"||h.accent){const at=scale(i);out[at]={...h};}});return out;
+    };
+    const convert=p=>({start:scale(p.start),hits:pattern(p.hits)});
+    const totalSteps=scale(config.totalSteps);
+    requireInt(totalSteps,n,Math.min(100000,512*n),"Duración total");
+    return {...config,division:next.division,totalSteps,...(config.endStep===undefined?{}:{endStep:scale(config.endStep)}),
+      changes:config.changes.map(c=>({...c,step:scale(c.step)})),patterns:config.patterns.map(convert),
+      ...(config.sections?{sections:config.sections.map(p=>({...p,hits:p.hits?pattern(p.hits):null,...(p.patterns?{patterns:p.patterns.map(convert)}:{})}))}:{}),
+      ...(config.fragments?{fragments:config.fragments.map(f=>({...f,start:scale(f.start),end:scale(f.end)}))}:{})};
   }
   // Exact per-event clock: variable tempos and silent transitions, with compatibility for old fixtures.
   function clockRange(timeline,first,end,speed=1){
@@ -149,5 +233,5 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,isolateSections,sectionHit,sectionBarHits,applySectionPattern,copySection,barContext,redivide});
 });
