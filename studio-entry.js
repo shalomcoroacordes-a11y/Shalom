@@ -4,7 +4,7 @@
 const table="song_studio_arrangements";
 const query=(client,song,withData=false)=>client.from(table).select(withData?"arrangement,song_revision":"song_id").eq("song_id",song.id).eq("song_revision",song.updated_at).maybeSingle();
 async function available(client,song){if(!song?.id||!song.updated_at)return false;const {data,error}=await query(client,song);return !error&&!!data}
-async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangement=null,onClose}){
+async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangement=null,onClose,sequence=null,title=null}){
  if(!song?.id||!song.updated_at)throw Error("Guarda el canto antes de configurar su acompañamiento.");
  const {data,error}=arrangement&&!admin?{data:{arrangement},error:null}:await query(client,song,true);
  if(error)throw Error("Studio no está disponible: "+error.message);
@@ -22,7 +22,7 @@ async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangeme
  function send(message){if(!closed)frame.contentWindow?.postMessage(message,origin)}
  async function receive(e){
   if(e.origin!==origin||e.source!==frame.contentWindow||closed||!e.data)return;
-  if(e.data.type==="shalom-studio-ready"){send({type:"shalom-studio-init",mode:admin?"admin":"public",song:{id:song.id,title:song.title,lyrics:song.lyrics||"",revision:song.updated_at},arrangement:data?.arrangement||null,shift,capo,range});return}
+  if(e.data.type==="shalom-studio-ready"){send({type:"shalom-studio-init",mode:admin?"admin":"public",song:{id:song.id,title:song.title,lyrics:song.lyrics||"",revision:song.updated_at},arrangement:data?.arrangement||null,shift,capo,range,sequence,title});return}
   if(e.data.type!=="shalom-studio-publish"||!admin||busy)return;
   busy=true;
   try{
