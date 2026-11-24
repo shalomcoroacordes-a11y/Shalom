@@ -2,7 +2,7 @@
 const React=require("react");
 const {useState,useEffect,useRef}=React;
 const RN=require("react-native");
-const {View,Text,TextInput,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator}=RN;
+const {View,Text,TextInput,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
@@ -176,6 +176,7 @@ function NestedEditor({kind,value,onChange}){
 }
 function Login({onSuccess}){
  const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[creating,setCreating]=useState(false);
+ useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",()=>{if(busy)return true;if(creating){setCreating(false);setMessage("");return true;}return false});return()=>sub.remove()},[creating,busy]);
  async function go(){
   setBusy(true);setMessage("");
   try{if(creating){await auth.signUp(email,pass);setMessage("Registro solicitado. Confirma tu correo, después inicia sesión. Solo se permite acceso con una invitación administrativa.");setCreating(false);}
@@ -205,6 +206,7 @@ function Main(){
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
  const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null),[trash,setTrash]=useState([]);
  const [studioPayload,setStudioPayload]=useState(null);
+ const editorOrigin=useRef("Cantos"),editorBaseline=useRef(null),leavingEditor=useRef(false);
  const owner=session?.user_id;
  async function hydrate(s){
   setSession(s);setBoot(false);
@@ -263,9 +265,10 @@ function Main(){
   catch(e){setMessage(e.message);}finally{setBusy(false);}
  }
  function begin(table,record,fromDraft){
+  editorOrigin.current=tab;const nextForm=fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table);editorBaseline.current=JSON.stringify(nextForm);
   setSelectedType(table);setSection("Datos");setTab("Editor");
   setEditing({id:fromDraft?.id||record?.id||record?.content_key||(table==="site_content"?"new":localId()),expected:fromDraft?.expected_updated||record?.updated_at||null});
-  setForm(fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table));
+  setForm(nextForm);
  }
  async function saveDraft(queue=false){
   if(!owner||!form||!editing)return;
@@ -400,6 +403,21 @@ function Main(){
   await store.cacheList(owner,"studio-published:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
   await store.cacheList(owner,"studio:"+song.id,[]);
  }
+ function leaveEditor(){
+  if(leavingEditor.current)return;
+  const leave=()=>{leavingEditor.current=false;setForm(null);setEditing(null);setSection("Datos");setTab(editorOrigin.current==="Editor"?(selectedType==="songs"?"Cantos":"Catálogo"):editorOrigin.current);};
+  if(form&&JSON.stringify(form)!==editorBaseline.current){leavingEditor.current=true;Alert.alert("Cambios sin guardar","¿Quieres salir del editor? Los cambios nuevos se perderán.",[{text:"Seguir editando",style:"cancel",onPress:()=>{leavingEditor.current=false}},{text:"Salir sin guardar",style:"destructive",onPress:leave}],{cancelable:true,onDismiss:()=>{leavingEditor.current=false}});}
+  else leave();
+ }
+ function adminBack(){
+  if(!session||boot)return false;
+  if(tab==="Editor"){if(section!=="Datos"){setSection("Datos");return true;}leaveEditor();return true;}
+  if(tab==="Usuarios"){if(overrideUser){setOverrideUser(null);return true;}if(showRoleEditor){setShowRoleEditor(false);return true;}}
+  if(search){setSearch("");return true;}
+  if(tab!=="Inicio"){setTab("Inicio");return true;}
+  return false;
+ }
+ useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType]);
  function editorPanel(){
   if(!form)return null;
   const specs=FIELDS[selectedType]||[];
@@ -410,7 +428,7 @@ function Main(){
     song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:specs;
   const update=(key,v)=>setForm(f=>({...f,[key]:v}));
   return h(View,{style:{gap:14}},
-   h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",()=>{setForm(null);setTab(selectedType==="songs"?"Cantos":"Catálogo");},"secondary")),
+   h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",adminBack,"secondary")),
    song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):null,
    section==="Vista previa"&&song?h(View,{style:S.preview},
     txt(form.title||"Canto sin título",S.section),

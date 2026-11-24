@@ -276,6 +276,9 @@ function AppScreen() {
    setDetail(detailHistoryRef.current.pop()||null);return true;
   }
   if(nestedBackRef.current?.())return true;
+  if(tab==="Repertorios"&&repertoireSearchOpen){setRepertoireSearchOpen(false);setQuery("");return true;}
+  if(sectionSearchOpen){setSectionSearchOpen(false);setQuery("");return true;}
+  if(tab==="Inicio"&&homeSearch){setHomeSearch("");return true;}
   if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current,{replace:true});return true;}
   if(tab==="Categorías"&&folderId){
    const parent=model.categoryMap.get(folderId)?.parent_id;
@@ -290,7 +293,7 @@ function AppScreen() {
   if(Platform.OS!=="android")return;
   const subscription=BackHandler.addEventListener("hardwareBackPress",back);
   return()=>subscription.remove();
- },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter,profileMenuOpen,songLibraryOpen]);
+ },[detail,tab,folderId,folderType,model,immersiveActive,settingsOpen,actionSongId,capoExpanded,personalFilter,profileMenuOpen,songLibraryOpen,repertoireSearchOpen,sectionSearchOpen,homeSearch]);
  function requestForm(kind="song",song=null) {
   setRequestSong(song);
   setRequestKind(kind);

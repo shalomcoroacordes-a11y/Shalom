@@ -10,7 +10,7 @@ function bundle(read){
   if(name==="studio-lab.js"){
    code=code.replace("embedded=window.parent!==window","embedded=true");
    code=code.replace('localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));','window.ReactNativeWebView.postMessage(JSON.stringify({type:"shalom-studio-draft",arrangement:window.ShalomStudioCodec.encode(anchors,config)}));');
-   code=code.replace('note("Borrador guardado en este dispositivo; no publicado.")','note("Guardando borrador…")');
+   code=code.replace('baseline=pendingSave;pendingSave=null;note("Borrador guardado en este dispositivo; no publicado.")','note("Guardando borrador…")');
    code=code.replace('window.parent.postMessage({type:"shalom-studio-publish",arrangement:window.ShalomStudioCodec.encode(anchors,config)},location.origin);','window.ReactNativeWebView.postMessage(JSON.stringify({type:"shalom-studio-publish",arrangement:window.ShalomStudioCodec.encode(anchors,config)}));');
    code=code.replace('window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};','function receive(d){d=d||{};');
    code=code.replace('note(err.message)}});\n window.parent.postMessage({type:"shalom-studio-ready"},location.origin);','note(err.message)}}\n window.__shalomStudioReceive=receive;receive(window.__shalomStudioInit);');
