@@ -60,6 +60,9 @@ jobs:
       - name: Test section-specific tempo, pattern and transitions
         run: node tests/studio-sections.cjs
 
+      - name: Test isolated sections and complete rhythm copy
+        run: node tests/studio-section-independence.cjs
+
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
 
