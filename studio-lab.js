@@ -1,7 +1,8 @@
 (() => {
 "use strict";
 const $=id=>document.getElementById(id), core=window.ShalomStudio, guitar=window.ShalomGuitar;
-const arrows={down:"↓",up:"↑",mute:"×",rest:"·"},types=Object.keys(arrows), storageKey="shalom.studio.lab.v1";
+const arrows={down:"↓",up:"↑",mute:"×",rest:"·"},types=Object.keys(arrows), labKey="shalom.studio.lab.v1";
+let storageKey=labKey,embedded=window.parent!==window,mode="lab",baseRevision=null,initialized=!embedded;
 let anchors=[],config=null,ctx=null,engine=null,timer=null,frame=null,playing=false,epoch=0;
 const note=s=>{$("status").textContent=s};
 function safe(fn){return async()=>{try{await fn()}catch(e){stop();note(e.message||String(e))}}}
@@ -30,6 +31,8 @@ function renderPattern(){
  const p=currentPattern();const m=core.resolution(config.meter,config.division);
  $("grid").replaceChildren(...p.hits.map((h,i)=>{const wrap=elem("div");wrap.className="pulse";const b=elem("button",arrows[h.hit]);b.setAttribute("aria-label","Golpe "+(i+1));b.onclick=()=>{const p=currentPattern(true);p.hits[i].hit=types[(types.indexOf(p.hits[i].hit)+1)%types.length];renderPattern()};const accent=elem("button",h.accent?"●":"○");accent.setAttribute("aria-label","Acento "+(i+1));accent.setAttribute("aria-pressed",String(h.accent));accent.onclick=()=>{const p=currentPattern(true);p.hits[i].accent=!p.hits[i].accent;renderPattern()};wrap.append(elem("small",(Math.floor(i/m.division)+1)+"."+(i%m.division+1)),b,accent);return wrap}));
 }
+const noteNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"],flats={Db:"C#",Eb:"D#",Gb:"F#",Ab:"G#",Bb:"A#"};
+function shifted(chord,move){return chord.replace(/(^|\/)([A-G][#b]?)/g,(_,prefix,n)=>prefix+noteNames[(noteNames.indexOf(flats[n]||n)+move+120)%12]);}
 function validate(){
  if(!config)throw Error("Prepara el borrador.");
  if(config.meter!==$("meter").value||config.division!==Number($("division").value))throw Error("Cambió la resolución: genera otro borrador.");
@@ -55,7 +58,7 @@ function showStep(timeline,i){
 }
 function stop(){playing=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop()}
 async function play(){
- stop();const timeline=validate(),speed=Math.max(25,Math.min(200,Number($("speed").value)||100))/100,capo=Number($("capo").value);if(!Number.isInteger(capo)||capo<0||capo>12)throw Error("Capo inválido");
+ stop();validate();const move=Number($("shift").value);if(!Number.isInteger(move)||Math.abs(move)>12)throw Error("Transposición inválida.");const timeline=core.compile(anchors,config,c=>shifted(c,move));for(const c of new Set(timeline.map(e=>e.chord).filter(Boolean)))guitar.voicing(c);$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});const speed=Math.max(25,Math.min(200,Number($("speed").value)||100))/100,capo=Number($("capo").value);if(!Number.isInteger(capo)||capo<0||capo>12)throw Error("Capo inválido");
  if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error("Audio no disponible en este dispositivo.");ctx=new Audio();engine=guitar.createEngine(ctx)}
  const generation=epoch;await ctx.resume();if(epoch!==generation)return;playing=true;engine.volume(Number($("volume").value)/100);
  const duration=timeline.length*timeline[0].duration/speed,start=ctx.currentTime+.16;let next=0,last=-1;
@@ -63,13 +66,19 @@ async function play(){
  function animate(){if(!playing)return;const elapsed=ctx.currentTime-start;if(elapsed>=duration&&!$("loop").checked){stop();note("Práctica finalizada.");return}const i=Math.max(0,Math.floor(elapsed/(timeline[0].duration/speed)))%timeline.length;if(i!==last){showStep(timeline,i);last=i}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.")
 }
-function switchView(edit){stop();if(!edit){const t=validate();showStep(t,0)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit))}
+function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){const t=validate();showStep(t,0)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit))}
 $("meter").onchange=divisions;$("generate").onclick=safe(generate);$("barEdit").onchange=safe(renderPattern);
 $("total").onchange=safe(()=>{const n=Number($("total").value);if(!Number.isInteger(n)||n<1||n>512)throw Error("Número de compases inválido.");const total=n*size();if(config.changes.some(c=>c.step>=total)||config.patterns.some(p=>p.start>=total))throw Error("Hay acordes o patrones fuera de la duración elegida.");config.totalSteps=total;renderEditor()});
 $("applyPreset").onclick=safe(()=>{const p=currentPattern(true),m=core.resolution(config.meter,config.division),choice=$("preset").value,pattern=["down","rest","down","up","rest","up","down","up"];if(choice==="worship"&&(config.meter!=="4/4"||m.division!==2))throw Error("Este patrón requiere 4/4 en corcheas.");p.hits=p.hits.map((_,i)=>({hit:choice==="empty"?"rest":choice==="all"?i%2?"up":"down":choice==="worship"?pattern[i]:i%m.division===0?"down":"rest",accent:i===0}));renderPattern()});
-$("save").onclick=safe(()=>{validate();localStorage.setItem(storageKey,JSON.stringify({source:$("source").value,config}));note("Borrador guardado en este dispositivo; no publicado.")});
+$("save").onclick=safe(()=>{validate();if(mode==="public")return;localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));note("Borrador guardado en este dispositivo; no publicado.")});
+$("publish").onclick=safe(()=>{if(mode!=="admin")return;validate();if(!window.confirm("¿Publicar este acompañamiento para todos los músicos?"))return;window.parent.postMessage({type:"shalom-studio-publish",arrangement:window.ShalomStudioCodec.encode(anchors,config)},location.origin);note("Publicando…")});
 $("viewEdit").onclick=safe(()=>switchView(true));$("viewPlay").onclick=safe(()=>switchView(false));$("play").onclick=safe(play);$("pause").onclick=()=>{stop();note("Reproducción detenida.")};$("volume").oninput=()=>engine?.volume(Number($("volume").value)/100);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});window.addEventListener("pagehide",()=>{stop();engine?.dispose()});
-divisions();try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved){$("source").value=saved.source;config=saved.config;$("meter").value=config.meter;divisions();$("division").value=config.division;$("bpm").value=config.bpm;anchors=core.anchorsFromRows(readRows());validate();renderEditor()}else generate()}catch(e){generate();note("No se pudo recuperar el borrador anterior: "+e.message)}
+if(!embedded){divisions();try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved){$("source").value=saved.source;config=saved.config;$("meter").value=config.meter;divisions();$("division").value=config.division;$("bpm").value=config.bpm;anchors=core.anchorsFromRows(readRows());validate();renderEditor()}else generate()}catch(e){generate();note("No se pudo recuperar el borrador anterior: "+e.message)}
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./offline-sw.js").catch(()=>note("No se pudo preparar la caché offline."));
+}else{
+ $("studioMain").hidden=true;
+ window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};if(d.type==="shalom-studio-result"&&mode==="admin"){note(d.message);return}if(d.type!=="shalom-studio-init"||initialized)return;initialized=true;try{mode=d.mode==="admin"?"admin":"public";baseRevision=d.song.revision;storageKey=labKey+"."+d.song.id;$("source").value=d.song.lyrics;$("source").readOnly=true;$("sourceLabel").hidden=true;$("labHeader").hidden=true;$("studioTitle").textContent=d.song.title;$("labNote").textContent=mode==="admin"?"Configura los acordes existentes. Los borradores no son públicos.":"Acompañamiento publicado · guitarra sintetizada";$("shift").value=Number(d.shift)||0;$("capo").value=Number(d.capo)||0;anchors=core.anchorsFromRows(readRows());let draft=null;if(mode==="admin"){try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved?.revision===baseRevision&&saved.config?.source===core.signature(anchors))draft=saved.config}catch{}}config=draft||(d.arrangement?window.ShalomStudioCodec.decode(anchors,d.arrangement):null);if(!config){if(mode==="public")throw Error("No hay acompañamiento disponible.");divisions();generate()}else{$("meter").value=config.meter;divisions();$("division").value=String(config.division);$("bpm").value=config.bpm;validate();renderEditor()}$("publish").hidden=mode!=="admin";$("studioNav").hidden=mode==="public";$("studioMain").hidden=false;switchView(mode==="admin")}catch(err){$("studioMain").hidden=false;$("editor").hidden=true;$("player").hidden=true;$("studioNav").hidden=true;note(err.message)}});
+ window.parent.postMessage({type:"shalom-studio-ready"},location.origin);
+}
 })();
