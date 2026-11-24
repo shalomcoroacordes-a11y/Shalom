@@ -203,6 +203,7 @@ function Main(){
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
  const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null),[trash,setTrash]=useState([]);
+ const [studioPayload,setStudioPayload]=useState(null);
  const owner=session?.user_id;
  async function hydrate(s){
   setSession(s);setBoot(false);
@@ -294,7 +295,7 @@ function Main(){
    }}
   ]);
  }
- async function logout(){await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
+ async function logout(){setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
   try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
@@ -366,6 +367,38 @@ function Main(){
    !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
   );
  }
+ async function openStudio(){
+  const saved=(lists.songs||[]).find(s=>s.id===editing?.id);
+  if(!saved?.updated_at||String(form?.lyrics||"")!==String(saved.lyrics||""))return Alert.alert("SHALOM Studio","Publica primero la letra y los acordes del canto.");
+  try{
+   const local=(await store.cachedList(owner,"studio:"+saved.id))[0];
+   let arrangement=null;
+   if(!offline){
+    try{const rows=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(saved.id)+"&song_revision=eq."+encodeURIComponent(saved.updated_at)+"&limit=1");
+     arrangement=rows?.[0]?.arrangement||null;
+     await store.cacheList(owner,"studio-published:"+saved.id,arrangement?[{id:saved.id,revision:saved.updated_at,arrangement}]:[]);
+    }catch(e){if(e.code!=="PGRST205"&&e.code!=="42P01")throw e;}
+   }else{
+    const old=(await store.cachedList(owner,"studio-published:"+saved.id))[0];
+    if(old?.revision===saved.updated_at)arrangement=old.arrangement;
+   }
+   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:{id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at},arrangement,draft:local?.revision===saved.updated_at?local.arrangement:null,shift:0,capo:0});
+  }catch(e){Alert.alert("SHALOM Studio",e.message);}
+ }
+ async function studioDraft(arrangement){
+  if(!owner||!studioPayload)throw Error("Sesión no disponible.");
+  const song=studioPayload.song;
+  await store.cacheList(owner,"studio:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
+ }
+ async function studioPublish(arrangement){
+  if(!owner||!studioPayload||!await network())throw Error("Conéctate para publicar. Puedes guardar un borrador local.");
+  const current=await api.myAccess();if(!canPublish(current,"songs"))throw Error("No tienes permiso de publicación.");
+  const song=studioPayload.song;
+  const rows=await api.raw("/rest/v1/song_studio_arrangements?on_conflict=song_id&select=song_id","POST",{song_id:song.id,song_revision:song.revision,arrangement},"resolution=merge-duplicates,return=representation");
+  if(!Array.isArray(rows)||rows[0]?.song_id!==song.id)throw Error("No se confirmó la publicación.");
+  await store.cacheList(owner,"studio-published:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
+  await store.cacheList(owner,"studio:"+song.id,[]);
+ }
  function editorPanel(){
   if(!form)return null;
   const specs=FIELDS[selectedType]||[];
@@ -387,6 +420,7 @@ function Main(){
        style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
         {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
    ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
+   song&&editing?.expected?button("Configurar acompañamiento de guitarra",openStudio,"secondary"):null,
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
     button("Enviar a publicación",()=>saveDraft(true),null,!canPublish(access,selectedType)&&!offline)),
@@ -447,6 +481,7 @@ function Main(){
     h(View,{style:{gap:13}},wrapChips(catalogTabs.map(x=>[x,TITLES[x]]),selectedType,v=>{setSelectedType(v);setSearch("");}),catalogPanel(catalogTabs.includes(selectedType)?selectedType:"artists")):
     tab==="Pendientes"?pendingPanel():usersPanel()
   ),
+  studioPayload?h(require("./src/studio-screen"),{payload:studioPayload,onClose:()=>setStudioPayload(null),onSaveDraft:studioDraft,onPublish:studioPublish}):null,
   tab!=="Editor"?h(View,{style:[S.navShell,{paddingBottom:Math.max(insets.bottom,Platform.OS==="android"?24:12)}]},
    h(View,{style:S.nav},tabs.map(([name,symbol])=>h(Pressable,{
      key:name,
