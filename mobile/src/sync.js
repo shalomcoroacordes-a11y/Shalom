@@ -14,7 +14,7 @@ async function networkState() {
 }
 
 // Conserva absolutamente todas las páginas; Supabase puede limitar a 1,000 filas por respuesta.
-async function allRows(table, onBatch) {
+async function allRows(table, onBatch, idField="id", optional=false) {
   let cursor = null;
   const collected = [];
   while (true) {
@@ -22,9 +22,9 @@ async function allRows(table, onBatch) {
     // filas anteriores durante la descarga, nunca se desplaza la ventana.
     const query = [
       "select=*",
-      "order=id.asc",
+      "order="+idField+".asc",
       "limit=" + PAGE_SIZE,
-      ...(cursor === null ? [] : ["id=gt." + encodeURIComponent(cursor)])
+      ...(cursor === null ? [] : [idField+"=gt." + encodeURIComponent(cursor)])
     ].join("&");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -39,6 +39,7 @@ async function allRows(table, onBatch) {
         }
       });
       if (!response.ok) {
+        if(optional && cursor===null && response.status===404){const body=await response.json().catch(()=>null);if(body?.code==="PGRST205"||body?.code==="42P01")return [];}
         throw new Error("No se pudo descargar " + table + " (" + response.status + ").");
       }
       rows = await response.json();
@@ -54,12 +55,12 @@ async function allRows(table, onBatch) {
     // avanzar estrictamente. Nunca escribir una descarga incompleta.
     let lastId = cursor;
     for (const row of rows) {
-      if (!row || typeof row.id !== "string" || !row.id ||
-          (lastId !== null && row.id <= lastId)) {
+      if (!row || typeof row[idField] !== "string" || !row[idField] ||
+          (lastId !== null && row[idField] <= lastId)) {
         throw new Error("Página desordenada o duplicada en " + table +
           ". La copia anterior del cancionero se conserva.");
       }
-      lastId = row.id;
+      lastId = row[idField];
     }
     collected.push(...rows);
     if (onBatch) onBatch(table, collected.length);
@@ -80,6 +81,9 @@ async function syncAll({ wifiOnly = true, manual = false, onProgress } = {}) {
     onProgress?.({ index: index + 1, total: TABLES.length, table });
     data[table] = await allRows(table);
   }
+  onProgress?.({ index: TABLES.length, total: TABLES.length, table: "Acompañamientos de guitarra" });
+  const studio=await allRows("song_studio_arrangements",null,"song_id",true);
+  data.songs=require("./studio-catalog").attachArrangements(data.songs,studio);
   onProgress?.({ index: TABLES.length, total: TABLES.length, table: "Guardando SQLite" });
   const syncedAt = await commitCatalog(data);
   return { skipped: false, syncedAt, totalSongs: data.songs.length };
