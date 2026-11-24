@@ -54,7 +54,7 @@ function createEngine(ctx){
  }
  function click(t,accent){const s=ctx.createOscillator(),g=ctx.createGain();s.frequency.value=accent?1100:750;g.gain.setValueAtTime(.07,t);g.gain.exponentialRampToValueAtTime(.0001,t+.045);s.connect(g);g.connect(gain);const v={s,g};voices.add(v);s.onended=()=>{voices.delete(v);s.disconnect();g.disconnect()};s.start(t);s.stop(t+.05)}
  function stop(){voices.forEach(v=>{try{v.s.stop()}catch{}});strings.clear()}
- return {strum,click,stop,volume(v){gain.gain.setTargetAtTime(Math.max(0,Math.min(1,v))*.7,ctx.currentTime,.025)},dispose(){stop();gain.disconnect();comp.disconnect();cache.clear()}};
+ return {strum,click,stop,releaseAt(t){for(const i of [...strings.keys()])damp(i,t)},volume(v){gain.gain.setTargetAtTime(Math.max(0,Math.min(1,v))*.7,ctx.currentTime,.025)},dispose(){stop();gain.disconnect();comp.disconnect();cache.clear()}};
 }
 return Object.freeze({voicing,stringMidi,pluck,createEngine});
 });
