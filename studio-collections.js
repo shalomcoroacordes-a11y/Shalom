@@ -35,5 +35,16 @@ function plan(parts,songs){
  const entries=(parts||[]).map((part,i)=>{const song=index.get(String(part.song_id||part.songId));return {index:i,title:part.title||part.song_title||song?.title||"Canto no disponible",moment:part.moment||"",...resolve(song,part)}});
  return {entries,ready:entries.filter(e=>e.ready),total:entries.length};
 }
-return Object.freeze({sections,validRange,resolve,plan});
+function sequencePlan(parts,songs,title){
+ const p=plan(parts,songs);
+ if(p.total<2||p.ready.length!==p.total)return null;
+ const tracks=p.entries.map((entry,i)=>{
+  const gap=parts[i].studio_gap_ms;
+  if(i<p.total-1&&(!Number.isInteger(gap)||gap<0||gap>10000))return null;
+  return {...entry.payload,gapMs:i===p.total-1?0:gap};
+ });
+ if(tracks.some(t=>!t))return null;
+ return {...tracks[0],sequence:tracks,title:String(title||"Popurrí")};
+}
+return Object.freeze({sections,validRange,resolve,plan,sequencePlan});
 });
