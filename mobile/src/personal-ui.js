@@ -28,7 +28,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -578,6 +578,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function readingView(){
   if(!folder||!entry)return folderView();
+  const rows=readingRows(entry,catalog,readerShift);
+  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift})),songs);
   return h(View,{style:styles.container},
    action("← Editar "+kindName(entry.kind),back,true),
    label(entry.title,styles.pageTitle),
@@ -588,7 +590,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
     action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
     action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
-   ...readingRows(entry,catalog,readerShift).map(({part:p,index,song,resolved,shift,tone})=>{
+   entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
+   ...rows.map(({part:p,index,song,resolved,shift,tone})=>{
     return h(View,{key:p.id,style:styles.readerPart},
      h(View,{style:styles.partHead},
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
@@ -599,6 +602,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      resolved.lyrics===null?label(resolved.error,styles.warning):
       resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
        label("Este canto no tiene letra descargada.",styles.warning),
+     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
    action("Compartir",()=>showShare(entry,folder,"reading"),true));
