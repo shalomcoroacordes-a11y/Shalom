@@ -29,6 +29,7 @@ assert.match(js,/renderCapoControls\(song\)/);
 assert.match(js,/state\.shift \+ capo\.offset/);
 assert.match(js,/aria-pressed/);
 assert.match(js,/state\.capoChoice = "original"/);
-assert.match(sw,/shalom-offline-shell-v2/);
+const version=sw.match(/const VERSION = "shalom-offline-shell-v(\d+)[^"]*"/);
+assert.ok(version&&Number(version[1])>=2,"La caché de Offline debe conservar una versión compatible con capo");
 assert.match(sw,/"\.\/offline-capo\.js"/);
 console.log("Capos Offline: selección, transposición y precarga sin conexión verificadas.");
