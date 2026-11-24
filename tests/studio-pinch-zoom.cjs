@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const js=fs.readFileSync("studio-lab.js","utf8"),html=fs.readFileSync("studio-lab.html","utf8"),css=fs.readFileSync("studio.css","utf8");
+const first=js.slice(js.indexOf("function clampScoreFont("),js.indexOf("function setScoreFont("));
+const second=js.slice(js.indexOf("function pinchFont("),js.indexOf("function startScorePinch("));
+const {clampScoreFont,pinchFont,touchDistance,touchCenter}=new Function(first+second+"return {clampScoreFont,pinchFont,touchDistance,touchCenter}")();
+assert.equal(pinchFont(16,100,200),32);assert.equal(pinchFont(16,100,50),10);assert.equal(pinchFont(16,100,500),46);assert.equal(pinchFont(16,0,100),16);assert.equal(clampScoreFont(NaN),16);
+assert.equal(touchDistance([{clientX:0,clientY:0},{clientX:3,clientY:4}]),5);
+assert.deepEqual(touchCenter([{clientX:0,clientY:0},{clientX:4,clientY:6}]),{x:2,y:3});
+assert.match(js,/touchmove",e=>\{\s*if\(e.touches.length>=2\)\{moveScorePinch\(e\);return;\}/);
+assert.match(js,/if\(scorePinch\|\|pinchConsumed\|\|\$\("player"\).hidden/);
+assert.match(js,/if\(!pinchConsumed&&playing&&followTouchY/);
+assert.match(js,/touchcancel",endScoreTouch/);
+assert.match(css,/#score\{font-size:var\(--studio-score-font,16px\);touch-action:pan-x pan-y/);
+for(const id of ["scoreSmaller","scoreLarger","scoreReset","scoreSize"])assert.ok(html.includes('id="'+id+'"'));
+console.log("Studio: pellizco, límites, seguimiento y controles de texto verificados.");
