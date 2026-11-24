@@ -6,6 +6,8 @@
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
   const meters=Object.freeze({"4/4":{beats:4,division:2},"3/4":{beats:3,division:2},"6/8":{beats:2,division:3}});
+  const divisions=Object.freeze({"4/4":[1,2,3,4,8],"3/4":[1,2,3,4,8],"6/8":[3,6,12]});
+  function resolution(meter,division){const m=meters[meter];if(!m||!divisions[meter].includes(division??m.division))throw new Error("Subdivisión inválida.");return {beats:m.beats,division:division??m.division};}
   const chord=/^[A-G](?:#|b)?(?:maj(?:7|9|11|13)?|m(?:maj7|[0-9]*)?|min(?:[0-9]*)?|sus[24]?|add\d+|dim7?|aug|\+|-|[0-9]*)?(?:\/[A-G](?:#|b)?)?$/;
   const hits=new Set(["down","up","mute","rest"]);
   // Receive parseSong(source, 0) rows; never infer musical time from column position.
@@ -27,18 +29,18 @@
     if(!Number.isInteger(v)||v<min||v>max)throw new Error(label+" inválido.");
     return v;
   }
-  function draft(anchors,meter="4/4",bpm=80){
-    const m=meters[meter];
+  function draft(anchors,meter="4/4",bpm=80,division){
+    const m=resolution(meter,division);
     if(!m)throw new Error("Compás inválido.");
     requireInt(bpm,40,240,"Tempo");
     const size=m.beats*m.division;
-    return {version:1,meter,bpm,source:signature(anchors),totalSteps:Math.max(size,Math.ceil(anchors.length*m.division/size)*size),changes:anchors.map((a,i)=>({anchorId:a.id,step:i*m.division})),patterns:[{start:0,hits:Array.from({length:size},(_,i)=>({hit:i%m.division===0?"down":"rest",accent:i===0}))}]};
+    return {version:1,meter,bpm,division:m.division,source:signature(anchors),totalSteps:Math.max(size,Math.ceil(anchors.length*m.division/size)*size),changes:anchors.map((a,i)=>({anchorId:a.id,step:i*m.division})),patterns:[{start:0,hits:Array.from({length:size},(_,i)=>({hit:i%m.division===0?"down":"rest",accent:i===0}))}]};
   }
   function compile(anchors,config,transpose=c=>c){
     if(!config||config.version!==1||!meters[config.meter])throw new Error("Configuración incompatible.");
     if(config.source!==signature(anchors))throw new Error("Los acordes cambiaron. Revisa la sincronización.");
     if(!anchors.length)throw new Error("El canto no tiene acordes.");
-    const m=meters[config.meter],size=m.beats*m.division;
+    const m=resolution(config.meter,config.division),size=m.beats*m.division;
     const bpm=requireInt(config.bpm,40,240,"Tempo");
     const total=requireInt(config.totalSteps,1,100000,"Duración");
     if(total%size)throw new Error("La duración debe completar el compás.");
@@ -67,5 +69,5 @@
       return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.id??null,chord:active?transpose(active.chord):null,hit:active?hit.hit:"rest",accent:hit.accent};
     });
   }
-  return Object.freeze({meters,anchorsFromRows,signature,draft,compile});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile});
 });
