@@ -2,7 +2,7 @@
 (() => {
  const db=window.supabaseClient,M=window.ShalomMedleys;
  const $=id=>document.getElementById(id);
- let medleys=[],active=null,shift=0,capo=0;
+ let medleys=[],active=null,shift=0,capo=0,studioSongs=[];
  function renderList(term="") {
   const q=String(term||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
   const rows=medleys.filter(m=>[m.title,m.description,m.song_type].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().includes(q));
@@ -23,12 +23,14 @@
   $("medleyReaderType").textContent=({catolico:"Católico",cristiano:"Cristiano",mixto:"Mixto"})[medley.song_type]||"SHALOM";
   $("medleyReaderInfo").textContent=(medley.description||"")+" · "+(medley.parts||[]).length+" fragmento(s)"+(medley.base_tone?" · Tono de referencia "+medley.base_tone:"");
   document.title=medley.title+" | Popurrí SHALOM";
-  renderReader();
+  studioSongs=[];renderReader();
+  window.ShalomStudioCollectionWeb?.load(db,(medley.parts||[]).map(p=>p.song_id)).then(rows=>{if(active===medley){studioSongs=rows;renderReader();}}).catch(()=>{});
  }
  function renderReader() {
   if(!active)return;
   $("medleyCurrentTone").textContent=shift===0?"Tono original":(shift>0?"+":"")+shift+" semitonos";
-  $("medleyReaderParts").innerHTML=M.renderPartsHTML(active.parts||[],shift,capo);
+  const container=$("medleyReaderParts");container.innerHTML=M.renderPartsHTML(active.parts||[],shift,capo);
+  window.ShalomStudioCollectionWeb?.mount({client:db,container,articles:[...container.querySelectorAll(".medley-song")],parts:(active.parts||[]).map(p=>({...p,shift:shift+Number(p.shift||0)-capo,capo})),songs:studioSongs,kind:"popurri"});
  }
  async function load(){
   if(!db){$("medleyCatalogStatus").textContent="No se pudo iniciar la conexión.";return;}
