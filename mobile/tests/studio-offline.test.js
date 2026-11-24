@@ -12,7 +12,7 @@ assert.ok(!/<script[^>]+src=/.test(html));
 assert.ok(!/<link[^>]+href=/.test(html));
 assert.ok(html.includes("default-src 'none'"));
 const blocks=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-assert.equal(blocks.length,6);
+assert.equal(blocks.length,7);
 for(const block of blocks)new Function(block[1]);
 const rows=attachArrangements([{id:"a",updated_at:"r1"},{id:"b",updated_at:"r2",_studio:{v:1}},{id:"c"}],[{song_id:"a",song_revision:"r1",arrangement:{v:1}},{song_id:"b",song_revision:"old",arrangement:{v:1}}]);
 assert.deepEqual(rows[0]._studio,{v:1});
