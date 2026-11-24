@@ -99,6 +99,7 @@ function AppScreen() {
  const [personalFilter,setPersonalFilter]=useState(null);
  const [profile,setProfile]=useState(profileDefaults());
  const [actionSongId,setActionSongId]=useState(null);
+ const [studioPayload,setStudioPayload]=useState(null);
  const [notice,setNotice]=useState(null);
  const [profileMenuOpen,setProfileMenuOpen]=useState(false);
  const noticeTimerRef=useRef(null);
@@ -1169,9 +1170,11 @@ function AppScreen() {
    onOpenLink:url=>openWeb(url),
    onOpenSongPage:()=>openWeb(songPermalink(actionSong)),
    onVideo:()=>openSongVideo(actionSong),
+   onStudio:()=>{const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
    onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
    onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
+   studioPayload?h(require("./src/studio-screen"),{payload:studioPayload,onClose:()=>setStudioPayload(null)}):null,
    !immersiveActive?h(LocalNotice,{notice,
     bottom:settingsOpen||tab==="Respaldo"||detail?22:tab==="Inicio"?91:86,
     onUndo:()=>{
