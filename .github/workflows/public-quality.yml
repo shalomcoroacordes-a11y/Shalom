@@ -60,6 +60,9 @@ jobs:
       - name: Test section-specific tempo, pattern and transitions
         run: node tests/studio-sections.cjs
 
+      - name: Test compact musician view and optional lyric following
+        run: node tests/studio-musician-follow.cjs
+
       - name: Test rhythm lyric context and non-destructive subdivisions
         run: node tests/studio-rhythm-context.cjs
 
