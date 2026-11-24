@@ -81,9 +81,11 @@ async function syncAll({ wifiOnly = true, manual = false, onProgress } = {}) {
     onProgress?.({ index: index + 1, total: TABLES.length, table });
     data[table] = await allRows(table);
   }
-  onProgress?.({ index: TABLES.length, total: TABLES.length, table: "Acompañamientos de guitarra" });
-  const studio=await allRows("song_studio_arrangements",null,"song_id",true);
-  data.songs=require("./studio-catalog").attachArrangements(data.songs,studio);
+  if(data.songs?.some(song=>song.updated_at)){
+    onProgress?.({ index: TABLES.length, total: TABLES.length, table: "Acompañamientos de guitarra" });
+    const studio=await allRows("song_studio_arrangements",null,"song_id",true);
+    data.songs=require("./studio-catalog").attachArrangements(data.songs,studio);
+  }
   onProgress?.({ index: TABLES.length, total: TABLES.length, table: "Guardando SQLite" });
   const syncedAt = await commitCatalog(data);
   return { skipped: false, syncedAt, totalSongs: data.songs.length };
