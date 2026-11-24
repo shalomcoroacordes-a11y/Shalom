@@ -14,6 +14,7 @@
    '<button type="button" data-action="remove" data-i="'+i+'">Quitar</button></span></div>'+
    '<label>Nombre del fragmento<input data-title="'+i+'" maxlength="160" value="'+esc(p.title)+'"></label>'+
    '<label>Transponer semitonos<input type="number" min="-11" max="11" step="1" data-shift="'+i+'" value="'+esc(p.shift||0)+'"></label>'+
+   (i<state.active.parts.length-1?'<label>Studio: pausa hasta el siguiente fragmento (ms; vacío = sin configurar)<input type="number" min="0" max="10000" step="1" data-studio-gap="'+i+'" value="'+esc(p.studio_gap_ms??"")+'"></label>':"")+
    '<div class="medley-part-tools"><select data-section="'+i+'">'+opts+'</select>'+
    '<button type="button" data-action="only" data-i="'+i+'">Usar sección</button>'+
    '<button type="button" data-action="append" data-i="'+i+'">Añadir sección</button></div>'+
@@ -32,6 +33,7 @@
    p.title=get('[data-title="'+i+'"]')?.value??p.title;
    p.shift=Number(get('[data-shift="'+i+'"]')?.value??p.shift);
    p.lyrics=get('[data-lyrics="'+i+'"]')?.value??p.lyrics;
+   const gap=get('[data-studio-gap="'+i+'"]');if(gap){if(gap.value==="")delete p.studio_gap_ms;else p.studio_gap_ms=Number(gap.value);}
   });
  }
  function render(){
@@ -86,7 +88,7 @@
   finally{state.saving=false;render();}
  }
  function bind(){
-  state.root.querySelectorAll("#popTitle,#popType,#popTone,#popDescription,[data-title],[data-shift],[data-lyrics]").forEach(input=>{
+  state.root.querySelectorAll("#popTitle,#popType,#popTone,#popDescription,[data-title],[data-shift],[data-lyrics],[data-studio-gap]").forEach(input=>{
     input.addEventListener("input",()=>{
       capture();
       const preview=get(".medley-preview");
