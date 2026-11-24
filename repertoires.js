@@ -30,7 +30,7 @@
   const ids=[...new Set((rep.items||[]).map(x=>x.song_id))].filter(Boolean);
   songs=new Map();
   for(let i=0;i<ids.length;i+=100){
-   const {data,error}=await db.from("songs").select("id,title,lyrics,tone,song_type").in("id",ids.slice(i,i+100));
+   const {data,error}=await db.from("songs").select("id,title,lyrics,tone,song_type,updated_at").in("id",ids.slice(i,i+100));
    if(error)throw error;
    for(const s of data||[])songs.set(s.id,s);
   }
@@ -67,6 +67,7 @@
   $("repCurrentLink").hidden=true;
   document.title=rep.title+" | SHALOM Repertorios";
   window.scrollTo({top:0,behavior:"instant"});
+  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;const container=$("repPrintAll");window.ShalomStudioCollectionWeb.mount({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind});}).catch(()=>{});
  }
  function back(){
   current=null;$("repCatalog").hidden=false;$("repReader").hidden=true;
