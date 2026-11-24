@@ -890,7 +890,9 @@ function AppScreen() {
  function renderMedleyDetail(medley){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   const generalTone=String(medley.base_tone||"");
-  const plan=StudioCollections.plan(parts.map(part=>({...part,shift:transpose+Number(part.shift||0)})),model.songs);
+  const practiceParts=parts.map(part=>({...part,shift:transpose+Number(part.shift||0)}));
+  const plan=StudioCollections.plan(practiceParts,model.songs);
+  const sequence=StudioCollections.sequencePlan(practiceParts,model.songs,medley.title);
   return h(View,{style:S.multiReader},
    h(View,{style:S.songMetaRow},
     h(View,{style:S.songMetaIcon},
@@ -902,6 +904,7 @@ function AppScreen() {
      h(View,{style:S.songTypeBadge},label(type(medley.song_type),S.songTypeText)))),
    medley.description?h(Text,{style:S.multiDescription},medley.description):null,
    renderMultiReadingControls(),
+   !immersiveActive&&sequence?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(sequence)}},label("▶ Practicar popurrí completo",S.multiOriginalText)):null,
    !immersiveActive?renderStudioCollectionAction(plan,"Practicar fragmentos disponibles"):null,
    ...parts.map((part,index)=>{
     const original=model.songs.find(song=>String(song.id)===String(part.song_id));
