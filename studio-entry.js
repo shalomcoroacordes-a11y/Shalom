@@ -32,6 +32,7 @@ async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangeme
    if(response.error)throw response.error;
    if(response.data?.song_id!==song.id)throw Error("No se confirmó la publicación en el servidor.");
    const verified=await query(client,song,true);if(verified.error||!verified.data)throw Error("La publicación no pudo verificarse. Vuelve a abrir Studio para consultar su estado.");
+   const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);if(canonical(verified.data.arrangement)!==canonical(payload))throw Error("La versión guardada difiere de la enviada. Revisa Studio.");
    send({type:"shalom-studio-result",ok:true,message:"✓ Acompañamiento guardado y publicado."});
   }catch(err){send({type:"shalom-studio-result",ok:false,message:err.message||"No se pudo publicar."})}finally{busy=false}
  }

@@ -205,7 +205,7 @@ function Main(){
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
  const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null),[trash,setTrash]=useState([]);
- const [studioPayload,setStudioPayload]=useState(null);
+ const [studioPayload,setStudioPayload]=useState(null),[studioStatus,setStudioStatus]=useState(null);
  const editorOrigin=useRef("Cantos"),editorBaseline=useRef(null),leavingEditor=useRef(false);
  const owner=session?.user_id;
  async function hydrate(s){
@@ -371,22 +371,19 @@ function Main(){
    !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
   );
  }
+ async function getStudioState(saved){
+  const local=(await store.cachedList(owner,"studio:"+saved.id))[0];let arrangement=null,checked=false;
+  if(!offline){const rows=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(saved.id)+"&song_revision=eq."+encodeURIComponent(saved.updated_at)+"&limit=1");arrangement=rows?.[0]?.arrangement||null;checked=true;await store.cacheList(owner,"studio-published:"+saved.id,arrangement?[{id:saved.id,revision:saved.updated_at,arrangement}]:[]);}
+  else{const old=(await store.cachedList(owner,"studio-published:"+saved.id))[0];if(old?.revision===saved.updated_at)arrangement=old.arrangement;}
+  return {id:saved.id,revision:saved.updated_at,arrangement,draft:local?.revision===saved.updated_at?local.arrangement:null,checked};
+ }
+ useEffect(()=>{let active=true;const saved=(lists.songs||[]).find(s=>s.id===editing?.id);setStudioStatus(null);if(tab==="Editor"&&selectedType==="songs"&&owner&&saved?.updated_at)getStudioState(saved).then(s=>{if(active)setStudioStatus(s)}).catch(()=>{if(active)setStudioStatus({id:saved.id,error:true})});return()=>{active=false};},[owner,editing?.id,tab,selectedType,offline,lists.songs,studioPayload===null]);
  async function openStudio(){
   const saved=(lists.songs||[]).find(s=>s.id===editing?.id);
   if(!saved?.updated_at||String(form?.lyrics||"")!==String(saved.lyrics||""))return Alert.alert("SHALOM Studio","Publica primero la letra y los acordes del canto.");
   try{
-   const local=(await store.cachedList(owner,"studio:"+saved.id))[0];
-   let arrangement=null;
-   if(!offline){
-    try{const rows=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(saved.id)+"&song_revision=eq."+encodeURIComponent(saved.updated_at)+"&limit=1");
-     arrangement=rows?.[0]?.arrangement||null;
-     await store.cacheList(owner,"studio-published:"+saved.id,arrangement?[{id:saved.id,revision:saved.updated_at,arrangement}]:[]);
-    }catch(e){if(e.code!=="PGRST205"&&e.code!=="42P01")throw e;}
-   }else{
-    const old=(await store.cachedList(owner,"studio-published:"+saved.id))[0];
-    if(old?.revision===saved.updated_at)arrangement=old.arrangement;
-   }
-   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:{id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at},arrangement,draft:local?.revision===saved.updated_at?local.arrangement:null,shift:0,capo:0});
+   const state=await getStudioState(saved);setStudioStatus(state);
+   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:{id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at},arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
   }catch(e){Alert.alert("SHALOM Studio",e.message);}
  }
  async function studioDraft(arrangement){
@@ -398,8 +395,11 @@ function Main(){
   if(!owner||!studioPayload||!await network())throw Error("Conéctate para publicar. Puedes guardar un borrador local.");
   const current=await api.myAccess();if(!canPublish(current,"songs"))throw Error("No tienes permiso de publicación.");
   const song=studioPayload.song;
-  const rows=await api.raw("/rest/v1/song_studio_arrangements?on_conflict=song_id&select=song_id","POST",{song_id:song.id,song_revision:song.revision,arrangement},"resolution=merge-duplicates,return=representation");
+  const rows=await api.raw("/rest/v1/song_studio_arrangements?on_conflict=song_id&select=song_id,song_revision","POST",{song_id:song.id,song_revision:song.revision,arrangement},"resolution=merge-duplicates,return=representation");
   if(!Array.isArray(rows)||rows[0]?.song_id!==song.id)throw Error("No se confirmó la publicación.");
+  const verified=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(song.id)+"&song_revision=eq."+encodeURIComponent(song.revision)+"&limit=1");
+  if(!verified?.[0]?.arrangement)throw Error("No se pudo verificar la publicación. Vuelve a abrir Studio para revisar el estado.");
+  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);if(canonical(verified[0].arrangement)!==canonical(arrangement))throw Error("La versión guardada difiere de la enviada. Revisa Studio.");
   await store.cacheList(owner,"studio-published:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
   await store.cacheList(owner,"studio:"+song.id,[]);
  }
@@ -439,7 +439,7 @@ function Main(){
        style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
         {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
    ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
-   song&&editing?.expected?button("Configurar acompañamiento de guitarra",openStudio,"secondary"):null,
+   song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión"):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&(studioStatus.arrangement||studioStatus.draft)?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
     button("Enviar a publicación",()=>saveDraft(true),null,!canPublish(access,selectedType)&&!offline)),

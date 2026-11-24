@@ -306,8 +306,10 @@ function apBindSongs() {
     b.type = "button";
     b.className = "song-btn secondary";
     b.textContent = "Configurar acompañamiento de guitarra";
+    const studioStatus = document.createElement("p");studioStatus.className="note";studioStatus.textContent="Consultando acompañamiento…";
+    async function refreshStudioStatus(){const saved=AP.songs.find(row=>apId(row.id)===apId(AP.edits.song));if(!saved?.updated_at){studioStatus.textContent="Guarda primero el canto.";return;}try{const {data,error}=await AdminPro.from("song_studio_arrangements").select("song_id").eq("song_id",saved.id).eq("song_revision",saved.updated_at).maybeSingle();if(error)throw error;studioStatus.textContent=data?"✓ Acompañamiento publicado":"Sin acompañamiento publicado";b.textContent=data?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra";}catch{studioStatus.textContent="No se pudo consultar el estado del acompañamiento.";}}
     const actions = form.querySelector(".admin-actions");
-    actions?.insertAdjacentElement("beforebegin", b);
+    actions?.insertAdjacentElement("beforebegin", studioStatus);actions?.insertAdjacentElement("beforebegin", b);refreshStudioStatus();
     b.addEventListener("click", async () => {
       const saved = AP.songs.find(row => apId(row.id) === apId(AP.edits.song));
       const lyrics = ap$("#songLyricsField")?.value || "";
@@ -317,7 +319,7 @@ function apBindSongs() {
         return;
       }
       b.disabled = true;
-      try { await window.ShalomStudioEntry.open({client:AdminPro,song:saved,admin:true}); }
+      try { await window.ShalomStudioEntry.open({client:AdminPro,song:saved,admin:true,onClose:refreshStudioStatus}); }
       catch(e) { if(status) status.textContent = e.message; }
       finally { b.disabled = false; }
     });
