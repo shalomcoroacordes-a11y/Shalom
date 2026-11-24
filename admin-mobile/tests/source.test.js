@@ -43,5 +43,6 @@ assert.match(lyrics,/presentationStyle:"fullScreen"/);
 assert.match(lyrics,/Math\.max\(360/);
 assert.match(lyrics,/fontFamily:"monospace"/);
 assert.equal(pkg.expo.android.edgeToEdgeEnabled,false);
-assert.equal(pkg.expo.android.versionCode,2);
+assert.ok(Number.isInteger(pkg.expo.android.versionCode)&&pkg.expo.android.versionCode>=3,"La versión oficial de Admin debe superar la anterior (2)");
+assert.equal(pkg.expo.version,JSON.parse(fs.readFileSync("package.json","utf8")).version,"Versiones de Expo y npm coherentes");
 console.log("Navegación segura, selectores y editor amplio comprobados.");
