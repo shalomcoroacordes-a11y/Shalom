@@ -2,6 +2,12 @@
 (function(root,factory){const api=factory(typeof module==="object"&&module.exports?require("./studio-core"):root.ShalomStudio);if(typeof module==="object"&&module.exports)module.exports=api;else root.ShalomStudioCodec=api;})(globalThis,function(core){
 "use strict";
 const symbols={down:"d",up:"u",mute:"m",rest:"r"},hits={d:"down",u:"up",m:"mute",r:"rest"};
+function ranges(value,total){
+ if(value===undefined)return [];
+ if(!Array.isArray(value)||value.length>251)throw Error("Fragmentos inválidos.");
+ const seen=new Set();
+ return value.map(r=>{if(!r||!Number.isInteger(r.index)||r.index<0||r.index>250||seen.has(r.index)||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<0||r.end<=r.start||r.end>total)throw Error("Rango de fragmento inválido.");seen.add(r.index);return {index:r.index,start:r.start,end:r.end}});
+}
 function encode(anchors,config){
  core.compile(anchors,config);
  const dictionary=[],index=new Map(),sections=[];
@@ -11,6 +17,7 @@ function encode(anchors,config){
    sections.push([p.start,index.get(key)]);
  }
  const value={v:1,m:config.meter,b:config.bpm,d:core.resolution(config.meter,config.division).division,n:config.totalSteps,s:config.source,c:config.changes.map(c=>c.step),p:dictionary,r:sections};
+ const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
  return value;
 }
@@ -22,7 +29,7 @@ function decode(anchors,value){
    if(!Array.isArray(pair)||pair.length!==2||!Number.isInteger(pair[1])||!value.p[pair[1]])throw Error("Referencia de patrón inválida.");
    return {start:pair[0],hits:[...value.p[pair[1]]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()}))};
  })};
- core.compile(anchors,config);return config;
+ config.fragments=ranges(value.f,config.totalSteps);core.compile(anchors,config);return config;
 }
 return Object.freeze({encode,decode});
 });
