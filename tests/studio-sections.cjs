@@ -12,3 +12,5 @@ const sequence=collections.scheduleTracks([{timeline:t,config:cfg,gapMs:500},{ti
 cfg=C.setSection(cfg,2,{transition:"gradual",pauseMs:0});t=C.compile(a,cfg);assert.equal(t[4].tempo,60);assert.equal(t[7].tempo,120);assert.ok(t[5].tempo>60&&t[5].tempo<120);
 cfg=C.setDuration(cfg,0,4);t=C.compile(a,cfg);assert.equal(t[cfg.changes[2].step].tempo,60);
 assert.throws(()=>C.setSection(cfg,2,{bpm:400}),/Tempo/);
+
+const original=JSON.stringify(cfg.changes),copy=C.setSection(cfg,2,{...C.sectionConfig(cfg,0),index:2});assert.equal(JSON.stringify(copy.changes),original);assert.equal(copy.sections[1].bpm,60);assert.deepEqual(copy.sections[1].hits,copy.sections[0].hits);assert.ok(copy.sections[1].hits!==copy.sections[0].hits);

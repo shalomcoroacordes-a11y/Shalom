@@ -86,7 +86,7 @@
         if(part.transition==="pause"&&step>0){gap=part.pauseMs/1000;time+=gap;}
       }
       const phase=part?step-part.start:0,span=part?Math.min(size,Math.max(1,(positioned[si+1]?.start??musicalEnd)-part.start)):size;
-      const tempo=part?.transition==="gradual"?previousTempo+(part.bpm-previousTempo)*Math.min(1,phase/Math.max(1,span-1)):part?.bpm??bpm;
+      const tempo=part?.transition==="gradual"&&span>1?previousTempo+(part.bpm-previousTempo)*Math.min(1,phase/(span-1)):part?.bpm??bpm;
       const seconds=60/tempo/m.division;
       const hit=part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
@@ -107,11 +107,11 @@
   }
   function sectionConfig(config,index){
     const p=(config.sections||[]).find(p=>p.index===index);
-    const base=config.patterns.filter(p=>p.start<=config.changes[index].step).at(-1);
+    requireInt(index,0,config.changes.length-1,"Sección");
     return p?{...p,hits:p.hits?.map(h=>({...h}))??null}:{index,bpm:config.bpm,transition:"immediate",pauseMs:0,hits:null};
   }
   function setSection(config,index,patch){
-    const p={...sectionConfig(config,index),...patch,index};
+    const p={...sectionConfig(config,index),...patch,index};if(p.hits)p.hits=p.hits.map(h=>({...h}));
     const sections=[...(config.sections||[]).filter(s=>s.index!==index),p].sort((a,b)=>a.index-b.index);
     const m=resolution(config.meter,config.division);validateSections({...config,sections},config.changes.length,m.beats*m.division);
     return {...config,sections};
