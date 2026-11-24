@@ -1,6 +1,6 @@
 /* El trabajador solamente guarda archivos públicos de SHALOM Offline.
    No intercepta el administrador ni almacena respuestas privadas de Supabase. */
-const VERSION = "shalom-offline-shell-v18-score-zoom";
+const VERSION = "shalom-offline-shell-v19-compact-admin";
 const ASSETS = [
   "./offline.html",
   "./offline.css",
