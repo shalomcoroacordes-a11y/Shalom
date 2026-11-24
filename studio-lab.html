@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>SHALOM Studio · Laboratorio</title><link rel="stylesheet" href="studio.css"><script defer src="song-chords.js"></script><script defer src="studio-core.js"></script><script defer src="studio-guitar.js"></script><script defer src="studio-lab.js"></script></head>
+<body><main><header><a href="offline.html">← SHALOM</a><span>STUDIO · Laboratorio</span></header><h1>Practicar con guitarra</h1><p class="note">Prototipo aislado. Los borradores locales no se publican en el cancionero.</p>
+<nav><button id="viewEdit">Editar acompañamiento</button><button id="viewPlay">Vista del músico</button></nav>
+<section id="editor">
+<label>Letra y acordes (formato habitual de SHALOM)<textarea id="source" rows="5" spellcheck="false">[Ejercicio]
+C       G       Am
+Texto de práctica musical
+F       G
+Segundo renglón</textarea></label>
+<div class="fields"><label>Compás<select id="meter"><option>4/4</option><option>3/4</option><option>6/8</option></select></label><label>Subdivisiones por pulso<select id="division"></select></label><label>BPM<input id="bpm" type="number" min="40" max="240" value="80"></label></div>
+<button id="generate">Detectar acordes y preparar borrador</button><p class="note">La detección no determina el ritmo real: ajusta los tiempos de cada acorde.</p>
+<div id="anchors"></div><label>Compases totales<input id="total" type="number" min="1" max="512"></label>
+<div class="fields"><label>Compás a editar<input id="barEdit" type="number" min="1" value="1"></label><label>Patrón<select id="preset"><option value="basic">Básico</option><option value="all">Alternado</option><option value="worship">Alabanza (corcheas)</option><option value="empty">Vacío</option></select></label></div>
+<button id="applyPreset">Aplicar patrón al compás</button><div id="grid"></div><p class="note">Pulsa para alternar ↓ ↑ × ·. Activa el acento debajo de cada golpe. El patrón se repite hasta el siguiente compás con un patrón propio.</p><button id="save">Guardar borrador local</button>
+</section>
+<section id="player" hidden><div class="player-grid"><div><h2>Letra y acordes</h2><div id="score"></div></div><div><h2 id="chord">—</h2><div id="diagram"></div><div id="live"></div><p id="where"></p></div></div>
+<div class="fields"><label>Guitarra<select id="tone"><option value="steel">Acero sintetizado</option><option value="nylon">Nylon sintetizado</option></select></label><label>Capo<input id="capo" type="number" min="0" max="12" value="0"></label><label>Velocidad (%)<input id="speed" type="number" min="25" max="200" value="100"></label></div><label>Volumen<input id="volume" type="range" min="0" max="100" value="75"></label><label><input id="metro" type="checkbox"> Metrónomo</label><label><input id="loop" type="checkbox" checked> Repetir</label>
+<button id="play">▶ Reproducir</button><button id="pause">■ Detener</button></section><p id="status" role="status" aria-live="polite"></p>
+</main></body></html>
