@@ -20,7 +20,7 @@ async function play(client,item,onClose){
  const p=item.payload;
  return entry.open({client,song:{...p.song,updated_at:p.song.revision},arrangement:p.arrangement,shift:p.shift,capo:p.capo,range:p.range,onClose});
 }
-function mount({client,container,articles,parts,songs,kind}){
+function mount({client,container,articles,parts,songs,kind,title:collectionTitle}){
  const plan=C.plan(parts,songs);
  container.querySelectorAll(".studio-collection-action").forEach(b=>b.remove());
  if(!plan.ready.length)return;
@@ -33,6 +33,12 @@ function mount({client,container,articles,parts,songs,kind}){
  const title=kind==="popurri"?"Practicar fragmentos disponibles":"Ensayar con guitarra";
  const control=button(title+" · "+plan.ready.length+"/"+plan.total,()=>choose(0));
  container.prepend(control);
+ if(kind==="popurri"){
+  const sequence=C.sequencePlan(parts,songs,collectionTitle);
+  if(sequence)container.prepend(button("▶ Practicar popurrí completo",()=>{
+   entry.open({client,song:{...sequence.song,updated_at:sequence.song.revision},arrangement:sequence.arrangement,range:sequence.range,shift:sequence.shift,capo:sequence.capo,sequence:sequence.sequence,title:sequence.title}).catch(e=>window.alert(e.message));
+  }));
+ }
  function choose(index){
   const ready=plan.ready;
   const dialog=document.createElement("dialog"),heading=document.createElement("h3"),status=document.createElement("p"),list=document.createElement("div");
