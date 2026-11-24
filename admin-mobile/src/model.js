@@ -44,6 +44,7 @@ function baseRecord(table,form,id) {
   for(const x of out.links){if(!x.title||!/^https:\/\//i.test(x.url||""))throw Error("Enlace inválido: requiere título y URL https");}
   for(const x of out.capos){if(!(Number(x.capo_position)>0&&Number(x.capo_position)<=12)||!String(x.capo_key||"").trim())throw Error("Versión de capo inválida");}
  }
+ if(table==="medleys"&&Array.isArray(out.parts))for(const part of out.parts){if(part.studio_gap_ms!=null&&(!Number.isInteger(part.studio_gap_ms)||part.studio_gap_ms<0||part.studio_gap_ms>10000))throw Error("Pausa de Studio inválida (0–10000 ms)");}
  if(table==="artists"&&out.featured_song_ids.length>3)throw Error("Máximo tres canciones destacadas");
  if(table==="categories"&&out.song_type==="mixto")throw Error("Categoría mixta no compatible con la base actual");
  return out;

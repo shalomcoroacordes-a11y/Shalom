@@ -2,7 +2,7 @@
 const React=require("react");
 const {useState,useEffect,useRef}=React;
 const RN=require("react-native");
-const {View,Text,TextInput,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator}=RN;
+const {View,Text,TextInput,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
@@ -108,6 +108,7 @@ function CompositeEditor({kind,value,onChange,songs,mode}){
     h(View,{style:{gap:7}},
      input("Nombre del fragmento",e.title||"",v=>change(i,"title",v)),
      input("Transponer (−11 a +11 semitonos)",String(e.shift||0),v=>change(i,"shift",Number(v)||0)),
+     i<entries.length-1?input("Studio: pausa al siguiente fragmento (ms, vacío = sin configurar)",String(e.studio_gap_ms??""),v=>change(i,"studio_gap_ms",v.trim()===""?null:Number(v))):null,
      txt("Usar sección del canto original",S.label),
      wrapChips([...String(songs.find(x=>x.id===e.song_id)?.lyrics||"").matchAll(/^\[([^\]]+)\]\s*$/gm)].slice(0,12).map(x=>[x[1],x[1]]),"",section=>chooseSection(i,section)),
      input("Letra y acordes de esta parte",e.lyrics||"",v=>change(i,"lyrics",v),{multi:true})):
@@ -175,6 +176,7 @@ function NestedEditor({kind,value,onChange}){
 }
 function Login({onSuccess}){
  const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[creating,setCreating]=useState(false);
+ useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",()=>{if(busy)return true;if(creating){setCreating(false);setMessage("");return true;}return false});return()=>sub.remove()},[creating,busy]);
  async function go(){
   setBusy(true);setMessage("");
   try{if(creating){await auth.signUp(email,pass);setMessage("Registro solicitado. Confirma tu correo, después inicia sesión. Solo se permite acceso con una invitación administrativa.");setCreating(false);}
@@ -203,6 +205,8 @@ function Main(){
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
  const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null),[trash,setTrash]=useState([]);
+ const [studioPayload,setStudioPayload]=useState(null),[studioStatus,setStudioStatus]=useState(null);
+ const editorOrigin=useRef("Cantos"),editorBaseline=useRef(null),leavingEditor=useRef(false);
  const owner=session?.user_id;
  async function hydrate(s){
   setSession(s);setBoot(false);
@@ -261,9 +265,10 @@ function Main(){
   catch(e){setMessage(e.message);}finally{setBusy(false);}
  }
  function begin(table,record,fromDraft){
+  editorOrigin.current=tab;const nextForm=fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table);editorBaseline.current=JSON.stringify(nextForm);
   setSelectedType(table);setSection("Datos");setTab("Editor");
   setEditing({id:fromDraft?.id||record?.id||record?.content_key||(table==="site_content"?"new":localId()),expected:fromDraft?.expected_updated||record?.updated_at||null});
-  setForm(fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table));
+  setForm(nextForm);
  }
  async function saveDraft(queue=false){
   if(!owner||!form||!editing)return;
@@ -294,7 +299,7 @@ function Main(){
    }}
   ]);
  }
- async function logout(){await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
+ async function logout(){setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
   try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
@@ -366,6 +371,53 @@ function Main(){
    !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
   );
  }
+ async function getStudioState(saved){
+  const local=(await store.cachedList(owner,"studio:"+saved.id))[0];let arrangement=null,checked=false;
+  if(!offline){const rows=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(saved.id)+"&song_revision=eq."+encodeURIComponent(saved.updated_at)+"&limit=1");arrangement=rows?.[0]?.arrangement||null;checked=true;await store.cacheList(owner,"studio-published:"+saved.id,arrangement?[{id:saved.id,revision:saved.updated_at,arrangement}]:[]);}
+  else{const old=(await store.cachedList(owner,"studio-published:"+saved.id))[0];if(old?.revision===saved.updated_at)arrangement=old.arrangement;}
+  return {id:saved.id,revision:saved.updated_at,arrangement,draft:local?.revision===saved.updated_at?local.arrangement:null,checked};
+ }
+ useEffect(()=>{let active=true;const saved=(lists.songs||[]).find(s=>s.id===editing?.id);setStudioStatus(null);if(tab==="Editor"&&selectedType==="songs"&&owner&&saved?.updated_at)getStudioState(saved).then(s=>{if(active)setStudioStatus(s)}).catch(()=>{if(active)setStudioStatus({id:saved.id,error:true})});return()=>{active=false};},[owner,editing?.id,tab,selectedType,offline,lists.songs,studioPayload===null]);
+ async function openStudio(){
+  const saved=(lists.songs||[]).find(s=>s.id===editing?.id);
+  if(!saved?.updated_at||String(form?.lyrics||"")!==String(saved.lyrics||""))return Alert.alert("SHALOM Studio","Publica primero la letra y los acordes del canto.");
+  try{
+   const state=await getStudioState(saved);setStudioStatus(state);
+   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:{id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at},arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
+  }catch(e){Alert.alert("SHALOM Studio",e.message);}
+ }
+ async function studioDraft(arrangement){
+  if(!owner||!studioPayload)throw Error("Sesión no disponible.");
+  const song=studioPayload.song;
+  await store.cacheList(owner,"studio:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
+ }
+ async function studioPublish(arrangement){
+  if(!owner||!studioPayload||!await network())throw Error("Conéctate para publicar. Puedes guardar un borrador local.");
+  const current=await api.myAccess();if(!canPublish(current,"songs"))throw Error("No tienes permiso de publicación.");
+  const song=studioPayload.song;
+  const rows=await api.raw("/rest/v1/song_studio_arrangements?on_conflict=song_id&select=song_id,song_revision","POST",{song_id:song.id,song_revision:song.revision,arrangement},"resolution=merge-duplicates,return=representation");
+  if(!Array.isArray(rows)||rows[0]?.song_id!==song.id)throw Error("No se confirmó la publicación.");
+  const verified=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(song.id)+"&song_revision=eq."+encodeURIComponent(song.revision)+"&limit=1");
+  if(!verified?.[0]?.arrangement)throw Error("No se pudo verificar la publicación. Vuelve a abrir Studio para revisar el estado.");
+  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);if(canonical(verified[0].arrangement)!==canonical(arrangement))throw Error("La versión guardada difiere de la enviada. Revisa Studio.");
+  await store.cacheList(owner,"studio-published:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
+  await store.cacheList(owner,"studio:"+song.id,[]);
+ }
+ function leaveEditor(){
+  if(leavingEditor.current)return;
+  const leave=()=>{leavingEditor.current=false;setForm(null);setEditing(null);setSection("Datos");setTab(editorOrigin.current==="Editor"?(selectedType==="songs"?"Cantos":"Catálogo"):editorOrigin.current);};
+  if(form&&JSON.stringify(form)!==editorBaseline.current){leavingEditor.current=true;Alert.alert("Cambios sin guardar","¿Quieres salir del editor? Los cambios nuevos se perderán.",[{text:"Seguir editando",style:"cancel",onPress:()=>{leavingEditor.current=false}},{text:"Salir sin guardar",style:"destructive",onPress:leave}],{cancelable:true,onDismiss:()=>{leavingEditor.current=false}});}
+  else leave();
+ }
+ function adminBack(){
+  if(!session||boot)return false;
+  if(tab==="Editor"){if(section!=="Datos"){setSection("Datos");return true;}leaveEditor();return true;}
+  if(tab==="Usuarios"){if(overrideUser){setOverrideUser(null);return true;}if(showRoleEditor){setShowRoleEditor(false);return true;}}
+  if(search){setSearch("");return true;}
+  if(tab!=="Inicio"){setTab("Inicio");return true;}
+  return false;
+ }
+ useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType]);
  function editorPanel(){
   if(!form)return null;
   const specs=FIELDS[selectedType]||[];
@@ -376,7 +428,7 @@ function Main(){
     song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:specs;
   const update=(key,v)=>setForm(f=>({...f,[key]:v}));
   return h(View,{style:{gap:14}},
-   h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",()=>{setForm(null);setTab(selectedType==="songs"?"Cantos":"Catálogo");},"secondary")),
+   h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",adminBack,"secondary")),
    song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):null,
    section==="Vista previa"&&song?h(View,{style:S.preview},
     txt(form.title||"Canto sin título",S.section),
@@ -387,6 +439,7 @@ function Main(){
        style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
         {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
    ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
+   song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión"):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&(studioStatus.arrangement||studioStatus.draft)?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
     button("Enviar a publicación",()=>saveDraft(true),null,!canPublish(access,selectedType)&&!offline)),
@@ -447,6 +500,7 @@ function Main(){
     h(View,{style:{gap:13}},wrapChips(catalogTabs.map(x=>[x,TITLES[x]]),selectedType,v=>{setSelectedType(v);setSearch("");}),catalogPanel(catalogTabs.includes(selectedType)?selectedType:"artists")):
     tab==="Pendientes"?pendingPanel():usersPanel()
   ),
+  studioPayload?h(require("./src/studio-screen"),{payload:studioPayload,onClose:()=>setStudioPayload(null),onSaveDraft:studioDraft,onPublish:studioPublish}):null,
   tab!=="Editor"?h(View,{style:[S.navShell,{paddingBottom:Math.max(insets.bottom,Platform.OS==="android"?24:12)}]},
    h(View,{style:S.nav},tabs.map(([name,symbol])=>h(Pressable,{
      key:name,

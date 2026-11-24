@@ -348,6 +348,32 @@ function renderSong(song, relations) {
   renderChordLyrics();
   renderLinks(relations);
   renderRelatedSongs(song, relations);
+  // Only expose Studio for an available, current publication; never load audio here.
+  if (window.ShalomStudioEntry && song.updated_at) {
+    window.ShalomStudioEntry.available(client, song).then(available => {
+      if (!available || currentSong?.id !== song.id || document.getElementById("songStudioAction")) return;
+      const actions = document.getElementById("songReaderActions") || prepareReaderToolbar();
+      if (!actions) return;
+      const b = document.createElement("button");
+      b.id = "songStudioAction";
+      b.type = "button";
+      b.className = "song-btn small-btn secondary";
+      b.textContent = "Practicar con guitarra";
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try {
+          const capo = Number(document.querySelector("#capoControls [data-position].active")?.dataset.position || 0);
+          await window.ShalomStudioEntry.open({client, song, shift:transpose+capoShift, capo});
+        } catch (e) {
+          const status = document.getElementById("songActionStatus");
+          if (status) status.textContent = e.message;
+          else window.alert(e.message);
+        } finally { b.disabled = false; }
+      });
+      actions.append(b);
+    }).catch(() => {});
+  }
+
 }
 
 async function loadSong() {

@@ -1,0 +1,18 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const C=require("../src/studio-collections");
+const source="[Verso]\nC\nTexto\n\n[Coro]\nG\nRespuesta";
+const song={id:"a",title:"Canto de ejemplo",lyrics:source,updated_at:"r1",_studio:{v:1,n:16,f:[{index:1,start:8,end:16}]}};
+const part={song_id:"a",lyrics:"[Coro]\nG\nRespuesta",shift:2};
+const full=C.resolve(song);assert.ok(full.ready);assert.equal(full.payload.range,null);
+const selected=C.resolve(song,part);assert.ok(selected.ready);assert.deepEqual(selected.payload.range,{start:8,end:16,title:"Coro"});assert.equal(selected.payload.shift,2);
+assert.ok(!C.resolve({...song,_studio:{v:1,n:16}},part).ready);
+assert.ok(!C.resolve(song,{...part,lyrics:"[Coro]\nAm\nRespuesta"}).ready);
+assert.ok(!C.resolve(song,{lyrics:null}).ready);
+assert.ok(!C.resolve({...song,_studio:null},part).ready);
+assert.ok(!C.resolve({...song,lyrics:source+"\n\n[Coro]\nG\nRespuesta"},part).ready);
+const plan=C.plan([part,{song_id:"missing"},{song_id:"a"}],[song]);
+assert.equal(plan.ready.length,2);assert.equal(plan.total,3);assert.deepEqual(plan.ready.map(x=>x.index),[0,2]);
+assert.equal(C.resolve(song,{shift:22}).payload.shift,-2);
+assert.equal(fs.readFileSync(require("node:path").resolve(__dirname,"../../studio-collections.js"),"utf8"),fs.readFileSync(require("node:path").resolve(__dirname,"../src/studio-collections.js"),"utf8"));
+console.log("SHALOM Studio: sólo fragmentos autorizados, orden y transposición comprobados.");

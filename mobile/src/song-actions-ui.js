@@ -5,7 +5,7 @@ const {InitialCover}=require("./visual-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const h=React.createElement;
 const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
-function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo}){
+function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -85,6 +85,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
      button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
      button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
+     song._studio&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
      button("↗","Ver enlaces y tutoriales",()=>setPhase("links"),
       links.length+" enlace(s) registrado(s)"),
      youtubeAvailable?button("▶","Abrir YouTube",()=>run(onVideo,true)):null,

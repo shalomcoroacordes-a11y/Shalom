@@ -2,7 +2,7 @@
 # Run from repository root. Preserve all app-private data across in-place installation.
 set -euo pipefail
 PKG="com.shalomcoroacordes.cancionero"
-OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.18.apk"
+OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v${BASELINE_VERSION:-0.4.18}.apk"
 NEW="mobile/android/app/build/outputs/apk/release/app-release.apk"
 test -s "$OLD" && test -s "$NEW"
 package_uid(){
@@ -14,7 +14,7 @@ adb wait-for-device
 adb install "$OLD"
 old_uid=$(package_uid)
 if [ -z "$old_uid" ]; then
-  echo "::error::No se pudo leer el UID de SHALOM 0.4.18 tras instalarla" >&2
+  echo "::error::No se pudo leer el UID de SHALOM versión anterior tras instalarla" >&2
   adb shell pm list packages -U "$PKG"
   exit 1
 fi
@@ -24,14 +24,14 @@ sleep 5
 adb install -r "$NEW"
 new_uid=$(package_uid)
 if [ -z "$new_uid" ]; then
-  echo "::error::No se pudo leer el UID de SHALOM 0.4.19 después de actualizar" >&2
+  echo "::error::No se pudo leer el UID de SHALOM versión candidata después de actualizar" >&2
   adb shell pm list packages -U "$PKG"
   exit 1
 fi
 test -n "$new_uid"
 test "$old_uid" = "$new_uid"
 adb shell pm path "$PKG" | grep -q '^package:'
-adb shell dumpsys package "$PKG" | grep -q 'versionCode=42'
+adb shell dumpsys package "$PKG" | grep -q "versionCode=${CANDIDATE_CODE:-42}"
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 sleep 12
@@ -40,7 +40,7 @@ if ! adb shell pidof "$PKG" >/dev/null 2>&1; then
   adb logcat -d -v brief -s AndroidRuntime:E ReactNativeJS:E ReactNative:E | tail -n 120
   exit 1
 fi
-echo "SHALOM: emulador aceptó instalación encima de 0.4.18 con UID conservado y la app sigue viva después del splash."
+echo "SHALOM: emulador aceptó instalación encima de versión anterior con UID conservado y la app sigue viva después del splash."
 # Capturas de una instalación fresca de prueba; no incluyen datos personales del usuario.
 SCREEN_DIR="$RUNNER_TEMP/shalom-upgrade/screenshots"
 mkdir -p "$SCREEN_DIR"

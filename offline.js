@@ -101,15 +101,15 @@
     $("#syncButton").textContent = snapshot ? "Actualizar cancionero" : "Descargar cancionero completo";
   }
 
-  async function fetchAll(table) {
+  async function fetchAll(table, idField = "id", optional = false) {
     const records = [];
-    let offset = 0;
+    let cursor = null;
     for (;;) {
       const url = new URL("/rest/v1/" + table, SUPABASE_URL);
       url.searchParams.set("select", "*");
-      url.searchParams.set("order", "id.asc");
+      url.searchParams.set("order", idField + ".asc");
       url.searchParams.set("limit", String(PAGE_SIZE));
-      url.searchParams.set("offset", String(offset));
+      if (cursor !== null) url.searchParams.set(idField, "gt." + cursor);
       const response = await fetch(url, {
         method: "GET",
         mode: "cors",
@@ -117,13 +117,14 @@
         headers: { "apikey": PUBLISHABLE_KEY, "Accept": "application/json" }
       });
       if (!response.ok) {
+        if (optional && cursor === null && response.status === 404) { const body = await response.json().catch(() => null); if (["PGRST205","42P01"].includes(body?.code)) return []; }
         throw new Error("Error consultando " + table + " (HTTP " + response.status + ").");
       }
       const rows = await response.json();
-      if (!Array.isArray(rows)) throw new Error("Respuesta inválida de " + table + ".");
+      if (!Array.isArray(rows) || rows.length > PAGE_SIZE) throw new Error("Respuesta inválida de " + table + ".");
+      for (const row of rows) { const id = row?.[idField]; if (typeof id !== "string" || !id || (cursor !== null && id <= cursor)) throw new Error("Página duplicada o desordenada de " + table + "."); cursor = id; }
       records.push(...rows);
       if (rows.length < PAGE_SIZE) return records;
-      offset += rows.length;
     }
   }
 
@@ -156,6 +157,10 @@
         data[table] = await fetchAll(table);
         $("#syncProgress").value = index + 1;
       }
+      setMessage("Descargando acompañamientos de guitarra publicados…");
+      const arrangements = await fetchAll("song_studio_arrangements", "song_id", true);
+      const bySong = new Map(arrangements.map(row => [row.song_id, row]));
+      data.songs = data.songs.map(song => { const row = bySong.get(song.id); const {_studio,...rest} = song; return row && song.updated_at && row.song_revision === song.updated_at && row.arrangement?.v === 1 ? {...rest,_studio:row.arrangement} : rest; });
       const snapshot = {
         version: 1,
         savedAt: new Date().toISOString(),
@@ -425,6 +430,24 @@
     renderLyrics(song);
     const more = $("#readerAdditional");
     more.replaceChildren();
+    const practice = window.ShalomStudioCollections?.resolve(song);
+    const toolbar = $(".reader-toolbar");
+    toolbar?.querySelector("#offlineStudio")?.remove();
+    if (practice?.ready && toolbar && window.ShalomStudioEntry) {
+      const b = simple("button", "small-btn", "♫ Practicar con guitarra");
+      b.id = "offlineStudio"; b.type = "button";
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try {
+          const capo = selectedCapo(song);
+          const payload = window.ShalomStudioCollections.resolve(song, {shift:state.shift + capo.offset,capo:Number(capo.position)||0}).payload;
+          if (!payload) throw Error("Tono o capo inválido.");
+          await window.ShalomStudioEntry.open({song,arrangement:payload.arrangement,shift:payload.shift,capo:payload.capo});
+        } catch (e) { window.alert(e.message || "No se pudo abrir Studio. Actualiza la copia con internet."); }
+        finally { b.disabled = false; }
+      });
+      toolbar.append(b);
+    }
     if (song._albums.length) more.append(simple("p", "", "Álbumes: " + song._albums.map((item) => item.title).join(" · ")));
     if (song._links.length) {
       more.append(simple("p", "", "Recursos externos (necesitan internet):"));

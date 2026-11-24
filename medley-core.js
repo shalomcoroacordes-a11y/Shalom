@@ -30,6 +30,7 @@
     flush();
     return out.length?out:[{index:0,title:"Canto completo",text:String(lyrics||"").trim()}];
   }
+  function validateGap(value){if(!Number.isInteger(value)||value<0||value>10000)throw Error("La pausa de Studio debe ser de 0 a 10000 ms.");return value;}
   function normalizeParts(parts) {
     if(!Array.isArray(parts))throw new Error("Los fragmentos del popurrí no son válidos.");
     if(parts.length<1||parts.length>30)throw new Error("Agrega entre 1 y 30 fragmentos al popurrí.");
@@ -44,7 +45,8 @@
         title:String(part.title||part.song_title||"Canto").slice(0,160),
         tone:String(part.tone||"").slice(0,24),
         lyrics,
-        shift:clampShift(part.shift)
+        shift:clampShift(part.shift),
+        ...(part.studio_gap_ms!==undefined&&part.studio_gap_ms!==null?{studio_gap_ms:validateGap(part.studio_gap_ms)}:{})
       };
     });
   }

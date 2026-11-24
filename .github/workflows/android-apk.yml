@@ -11,6 +11,10 @@ permissions:
 concurrency:
   group: shalom-android-apk
   cancel-in-progress: true
+env:
+  BASELINE_VERSION: "0.4.19"
+  BASELINE_CODE: "42"
+  CANDIDATE_CODE: "43"
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -41,6 +45,12 @@ jobs:
           /tmp/shalom-icon-generator/bin/python scripts/generate_icons.py
           test -s assets/icon.png
           test -s assets/adaptive-foreground.png
+      - name: Run release checks
+        run: |
+          npm run test:syntax
+          npm test
+          node scripts/release-preflight.js --publish
+          sdkmanager --install "build-tools;35.0.0"
       - name: Generate Android native project
         run: npx expo prebuild --platform android --non-interactive --no-install
       - name: Build standalone release APK
@@ -55,6 +65,26 @@ jobs:
           test -s android/app/build/outputs/apk/release/app-release.apk
           sha256sum android/app/build/outputs/apk/release/app-release.apk
           ls -lh android/app/build/outputs/apk/release/app-release.apk
+      - name: Verify update against existing official APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/shalom-upgrade"
+          gh release download android-v0.4.19 --pattern "SHALOM-Android-v0.4.19.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
+          bash scripts/verify-upgrade-candidate.sh
+      - name: Enable emulator acceleration
+        run: |
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+      - name: Test in-place update and launch
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-linux-hw-accel: false
+          script: bash mobile/scripts/verify-upgrade-on-emulator.sh
       - name: Upload SHALOM APK
         uses: actions/upload-artifact@v4
         with:
@@ -71,8 +101,9 @@ jobs:
           APK="SHALOM-Android-v${VERSION}.apk"
           cp android/app/build/outputs/apk/release/app-release.apk "$APK"
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" --clobber
+            echo "::error::La versión ya existe. No se sobrescribe una APK publicada."
+            exit 1
           else
-            gh release create "$TAG" "$APK" --prerelease --title "SHALOM Android v${VERSION} — versión de prueba" --notes "APK nativo para Android con guardado del cancionero dentro de la aplicación, sin depender de Chrome. Versión de prueba; valida la descarga y el modo avión antes de compartir."
+            gh release create "$TAG" "$APK" --title "SHALOM Android v${VERSION}" --notes "Versión oficial con SHALOM Studio, acompañamiento por secciones y modo offline. Firma, actualización y arranque Android verificados en emulador."
           fi
 
