@@ -72,17 +72,62 @@
       prior=start;return p;
     });
     if(patterns[0].start!==0)throw new Error("Falta el patrón inicial.");
-    const seconds=60/bpm/m.division;
-    let ci=0,pi=0,active=null;
+    const parts=validateSections(config,anchors.length,size);
+    let ci=0,pi=0,si=-1,active=null,time=0,part=null,previousTempo=bpm;
+    const positioned=parts.map(p=>({...p,start:changes[p.index].step}));
+
     return Array.from({length:total},(_,step)=>{
       while(ci<changes.length&&changes[ci].step===step)active=changes[ci++];
       while(pi+1<patterns.length&&patterns[pi+1].start<=step)pi++;
       if(step>=musicalEnd)active=null;
-      const hit=patterns[pi].hits[(step-patterns[pi].start)%size];
+      let gap=0;
+      if(si+1<positioned.length&&positioned[si+1].start===step){
+        previousTempo=part?.bpm??bpm;part=positioned[++si];
+        if(part.transition==="pause"&&step>0){gap=part.pauseMs/1000;time+=gap;}
+      }
+      const phase=part?step-part.start:0,span=part?Math.min(size,Math.max(1,(positioned[si+1]?.start??musicalEnd)-part.start)):size;
+      const tempo=part?.transition==="gradual"?previousTempo+(part.bpm-previousTempo)*Math.min(1,phase/Math.max(1,span-1)):part?.bpm??bpm;
+      const seconds=60/tempo/m.division;
+      const hit=part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
-      return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};
+      const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};time+=seconds;return event;
     });
   }
+  function validateSections(config,length,size){
+    const parts=config.sections??[];
+    if(!Array.isArray(parts)||parts.length>length)throw Error("Secciones musicales inválidas.");
+    let last=-1;
+    return parts.map(p=>{
+      if(!p||!Number.isInteger(p.index)||p.index<0||p.index>=length||p.index<=last)throw Error("Orden de secciones inválido.");
+      last=p.index;requireInt(p.bpm,40,240,"Tempo de sección");
+      if(!["immediate","gradual","pause"].includes(p.transition)||!Number.isInteger(p.pauseMs)||p.pauseMs<0||p.pauseMs>10000)throw Error("Transición inválida.");
+      if(p.hits!=null&&(!Array.isArray(p.hits)||p.hits.length!==size||p.hits.some(h=>!h||!hits.has(h.hit)||typeof h.accent!=="boolean")))throw Error("Rasgueo de sección inválido.");
+      return p;
+    });
+  }
+  function sectionConfig(config,index){
+    const p=(config.sections||[]).find(p=>p.index===index);
+    const base=config.patterns.filter(p=>p.start<=config.changes[index].step).at(-1);
+    return p?{...p,hits:p.hits?.map(h=>({...h}))??null}:{index,bpm:config.bpm,transition:"immediate",pauseMs:0,hits:null};
+  }
+  function setSection(config,index,patch){
+    const p={...sectionConfig(config,index),...patch,index};
+    const sections=[...(config.sections||[]).filter(s=>s.index!==index),p].sort((a,b)=>a.index-b.index);
+    const m=resolution(config.meter,config.division);validateSections({...config,sections},config.changes.length,m.beats*m.division);
+    return {...config,sections};
+  }
+  // Exact per-event clock: variable tempos and silent transitions, with compatibility for old fixtures.
+  function clockRange(timeline,first,end,speed=1){
+    if(!Number.isFinite(speed)||speed<=0||!Number.isInteger(first)||!Number.isInteger(end)||first<0||end<=first||end>timeline.length)throw Error("Rango musical inválido.");
+    let duration=0;const offsets=[],releases=[];
+    for(let i=first;i<end;i++){
+      const e=timeline[i],gap=i===first?0:(e.gapBefore||0)/speed;
+      if(gap){releases.push({time:duration,step:i});duration+=gap;}
+      offsets.push(duration);duration+=e.duration/speed;
+    }
+    return {offsets,releases,duration};
+  }
+  function clockIndex(offsets,elapsed){let lo=0,hi=offsets.length;while(lo+1<hi){const mid=(lo+hi)>>1;if(offsets[mid]<=elapsed)lo=mid;else hi=mid;}return lo;}
   function groupAnchors(anchors,rows){
     const groups=[];let heading=-1,title="Inicio",cursor=0;
     for(let i=0;i<rows.length;i++){
@@ -104,5 +149,5 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex});
 });

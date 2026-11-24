@@ -57,6 +57,9 @@ jobs:
       - name: Test guided Studio editor and scoped rhythm controls
         run: node tests/studio-guided-editor.cjs
 
+      - name: Test section-specific tempo, pattern and transitions
+        run: node tests/studio-sections.cjs
+
       - name: Test Android catalog download timeout
         run: node tests/mobile-sync-timeout.cjs
 

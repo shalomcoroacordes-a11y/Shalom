@@ -18,6 +18,7 @@ function encode(anchors,config){
  }
  const value={v:1,m:config.meter,b:config.bpm,d:core.resolution(config.meter,config.division).division,n:config.totalSteps,s:config.source,c:config.changes.map(c=>c.step),p:dictionary,r:sections};
  if(config.endStep!==undefined&&config.endStep!==config.totalSteps)value.e=config.endStep;
+ if(config.sections?.length)value.q=config.sections.map(p=>[p.index,p.bpm,p.hits?p.hits.map(h=>h.accent?symbols[h.hit].toUpperCase():symbols[h.hit]).join(""):null,p.transition,p.pauseMs]);
  const h=config.changes.map(c=>c.hold==="ring"?1:c.hold==="mute"?2:0);if(h.some(Boolean))value.h=h;
  const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
@@ -32,6 +33,13 @@ function decode(anchors,value){
    if(!Array.isArray(pair)||pair.length!==2||!Number.isInteger(pair[1])||!value.p[pair[1]])throw Error("Referencia de patrón inválida.");
    return {start:pair[0],hits:[...value.p[pair[1]]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()}))};
  })};
+ if(value.q!==undefined){
+   if(!Array.isArray(value.q))throw Error("Secciones musicales inválidas.");
+   config.sections=value.q.map(p=>{
+     if(!Array.isArray(p)||p.length!==5||(p[2]!==null&&(typeof p[2]!=="string"||p[2].length!==size||!/^[durmDURM]+$/.test(p[2]))))throw Error("Rasgueo de sección inválido.");
+     return {index:p[0],bpm:p[1],hits:p[2]===null?null:[...p[2]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()})),transition:p[3],pauseMs:p[4]};
+   });
+ }
  config.fragments=ranges(value.f,config.totalSteps);core.compile(anchors,config);return config;
 }
 return Object.freeze({encode,decode});
