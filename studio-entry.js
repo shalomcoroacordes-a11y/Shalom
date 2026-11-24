@@ -28,13 +28,16 @@ async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangeme
   try{
    const payload=e.data.arrangement;
    if(!payload||payload.v!==1||JSON.stringify(payload).length>64000)throw Error("Acompañamiento inválido.");
-   const response=await client.from(table).upsert({song_id:song.id,song_revision:song.updated_at,arrangement:payload},{onConflict:"song_id"}).select("song_id").single();
+   const response=await client.from(table).upsert({song_id:song.id,song_revision:song.updated_at,arrangement:payload},{onConflict:"song_id"}).select("song_id,song_revision").single();
    if(response.error)throw response.error;
-   send({type:"shalom-studio-result",ok:true,message:"Acompañamiento publicado."});
+   if(response.data?.song_id!==song.id)throw Error("No se confirmó la publicación en el servidor.");
+   const verified=await query(client,song,true);if(verified.error||!verified.data)throw Error("La publicación no pudo verificarse. Vuelve a abrir Studio para consultar su estado.");
+   send({type:"shalom-studio-result",ok:true,message:"✓ Acompañamiento guardado y publicado."});
   }catch(err){send({type:"shalom-studio-result",ok:false,message:err.message||"No se pudo publicar."})}finally{busy=false}
  }
  function cleanup(){if(closed)return;closed=true;window.removeEventListener("message",receive);dialog.remove();document.body.style.overflow=previousOverflow;window.scrollTo(0,top);active?.focus?.({preventScroll:true});onClose?.()}
- close.onclick=()=>dialog.close();dialog.addEventListener("close",cleanup,{once:true});window.addEventListener("message",receive);
+ function requestClose(){if(busy)return;try{if(frame.contentWindow?.__shalomStudioBack?.()===false)return;}catch{}dialog.close()}
+ close.onclick=requestClose;dialog.addEventListener("cancel",e=>{e.preventDefault();requestClose()});dialog.addEventListener("close",cleanup,{once:true});window.addEventListener("message",receive);
  frame.src="studio-lab.html";dialog.append(close,frame);document.body.append(dialog);document.body.style.overflow="hidden";
  try{dialog.showModal()}catch(err){cleanup();throw err}
 }

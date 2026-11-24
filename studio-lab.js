@@ -7,9 +7,40 @@ let practiceRange=null,sequence=null,sequenceTitle="";
 let stage=0,anchorIndex=0,groups=[],selectedHit=0,taps=[],timingUndo=null,editorScroll=0;
 let audition=false,auditionPattern=null,baseline=null,pendingSave=null,backPending=false;
 let openSection=0,inlineSection=null;
-const fingerprint=()=>config?JSON.stringify(config):null;
+let publishedFingerprint=null,draftFingerprint=null,saveError="",pendingKind=null;
+const fingerprint=()=>{try{return config?JSON.stringify(window.ShalomStudioCodec.encode(anchors,config)):null}catch{return null}};
 let anchors=[],config=null,ctx=null,engine=null,timer=null,frame=null,playing=false,epoch=0;
-const note=s=>{$("status").textContent=s;$("editorStatus").textContent=s};
+const note=s=>{$("status").textContent=s;$("editorStatus").textContent=s;renderSaveState()};
+function renderSaveState(){
+ const f=fingerprint(),isPublished=!!publishedFingerprint,dirty=!f||f!==baseline;
+ let state="dirty",title="Sin guardar",detail="Guarda un borrador privado o publica para los músicos.";
+ if(pendingSave!==null){state="busy";title=pendingKind==="publish"?"Publicando…":"Guardando borrador…";detail="Esperando confirmación del guardado."}
+ else if(saveError){state="error";title="No se confirmó el guardado";detail=saveError+(isPublished?" · La publicación anterior puede seguir disponible.":"")}
+ else if(f&&f===publishedFingerprint){state="published";title="✓ Acompañamiento publicado";detail="Guardado en el servidor para este canto. Disponible en SHALOM pública al actualizar el catálogo."}
+ else if(f&&f===draftFingerprint){state="draft";title="✓ Borrador guardado en este dispositivo";detail=isPublished?"La versión anterior sigue publicada. Publica para actualizarla.":"Aún no está disponible para los músicos."}
+ else if(isPublished){title="Cambios sin publicar";detail="La versión anterior sigue publicada. Guarda o publica los cambios."}
+ $("saveState").dataset.state=state;$("saveStateTitle").textContent=title;$("saveStateDetail").textContent=detail;
+ $("save").disabled=pendingSave!==null;$("publish").disabled=pendingSave!==null;
+}
+function finishSave(ok,message){
+ const kind=pendingKind,fp=pendingSave;
+ pendingSave=null;pendingKind=null;
+ if(ok&&fp!==null){baseline=fp;saveError="";if(kind==="publish"){publishedFingerprint=fp;draftFingerprint=null;try{localStorage.removeItem(storageKey)}catch{}}else draftFingerprint=fp;}
+ else if(!ok)saveError=message||"Intenta nuevamente.";
+ note(message||"Guardado.");
+}
+function submitSave(kind){
+ if(mode==="public"||pendingSave!==null)return;
+ validate();
+ if(kind==="publish"&&(mode!=="admin"||!window.confirm("¿Publicar este acompañamiento para todos los músicos?")))return;
+ pendingSave=fingerprint();pendingKind=kind;saveError="";
+ try{
+  const arrangement=window.ShalomStudioCodec.encode(anchors,config);
+  if(kind==="publish"){window.parent.postMessage({type:"shalom-studio-publish",arrangement},location.origin);note("Publicando…");}
+  else{localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));finishSave(true,"Borrador guardado en este dispositivo; no publicado.");}
+ }catch(e){finishSave(false,e.message||"No se pudo guardar.")}
+}
+
 function safe(fn){return async()=>{try{await fn()}catch(e){stop();note(e.message||String(e))}}}
 function elem(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e}
 function readRows(){
@@ -40,9 +71,9 @@ function renderEditor(){
  const counter=elem("div");counter.className="duration-counter";const minus=elem("button","−"),plus=elem("button","+");minus.disabled=duration<=1;minus.onclick=safe(()=>setSteps(Math.max(1,duration-m.division)));plus.onclick=safe(()=>setSteps(duration+m.division));counter.append(minus,elem("strong",durationText(duration)),plus);wrap.append(counter);
  const detail=elem("details");detail.className="advanced";detail.append(elem("summary","Duración personalizada"));const input=elem("input");input.type="number";input.step="any";input.min=1/m.division;input.value=Number((duration/m.division).toFixed(6));input.onchange=safe(()=>{const value=Number(input.value),n=Math.round(value*m.division);if(!Number.isFinite(value)||Math.abs(value*m.division-n)>.0001)throw Error("Usa una duración compatible con el ritmo.");setSteps(n)});const custom=elem("label","Pulsos exactos");custom.append(input);detail.append(custom);wrap.append(detail);
  const behavior=elem("label","¿Cómo se toca?"),select=elem("select");select.replaceChildren(new Option("Seguir rasgueando","strum"),new Option("Tocar una vez y dejar sonar","ring"),new Option("Rasguear y apagar al final","mute"));select.value=config.changes[anchorIndex].hold||"strum";select.onchange=()=>{config.changes[anchorIndex].hold=select.value;note("Comportamiento actualizado.")};behavior.append(select);wrap.append(behavior);$("anchors").replaceChildren(wrap);
- const rail=$("anchorRail"),chosen=rail.querySelector("[aria-pressed=true]");if(chosen)rail.scrollLeft=Math.max(0,chosen.offsetLeft-rail.offsetLeft-rail.clientWidth/2+chosen.offsetWidth/2);$("anchorStart").value=pos;$("anchorStart").max=(config.endStep??config.totalSteps)-1;$("prevAnchor").disabled=anchorIndex===0;$("nextAnchor").disabled=anchorIndex===anchors.length-1;$("undoTiming").disabled=!timingUndo;$("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();$("tempoSlider").value=$("bpm").value;renderPattern();renderFragments();renderReview();renderSections();
+ const rail=$("anchorRail"),chosen=rail.querySelector("[aria-pressed=true]");if(chosen)rail.scrollLeft=Math.max(0,chosen.offsetLeft-rail.offsetLeft-rail.clientWidth/2+chosen.offsetWidth/2);$("anchorStart").value=pos;$("anchorStart").max=(config.endStep??config.totalSteps)-1;$("prevAnchor").disabled=anchorIndex===0;$("nextAnchor").disabled=anchorIndex===anchors.length-1;$("undoTiming").disabled=!timingUndo;$("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();$("tempoSlider").value=$("bpm").value;renderPattern();renderFragments();renderReview();renderSections();renderSaveState();
 }
-function renderReview(){if(!config)return;const t=core.compile(anchors,config),sec=Math.round(core.clockRange(t,0,config.endStep??config.totalSteps).duration);$("reviewSummary").replaceChildren(...[["Velocidad",(config.sections||[]).length?"Por sección":config.bpm+" BPM"],["Compás",config.meter],["Acordes",anchors.length],["Secciones",groups.length],["Duración",Math.floor(sec/60)+" min "+sec%60+" s"],["Patrones",config.patterns.length]].map(([k,v])=>{const d=elem("div");d.append(elem("small",k),elem("strong",String(v)));return d}))}
+function renderReview(){if(!config)return;renderSaveState();const t=core.compile(anchors,config),sec=Math.round(core.clockRange(t,0,config.endStep??config.totalSteps).duration);$("reviewSummary").replaceChildren(...[["Velocidad",(config.sections||[]).length?"Por sección":config.bpm+" BPM"],["Compás",config.meter],["Acordes",anchors.length],["Secciones",groups.length],["Duración",Math.floor(sec/60)+" min "+sec%60+" s"],["Patrones",config.patterns.length]].map(([k,v])=>{const d=elem("div");d.append(elem("small",k),elem("strong",String(v)));return d}))}
 function presetHits(name){
  const m=core.resolution(config.meter,config.division),n=size(),w=["down","rest","down","up","rest","down","rest","up"];
  if(name==="worship"&&n!==8)throw Error("Alabanza requiere 4/4 con dos posiciones por pulso.");
@@ -269,8 +300,8 @@ function changeResolution(){if(!config){divisions();return;}const meter=$("meter
 $("meter").onchange=safe(changeResolution);$("division").onchange=safe(changeResolution);$("generate").onclick=safe(()=>{if(!config||window.confirm("¿Reemplazar la preparación musical actual?"))generate()});$("barEdit").onchange=safe(()=>{stop();renderPattern()});
 $("total").onchange=safe(()=>{const n=Number($("total").value);if(!Number.isInteger(n)||n<1||n>512)throw Error("Número de compases inválido.");const total=n*size();if((config.endStep!==undefined&&config.endStep>total)||config.changes.some(c=>c.step>=total)||config.patterns.some(p=>p.start>=total)||(config.fragments||[]).some(r=>r.end>total))throw Error("Hay acordes o patrones fuera de la duración elegida.");changeTiming({...config,totalSteps:total})});
 $("applyPreset").onclick=safe(()=>{const m=core.resolution(config.meter,config.division),choice=$("preset").value,scope=$("patternScope").value,pattern=["down","rest","down","up","rest","up","down","up"];if(choice==="worship"&&(config.meter!=="4/4"||m.division!==2))throw Error("Este patrón requiere 4/4 y dos posiciones por pulso.");if(scope!=="one"&&config.patterns.length>1&&!window.confirm("Se reemplazarán los patrones del rango elegido. ¿Continuar?"))return;const hits=Array.from({length:size()},(_,i)=>({hit:choice==="empty"?"rest":choice==="all"?i%2?"up":"down":choice==="worship"?pattern[i]:i%m.division===0?"down":"rest",accent:i===0}));config=core.applyPattern(config,Number($("barEdit").value),hits,scope);renderPattern();renderReview();note("Patrón aplicado.")});
-$("save").onclick=safe(()=>{validate();if(mode==="public")return;pendingSave=fingerprint();localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));baseline=pendingSave;pendingSave=null;note("Borrador guardado en este dispositivo; no publicado.")});
-$("publish").onclick=safe(()=>{if(mode!=="admin")return;validate();if(!window.confirm("¿Publicar este acompañamiento para todos los músicos?"))return;pendingSave=fingerprint();window.parent.postMessage({type:"shalom-studio-publish",arrangement:window.ShalomStudioCodec.encode(anchors,config)},location.origin);note("Publicando…")});
+$("save").onclick=safe(()=>submitSave("draft"));
+$("publish").onclick=safe(()=>submitSave("publish"));
 $("viewEdit").onclick=safe(()=>switchView(true));$("viewPlay").onclick=safe(()=>{if(mode!=="public"){editorScroll=window.scrollY;practiceRange=null}switchView(false)});$("play").onclick=safe(play);$("pause").onclick=()=>{stop();note("Reproducción detenida.")};$("volume").oninput=()=>engine?.volume(Number($("volume").value)/100);
 window.__shalomStudioBack=function(){
  if(backPending)return false;
@@ -279,17 +310,17 @@ window.__shalomStudioBack=function(){
   if(!$("player").hidden){switchView(true);return false;}
   if(stage>0){showStage(stage-1);return false;}
   if(pendingSave!==null){note("Espera la confirmación del guardado.");return false;}
-  if(baseline!==fingerprint()){backPending=true;const leave=window.confirm("Hay cambios sin guardar. ¿Salir y perder estos cambios?");backPending=false;if(!leave)return false;}
+  if(baseline!==fingerprint()||(!publishedFingerprint&&!draftFingerprint&&mode==="admin")){backPending=true;const leave=window.confirm("Hay cambios sin guardar. ¿Salir y perder estos cambios?");backPending=false;if(!leave)return false;}
  }
  return true;
 };
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});window.addEventListener("pagehide",()=>{stop();engine?.dispose();ctx?.close().catch(()=>{});ctx=null;engine=null});
 if(!embedded){divisions();try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved){$("source").value=saved.source;config=saved.config;$("meter").value=config.meter;divisions();$("division").value=config.division;$("bpm").value=config.bpm;anchors=core.anchorsFromRows(readRows());validate();renderEditor()}else generate()}catch(e){generate();note("No se pudo recuperar el borrador anterior: "+e.message)}
-showStage(0,false);baseline=fingerprint();
+showStage(0,false);baseline=fingerprint();renderSaveState();
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./offline-sw.js").catch(()=>note("No se pudo preparar la caché offline."));
 }else{
  $("studioMain").hidden=true;
- window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};if(d.type==="shalom-studio-result"&&mode==="admin"){if(d.ok&&pendingSave!==null)baseline=pendingSave;pendingSave=null;note(d.message);return}if(d.type!=="shalom-studio-init"||initialized)return;initialized=true;try{mode=d.mode==="admin"?"admin":"public";practiceRange=mode==="public"?d.range||null:null;sequence=mode==="public"&&Array.isArray(d.sequence)&&d.sequence.length>=2?d.sequence:null;sequenceTitle=String(d.title||"Popurrí");baseRevision=d.song.revision;storageKey=labKey+"."+d.song.id;$("source").value=d.song.lyrics;$("source").readOnly=true;$("sourceLabel").hidden=true;$("labHeader").hidden=true;$("studioTitle").textContent=d.song.title+(practiceRange?.title?" · "+practiceRange.title:"");$("labNote").textContent=mode==="admin"?"Configura los acordes existentes. Los borradores no son públicos.":"Acompañamiento publicado · guitarra sintetizada";$("shift").value=Number(d.shift)||0;$("capo").value=Number(d.capo)||0;anchors=core.anchorsFromRows(readRows());let draft=null;if(mode==="admin"){try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved?.revision===baseRevision&&saved.config?.source===core.signature(anchors))draft=saved.config}catch{}}config=draft||(d.arrangement?window.ShalomStudioCodec.decode(anchors,d.arrangement):null);if(!config){if(mode==="public")throw Error("No hay acompañamiento disponible.");divisions();generate()}else{$("meter").value=config.meter;divisions();$("division").value=String(config.division);$("bpm").value=config.bpm;validate();renderEditor()}if(practiceRange){if(!(config.fragments||[]).some(r=>r.start===practiceRange.start&&r.end===practiceRange.end))throw Error("Fragmento sin sincronización publicada.");$("loop").checked=false;}$("publish").hidden=mode!=="admin";$("studioNav").hidden=mode==="public";$("studioMain").hidden=false;switchView(mode==="admin");baseline=fingerprint();if(sequence){$("studioTitle").textContent=sequenceTitle;$("labNote").textContent="Popurrí continuo · "+sequence.length+" fragmentos";$("loop").checked=false;$("loop").closest("label").hidden=true;$("shift").closest("label").hidden=true;$("capo").closest("label").hidden=true;}}catch(err){$("studioMain").hidden=false;$("editor").hidden=true;$("player").hidden=true;$("studioNav").hidden=true;note(err.message)}});
+ window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};if(d.type==="shalom-studio-result"&&mode==="admin"){finishSave(d.ok,d.message);return}if(d.type!=="shalom-studio-init"||initialized)return;initialized=true;try{mode=d.mode==="admin"?"admin":"public";practiceRange=mode==="public"?d.range||null:null;sequence=mode==="public"&&Array.isArray(d.sequence)&&d.sequence.length>=2?d.sequence:null;sequenceTitle=String(d.title||"Popurrí");baseRevision=d.song.revision;storageKey=labKey+"."+d.song.id;$("source").value=d.song.lyrics;$("source").readOnly=true;$("sourceLabel").hidden=true;$("labHeader").hidden=true;$("studioTitle").textContent=d.song.title+(practiceRange?.title?" · "+practiceRange.title:"");$("labNote").textContent=mode==="admin"?"Configura los acordes existentes. Los borradores no son públicos.":"Acompañamiento publicado · guitarra sintetizada";$("shift").value=Number(d.shift)||0;$("capo").value=Number(d.capo)||0;anchors=core.anchorsFromRows(readRows());let draft=null;if(mode==="admin"){try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved?.revision===baseRevision&&saved.config?.source===core.signature(anchors))draft=saved.config}catch{}}const published=d.arrangement?window.ShalomStudioCodec.decode(anchors,d.arrangement):null;publishedFingerprint=published?JSON.stringify(window.ShalomStudioCodec.encode(anchors,published)):null;draftFingerprint=draft?JSON.stringify(window.ShalomStudioCodec.encode(anchors,draft)):null;config=draft||published;if(!config){if(mode==="public")throw Error("No hay acompañamiento disponible.");divisions();generate()}else{$("meter").value=config.meter;divisions();$("division").value=String(config.division);$("bpm").value=config.bpm;validate();renderEditor()}if(practiceRange){if(!(config.fragments||[]).some(r=>r.start===practiceRange.start&&r.end===practiceRange.end))throw Error("Fragmento sin sincronización publicada.");$("loop").checked=false;}$("publish").hidden=mode!=="admin";$("studioNav").hidden=mode==="public";$("studioMain").hidden=false;switchView(mode==="admin");baseline=fingerprint();renderSaveState();if(sequence){$("studioTitle").textContent=sequenceTitle;$("labNote").textContent="Popurrí continuo · "+sequence.length+" fragmentos";$("loop").checked=false;$("loop").closest("label").hidden=true;$("shift").closest("label").hidden=true;$("capo").closest("label").hidden=true;}}catch(err){$("studioMain").hidden=false;$("editor").hidden=true;$("player").hidden=true;$("studioNav").hidden=true;note(err.message)}});
  window.parent.postMessage({type:"shalom-studio-ready"},location.origin);
 }
 })();

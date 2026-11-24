@@ -16,7 +16,7 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish}){
   if(payload.mode!=="admin"||busy.current||!data?.arrangement||data.arrangement.v!==1||JSON.stringify(data.arrangement).length>64000)return;
   const handler=data.type==="shalom-studio-draft"?onSaveDraft:data.type==="shalom-studio-publish"?onPublish:null;
   if(!handler)return;
-  busy.current=true;try{await handler(data.arrangement);reply(true,data.type==="shalom-studio-draft"?"Borrador guardado en este dispositivo.":"Acompañamiento publicado.")}catch(e){reply(false,e.message||"No se pudo guardar.")}finally{busy.current=false}
+  busy.current=true;try{await handler(data.arrangement);reply(true,data.type==="shalom-studio-draft"?"Borrador guardado en este dispositivo.":"✓ Acompañamiento guardado y publicado.")}catch(e){reply(false,e.message||"No se pudo guardar.")}finally{busy.current=false}
  }
  function close(){if(busy.current){Alert.alert("SHALOM Studio","Espera a que termine el guardado.");return;}if(!loaded.current||!web.current){onClose();return;}web.current.injectJavaScript('if(typeof window.__shalomStudioBack!=="function"||window.__shalomStudioBack()){window.ReactNativeWebView.postMessage(JSON.stringify({type:"shalom-studio-close"}));}true;')}
  return h(Modal,{visible:true,animationType:"slide",onRequestClose:close,accessibilityViewIsModal:true},
