@@ -37,15 +37,15 @@
     return {version:1,meter,bpm,division:m.division,source:signature(anchors),totalSteps:Math.max(size,Math.ceil(anchors.length*m.division/size)*size),changes:anchors.map((a,i)=>({anchorId:a.id,step:i*m.division})),patterns:[{start:0,hits:Array.from({length:size},(_,i)=>({hit:i%m.division===0?"down":"rest",accent:i===0}))}]};
   }
   const holds=["strum","ring","mute"];
-  function durationSteps(config,index){return (config.changes[index+1]?.step??config.totalSteps)-config.changes[index].step}
+  function durationSteps(config,index){return (config.changes[index+1]?.step??config.endStep??config.totalSteps)-config.changes[index].step}
   function setDuration(config,index,steps){
     requireInt(index,0,config.changes.length-1,"Acorde");requireInt(steps,1,100000,"Duración");
     const m=resolution(config.meter,config.division),bar=m.beats*m.division,delta=steps-durationSteps(config,index);
     if(!delta)return config;
-    const total=Math.ceil((config.totalSteps+delta)/bar)*bar;
+    const endStep=(config.endStep??config.totalSteps)+delta,total=Math.ceil(endStep/bar)*bar;
     requireInt(total,bar,Math.min(100000,512*bar),"Duración total");
     if(config.patterns.some(p=>p.start>=total))throw Error("Quita primero los patrones de los compases que desaparecerían.");
-    return {...config,totalSteps:total,changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
+    return {...config,totalSteps:total,endStep,changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
   }
   function compile(anchors,config,transpose=c=>c){
     if(!config||config.version!==1||!meters[config.meter])throw new Error("Configuración incompatible.");
@@ -55,10 +55,11 @@
     const bpm=requireInt(config.bpm,40,240,"Tempo");
     const total=requireInt(config.totalSteps,1,100000,"Duración");
     if(total%size)throw new Error("La duración debe completar el compás.");
+    const musicalEnd=requireInt(config.endStep??total,1,total,"Fin musical");
     if(!Array.isArray(config.changes)||config.changes.length!==anchors.length)throw new Error("Sincronización incompleta.");
     let prior=-1;
     const changes=config.changes.map((c,i)=>{
-      const step=requireInt(c.step,0,total-1,"Posición");
+      const step=requireInt(c.step,0,musicalEnd-1,"Posición");
       if(c.anchorId!==anchors[i].id||step<=prior)throw new Error("Revisa el orden de los acordes.");
       prior=step;
       const hold=c.hold??"strum";if(!holds.includes(hold))throw Error("Resonancia inválida.");return {step,anchor:anchors[i],hold};
@@ -76,9 +77,10 @@
     return Array.from({length:total},(_,step)=>{
       while(ci<changes.length&&changes[ci].step===step)active=changes[ci++];
       while(pi+1<patterns.length&&patterns[pi+1].start<=step)pi++;
+      if(step>=musicalEnd)active=null;
       const hit=patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
-      return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,...(active?.hold==="mute"&&(changes[ci]?.step??total)===step+1?{release:true}:{})};
+      return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};
     });
   }
   function groupAnchors(anchors,rows){

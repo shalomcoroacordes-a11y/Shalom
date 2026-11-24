@@ -17,6 +17,7 @@ function encode(anchors,config){
    sections.push([p.start,index.get(key)]);
  }
  const value={v:1,m:config.meter,b:config.bpm,d:core.resolution(config.meter,config.division).division,n:config.totalSteps,s:config.source,c:config.changes.map(c=>c.step),p:dictionary,r:sections};
+ if(config.endStep!==undefined&&config.endStep!==config.totalSteps)value.e=config.endStep;
  const h=config.changes.map(c=>c.hold==="ring"?1:c.hold==="mute"?2:0);if(h.some(Boolean))value.h=h;
  const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
@@ -27,7 +28,7 @@ function decode(anchors,value){
  const m=core.resolution(value.m,value.d),size=m.beats*m.division;
  if(value.p.some(p=>typeof p!=="string"||p.length!==size||!/^[durmDURM]+$/.test(p)))throw Error("Patrón musical inválido.");
  if(value.h!==undefined&&(!Array.isArray(value.h)||value.h.length!==anchors.length||value.h.some(h=>![0,1,2].includes(h))))throw Error("Resonancia inválida.");
- const config={version:1,meter:value.m,bpm:value.b,division:value.d,totalSteps:value.n,source:value.s,changes:value.c.map((step,i)=>({anchorId:anchors[i].id,step,...(value.h?.[i]?{hold:value.h[i]===1?"ring":"mute"}:{})})),patterns:value.r.map(pair=>{
+ const config={version:1,meter:value.m,bpm:value.b,division:value.d,totalSteps:value.n,...(value.e===undefined?{}:{endStep:value.e}),source:value.s,changes:value.c.map((step,i)=>({anchorId:anchors[i].id,step,...(value.h?.[i]?{hold:value.h[i]===1?"ring":"mute"}:{})})),patterns:value.r.map(pair=>{
    if(!Array.isArray(pair)||pair.length!==2||!Number.isInteger(pair[1])||!value.p[pair[1]])throw Error("Referencia de patrón inválida.");
    return {start:pair[0],hits:[...value.p[pair[1]]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()}))};
  })};
