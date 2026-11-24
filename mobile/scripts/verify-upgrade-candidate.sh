@@ -2,7 +2,7 @@
 # Works inside mobile/ in disposable GitHub Actions runner only.
 set -euo pipefail
 NEW="android/app/build/outputs/apk/release/app-release.apk"
-OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.18.apk"
+OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v${BASELINE_VERSION:-0.4.18}.apk"
 SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
 AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
 test -s "$NEW"
@@ -27,12 +27,12 @@ NEW_CODE=$(extract_code "$NEW")
 echo "APK oficial: $OLD_PKG | versionCode=$OLD_CODE | SHA-256=$OLD_SHA"
 echo "APK candidata: $NEW_PKG | versionCode=$NEW_CODE | SHA-256=$NEW_SHA"
 if [[ "$OLD_PKG" != "com.shalomcoroacordes.cancionero" ||
-      "$NEW_PKG" != "$OLD_PKG" || "$OLD_CODE" != "41" || "$NEW_CODE" != "42" ]]; then
+      "$NEW_PKG" != "$OLD_PKG" || "$OLD_CODE" != "${BASELINE_CODE:-41}" || "$NEW_CODE" != "${CANDIDATE_CODE:-42}" ]]; then
   echo "::error::Paquete o versión incorrecta. No distribuir APK ni probar actualización." >&2
   exit 1
 fi
 if [[ -z "$OLD_SHA" || -z "$NEW_SHA" || "$OLD_SHA" != "$NEW_SHA" ]]; then
-  echo "::error::Certificado diferente al de 0.4.18. BLOQUEADO: se necesita la clave de firma histórica, nunca desinstalar la app para forzar una actualización." >&2
+  echo "::error::Certificado diferente al de la versión instalada. BLOQUEADO: se necesita la clave de firma histórica, nunca desinstalar la app para forzar una actualización." >&2
   exit 1
 fi
 echo "Identidad, versionCode y certificado válidos para ensayo no publicado."
