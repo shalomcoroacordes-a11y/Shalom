@@ -19,7 +19,16 @@ function generate(){
  config=core.draft(anchors,$("meter").value,Number($("bpm").value),Number($("division").value));$("barEdit").value=1;renderEditor();note("Borrador generado. Ajusta los tiempos en subdivisiones desde cero.")
 }
 function renderEditor(){
- $("anchors").replaceChildren(...anchors.map((a,i)=>{const l=elem("label",a.chord+" · "+(a.section?a.section+" · ":"")+"línea "+(a.line+1));const n=elem("input");n.type="number";n.min=0;n.max=config.totalSteps-1;n.value=config.changes[i].step;n.setAttribute("aria-label","Subdivisión de "+a.chord+" número "+(i+1));n.onchange=()=>{config.changes[i].step=Number(n.value);note("Tiempo modificado; valida antes de guardar.")};l.append(n);return l}));
+ const d=core.resolution(config.meter,config.division).division;
+ $("anchors").replaceChildren(...anchors.map((a,i)=>{
+  const wrap=elem("div");wrap.className="anchor-edit";wrap.append(elem("strong",a.chord+" · "+(a.section||"Inicio")+" · línea "+(a.line+1)));
+  const fields=elem("div");fields.className="fields";
+  function input(label,value,step,handler){const l=elem("label",label),n=elem("input");n.type="number";n.min=label==="Inicio (subdiv.)"?0:step;n.step=step;n.value=value;n.onchange=safe(()=>handler(Number(n.value)));l.append(n);fields.append(l)}
+  function confirmTiming(){return !(config.fragments||[]).length||window.confirm("Este cambio requiere volver a sincronizar los fragmentos. ¿Continuar?")}
+  input("Inicio (subdiv.)",config.changes[i].step,1,value=>{if(!confirmTiming())return renderEditor();const next={...config,changes:config.changes.map((x,j)=>j===i?{...x,step:value}:x),fragments:[]};core.compile(anchors,next);config=next;renderEditor();note("Inicio actualizado.")});
+  input("Duración (pulsos)",Number((core.durationSteps(config,i)/d).toFixed(6)),1/d,value=>{if(!confirmTiming())return renderEditor();const steps=Math.round(value*d);if(!Number.isFinite(value)||Math.abs(value*d-steps)>.0001)throw Error("Usa una duración compatible con las subdivisiones.");const next=core.setDuration(config,i,steps);core.compile(anchors,next);config=next;renderEditor();note("Duración actualizada. Se movieron los acordes siguientes; revisa los patrones por compás.")});
+  const l=elem("label","Comportamiento"),select=elem("select");select.replaceChildren(new Option("Continuar rasgueando","strum"),new Option("Un golpe y resonar","ring"),new Option("Rasguear y apagar al final","mute"));select.value=config.changes[i].hold||"strum";select.onchange=()=>{config.changes[i].hold=select.value;note("Comportamiento actualizado.")};l.append(select);fields.append(l);wrap.append(fields);return wrap;
+ }));
  $("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();renderPattern();renderFragments();
 }
 function renderFragments(){
@@ -69,6 +78,9 @@ function showStep(timeline,i){
  const e=timeline[i];if(!e)return;const n=size(),start=e.bar*n;
  if($("chord").textContent!==(e.chord||"—")){$("chord").textContent=e.chord||"—";diagram(e.chord)}
  $("where").textContent="Compás "+(e.bar+1)+" · Pulso "+(e.beat+1);
+ const upcoming=timeline.find((x,j)=>j>i&&x.anchorId!==e.anchorId&&x.chord);
+ $("transportChord").textContent=(e.chord||"—")+" → "+(upcoming?.chord||"Fin");
+ $("transportWhere").textContent=$("where").textContent;
  const live=$("live"), pattern=timeline.slice(start,start+n).map(x=>arrows[x.hit]+(x.accent?"′":""));
  const key=pattern.join("|");
  if(live.dataset.pattern!==key){
@@ -83,6 +95,14 @@ function showStep(timeline,i){
   score.querySelector(".active")?.classList.remove("active");
   if(line!=="")score.children[Number(line)]?.classList.add("active");
   score.dataset.activeLine=line;
+ }
+ if(score.dataset.activeAnchor!==String(e.anchorId)||!score.querySelector(".active-chord")){
+  score.querySelector(".active-chord")?.classList.remove("active-chord");
+  if(anchor){const row=score.children[anchor.line],target=row?.querySelector(".chord-line")||row;
+   if(target){if(!target.dataset.chordTokens){const parts=target.textContent.split(/(\s+)/);target.replaceChildren(...parts.map(p=>{if(!p.trim())return document.createTextNode(p);const span=elem("span",p);span.className="chord-token";return span}));target.dataset.chordTokens="1"}
+    const index=anchors.filter(a=>a.line===anchor.line&&a.column<anchor.column).length;target.querySelectorAll(".chord-token")[index]?.classList.add("active-chord");
+   }}
+  score.dataset.activeAnchor=String(e.anchorId);
  }
 }
 function stop(){playing=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop()}
@@ -120,7 +140,7 @@ async function playSequence(){
    if(item.release){engine.releaseAt(Math.max(t,ctx.currentTime));continue}
    if(t<ctx.currentTime-.03)continue;
    const e=track.timeline[item.step];
-   engine.strum({...e,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo:track.capo});
+   engine.strum({...e,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo:track.capo});if(e.release)engine.releaseAt(Math.max(t+e.duration/speed,ctx.currentTime));
    if($("metro").checked&&e.step%track.config.division===0)engine.click(Math.max(t,ctx.currentTime),e.beat===0);
   }}catch(e){stop();note(e.message)}
  }
@@ -146,7 +166,7 @@ async function play(){
  const first=practiceRange?.start??0,end=practiceRange?.end??timeline.length;
  if(!window.ShalomStudioCollections.validRange({start:first,end},timeline.length))throw Error("El fragmento no tiene límites válidos.");
  const count=end-first,duration=count*timeline[0].duration/speed,start=ctx.currentTime+.16;let next=0,last=-1;
- const tick=()=>{if(!playing)return;try{while(start+next*timeline[0].duration/speed<ctx.currentTime+.12){if(!$("loop").checked&&next>=count)break;const e=timeline[first+next%count],t=start+next*e.duration/speed;next++;if(t<ctx.currentTime-.03)continue;engine.strum({...e,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo});if($("metro").checked&&e.step%config.division===0)engine.click(Math.max(t,ctx.currentTime),e.beat===0)}}catch(e){stop();note(e.message)}};
+ const tick=()=>{if(!playing)return;try{while(start+next*timeline[0].duration/speed<ctx.currentTime+.12){if(!$("loop").checked&&next>=count)break;const e=timeline[first+next%count],t=start+next*e.duration/speed;next++;if(t<ctx.currentTime-.03)continue;engine.strum({...e,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo});if(e.release)engine.releaseAt(Math.max(t+e.duration/speed,ctx.currentTime));if($("metro").checked&&e.step%config.division===0)engine.click(Math.max(t,ctx.currentTime),e.beat===0)}}catch(e){stop();note(e.message)}};
  function animate(){if(!playing)return;const elapsed=ctx.currentTime-start;if(elapsed>=duration&&!$("loop").checked){stop();note("Práctica finalizada.");return}const i=first+Math.max(0,Math.floor(elapsed/(timeline[0].duration/speed)))%count;if(i!==last){showStep(timeline,i);last=i}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.")
 }
@@ -157,7 +177,7 @@ $("applyPreset").onclick=safe(()=>{const p=currentPattern(true),m=core.resolutio
 $("save").onclick=safe(()=>{validate();if(mode==="public")return;localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));note("Borrador guardado en este dispositivo; no publicado.")});
 $("publish").onclick=safe(()=>{if(mode!=="admin")return;validate();if(!window.confirm("¿Publicar este acompañamiento para todos los músicos?"))return;window.parent.postMessage({type:"shalom-studio-publish",arrangement:window.ShalomStudioCodec.encode(anchors,config)},location.origin);note("Publicando…")});
 $("viewEdit").onclick=safe(()=>switchView(true));$("viewPlay").onclick=safe(()=>switchView(false));$("play").onclick=safe(play);$("pause").onclick=()=>{stop();note("Reproducción detenida.")};$("volume").oninput=()=>engine?.volume(Number($("volume").value)/100);
-document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});window.addEventListener("pagehide",()=>{stop();engine?.dispose()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});window.addEventListener("pagehide",()=>{stop();engine?.dispose();ctx?.close().catch(()=>{});ctx=null;engine=null});
 if(!embedded){divisions();try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved){$("source").value=saved.source;config=saved.config;$("meter").value=config.meter;divisions();$("division").value=config.division;$("bpm").value=config.bpm;anchors=core.anchorsFromRows(readRows());validate();renderEditor()}else generate()}catch(e){generate();note("No se pudo recuperar el borrador anterior: "+e.message)}
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./offline-sw.js").catch(()=>note("No se pudo preparar la caché offline."));
 }else{

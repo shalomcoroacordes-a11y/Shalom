@@ -36,6 +36,17 @@
     const size=m.beats*m.division;
     return {version:1,meter,bpm,division:m.division,source:signature(anchors),totalSteps:Math.max(size,Math.ceil(anchors.length*m.division/size)*size),changes:anchors.map((a,i)=>({anchorId:a.id,step:i*m.division})),patterns:[{start:0,hits:Array.from({length:size},(_,i)=>({hit:i%m.division===0?"down":"rest",accent:i===0}))}]};
   }
+  const holds=["strum","ring","mute"];
+  function durationSteps(config,index){return (config.changes[index+1]?.step??config.totalSteps)-config.changes[index].step}
+  function setDuration(config,index,steps){
+    requireInt(index,0,config.changes.length-1,"Acorde");requireInt(steps,1,100000,"Duración");
+    const m=resolution(config.meter,config.division),bar=m.beats*m.division,delta=steps-durationSteps(config,index);
+    if(!delta)return config;
+    const total=Math.ceil((config.totalSteps+delta)/bar)*bar;
+    requireInt(total,bar,Math.min(100000,512*bar),"Duración total");
+    if(config.patterns.some(p=>p.start>=total))throw Error("Quita primero los patrones de los compases que desaparecerían.");
+    return {...config,totalSteps:total,changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
+  }
   function compile(anchors,config,transpose=c=>c){
     if(!config||config.version!==1||!meters[config.meter])throw new Error("Configuración incompatible.");
     if(config.source!==signature(anchors))throw new Error("Los acordes cambiaron. Revisa la sincronización.");
@@ -50,7 +61,7 @@
       const step=requireInt(c.step,0,total-1,"Posición");
       if(c.anchorId!==anchors[i].id||step<=prior)throw new Error("Revisa el orden de los acordes.");
       prior=step;
-      return {step,anchor:anchors[i]};
+      const hold=c.hold??"strum";if(!holds.includes(hold))throw Error("Resonancia inválida.");return {step,anchor:anchors[i],hold};
     });
     if(!Array.isArray(config.patterns)||!config.patterns.length)throw new Error("Falta el patrón.");
     prior=-1;
@@ -63,11 +74,12 @@
     const seconds=60/bpm/m.division;
     let ci=0,pi=0,active=null;
     return Array.from({length:total},(_,step)=>{
-      while(ci<changes.length&&changes[ci].step===step)active=changes[ci++].anchor;
+      while(ci<changes.length&&changes[ci].step===step)active=changes[ci++];
       while(pi+1<patterns.length&&patterns[pi+1].start<=step)pi++;
       const hit=patterns[pi].hits[(step-patterns[pi].start)%size];
-      return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.id??null,chord:active?transpose(active.chord):null,hit:active?hit.hit:"rest",accent:hit.accent};
+      const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
+      return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,...(active?.hold==="mute"&&(changes[ci]?.step??total)===step+1?{release:true}:{})};
     });
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration});
 });
