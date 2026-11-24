@@ -89,6 +89,22 @@ jobs:
           if [ "${{ github.event_name }}" = push ] && [ "${{ github.ref }}" = refs/heads/main ]; then EXPECTED=com.shalomcoroacordes.admin; fi
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           "$AAPT" dump badging android/app/build/outputs/apk/release/app-release.apk | grep -F "package: name='$EXPECTED'"
+      - name: Verify official Admin upgrade identity
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download admin-v0.1.1-beta.1 --pattern "SHALOM-Admin-v0.1.1-beta.1.apk" --dir "$RUNNER_TEMP/admin-baseline"
+          OLD="$RUNNER_TEMP/admin-baseline/SHALOM-Admin-v0.1.1-beta.1.apk"
+          NEW=android/app/build/outputs/apk/release/app-release.apk
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          certificate(){ "$SIGNER" verify --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1; }
+          OLD_SHA=$(certificate "$OLD"); NEW_SHA=$(certificate "$NEW")
+          test -n "$OLD_SHA" && test "$OLD_SHA" = "$NEW_SHA"
+          "$AAPT" dump badging "$OLD" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='2'"
+          "$AAPT" dump badging "$NEW" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='3'"
       - name: Upload SHALOM Admin isolated APK
         uses: actions/upload-artifact@v4
         with:
@@ -135,7 +151,7 @@ jobs:
           path: /tmp/shalom-admin-login.png
           if-no-files-found: warn
           retention-days: 14
-  publish-beta:
+  publish-official:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, apk, smoke]
     runs-on: ubuntu-latest
@@ -147,20 +163,20 @@ jobs:
         with:
           name: SHALOM-ADMIN-Android-Preview
           path: apk
-      - name: Publish SHALOM Admin beta only after smoke
+      - name: Publish official SHALOM Admin only after smoke
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./admin-mobile/package.json').version")
-          TAG="admin-v$VERSION-beta.1"
-          FILE="SHALOM-Admin-v$VERSION-beta.1.apk"
+          TAG="admin-v$VERSION"
+          FILE="SHALOM-Admin-v$VERSION.apk"
           test -s apk/app-release.apk
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "::error::El tag $TAG ya existe. No sobrescribir APK firmada."
             exit 1
           fi
           cp apk/app-release.apk "$FILE"
-          gh release create "$TAG" "$FILE" --prerelease \
-            --title "SHALOM Admin $VERSION — beta privada" \
-            --notes "APK independiente de SHALOM público. Acceso con cuenta de administrador autorizada. Prueba de inicio Android automatizada aprobada. Respalda datos y valida permisos/sincronización antes de uso diario."
+          gh release create "$TAG" "$FILE" \
+            --title "SHALOM Admin $VERSION" \
+            --notes "Versión oficial independiente de SHALOM público. Studio por secciones, borradores y estado de publicación. Acceso con cuenta autorizada. Firma y arranque Android verificados."
