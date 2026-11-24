@@ -171,6 +171,35 @@
     const moved=changes.some((c,i)=>c.step!==base.changes[i].step)||step!==(base.endStep??base.totalSteps);
     return {...next,changes,totalSteps:total,endStep:step,patterns:base.patterns.filter(r=>r.start<total),fragments:moved?[]:base.fragments};
   }
+  // Find the actual chord, including sustained chords that entered before this bar.
+  function barContext(anchors,config,g,bar,position=0){
+    const b=groupBounds(config,g),m=resolution(config.meter,config.division),n=m.beats*m.division;
+    requireInt(bar,1,Math.ceil((b.end-b.start)/n),"Compás de sección");
+    requireInt(position,0,n-1,"Posición");
+    const start=b.start+(bar-1)*n,end=Math.min(start+n,b.end),step=start+position;
+    const indices=g.indices.filter(i=>config.changes[i].step<end&&(config.changes[i+1]?.step??config.endStep??config.totalSteps)>start);
+    const active=step<end?indices.find(i=>config.changes[i].step<=step&&(config.changes[i+1]?.step??config.endStep??config.totalSteps)>step):undefined;
+    return {start,end,indices,active,continuing:indices.length>0&&config.changes[indices[0]].step<start,lines:[...new Set(indices.map(i=>anchors[i].line))]};
+  }
+  // Convert subdivisions without shifting an existing musical event.
+  // A less precise grid is allowed only when every authored event fits exactly.
+  function redivide(config,division){
+    const old=resolution(config.meter,config.division),next=resolution(config.meter,division);
+    if(old.division===next.division)return config;
+    const scale=v=>{const x=v*next.division/old.division;if(!Number.isInteger(x))throw Error("La nueva cuadrícula no puede representar todos los tiempos o golpes existentes. Usa una subdivisión compatible.");return x;};
+    const n=next.beats*next.division;
+    const pattern=hits=>{
+      const out=Array.from({length:n},()=>({hit:"rest",accent:false}));
+      hits.forEach((h,i)=>{if(h.hit!=="rest"||h.accent){const at=scale(i);out[at]={...h};}});return out;
+    };
+    const convert=p=>({start:scale(p.start),hits:pattern(p.hits)});
+    const totalSteps=scale(config.totalSteps);
+    requireInt(totalSteps,n,Math.min(100000,512*n),"Duración total");
+    return {...config,division:next.division,totalSteps,...(config.endStep===undefined?{}:{endStep:scale(config.endStep)}),
+      changes:config.changes.map(c=>({...c,step:scale(c.step)})),patterns:config.patterns.map(convert),
+      ...(config.sections?{sections:config.sections.map(p=>({...p,hits:p.hits?pattern(p.hits):null,...(p.patterns?{patterns:p.patterns.map(convert)}:{})}))}:{}),
+      ...(config.fragments?{fragments:config.fragments.map(f=>({...f,start:scale(f.start),end:scale(f.end)}))}:{})};
+  }
   // Exact per-event clock: variable tempos and silent transitions, with compatibility for old fixtures.
   function clockRange(timeline,first,end,speed=1){
     if(!Number.isFinite(speed)||speed<=0||!Number.isInteger(first)||!Number.isInteger(end)||first<0||end<=first||end>timeline.length)throw Error("Rango musical inválido.");
@@ -204,5 +233,5 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,isolateSections,sectionHit,sectionBarHits,applySectionPattern,copySection});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,isolateSections,sectionHit,sectionBarHits,applySectionPattern,copySection,barContext,redivide});
 });

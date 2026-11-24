@@ -109,13 +109,13 @@ function renderSections(){
 }
 $("sectionPlayAll").onclick=safe(()=>preview());
 $("sectionAdvanced").onclick=()=>showStage(1);
-function showStage(n,scroll=true){if(scroll)stop();stage=Math.max(0,Math.min(3,n));for(let i=0;i<4;i++)$("stage"+i).hidden=i!==stage;document.querySelectorAll("#editorSteps [data-stage]").forEach(b=>{const active=Number(b.dataset.stage)===stage;b.setAttribute("aria-pressed",String(active));if(active)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current")});$("stageLabel").textContent="Paso "+(stage+1)+" de 4";$("stageBack").disabled=stage===0;$("stageNext").textContent=stage===3?"Escuchar canto ▶":"Continuar ›";if(stage===3)renderReview();if(stage===0)renderSections();if(stage===2)renderPattern();if(scroll)window.scrollTo(0,0)}
+function showStage(n,scroll=true){if(scroll)stop();stage=Math.max(0,Math.min(3,n));$("rhythmDockContext").hidden=stage!==2;for(let i=0;i<4;i++)$("stage"+i).hidden=i!==stage;document.querySelectorAll("#editorSteps [data-stage]").forEach(b=>{const active=Number(b.dataset.stage)===stage;b.setAttribute("aria-pressed",String(active));if(active)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current")});$("stageLabel").textContent="Paso "+(stage+1)+" de 4";$("stageBack").disabled=stage===0;$("stageNext").textContent=stage===3?"Escuchar canto ▶":"Continuar ›";if(stage===3)renderReview();if(stage===0)renderSections();if(stage===2)renderPattern();if(scroll)window.scrollTo(0,0)}
 function groupRange(g){return {start:config.changes[g.indices[0]].step,end:config.changes[g.indices.at(-1)+1]?.step??config.endStep??config.totalSteps,title:g.title}}
 async function preview(range=null){if(mode==="public")return;editorScroll=window.scrollY;practiceRange=range;switchView(false);$("loop").checked=false;await play()}
 $("anchorSection").onchange=()=>chooseAnchor(groups[Number($("anchorSection").value)].indices[0]);
 $("prevAnchor").onclick=()=>chooseAnchor(anchorIndex-1);$("nextAnchor").onclick=()=>chooseAnchor(anchorIndex+1);
 $("anchorStart").onchange=safe(()=>{if(!confirmTiming())return renderEditor();const g=groups.find(g=>g.indices.includes(anchorIndex));if(anchorIndex===g.indices[0])throw Error("La entrada de la sección se ajusta con la transición o duración anterior.");changeTiming({...core.isolateSections(config,groups),changes:config.changes.map((x,i)=>i===anchorIndex?{...x,step:Number($("anchorStart").value)}:x),fragments:[]})});
-$("undoTiming").onclick=()=>{if(timingUndo){config=timingUndo;timingUndo=null;renderEditor();note("Ajuste anterior recuperado.")}};
+$("undoTiming").onclick=()=>{if(timingUndo){config=timingUndo;timingUndo=null;$("meter").value=config.meter;divisions();$("division").value=String(config.division);$("bpm").value=config.bpm;renderEditor();note("Ajuste anterior recuperado.")}};
 $("hearChord").onclick=safe(()=>preview({start:config.changes[anchorIndex].step,end:config.changes[anchorIndex+1]?.step??config.endStep??config.totalSteps,title:anchors[anchorIndex].chord}));
 $("hearSection").onclick=safe(()=>preview(groupRange(groups.find(g=>g.indices.includes(anchorIndex)))));
 $("hearAll").onclick=safe(()=>preview());
@@ -148,10 +148,26 @@ function currentPattern(){
  return {start:core.groupBounds(config,rhythmGroup()).start+(bar-1)*size(),hits:core.sectionBarHits(config,rhythmGroup(),bar)};
 }
 $("rhythmSection").onchange=()=>{stop();rhythmIndex=Number($("rhythmSection").value);openSection=rhythmIndex;anchorIndex=rhythmGroup().indices[0];$("barEdit").value=1;renderPattern()};
+function renderBarContext(position=selectedHit){
+ const g=rhythmGroup(),bar=Number($("barEdit").value),ctx=core.barContext(anchors,config,g,bar,position),active=ctx.active===undefined?null:anchors[ctx.active];
+ const chord=active?.chord||"Sin acorde en esta posición";
+ const title=(rhythmIndex+1)+". "+g.title+" · Compás "+bar+" de "+rhythmBars();
+ $("barSummary").textContent=title;$("barActiveChord").textContent="Acorde en esta posición: "+chord+(active&&config.changes[ctx.active].step<ctx.start?" · continúa del compás anterior":"");
+ $("rhythmDockTitle").textContent=title+" · "+chord;
+ const lyricAt=line=>$("score").children[line]?.querySelector(".lyric-line")?.textContent?.trim()||"Parte instrumental";
+ $("rhythmDockLyric").textContent=active?lyricAt(active.line):"Final del compás · sin acorde";
+ $("barLyrics").replaceChildren(...ctx.lines.map(line=>{
+  const box=elem("div");box.className="context-line"+(active?.line===line?" context-active":"");
+  const list=elem("div");list.className="context-chords";
+  for(const i of ctx.indices.filter(i=>anchors[i].line===line)){const badge=elem("span",anchors[i].chord);if(i===ctx.active)badge.className="context-chord-active";list.append(badge);}
+  box.append(list,elem("div",lyricAt(line)));return box;
+ }));
+ if(!ctx.lines.length)$("barLyrics").append(elem("div","Sin letra asociada en este compás."));
+}
 function renderPattern(){
  if(!config||!groups.length)return;rhythmIndex=Math.max(0,Math.min(groups.length-1,rhythmIndex));$("rhythmSection").replaceChildren(...groups.map((g,i)=>new Option((i+1)+". "+g.title,String(i))));$("rhythmSection").value=String(rhythmIndex);$("barEdit").max=rhythmBars();
  const p=currentPattern(),m=core.resolution(config.meter,config.division),bar=Number($("barEdit").value);selectedHit=Math.max(0,Math.min(p.hits.length-1,selectedHit));$("prevBar").disabled=bar<=1;$("nextBar").disabled=bar>=rhythmBars();
- const g=rhythmGroup(),symbols=g.indices.filter(i=>config.changes[i].step>=p.start&&config.changes[i].step<p.start+size()).map(i=>anchors[i].chord);$("barSummary").textContent=g.title+" · Compás "+bar+" de "+rhythmBars()+(symbols.length?" · "+symbols.join(" → "):" · Continúa el acorde anterior");
+ const g=rhythmGroup();$("rhythmDivision").replaceChildren(...core.divisions[config.meter].map(d=>new Option(d+" posiciones por pulso · "+d*m.beats+" por compás",String(d))));$("rhythmDivision").value=String(config.division);$("grid").dataset.dense=String(m.division>4);renderBarContext();
  $("preset").querySelector('option[value="worship"]').disabled=config.meter!=="4/4"||m.division!==2;
  $("grid").replaceChildren(...Array.from({length:m.beats},(_,beat)=>{const g=elem("div");g.className="beat-group";g.append(elem("small","Pulso "+(beat+1)));const cells=elem("div");cells.className="beat-cells";for(let j=0;j<m.division;j++){const i=beat*m.division+j,h=p.hits[i],b=elem("button",arrows[h.hit]+(h.accent?"′":""));b.dataset.pulse=String(i);b.setAttribute("aria-pressed",String(selectedHit===i));b.setAttribute("aria-label","Pulso "+(beat+1)+", posición "+(j+1)+": "+h.hit);b.onclick=()=>{selectedHit=i;renderPattern()};cells.append(b)}g.append(cells);return g}));
  auditionPattern=p.hits.map(h=>({...h}));
@@ -168,8 +184,8 @@ async function auditionBar(){
  const generation=epoch;await ctx.resume();if(epoch!==generation)return;
  const beat=60/core.sectionConfig(config,g.indices[0]).bpm/config.division,barTime=n*beat,start=ctx.currentTime+.2;let next=0,last=-1;
  engine.volume(Number($("volume").value)/100);audition=true;$("hearBar").textContent="■ Detener rasgueo";$("auditionStatus").textContent="Edita mientras escuchas; los cambios entran en los próximos golpes.";
- function tick(){if(!audition)return;try{while(start+next*beat<ctx.currentTime+.10){if(!$("repeatBar").checked&&next>=n)break;const i=next%n,t=start+next*beat;next++;if(t<ctx.currentTime-.035)continue;const e=events[i]||events.at(-1),hit=auditionPattern[i];engine.strum({...e,...hit,chord:e.chord||firstChord,duration:beat},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo:Number($("capo").value)||0});}}catch(e){stop();note(e.message)}}
- function animate(){if(!audition)return;const elapsed=ctx.currentTime-start;if(elapsed>=barTime&&!$("repeatBar").checked){stop();return}const i=Math.max(0,Math.floor(elapsed/beat))%n;if(i!==last||!$("grid").querySelector(".audition-active")){$("grid").querySelector(".audition-active")?.classList.remove("audition-active");$("grid").querySelector('[data-pulse="'+i+'"]')?.classList.add("audition-active");last=i;}frame=requestAnimationFrame(animate)}
+ function tick(){if(!audition)return;try{while(start+next*beat<ctx.currentTime+.10){if(!$("repeatBar").checked&&next>=n)break;const i=next%n,t=start+next*beat;next++;if(t<ctx.currentTime-.035)continue;const e=events[i],hit=auditionPattern[i];engine.strum({...e,...(e?hit:{hit:"rest",accent:false}),chord:e?.chord||null,duration:beat},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo:Number($("capo").value)||0});}}catch(e){stop();note(e.message)}}
+ function animate(){if(!audition)return;const elapsed=ctx.currentTime-start;if(elapsed>=barTime&&!$("repeatBar").checked){stop();return}const i=Math.max(0,Math.floor(elapsed/beat))%n;if(i!==last||!$("grid").querySelector(".audition-active")){renderBarContext(i);$("grid").querySelector(".audition-active")?.classList.remove("audition-active");$("grid").querySelector('[data-pulse="'+i+'"]')?.classList.add("audition-active");last=i;}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();
 }
 $("hearBar").onclick=safe(auditionBar);
@@ -297,7 +313,18 @@ async function play(range=null,inline=null){
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.");
 }
 function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){const t=validate();showStep(t,practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0)}
-function changeResolution(){if(!config){divisions();return;}const meter=$("meter").value,division=Number($("division").value);if(meter===config.meter&&division===config.division)return;if(!window.confirm("Cambiar la forma de contar reinicia la duración y el rasgueo. ¿Continuar?")){$("meter").value=config.meter;divisions();$("division").value=config.division;return;}if(meter!==config.meter)divisions();generate()}
+function changeDivision(division){
+ if(!config||division===config.division)return;
+ const old=config.division;
+ try{
+  const next=core.redivide(config,division);core.compile(anchors,next);stop();
+  timingUndo=JSON.parse(JSON.stringify(config));config=next;
+  selectedHit=Math.min(size()-1,Math.round(selectedHit*division/old));
+  $("division").value=String(division);renderEditor();note("Cuadrícula actualizada. Se conservaron los golpes, tiempos y secciones.");
+ }catch(e){$("division").value=String(config.division);$("rhythmDivision").value=String(config.division);throw e;}
+}
+$("rhythmDivision").onchange=safe(()=>changeDivision(Number($("rhythmDivision").value)));
+function changeResolution(){if(!config){divisions();return;}const meter=$("meter").value,division=Number($("division").value);if(meter===config.meter){changeDivision(division);return;}if(!window.confirm("Cambiar el compás reinicia la duración y el rasgueo. ¿Continuar?")){$("meter").value=config.meter;divisions();$("division").value=config.division;return;}divisions();generate()}
 $("meter").onchange=safe(changeResolution);$("division").onchange=safe(changeResolution);$("generate").onclick=safe(()=>{if(!config||window.confirm("¿Reemplazar la preparación musical actual?"))generate()});$("barEdit").onchange=safe(()=>{stop();renderPattern()});
 $("total").onchange=safe(()=>{const n=Number($("total").value);if(!Number.isInteger(n)||n<1||n>512)throw Error("Número de compases inválido.");const total=n*size();if((config.endStep!==undefined&&config.endStep>total)||config.changes.some(c=>c.step>=total)||config.patterns.some(p=>p.start>=total)||(config.fragments||[]).some(r=>r.end>total))throw Error("Hay acordes o patrones fuera de la duración elegida.");changeTiming({...config,totalSteps:total})});
 $("applyPreset").onclick=safe(()=>{const choice=$("preset").value,scope=$("patternScope").value,g=rhythmGroup();if(scope!=="one"&&!window.confirm("¿Aplicar el patrón al rango elegido de "+g.title+"?"))return;config=core.applySectionPattern(config,groups,g,Number($("barEdit").value),presetHits(choice),scope);renderPattern();renderReview();note("Patrón aplicado solo a "+g.title+".")});
