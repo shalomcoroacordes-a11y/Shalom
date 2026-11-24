@@ -14,7 +14,7 @@ concurrency:
 env:
   BASELINE_VERSION: "0.4.22"
   BASELINE_CODE: "45"
-  CANDIDATE_CODE: "46"
+  CANDIDATE_CODE: "47"
 jobs:
   build-apk:
     runs-on: ubuntu-latest

@@ -104,7 +104,7 @@ jobs:
           OLD_SHA=$(certificate "$OLD"); NEW_SHA=$(certificate "$NEW")
           test -n "$OLD_SHA" && test "$OLD_SHA" = "$NEW_SHA"
           "$AAPT" dump badging "$OLD" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='5'"
-          "$AAPT" dump badging "$NEW" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='6'"
+          "$AAPT" dump badging "$NEW" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='7'"
       - name: Upload SHALOM Admin isolated APK
         uses: actions/upload-artifact@v4
         with:

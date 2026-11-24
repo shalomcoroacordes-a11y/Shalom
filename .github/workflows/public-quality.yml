@@ -60,6 +60,9 @@ jobs:
       - name: Test section-specific tempo, pattern and transitions
         run: node tests/studio-sections.cjs
 
+      - name: Test compact Studio sections and chord sequence
+        run: node tests/studio-compact-sections.cjs
+
       - name: Test compact Studio admin editor
         run: node tests/studio-compact-admin.cjs
 

@@ -10,7 +10,7 @@ permissions:
 env:
   BASELINE_VERSION: "0.4.22"
   BASELINE_CODE: "45"
-  CANDIDATE_CODE: "46"
+  CANDIDATE_CODE: "47"
 concurrency:
   group: shalom-upgrade-rehearsal-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -47,7 +47,7 @@ jobs:
           /tmp/shalom-upgrade-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
           /tmp/shalom-upgrade-icons/bin/python scripts/generate_icons.py
           node scripts/release-preflight.js
-      - name: Verify candidate v0.4.23 and versionCode 46
+      - name: Verify candidate v0.4.24 and versionCode 47
         run: node scripts/release-preflight.js --publish
       - name: Generate official-package Android project
         run: npx expo prebuild --platform android --non-interactive --no-install
@@ -72,7 +72,7 @@ jobs:
       - name: Preserve VERIFIED rehearsal candidate as temporary artifact only
         uses: actions/upload-artifact@v4
         with:
-          name: SHALOM-UPGRADE-TEST-0.4.23-${{ github.sha }}
+          name: SHALOM-UPGRADE-TEST-0.4.24-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
@@ -84,7 +84,7 @@ jobs:
           fi
           sudo chmod a+rw /dev/kvm
           ls -l /dev/kvm
-      - name: Rehearse 0.4.22 to 0.4.23 on emulator with adb install -r
+      - name: Rehearse 0.4.22 to 0.4.24 on emulator with adb install -r
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -97,7 +97,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SHALOM-0.4.23-UI-${{ github.sha }}
+          name: SHALOM-0.4.24-UI-${{ github.sha }}
           path: ${{ runner.temp }}/shalom-upgrade/screenshots/*.png
           if-no-files-found: warn
           retention-days: 14
