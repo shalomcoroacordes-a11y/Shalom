@@ -30,7 +30,7 @@
   if(!active)return;
   $("medleyCurrentTone").textContent=shift===0?"Tono original":(shift>0?"+":"")+shift+" semitonos";
   const container=$("medleyReaderParts");container.innerHTML=M.renderPartsHTML(active.parts||[],shift,capo);
-  window.ShalomStudioCollectionWeb?.mount({client:db,container,articles:[...container.querySelectorAll(".medley-song")],parts:(active.parts||[]).map(p=>({...p,shift:shift+Number(p.shift||0)-capo,capo})),songs:studioSongs,kind:"popurri"});
+  window.ShalomStudioCollectionWeb?.mount({client:db,container,articles:[...container.querySelectorAll(".medley-song")],parts:(active.parts||[]).map(p=>({...p,shift:shift+Number(p.shift||0)-capo,capo})),songs:studioSongs,kind:"popurri",title:active.title});
  }
  async function load(){
   if(!db){$("medleyCatalogStatus").textContent="No se pudo iniciar la conexión.";return;}
