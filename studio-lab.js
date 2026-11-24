@@ -210,7 +210,39 @@ function diagram(chord){
  shape.forEach((f,i)=>{const x=22+i*20;if(f>0)draw("circle",{cx:x,cy:19+(f-base+.5)*23,r:6.5,fill:"#a8d9b5"});else if(f===0)draw("circle",{cx:x,cy:8,r:3.5,stroke:"#a8d9b5",fill:"none"});else draw("text",{x,y:12,"text-anchor":"middle",fill:"#a8d9b5"},"×")});$("diagram").replaceChildren(svg)
 }
 // Keep the active line within the unobstructed reading area; manual reading remains available.
-let lastFollowedLine=null,followTouchY=null;
+let lastFollowedLine=null,followTouchY=null,scoreFont=16,scorePinch=null,pinchConsumed=false;
+function clampScoreFont(value){return Number.isFinite(value)?Math.min(46,Math.max(10,Math.round(value*10)/10)):16;}
+function touchDistance(touches){return Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);}
+function touchCenter(touches){return {x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2};}
+function setScoreFont(value){
+ scoreFont=clampScoreFont(value);$("score").style.setProperty("--studio-score-font",scoreFont+"px");$("scoreSize").value=String(Math.round(scoreFont));$("scoreSmaller").disabled=scoreFont<=10;$("scoreLarger").disabled=scoreFont>=46;
+}
+function pinchFont(initial,initialDistance,distance){return initialDistance>0?clampScoreFont(initial*distance/initialDistance):clampScoreFont(initial);}
+function startScorePinch(e){
+ const distance=touchDistance(e.touches);if(distance<1)return;
+ const center=touchCenter(e.touches),score=$("score"),row=Array.from(score.children).find(r=>{const box=r.getBoundingClientRect();return center.y>=box.top&&center.y<=box.bottom});
+ const rect=row?.getBoundingClientRect(),box=score.getBoundingClientRect();
+ scorePinch={initial:scoreFont,distance,row,ratioY:rect?Math.max(0,Math.min(1,(center.y-rect.top)/Math.max(1,rect.height))):0,contentX:score.scrollLeft+center.x-box.left};
+ pinchConsumed=true;followTouchY=null;
+ if(e.cancelable)e.preventDefault();
+}
+function moveScorePinch(e){
+ if(!scorePinch){startScorePinch(e);return;}
+ if(e.cancelable)e.preventDefault();
+ const p=scorePinch,center=touchCenter(e.touches),score=$("score");
+ setScoreFont(pinchFont(p.initial,p.distance,touchDistance(e.touches)));
+ if(p.row?.isConnected){const rect=p.row.getBoundingClientRect();const delta=rect.top+rect.height*p.ratioY-center.y;if(Math.abs(delta)>1)window.scrollBy({top:delta,behavior:"instant"});}
+ const box=score.getBoundingClientRect();score.scrollLeft=p.contentX*(scoreFont/p.initial)-(center.x-box.left);
+}
+function endScoreTouch(e){
+ if(e.touches.length<2){if(scorePinch){scorePinch=null;lastFollowedLine=null;}followTouchY=null;}
+ if(e.touches.length===0)pinchConsumed=false;
+}
+$("scoreSmaller").onclick=()=>setScoreFont(scoreFont-1);
+$("scoreLarger").onclick=()=>setScoreFont(scoreFont+1);
+$("scoreReset").onclick=()=>setScoreFont(16);
+setScoreFont(16);
+
 function followTarget(row,viewportBottom){
  const height=Math.max(1,viewportBottom),topLimit=Math.min(56,height*.15),bottomLimit=height*.72;
  if(row.top<topLimit||row.bottom>bottomLimit)return Math.round(row.top-height*.28);
@@ -222,7 +254,7 @@ function syncTransportSpace(){
  $("player").style.paddingBottom=Math.ceil(h+28)+"px";
 }
 function followLine(line,force=false){
- if($("player").hidden||$("followScore").getAttribute("aria-pressed")!=="true"||!$("playerExtras").hidden||line==="")return;
+ if(scorePinch||pinchConsumed||$("player").hidden||$("followScore").getAttribute("aria-pressed")!=="true"||!$("playerExtras").hidden||line==="")return;
  if(!force&&lastFollowedLine===line)return;
  const row=$("score").children[Number(line)];if(!row)return;
  lastFollowedLine=line;
@@ -242,8 +274,13 @@ function playerPanel(name=null){
 $("followScore").onclick=()=>setFollow($("followScore").getAttribute("aria-pressed")!=="true");
 $("toggleDiagram").onclick=()=>playerPanel($("diagramPanel").hidden?"diagramPanel":null);
 $("togglePlayerSettings").onclick=()=>playerPanel($("playerSettings").hidden?"playerSettings":null);
-$("score").addEventListener("touchstart",e=>{followTouchY=e.touches[0]?.clientY??null},{passive:true});
-$("score").addEventListener("touchmove",e=>{if(playing&&followTouchY!==null&&Math.abs((e.touches[0]?.clientY??followTouchY)-followTouchY)>14)setFollow(false)},{passive:true});
+$("score").addEventListener("touchstart",e=>{if(e.touches.length>=2){startScorePinch(e);return;}if(!pinchConsumed)followTouchY=e.touches[0]?.clientY??null;},{passive:false});
+$("score").addEventListener("touchmove",e=>{
+ if(e.touches.length>=2){moveScorePinch(e);return;}
+ if(!pinchConsumed&&playing&&followTouchY!==null&&Math.abs((e.touches[0]?.clientY??followTouchY)-followTouchY)>14)setFollow(false);
+},{passive:false});
+$("score").addEventListener("touchend",endScoreTouch,{passive:true});
+$("score").addEventListener("touchcancel",endScoreTouch,{passive:true});
 $("score").addEventListener("wheel",e=>{if(playing&&Math.abs(e.deltaY)>Math.abs(e.deltaX))setFollow(false)},{passive:true});
 window.addEventListener("resize",syncTransportSpace);
 if(typeof ResizeObserver!=="undefined")new ResizeObserver(syncTransportSpace).observe($("transport"));
