@@ -81,5 +81,26 @@
       return {step,time:step*seconds,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,...(active?.hold==="mute"&&(changes[ci]?.step??total)===step+1?{release:true}:{})};
     });
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration});
+  function groupAnchors(anchors,rows){
+    const groups=[];let heading=-1,title="Inicio",cursor=0;
+    for(let i=0;i<rows.length;i++){
+      if(rows[i].kind==="section"){heading=i;title=rows[i].text||"Sección"}
+      while(cursor<anchors.length&&anchors[cursor].line===i){
+        if(!groups.length||groups.at(-1).heading!==heading)groups.push({heading,title,indices:[]});
+        groups.at(-1).indices.push(cursor++);
+      }
+    }
+    return groups;
+  }
+  function applyPattern(config,bar,hits,scope){
+    const m=resolution(config.meter,config.division),n=m.beats*m.division;
+    requireInt(bar,1,config.totalSteps/n,"Compás");
+    if(!["one","all","forward"].includes(scope)||!Array.isArray(hits)||hits.length!==n)throw Error("Patrón inválido.");
+    const start=(bar-1)*n,copy=p=>p.map(h=>({...h})),previous=config.patterns.filter(p=>p.start<=start).at(-1);
+    if(scope==="all")return {...config,patterns:[{start:0,hits:copy(hits)}]};
+    let patterns=config.patterns.filter(p=>p.start!==start&&(scope!=="forward"||p.start<start)).map(p=>({...p,hits:copy(p.hits)}));
+    if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
+    patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
+  }
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern});
 });

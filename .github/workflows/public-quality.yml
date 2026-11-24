@@ -54,6 +54,9 @@ jobs:
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
+      - name: Test guided Studio editor and scoped rhythm controls
+        run: node tests/studio-guided-editor.cjs
+
       - name: Test Android catalog download timeout
         run: node tests/mobile-sync-timeout.cjs
 

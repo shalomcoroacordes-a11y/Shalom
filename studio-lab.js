@@ -4,6 +4,7 @@ const $=id=>document.getElementById(id), core=window.ShalomStudio, guitar=window
 const arrows={down:"↓",up:"↑",mute:"×",rest:"·"},types=Object.keys(arrows), labKey="shalom.studio.lab.v1";
 let storageKey=labKey,embedded=window.parent!==window,mode="lab",baseRevision=null,initialized=!embedded;
 let practiceRange=null,sequence=null,sequenceTitle="";
+let stage=0,anchorIndex=0,groups=[],selectedHit=0,taps=[],timingUndo=null,editorScroll=0;
 let anchors=[],config=null,ctx=null,engine=null,timer=null,frame=null,playing=false,epoch=0;
 const note=s=>{$("status").textContent=s};
 function safe(fn){return async()=>{try{await fn()}catch(e){stop();note(e.message||String(e))}}}
@@ -12,25 +13,49 @@ function readRows(){
  const score=$("score");score.innerHTML=window.ShalomChords.render($("source").value);
  return Array.from(score.children).map(e=>e.classList.contains("song-section-label")?{kind:"section",text:e.textContent}:e.classList.contains("song-line")?{kind:"chords",chordLine:e.querySelector(".chord-line").textContent}:e.classList.contains("song-standalone-chords")?{kind:"chordsOnly",text:e.textContent}:{kind:"other"});
 }
-function divisions(){const m=$("meter").value;$("division").replaceChildren(...core.divisions[m].map(d=>new Option(String(d),String(d))));$("division").value=String(core.meters[m].division)}
+function divisions(){const m=$("meter").value;$("division").replaceChildren(...core.divisions[m].map(d=>new Option(d+" por pulso"+(d===core.meters[m].division?" · recomendado":""),String(d))));$("division").value=String(core.meters[m].division)}
 function size(){const m=core.resolution(config.meter,config.division);return m.beats*m.division}
 function generate(){
  stop();anchors=core.anchorsFromRows(readRows());if(!anchors.length)throw Error("No se detectaron acordes.");
- config=core.draft(anchors,$("meter").value,Number($("bpm").value),Number($("division").value));$("barEdit").value=1;renderEditor();note("Borrador generado. Ajusta los tiempos en subdivisiones desde cero.")
+ config=core.draft(anchors,$("meter").value,Number($("bpm").value),Number($("division").value));$("barEdit").value=1;anchorIndex=0;timingUndo=null;renderEditor();note("Borrador inicial preparado. Ajusta los acordes en el paso 2.")
 }
+function durationText(n){const m=core.resolution(config.meter,config.division),p=n/m.division;return Number(p.toFixed(3))+" "+(p===1?"pulso":"pulsos")+(p===m.beats?" · 1 compás":p>m.beats&&p%m.beats===0?" · "+p/m.beats+" compases":"")}
+function confirmTiming(){return !(config.fragments||[]).length||window.confirm("Este cambio requiere volver a sincronizar fragmentos. ¿Continuar?")}
+function changeTiming(next){core.compile(anchors,next);timingUndo=JSON.parse(JSON.stringify(config));config=next;renderEditor();note("Tiempo actualizado. Revisa los patrones por compás.")}
+function chooseAnchor(i){anchorIndex=Math.max(0,Math.min(anchors.length-1,i));renderEditor()}
 function renderEditor(){
- const d=core.resolution(config.meter,config.division).division;
- $("anchors").replaceChildren(...anchors.map((a,i)=>{
-  const wrap=elem("div");wrap.className="anchor-edit";wrap.append(elem("strong",a.chord+" · "+(a.section||"Inicio")+" · línea "+(a.line+1)));
-  const fields=elem("div");fields.className="fields";
-  function input(label,value,step,handler){const l=elem("label",label),n=elem("input");n.type="number";n.min=label==="Inicio (subdiv.)"?0:step;n.step=step;n.value=value;n.onchange=safe(()=>handler(Number(n.value)));l.append(n);fields.append(l)}
-  function confirmTiming(){return !(config.fragments||[]).length||window.confirm("Este cambio requiere volver a sincronizar los fragmentos. ¿Continuar?")}
-  input("Inicio (subdiv.)",config.changes[i].step,1,value=>{if(!confirmTiming())return renderEditor();const next={...config,changes:config.changes.map((x,j)=>j===i?{...x,step:value}:x),fragments:[]};core.compile(anchors,next);config=next;renderEditor();note("Inicio actualizado.")});
-  input("Duración (pulsos)",Number((core.durationSteps(config,i)/d).toFixed(6)),1/d,value=>{if(!confirmTiming())return renderEditor();const steps=Math.round(value*d);if(!Number.isFinite(value)||Math.abs(value*d-steps)>.0001)throw Error("Usa una duración compatible con las subdivisiones.");const next=core.setDuration(config,i,steps);core.compile(anchors,next);config=next;renderEditor();note("Duración actualizada. Se movieron los acordes siguientes; revisa los patrones por compás.")});
-  const l=elem("label","Comportamiento"),select=elem("select");select.replaceChildren(new Option("Continuar rasgueando","strum"),new Option("Un golpe y resonar","ring"),new Option("Rasguear y apagar al final","mute"));select.value=config.changes[i].hold||"strum";select.onchange=()=>{config.changes[i].hold=select.value;note("Comportamiento actualizado.")};l.append(select);fields.append(l);wrap.append(fields);return wrap;
- }));
- $("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();renderPattern();renderFragments();
+ if(!config||!anchors.length)return;
+ groups=core.groupAnchors(anchors,readRows());anchorIndex=Math.max(0,Math.min(anchors.length-1,anchorIndex));
+ const gi=Math.max(0,groups.findIndex(g=>g.indices.includes(anchorIndex))),g=groups[gi],a=anchors[anchorIndex],m=core.resolution(config.meter,config.division),duration=core.durationSteps(config,anchorIndex),pos=config.changes[anchorIndex].step;
+ $("anchorSection").replaceChildren(...groups.map((x,i)=>new Option((i+1)+". "+x.title,String(i))));$("anchorSection").value=String(gi);$("sectionInfo").textContent=g.indices.length+" acordes · sección "+(gi+1)+" de "+groups.length;
+ $("anchorRail").replaceChildren(...g.indices.map(i=>{const b=elem("button",anchors[i].chord);b.setAttribute("aria-pressed",String(i===anchorIndex));b.onclick=()=>chooseAnchor(i);b.append(elem("small",durationText(core.durationSteps(config,i)).split(" · ")[0]));return b}));
+ const row=$("score").children[a.line],lyric=row?.querySelector(".lyric-line")?.textContent||"Parte instrumental",wrap=elem("article");wrap.className="guide-panel selected-anchor";
+ wrap.append(elem("small","ACORDE "+(anchorIndex+1)+" DE "+anchors.length),elem("h3",a.chord),elem("p",lyric.trim()),elem("small","Entra en el compás "+(Math.floor(pos/size())+1)+", pulso "+(Math.floor(pos%size()/m.division)+1)+(pos%m.division?" · entre pulsos":"")),elem("h4","¿Cuánto tiempo se mantiene?"));
+ function setSteps(n){if(!confirmTiming())return renderEditor();changeTiming(core.setDuration(config,anchorIndex,n))}
+ const quick=elem("div");quick.className="duration-choices";
+ for(const [title,n] of [["Medio pulso",m.division/2],["1 pulso",m.division],["2 pulsos",m.division*2],["1 compás",size()],["2 compases",size()*2],["4 compases",size()*4]]){if(!Number.isInteger(n)||n<1)continue;const b=elem("button",title);b.setAttribute("aria-pressed",String(duration===n));b.onclick=safe(()=>setSteps(n));quick.append(b)}wrap.append(quick);
+ const counter=elem("div");counter.className="duration-counter";const minus=elem("button","−"),plus=elem("button","+");minus.disabled=duration<=1;minus.onclick=safe(()=>setSteps(Math.max(1,duration-m.division)));plus.onclick=safe(()=>setSteps(duration+m.division));counter.append(minus,elem("strong",durationText(duration)),plus);wrap.append(counter);
+ const detail=elem("details");detail.className="advanced";detail.append(elem("summary","Duración personalizada"));const input=elem("input");input.type="number";input.step="any";input.min=1/m.division;input.value=Number((duration/m.division).toFixed(6));input.onchange=safe(()=>{const value=Number(input.value),n=Math.round(value*m.division);if(!Number.isFinite(value)||Math.abs(value*m.division-n)>.0001)throw Error("Usa una duración compatible con el ritmo.");setSteps(n)});const custom=elem("label","Pulsos exactos");custom.append(input);detail.append(custom);wrap.append(detail);
+ const behavior=elem("label","¿Cómo se toca?"),select=elem("select");select.replaceChildren(new Option("Seguir rasgueando","strum"),new Option("Tocar una vez y dejar sonar","ring"),new Option("Rasguear y apagar al final","mute"));select.value=config.changes[anchorIndex].hold||"strum";select.onchange=()=>{config.changes[anchorIndex].hold=select.value;note("Comportamiento actualizado.")};behavior.append(select);wrap.append(behavior);$("anchors").replaceChildren(wrap);
+ $("anchorStart").value=pos;$("anchorStart").max=config.totalSteps-1;$("prevAnchor").disabled=anchorIndex===0;$("nextAnchor").disabled=anchorIndex===anchors.length-1;$("undoTiming").disabled=!timingUndo;$("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();$("tempoSlider").value=$("bpm").value;renderPattern();renderFragments();renderReview();
 }
+function renderReview(){if(!config)return;const m=core.resolution(config.meter,config.division),sec=Math.round(config.totalSteps*60/(config.bpm*m.division));$("reviewSummary").replaceChildren(...[["Velocidad",config.bpm+" BPM"],["Compás",config.meter],["Acordes",anchors.length],["Secciones",groups.length],["Duración",Math.floor(sec/60)+" min "+sec%60+" s"],["Patrones",config.patterns.length]].map(([k,v])=>{const d=elem("div");d.append(elem("small",k),elem("strong",String(v)));return d}))}
+function showStage(n,scroll=true){stage=Math.max(0,Math.min(3,n));for(let i=0;i<4;i++)$("stage"+i).hidden=i!==stage;document.querySelectorAll("#editorSteps [data-stage]").forEach(b=>{const active=Number(b.dataset.stage)===stage;b.setAttribute("aria-pressed",String(active));if(active)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current")});$("stageLabel").textContent="Paso "+(stage+1)+" de 4";$("stageBack").disabled=stage===0;$("stageNext").textContent=stage===3?"Escuchar canto ▶":"Continuar ›";if(stage===3)renderReview();if(scroll)window.scrollTo(0,0)}
+function groupRange(g){return {start:config.changes[g.indices[0]].step,end:config.changes[g.indices.at(-1)+1]?.step??config.totalSteps,title:g.title}}
+async function preview(range=null){if(mode==="public")return;editorScroll=window.scrollY;practiceRange=range;switchView(false);$("loop").checked=false;await play()}
+$("anchorSection").onchange=()=>chooseAnchor(groups[Number($("anchorSection").value)].indices[0]);
+$("prevAnchor").onclick=()=>chooseAnchor(anchorIndex-1);$("nextAnchor").onclick=()=>chooseAnchor(anchorIndex+1);
+$("anchorStart").onchange=safe(()=>{if(!confirmTiming())return renderEditor();changeTiming({...config,changes:config.changes.map((x,i)=>i===anchorIndex?{...x,step:Number($("anchorStart").value)}:x),fragments:[]})});
+$("undoTiming").onclick=()=>{if(timingUndo){config=timingUndo;timingUndo=null;renderEditor();note("Ajuste anterior recuperado.")}};
+$("hearChord").onclick=safe(()=>preview({start:config.changes[anchorIndex].step,end:config.changes[anchorIndex+1]?.step??config.totalSteps,title:anchors[anchorIndex].chord}));
+$("hearSection").onclick=safe(()=>preview(groupRange(groups.find(g=>g.indices.includes(anchorIndex)))));
+$("hearAll").onclick=safe(()=>preview());
+$("stageBack").onclick=()=>showStage(stage-1);$("stageNext").onclick=safe(()=>stage===3?preview():(validate(),showStage(stage+1)));
+document.querySelectorAll("#editorSteps [data-stage]").forEach(b=>b.onclick=safe(()=>{validate();showStage(Number(b.dataset.stage))}));
+function setTempo(value){const n=Math.max(40,Math.min(240,Math.round(value)));if(!Number.isFinite(n))return;$("bpm").value=n;$("tempoSlider").value=n;if(config)config.bpm=n;renderReview()}
+$("bpm").onchange=()=>setTempo(Number($("bpm").value));$("tempoSlider").oninput=()=>setTempo(Number($("tempoSlider").value));$("tempoMinus").onclick=()=>setTempo(Number($("bpm").value)-5);$("tempoPlus").onclick=()=>setTempo(Number($("bpm").value)+5);
+$("tapTempo").onclick=()=>{const now=performance.now();if(taps.length&&now-taps.at(-1)>2000)taps=[];taps.push(now);if(taps.length>6)taps.shift();if(taps.length>=2){setTempo(60000*(taps.length-1)/(now-taps[0]));$("tempoHelp").textContent="Velocidad detectada: "+$("bpm").value+" BPM."}else $("tempoHelp").textContent="Sigue marcando pulsos."};
+$("hearTempo").onclick=safe(async()=>{stop();if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error("Audio no disponible.");ctx=new Audio();engine=guitar.createEngine(ctx)}const generation=epoch;await ctx.resume();if(epoch!==generation)return;const beat=60/Number($("bpm").value),m=core.meters[$("meter").value],start=ctx.currentTime+.05;engine.volume(.7);for(let i=0;i<m.beats*2;i++)engine.click(start+i*beat,i%m.beats===0);note("Escuchando dos compases de referencia.")});
 function renderFragments(){
  const sections=window.ShalomStudioCollections.sections($("source").value),select=$("fragmentSelect"),prev=select.value;
  select.replaceChildren(...sections.map(s=>new Option((s.index+1)+". "+s.title,String(s.index))));
@@ -44,6 +69,7 @@ function showFragment(){
  $("fragmentStatus").textContent=range?"Rango asignado: "+range.start+"–"+range.end+" (fin exclusivo).":"Sin sincronización publicada para esta sección.";
 }
 $("fragmentSelect").onchange=showFragment;
+$("autoFragment").onclick=safe(()=>{const sections=window.ShalomStudioCollections.sections($("source").value),section=sections[Number($("fragmentSelect").value)],matches=groups.filter(g=>g.title===section?.title);if(matches.length!==1)throw Error("Sección repetida o sin acordes. Ajusta el rango manualmente.");const range=groupRange(matches[0]);$("fragmentStart").value=range.start;$("fragmentEnd").value=range.end;$("fragmentStatus").textContent="Rango sugerido. Confirma con Asignar rango."});
 $("fragmentSave").onclick=safe(()=>{const range={index:Number($("fragmentSelect").value),start:Number($("fragmentStart").value),end:Number($("fragmentEnd").value)};if(!window.ShalomStudioCollections.validRange(range,config.totalSteps))throw Error("Rango de fragmento inválido.");config.fragments=[...(config.fragments||[]).filter(r=>r.index!==range.index),range];showFragment();});
 $("fragmentRemove").onclick=safe(()=>{config.fragments=(config.fragments||[]).filter(r=>r.index!==Number($("fragmentSelect").value));showFragment()});
 function currentPattern(create=false){
@@ -53,9 +79,17 @@ function currentPattern(create=false){
  return p
 }
 function renderPattern(){
- const p=currentPattern();const m=core.resolution(config.meter,config.division);
- $("grid").replaceChildren(...p.hits.map((h,i)=>{const wrap=elem("div");wrap.className="pulse";const b=elem("button",arrows[h.hit]);b.setAttribute("aria-label","Golpe "+(i+1));b.onclick=()=>{const p=currentPattern(true);p.hits[i].hit=types[(types.indexOf(p.hits[i].hit)+1)%types.length];renderPattern()};const accent=elem("button",h.accent?"●":"○");accent.setAttribute("aria-label","Acento "+(i+1));accent.setAttribute("aria-pressed",String(h.accent));accent.onclick=()=>{const p=currentPattern(true);p.hits[i].accent=!p.hits[i].accent;renderPattern()};wrap.append(elem("small",(Math.floor(i/m.division)+1)+"."+(i%m.division+1)),b,accent);return wrap}));
+ const p=currentPattern(),m=core.resolution(config.meter,config.division),bar=Number($("barEdit").value);selectedHit=Math.max(0,Math.min(p.hits.length-1,selectedHit));$("prevBar").disabled=bar<=1;$("nextBar").disabled=bar>=config.totalSteps/size();
+ const symbols=anchors.filter((a,i)=>config.changes[i].step>=p.start&&config.changes[i].step<p.start+size()).map(a=>a.chord);$("barSummary").textContent="Compás "+bar+" de "+config.totalSteps/size()+(symbols.length?" · "+symbols.join(" → "):" · Continúa el acorde anterior");
+ $("preset").querySelector('option[value="worship"]').disabled=config.meter!=="4/4"||m.division!==2;
+ $("grid").replaceChildren(...Array.from({length:m.beats},(_,beat)=>{const g=elem("div");g.className="beat-group";g.append(elem("small","Pulso "+(beat+1)));const cells=elem("div");cells.className="beat-cells";for(let j=0;j<m.division;j++){const i=beat*m.division+j,h=p.hits[i],b=elem("button",arrows[h.hit]+(h.accent?"′":""));b.setAttribute("aria-pressed",String(selectedHit===i));b.setAttribute("aria-label","Pulso "+(beat+1)+", posición "+(j+1)+": "+h.hit);b.onclick=()=>{selectedHit=i;renderPattern()};cells.append(b)}g.append(cells);return g}));
+ const hit=p.hits[selectedHit];$("hitSelection").textContent="Pulso "+(Math.floor(selectedHit/m.division)+1)+" · posición "+(selectedHit%m.division+1);document.querySelectorAll("#hitTools [data-hit]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.hit===hit.hit)));$("toggleAccent").setAttribute("aria-pressed",String(hit.accent));
 }
+function changeHit(value,accent){const p=currentPattern(),hits=p.hits.map((h,i)=>i===selectedHit?{...h,...(value?{hit:value}:{}),...(accent?{accent:!h.accent}:{})}:{...h});config=core.applyPattern(config,Number($("barEdit").value),hits,"one");renderPattern();renderReview()}
+document.querySelectorAll("#hitTools [data-hit]").forEach(b=>b.onclick=safe(()=>changeHit(b.dataset.hit,false)));$("toggleAccent").onclick=safe(()=>changeHit(null,true));
+$("prevBar").onclick=()=>{$("barEdit").value=Math.max(1,Number($("barEdit").value)-1);renderPattern()};$("nextBar").onclick=()=>{$("barEdit").value=Math.min(config.totalSteps/size(),Number($("barEdit").value)+1);renderPattern()};
+$("hearBar").onclick=safe(()=>{const start=(Number($("barEdit").value)-1)*size();return preview({start,end:start+size(),title:"Compás "+$("barEdit").value})});
+$("copyPattern").onclick=safe(()=>{if(config.patterns.length>1&&!window.confirm("Esto reemplaza los patrones de todo el canto. ¿Continuar?"))return;config=core.applyPattern(config,Number($("barEdit").value),currentPattern().hits,"all");renderPattern();renderReview();note("Patrón aplicado a todo el canto.")});
 const noteNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"],flats={Db:"C#",Eb:"D#",Gb:"F#",Ab:"G#",Bb:"A#"};
 function shifted(chord,move){return chord.replace(/(^|\/)([A-G][#b]?)/g,(_,prefix,n)=>prefix+noteNames[(noteNames.indexOf(flats[n]||n)+move+120)%12]);}
 function validate(){
@@ -170,15 +204,17 @@ async function play(){
  function animate(){if(!playing)return;const elapsed=ctx.currentTime-start;if(elapsed>=duration&&!$("loop").checked){stop();note("Práctica finalizada.");return}const i=first+Math.max(0,Math.floor(elapsed/(timeline[0].duration/speed)))%count;if(i!==last){showStep(timeline,i);last=i}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.")
 }
-function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){const t=validate();showStep(t,practiceRange?.start??0)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit))}
-$("meter").onchange=divisions;$("generate").onclick=safe(generate);$("barEdit").onchange=safe(renderPattern);
-$("total").onchange=safe(()=>{const n=Number($("total").value);if(!Number.isInteger(n)||n<1||n>512)throw Error("Número de compases inválido.");const total=n*size();if(config.changes.some(c=>c.step>=total)||config.patterns.some(p=>p.start>=total)||(config.fragments||[]).some(r=>r.end>total))throw Error("Hay acordes o patrones fuera de la duración elegida.");config.totalSteps=total;renderEditor()});
-$("applyPreset").onclick=safe(()=>{const p=currentPattern(true),m=core.resolution(config.meter,config.division),choice=$("preset").value,pattern=["down","rest","down","up","rest","up","down","up"];if(choice==="worship"&&(config.meter!=="4/4"||m.division!==2))throw Error("Este patrón requiere 4/4 en corcheas.");p.hits=p.hits.map((_,i)=>({hit:choice==="empty"?"rest":choice==="all"?i%2?"up":"down":choice==="worship"?pattern[i]:i%m.division===0?"down":"rest",accent:i===0}));renderPattern()});
+function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){const t=validate();showStep(t,practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0)}
+function changeResolution(){if(!config){divisions();return;}const meter=$("meter").value,division=Number($("division").value);if(meter===config.meter&&division===config.division)return;if(!window.confirm("Cambiar la forma de contar reinicia la duración y el rasgueo. ¿Continuar?")){$("meter").value=config.meter;divisions();$("division").value=config.division;return;}if(meter!==config.meter)divisions();generate()}
+$("meter").onchange=safe(changeResolution);$("division").onchange=safe(changeResolution);$("generate").onclick=safe(()=>{if(!config||window.confirm("¿Reemplazar la preparación musical actual?"))generate()});$("barEdit").onchange=safe(renderPattern);
+$("total").onchange=safe(()=>{const n=Number($("total").value);if(!Number.isInteger(n)||n<1||n>512)throw Error("Número de compases inválido.");const total=n*size();if(config.changes.some(c=>c.step>=total)||config.patterns.some(p=>p.start>=total)||(config.fragments||[]).some(r=>r.end>total))throw Error("Hay acordes o patrones fuera de la duración elegida.");changeTiming({...config,totalSteps:total})});
+$("applyPreset").onclick=safe(()=>{const m=core.resolution(config.meter,config.division),choice=$("preset").value,scope=$("patternScope").value,pattern=["down","rest","down","up","rest","up","down","up"];if(choice==="worship"&&(config.meter!=="4/4"||m.division!==2))throw Error("Este patrón requiere 4/4 y dos posiciones por pulso.");if(scope!=="one"&&config.patterns.length>1&&!window.confirm("Se reemplazarán los patrones del rango elegido. ¿Continuar?"))return;const hits=Array.from({length:size()},(_,i)=>({hit:choice==="empty"?"rest":choice==="all"?i%2?"up":"down":choice==="worship"?pattern[i]:i%m.division===0?"down":"rest",accent:i===0}));config=core.applyPattern(config,Number($("barEdit").value),hits,scope);renderPattern();renderReview();note("Patrón aplicado.")});
 $("save").onclick=safe(()=>{validate();if(mode==="public")return;localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));note("Borrador guardado en este dispositivo; no publicado.")});
 $("publish").onclick=safe(()=>{if(mode!=="admin")return;validate();if(!window.confirm("¿Publicar este acompañamiento para todos los músicos?"))return;window.parent.postMessage({type:"shalom-studio-publish",arrangement:window.ShalomStudioCodec.encode(anchors,config)},location.origin);note("Publicando…")});
-$("viewEdit").onclick=safe(()=>switchView(true));$("viewPlay").onclick=safe(()=>switchView(false));$("play").onclick=safe(play);$("pause").onclick=()=>{stop();note("Reproducción detenida.")};$("volume").oninput=()=>engine?.volume(Number($("volume").value)/100);
+$("viewEdit").onclick=safe(()=>switchView(true));$("viewPlay").onclick=safe(()=>{if(mode!=="public"){editorScroll=window.scrollY;practiceRange=null}switchView(false)});$("play").onclick=safe(play);$("pause").onclick=()=>{stop();note("Reproducción detenida.")};$("volume").oninput=()=>engine?.volume(Number($("volume").value)/100);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop()});window.addEventListener("pagehide",()=>{stop();engine?.dispose();ctx?.close().catch(()=>{});ctx=null;engine=null});
 if(!embedded){divisions();try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved){$("source").value=saved.source;config=saved.config;$("meter").value=config.meter;divisions();$("division").value=config.division;$("bpm").value=config.bpm;anchors=core.anchorsFromRows(readRows());validate();renderEditor()}else generate()}catch(e){generate();note("No se pudo recuperar el borrador anterior: "+e.message)}
+showStage(0,false);
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./offline-sw.js").catch(()=>note("No se pudo preparar la caché offline."));
 }else{
  $("studioMain").hidden=true;
