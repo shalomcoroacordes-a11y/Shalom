@@ -12,9 +12,9 @@ concurrency:
   group: shalom-android-apk
   cancel-in-progress: true
 env:
-  BASELINE_VERSION: "0.4.21"
-  BASELINE_CODE: "44"
-  CANDIDATE_CODE: "45"
+  BASELINE_VERSION: "0.4.22"
+  BASELINE_CODE: "45"
+  CANDIDATE_CODE: "46"
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -70,7 +70,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/shalom-upgrade"
-          gh release download android-v0.4.21 --pattern "SHALOM-Android-v0.4.21.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
+          gh release download android-v0.4.22 --pattern "SHALOM-Android-v0.4.22.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
           bash scripts/verify-upgrade-candidate.sh
       - name: Enable emulator acceleration
         run: |
