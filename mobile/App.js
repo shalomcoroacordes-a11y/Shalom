@@ -19,6 +19,7 @@ const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const {personalCounts,officialHighlights}=require("./src/home-spotlight");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
+const StudioCollections=require("./src/studio-collections");
 const LocalNotice=require("./src/local-notice");
 const PersonalBackupScreen=require("./src/personal-backup-ui");
 const ProfileOptionsMenu=require("./src/profile-options-menu");
@@ -100,6 +101,7 @@ function AppScreen() {
  const [profile,setProfile]=useState(profileDefaults());
  const [actionSongId,setActionSongId]=useState(null);
  const [studioPayload,setStudioPayload]=useState(null);
+ const [studioQueue,setStudioQueue]=useState(null);
  const [notice,setNotice]=useState(null);
  const [profileMenuOpen,setProfileMenuOpen]=useState(false);
  const noticeTimerRef=useRef(null);
@@ -802,9 +804,30 @@ function AppScreen() {
   const parsed=parseSong(lyrics,delta);
   return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
  }
+ function openStudioCollection(plan,index=0){
+  const ready=plan.ready||[];
+  if(!ready[index])return;
+  setStudioQueue({entries:ready,index});setStudioPayload(ready[index].payload);
+ }
+ function openStudioPart(song,part){
+  const result=StudioCollections.resolve(song,part);
+  if(result.ready){setStudioQueue(null);setStudioPayload(result.payload);}
+ }
+ function closeStudio(){setStudioPayload(null);setStudioQueue(null);}
+ function nextStudio(delta){
+  if(!studioQueue)return;
+  const index=studioQueue.index+delta,entry=studioQueue.entries[index];
+  if(entry){setStudioQueue({...studioQueue,index});setStudioPayload(entry.payload);}
+ }
+ function renderStudioCollectionAction(plan,caption){
+  if(!plan.ready.length)return null;
+  return h(View,{style:{paddingVertical:8}},h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioCollection(plan)},
+   label("♫ "+caption+" · "+plan.ready.length+"/"+plan.total,S.multiOriginalText)));
+ }
  function renderRepertoireDetail(rep){
   const items=Array.isArray(rep.items)?rep.items:[];
   const kind=repertoireType(rep);
+  const plan=StudioCollections.plan(items.map(item=>({...item,shift:transpose})),model.songs);
   return h(View,{style:S.multiReader},
    h(View,{style:S.songMetaRow},
     h(View,{style:S.songMetaIcon},h(Image,{source:HOME_IMAGES[kind==="misa"?"mass":"repertoires"],
@@ -817,6 +840,7 @@ function AppScreen() {
       label(kind==="misa"?"Misa":kind==="ensayo"?"Ensayo":"Repertorio",S.songTypeText)))),
    (rep.location||rep.notes)?h(Text,{style:S.multiDescription},[rep.location,rep.notes].filter(Boolean).join(" · ")):null,
    renderMultiReadingControls(),
+   !immersiveActive&&kind!=="misa"?renderStudioCollectionAction(plan,"Ensayar con guitarra"):null,
    ...items.map((item,index)=>{
     const song=model.songs.find(s=>String(s.id)===String(item.song_id));
     const title=String(song?.title||item.song_title||"Canto no disponible");
@@ -831,6 +855,7 @@ function AppScreen() {
        tone?label("Tono "+tone,S.multiPartDetail):null)),
      item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
      renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose,"rep-"+index),
+     !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioPart(song,{shift:transpose})},label("♫ Practicar con guitarra",S.multiOriginalText)):null,
      song?h(Pressable,{onPress:()=>selectSong(song),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+title+" como canto individual",style:S.multiOriginalLink},
        label("Ver canto individual  ›",S.multiOriginalText)):null
@@ -865,6 +890,7 @@ function AppScreen() {
  function renderMedleyDetail(medley){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   const generalTone=String(medley.base_tone||"");
+  const plan=StudioCollections.plan(parts.map(part=>({...part,shift:transpose+Number(part.shift||0)})),model.songs);
   return h(View,{style:S.multiReader},
    h(View,{style:S.songMetaRow},
     h(View,{style:S.songMetaIcon},
@@ -876,6 +902,7 @@ function AppScreen() {
      h(View,{style:S.songTypeBadge},label(type(medley.song_type),S.songTypeText)))),
    medley.description?h(Text,{style:S.multiDescription},medley.description):null,
    renderMultiReadingControls(),
+   !immersiveActive?renderStudioCollectionAction(plan,"Practicar fragmentos disponibles"):null,
    ...parts.map((part,index)=>{
     const original=model.songs.find(song=>String(song.id)===String(part.song_id));
     const fragmentTitle=part.title||part.song_title||original?.title||"Canto "+(index+1);
@@ -902,6 +929,7 @@ function AppScreen() {
         (c.capo_key?" · "+c.capo_key:"")).join(" / "),S.multiPartCapo):null)),
      renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta,"medley-"+index),
      h(View,{style:S.multiQuickLinks},
+      !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(plan.entries[index].payload)}},label("♫ Practicar fragmento",S.multiOriginalText)):null,
       original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+original.title+" como canto individual",style:S.multiOriginalLink},
        label("Ver canto original  ›",S.multiOriginalText)):null,
@@ -1077,7 +1105,7 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
@@ -1170,11 +1198,11 @@ function AppScreen() {
    onOpenLink:url=>openWeb(url),
    onOpenSongPage:()=>openWeb(songPermalink(actionSong)),
    onVideo:()=>openSongVideo(actionSong),
-   onStudio:()=>{const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
+   onStudio:()=>{setStudioQueue(null);const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
    onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
    onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
-   studioPayload?h(require("./src/studio-screen"),{payload:studioPayload,onClose:()=>setStudioPayload(null)}):null,
+   studioPayload?h(require("./src/studio-screen"),{key:studioQueue?"studio-"+studioQueue.index:"studio-song",payload:studioPayload,onClose:closeStudio,queue:studioQueue,onNext:nextStudio}):null,
    !immersiveActive?h(LocalNotice,{notice,
     bottom:settingsOpen||tab==="Respaldo"||detail?22:tab==="Inicio"?91:86,
     onUndo:()=>{
