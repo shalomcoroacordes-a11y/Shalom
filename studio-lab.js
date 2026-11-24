@@ -53,8 +53,21 @@ function showStep(timeline,i){
  const e=timeline[i];if(!e)return;const n=size(),start=e.bar*n;
  if($("chord").textContent!==(e.chord||"—")){$("chord").textContent=e.chord||"—";diagram(e.chord)}
  $("where").textContent="Compás "+(e.bar+1)+" · Pulso "+(e.beat+1);
- $("live").replaceChildren(...timeline.slice(start,start+n).map((x,k)=>{const b=elem("button",arrows[x.hit]+(x.accent?"′":""));b.disabled=true;b.className=k===i-start?"active":"";return b}));
- const anchor=anchors.find(a=>a.id===e.anchorId);Array.from($("score").children).forEach((node,k)=>node.classList.toggle("active",anchor?.line===k))
+ const live=$("live"), pattern=timeline.slice(start,start+n).map(x=>arrows[x.hit]+(x.accent?"′":""));
+ const key=pattern.join("|");
+ if(live.dataset.pattern!==key){
+  live.replaceChildren(...pattern.map(text=>{const b=elem("button",text);b.disabled=true;return b}));
+  live.dataset.pattern=key;
+ }
+ live.querySelector(".active")?.classList.remove("active");
+ live.children[i-start]?.classList.add("active");
+ const anchor=anchors.find(a=>a.id===e.anchorId),score=$("score");
+ const line=anchor?.line===undefined?"":String(anchor.line);
+ if(score.dataset.activeLine!==line||(!score.querySelector(".active")&&line!=="")){
+  score.querySelector(".active")?.classList.remove("active");
+  if(line!=="")score.children[Number(line)]?.classList.add("active");
+  score.dataset.activeLine=line;
+ }
 }
 function stop(){playing=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop()}
 async function play(){
