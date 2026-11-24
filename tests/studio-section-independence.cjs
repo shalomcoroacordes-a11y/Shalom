@@ -31,3 +31,12 @@ assert.deepEqual(C.sectionBarHits(copied,g[0],2),C.sectionBarHits(copied,g[2],2)
 const restored=codec.decode(a,codec.encode(a,copied));assert.deepEqual(C.compile(a,restored),C.compile(a,copied));
 const again=C.applySectionPattern(restored,g,g[0],2,up,"one");assert.equal(C.sectionBarHits(again,g[2],2)[0].hit,"down");
 console.log("Secciones independientes, compases locales, copia completa y recuperación verificados.");
+
+const mixed=C.draft(a,"4/4",80,2);
+const shortGroup={...g[1],indices:[2]},groupList=[g[0],shortGroup,{...g[1],indices:[3]},g[2],g[3]];
+const rhythmOnly=C.copySection(mixed,groupList,g[0],shortGroup,false);
+assert.equal(C.durationSteps(rhythmOnly,2),C.durationSteps(mixed,2));
+assert.throws(()=>C.copySection(mixed,groupList,g[0],shortGroup,true),/diferente cantidad/);
+const beforeCopy=C.compile(a,changed),laterStart=changed.changes[6].step;
+const afterCopy=C.compile(a,copied),newLaterStart=copied.changes[6].step;
+assert.deepEqual(beforeCopy.slice(laterStart,changed.endStep).map(e=>[e.chord,e.hit,e.tempo,e.duration]),afterCopy.slice(newLaterStart,copied.endStep).map(e=>[e.chord,e.hit,e.tempo,e.duration]));

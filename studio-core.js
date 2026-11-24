@@ -73,7 +73,7 @@
     });
     if(patterns[0].start!==0)throw new Error("Falta el patrón inicial.");
     const parts=validateSections(config,anchors.length,size);
-    let ci=0,pi=0,si=-1,active=null,time=0,part=null,previousTempo=bpm;
+    let ci=0,pi=0,si=-1,li=0,active=null,time=0,part=null,previousTempo=bpm;
     const positioned=parts.map(p=>({...p,start:changes[p.index].step}));
 
     return Array.from({length:total},(_,step)=>{
@@ -82,13 +82,13 @@
       if(step>=musicalEnd)active=null;
       let gap=0;
       if(si+1<positioned.length&&positioned[si+1].start===step){
-        previousTempo=part?.bpm??bpm;part=positioned[++si];
+        previousTempo=part?.bpm??bpm;part=positioned[++si];li=0;
         if(part.transition==="pause"&&step>0){gap=part.pauseMs/1000;time+=gap;}
       }
       const phase=part?step-part.start:0,span=part?Math.min(size,Math.max(1,(positioned[si+1]?.start??musicalEnd)-part.start)):size;
       const tempo=part?.transition==="gradual"&&span>1?previousTempo+(part.bpm-previousTempo)*Math.min(1,phase/(span-1)):part?.bpm??bpm;
       const seconds=60/tempo/m.division;
-      const local=part?.patterns?.filter(p=>p.start<=phase).at(-1);const hit=local?local.hits[(phase-local.start)%size]:part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
+      while(part?.patterns&&li+1<part.patterns.length&&part.patterns[li+1].start<=phase)li++;const local=part?.patterns?.[li];const hit=local?local.hits[(phase-local.start)%size]:part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
       const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};time+=seconds;return event;
     });
@@ -137,9 +137,9 @@
     return next;
   }
   function sectionHit(config,g,offset){
-    const {index,start}=groupBounds(config,g),p=sectionConfig(config,index),local=p.patterns?.filter(r=>r.start<=offset).at(-1);
+    const {index,start}=groupBounds(config,g),p=(config.sections||[]).find(p=>p.index===index),local=p?.patterns?.filter(r=>r.start<=offset).at(-1);
     if(local)return {...local.hits[(offset-local.start)%local.hits.length]};
-    if(p.hits)return {...p.hits[offset%p.hits.length]};
+    if(p?.hits)return {...p.hits[offset%p.hits.length]};
     const base=config.patterns.filter(r=>r.start<=start+offset).at(-1);return {...base.hits[(start+offset-base.start)%base.hits.length]};
   }
   function sectionBarHits(config,g,bar){
