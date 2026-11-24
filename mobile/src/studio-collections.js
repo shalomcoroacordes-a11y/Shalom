@@ -46,5 +46,23 @@ function sequencePlan(parts,songs,title){
  if(tracks.some(t=>!t))return null;
  return {...tracks[0],sequence:tracks,title:String(title||"Popurrí")};
 }
-return Object.freeze({sections,validRange,resolve,plan,sequencePlan});
+function scheduleTracks(tracks,speed=1){
+ if(!Array.isArray(tracks)||tracks.length<2||tracks.length>30||!Number.isFinite(speed)||speed<.25||speed>2)throw Error("Secuencia inválida.");
+ const events=[],windows=[];let time=0,count=0;
+ tracks.forEach((track,index)=>{
+  const timeline=track.timeline,first=track.range?.start??0,end=track.range?.end??timeline.length;
+  if(!validRange({start:first,end},timeline.length)||!Number.isInteger(track.gapMs)||track.gapMs<0||track.gapMs>10000)throw Error("Límites de secuencia inválidos.");
+  count+=end-first;if(count>100000)throw Error("Popurrí demasiado largo para reproducir de una vez.");
+  const start=time,step=timeline[first].duration/speed;
+  if(!Number.isFinite(step)||step<=0)throw Error("Duración de pulso inválida.");
+  for(let i=first;i<end;i++)events.push({time:start+(i-first)*step,track:index,step:i});
+  time=start+(end-first)*step;
+  events.push({time,track:index,release:true});
+  const next=time+(index===tracks.length-1?0:track.gapMs/1000);
+  windows.push({start,end:time,next,first,last:end-1,step});
+  time=next;
+ });
+ return {events,windows,duration:time};
+}
+return Object.freeze({sections,validRange,resolve,plan,sequencePlan,scheduleTracks});
 });
