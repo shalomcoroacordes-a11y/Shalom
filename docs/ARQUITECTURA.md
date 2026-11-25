@@ -66,3 +66,5 @@ SHALOM tiene tres partes conectadas:
 - Futuro `docs/GUIA-PARA-APRENDER.md`: recorrido didáctico para aprender el proyecto.
 
 Este documento es el **punto de partida**: no afirma que la reorganización ya esté hecha.
+
+El perfil público se carga únicamente mediante `artist-page.js`; biografía, enlaces sociales (incluido el respaldo histórico), destacados y catálogo paginado pertenecen a ese módulo. Los antiguos complementos de perfil ya no forman parte del repositorio.
