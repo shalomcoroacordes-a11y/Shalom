@@ -18,12 +18,14 @@ const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
 const {recoveryFormat}=require("./src/trash-format");
 const {createSync}=require("./src/sync");
+const {createStudioPersistence}=require("./src/studio-persistence");
 const store=require("./src/store");
 const h=React.createElement;
 const auth=createAuth(fetch,SecureStore);
 const api=createApi(fetch,auth);
 const network=async()=>{const n=await NetInfo.fetch();return !!(n.isConnected&&n.isInternetReachable!==false);};
 const sync=createSync(api,auth,network);
+const studio=createStudioPersistence({api,store,network});
 const tabs=[["Inicio","⌂"],["Cantos","♫"],["Catálogo","▤"],["Pendientes","⇧"],["Usuarios","♙"]];
 const catalogTabs=["artists","albums","categories","repertoires","medleys","contact_messages","home_recommendations","site_content","donation_settings"];
 function localId(){return Crypto.randomUUID();}
@@ -143,7 +145,7 @@ function Main(){
    }}
   ]);
  }
- async function logout(){setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
+ async function logout(){studioContext.current=null;setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
   try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
@@ -218,38 +220,32 @@ function Main(){
    !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
   );
  }
- async function getStudioState(saved){
-  const local=(await store.cachedList(owner,"studio:"+saved.id))[0];let arrangement=null,checked=false;
-  if(!offline){const rows=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(saved.id)+"&song_revision=eq."+encodeURIComponent(saved.updated_at)+"&limit=1");arrangement=rows?.[0]?.arrangement||null;checked=true;await store.cacheList(owner,"studio-published:"+saved.id,arrangement?[{id:saved.id,revision:saved.updated_at,arrangement}]:[]);}
-  else{const old=(await store.cachedList(owner,"studio-published:"+saved.id))[0];if(old?.revision===saved.updated_at)arrangement=old.arrangement;}
-  return {id:saved.id,revision:saved.updated_at,arrangement,draft:local?.revision===saved.updated_at?local.arrangement:null,checked};
- }
+ function studioSong(saved){return {id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at};}
+ const studioContext=useRef(null);
+ studioContext.current={owner,tab,selectedType,id:editing?.id,lyrics:form?.lyrics,revision:(lists.songs||[]).find(s=>s.id===editing?.id)?.updated_at};
+ function getStudioState(saved){return studio.read(owner,studioSong(saved),offline);}
  useEffect(()=>{let active=true;const saved=(lists.songs||[]).find(s=>s.id===editing?.id);setStudioStatus(null);if(tab==="Editor"&&selectedType==="songs"&&owner&&saved?.updated_at)getStudioState(saved).then(s=>{if(active)setStudioStatus(s)}).catch(()=>{if(active)setStudioStatus({id:saved.id,error:true})});return()=>{active=false};},[owner,editing?.id,tab,selectedType,offline,lists.songs,studioPayload===null]);
  async function openStudio(){
   const saved=(lists.songs||[]).find(s=>s.id===editing?.id);
   if(!saved?.updated_at||String(form?.lyrics||"")!==String(saved.lyrics||""))return Alert.alert("SHALOM Studio","Publica primero la letra y los acordes del canto.");
+  const context=studioContext.current;
   try{
-   const state=await getStudioState(saved);setStudioStatus(state);
-   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:{id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at},arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
+   const state=await getStudioState(saved);
+   const current=studioContext.current;
+   if(!current||["owner","tab","selectedType","id","lyrics","revision"].some(key=>current[key]!==context[key]))return;
+   setStudioStatus(state);
+   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:studioSong(saved),arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
   }catch(e){Alert.alert("SHALOM Studio",e.message);}
  }
  async function studioDraft(arrangement){
   if(!owner||!studioPayload)throw Error("Sesión no disponible.");
-  const song=studioPayload.song;
-  await store.cacheList(owner,"studio:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
+  return studio.saveDraft(owner,studioPayload.song,arrangement);
  }
  async function studioPublish(arrangement){
-  if(!owner||!studioPayload||!await network())throw Error("Conéctate para publicar. Puedes guardar un borrador local.");
-  const current=await api.myAccess();if(!canPublish(current,"songs"))throw Error("No tienes permiso de publicación.");
-  const song=studioPayload.song;
-  const rows=await api.raw("/rest/v1/song_studio_arrangements?on_conflict=song_id&select=song_id,song_revision","POST",{song_id:song.id,song_revision:song.revision,arrangement},"resolution=merge-duplicates,return=representation");
-  if(!Array.isArray(rows)||rows[0]?.song_id!==song.id)throw Error("No se confirmó la publicación.");
-  const verified=await api.raw("/rest/v1/song_studio_arrangements?select=arrangement,song_revision&song_id=eq."+encodeURIComponent(song.id)+"&song_revision=eq."+encodeURIComponent(song.revision)+"&limit=1");
-  if(!verified?.[0]?.arrangement)throw Error("No se pudo verificar la publicación. Vuelve a abrir Studio para revisar el estado.");
-  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);if(canonical(verified[0].arrangement)!==canonical(arrangement))throw Error("La versión guardada difiere de la enviada. Revisa Studio.");
-  await store.cacheList(owner,"studio-published:"+song.id,[{id:song.id,revision:song.revision,arrangement}]);
-  await store.cacheList(owner,"studio:"+song.id,[]);
+  if(!owner||!studioPayload)throw Error("Sesión no disponible.");
+  return studio.publish(owner,studioPayload.song,arrangement);
  }
+
  function leaveEditor(){
   if(leavingEditor.current)return;
   const leave=()=>{leavingEditor.current=false;setForm(null);setEditing(null);setSection("Datos");setTab(editorOrigin.current==="Editor"?(selectedType==="songs"?"Cantos":"Catálogo"):editorOrigin.current);};
