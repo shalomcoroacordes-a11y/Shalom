@@ -1,6 +1,6 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const source=fs.readFileSync("artist-page.js","utf8"),html=fs.readFileSync("artista.html","utf8");
-assert.deepEqual([...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m=>m[1]).filter(src=>!src.startsWith("https://")).map(src=>src.split("?")[0]),["Supabase.js","artist-page.js"]);
+assert.deepEqual([...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m=>m[1]).filter(src=>!src.startsWith("https://")).map(src=>src.split("?")[0]),["Supabase.js","seo.js","artist-page.js"]);
 for(const name of ["artist-profile-data.js","artist-profile-fields.js"])assert.equal(fs.existsSync(name),false);
 const end=source.lastIndexOf('  document.addEventListener("DOMContentLoaded"');
 assert.ok(end>0);

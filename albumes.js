@@ -247,6 +247,11 @@ async function openDetail() {
   }
   $("#albumsTitle").textContent = album.title || "Álbum";
   $("#albumsSubtitle").textContent = album.description || "Canciones de esta colección.";
+  window.JHDSEO?.setAlbum({
+    title: album.title || "Álbum",
+    artist: currentOwner?.name || "",
+    description: album.description || "Canciones de esta colección."
+  });
   await fetchAlbumSongs(false);
 }
 

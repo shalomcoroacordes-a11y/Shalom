@@ -225,6 +225,7 @@
     if (!box || !artist) return;
     const old = legacy(artist.description);
     const bio = artist.bio || old.bio;
+    window.JHDSEO?.setArtist({ name: artist.name || "Sin nombre", description: bio || "" });
     const links = {
       youtube: artist.youtube_url || old.links.youtube,
       spotify: artist.spotify_url || old.links.spotify,
