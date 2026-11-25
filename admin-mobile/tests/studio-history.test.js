@@ -1,8 +1,8 @@
 "use strict";
 const assert=require("node:assert/strict");
 const {createStudioHistory}=require("../src/studio-history");
-const current={id:"song",title:"Actual",lyrics:"G\\nActual",updated_at:"r2"};
-const row={id:"history",song_id:"song",song_revision:"r1",arrangement:{v:1},song_context:{title:"Anterior",lyrics:"C\\nAnterior",updated_at:"r1"}};
+const current={id:"song",title:"Actual",lyrics:"G\nActual",updated_at:"r2"};
+const row={id:"history",song_id:"song",song_revision:"r1",arrangement:{v:1},song_context:{title:"Anterior",lyrics:"C\nAnterior",updated_at:"r1"}};
 function fixture({entry=row,access={permissions:["songs.publish"]},network=true,afterAccess=access}={}){
  const calls=[];let accesses=0;
  const api={myAccess:async owner=>{assert.equal(owner,"owner");return accesses++?afterAccess:access;},
