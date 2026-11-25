@@ -89,3 +89,28 @@ async function trashRecoverySafety(){
  console.log("Trash safety: confirmed backup gate, cancellation, six failure scenarios, successful removal and refresh failure verified.");
 }
 trashRecoverySafety().catch(error=>{console.error(error);process.exitCode=1});
+
+// Legacy restore compares persisted values, including intentional duplicates.
+const prior={id:"old-id",song_id:"s",artist_id:"a",role:"main",sort_order:0,extra:{b:2,a:1},created_at:"before"};
+const matching={id:"new-id",song_id:"s",artist_id:"a",role:"main",sort_order:0,extra:{a:1,b:2},created_at:"after"};
+const other={...prior,artist_id:"b"};
+assert.equal(core.missingRelations([prior],[matching]).length,0);
+assert.equal(core.missingRelations([prior,prior],[matching]).length,1);
+assert.equal(core.missingRelations([prior],[{...matching,role:"featured"}]).length,1);
+assert.equal(core.missingRelations([prior,other],[matching])[0].artist_id,"b");
+assert.equal(core.missingRelations([prior],[])[0].id,undefined);
+const relationsStart=backup.indexOf("  async function restoreRelations("),relationsEnd=backup.indexOf("  async function restoreTrash(",relationsStart);
+assert.ok(relationsStart>=0&&relationsEnd>relationsStart);
+assert.match(backup,/await restoreRelations\(row.item_type, snapshot.record.id, snapshot.relations \|\| \{\}\)/);
+async function relationRecovery(){
+ const reads=[],writes=[];
+ const ctx={missingRelations:core.missingRelations,rows:async(table,key,id)=>{reads.push([table,key,id]);return table==="song_artists"?[matching]:[]},db:{from(table){return {async insert(values){writes.push({table,values});return {error:null}}}}}};
+ vm.createContext(ctx);vm.runInContext(backup.slice(relationsStart,relationsEnd),ctx);
+ await ctx.restoreRelations("song","s",{song_artists:[prior,other],song_categories:[{song_id:"s",category_id:"c"}]});
+ assert.equal(reads.length,2);assert.equal(writes.length,2);assert.equal(writes[0].values.length,1);assert.equal(writes[0].values[0].artist_id,"b");assert.equal(writes[1].table,"song_categories");
+ reads.length=0;writes.length=0;
+ await assert.rejects(ctx.restoreRelations("song","s",{song_artists:[prior],song_categories:[{song_id:"different",category_id:"c"}]}),/relaciones no válidas/);assert.equal(writes.length,0);
+ await ctx.restoreRelations("album","album",{album_songs:[{album_id:"album",song_id:"s"}]});assert.equal(reads.at(-1)[1],"album_id");
+ console.log("Legacy restore: exact existing relations, multiplicity, scoped reads and invalid relation preflight verified.");
+}
+relationRecovery().catch(error=>{console.error(error);process.exitCode=1});
