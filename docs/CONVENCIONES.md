@@ -47,3 +47,7 @@ El primer comando muestra dependencias declaradas en HTML. El segundo muestra `r
 ## Entrega a otro programador
 
 Entregar `docs/ARQUITECTURA.md`, `docs/DESARROLLO.md`, `docs/PLAN-REORGANIZACION.md`, esta guía y la tarea concreta. Trabajar en rama y revisar el resultado antes de publicarlo.
+
+## Política de refactorización desde el origen
+
+Consultar `AGENTS.md` antes de cada tarea. Los nombres históricos no prueban que un módulo esté sin uso; el objetivo es consolidar responsabilidades con pruebas, no solo renombrar archivos. El control `scripts/check_clean_changes.py` bloquea nuevos archivos de implementación con nombres de parche o versión, no sustituye una revisión de arquitectura. Las excepciones legítimas se documentan y revisan explícitamente.
