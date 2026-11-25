@@ -168,6 +168,9 @@ jobs:
       - name: Test shared catalog RPC row normalization
         run: node tests/catalog-song-row.cjs
 
+      - name: Test shared artist and album presentation
+        run: node tests/catalog-list-view.cjs
+
       - name: Verify song detail CSS bundle against original files
         run: node tests/song-detail-bundle-regression.cjs
 
