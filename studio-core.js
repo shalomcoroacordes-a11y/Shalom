@@ -296,5 +296,25 @@
       ["Patrones",config.patterns.length+(config.sections||[]).reduce((n,p)=>n+(p.patterns?.length||0),0)]
     ];
   }
-  return Object.freeze({reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Resolve explicit preview range first, then the saved practice range.
+  function playbackRange(timeline,config,range,practiceRange,speed){
+    const first=range?.start??practiceRange?.start??0,end=range?.end??practiceRange?.end??config.endStep??timeline.length;
+    return {first,end,clock:clockRange(timeline,first,end,speed)};
+  }
+  // Live edits affect only the selected section, never an authored ringing chord.
+  function liveSectionEvent(event,anchors,config,group){
+    const r=groupRange(config,group);
+    sectionConfig(config,group.indices[0]);
+    if(event.step>=r.start&&event.step<r.end&&event.chord){
+      const anchor=anchors.findIndex(a=>a.id===event.anchorId);
+      if(config.changes[anchor]?.hold!=="ring")return {...event,...sectionHit(config,group,event.step-r.start)};
+    }
+    return event;
+  }
+  function sequenceTrackTimeline(anchors,config,track,transpose){
+    if(track.range&&!(config.fragments||[]).some(r=>r.start===track.range.start&&r.end===track.range.end))throw Error("Hay un fragmento sin rango oficial.");
+    if(!Number.isInteger(track.shift)||Math.abs(track.shift)>12||!Number.isInteger(track.capo)||track.capo<0||track.capo>12)throw Error("Tono o capo inválido.");
+    return compile(anchors,config,chord=>transpose(chord,track.shift));
+  }
+  return Object.freeze({playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
