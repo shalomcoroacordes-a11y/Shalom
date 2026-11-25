@@ -87,11 +87,6 @@
     return result.data?.id || null;
   }
 
-  async function removeArchive(id) {
-    if (!id) return;
-    await db.from(TRASH_TABLE).delete().eq("id", id);
-  }
-
   function checkDelete(kind, id) {
     const state = app();
     if (kind === "artist") {
@@ -122,6 +117,7 @@
     try {
       say("Creando respaldo antes de eliminar...");
       archiveId = await archive(kind, id);
+      if (!archiveId) throw new Error("No se confirmó el identificador del respaldo.");
 
       let error = null;
       if (kind === "song") {
@@ -143,13 +139,13 @@
         error = links.error || (await db.from("albums").delete().eq("id", id)).error;
       }
 
-      if (error) {
-        await removeArchive(archiveId);
-        throw error;
-      }
+      if (error) throw error;
       await window.apRefresh?.("Elemento enviado a la papelera.");
     } catch (error) {
-      say(`No se pudo eliminar con respaldo: ${error?.message || "Error desconocido."}. Ejecuta ADMIN_RESPALDO_PAPELERA.sql si aún no lo has hecho.`, true);
+      const detail = error?.message || "Error desconocido.";
+      say(archiveId
+        ? `No se pudo completar la operación: ${detail}. El respaldo se conserva en la papelera; algunas relaciones pueden haberse eliminado. Revisa el registro antes de reintentar o restaurar.`
+        : `No se inició la eliminación: ${detail}. No se confirmó el respaldo; revisa la papelera y la configuración.`, true);
     } finally {
       busy = false;
     }
