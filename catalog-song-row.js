@@ -28,5 +28,34 @@
       rows: append ? [...previous, ...rows] : rows
     };
   }
-  window.ShalomCatalogSongRow = Object.freeze({ jsonList, rowToSong, mergePage });
+  // A single request owner for a paginated catalog. UI owns rendering and filters.
+  function createPager({ pageSize, fetchPage, onStart, onRender, onError }) {
+    let version = 0, state = { page: 0, total: 0, rows: [], loading: false };
+    async function load(append = false) {
+      if (append && state.loading) return;
+      const token = ++version;
+      const isCurrent = () => token === version;
+      const page = append ? state.page + 1 : 0;
+      state = append ? { ...state, loading: true } : { page: 0, total: 0, rows: [], loading: true };
+      try {
+        onStart(append);
+        const rows = await fetchPage({ offset: page * pageSize, limit: pageSize, isCurrent });
+        if (!isCurrent()) return;
+        const merged = mergePage(state.rows, rows, append);
+        state = { page, ...merged, loading: false };
+        onRender();
+      } catch (error) {
+        if (!isCurrent()) return;
+        state = { ...state, total: 0, rows: [], loading: false };
+        onError(error);
+      } finally {
+        if (isCurrent() && state.loading) {
+          state = { ...state, loading: false };
+          onRender();
+        }
+      }
+    }
+    return Object.freeze({ load, get state() { return state; } });
+  }
+  window.ShalomCatalogSongRow = Object.freeze({ jsonList, rowToSong, mergePage, createPager });
 })();

@@ -6,11 +6,6 @@ const params = new URLSearchParams(location.search);
 const selected = params.get("album") || params.get("id") || "";
 const PAGE_SIZE = 24;
 
-let page = 0;
-let totalResults = 0;
-let visibleAlbums = [];
-let loading = false;
-let requestVersion = 0;
 let searchTimer = 0;
 let currentAlbum = null;
 let currentOwner = null;
@@ -61,27 +56,24 @@ function ensureListLoadMore() {
 function updateListLoadMore() {
   const button = ensureListLoadMore();
   if (!button) return;
-  const hasMore = visibleAlbums.length < totalResults;
+  const hasMore = catalog.state.rows.length < catalog.state.total;
   button.hidden = !hasMore;
-  button.disabled = loading;
-  button.textContent = loading ? "Cargando…" : "Cargar más álbumes";
+  button.disabled = catalog.state.loading;
+  button.textContent = catalog.state.loading ? "Cargando…" : "Cargar más álbumes";
 }
 
 function renderAlbums() {
   const grid = $("#albumsGrid");
   if (!grid) return;
-  setStatus(`${totalResults} ${totalResults === 1 ? "álbum encontrado" : "álbumes encontrados"}`);
+  setStatus(`${catalog.state.total} ${catalog.state.total === 1 ? "álbum encontrado" : "álbumes encontrados"}`);
   grid.className = "artists-grid";
-  grid.innerHTML = visibleAlbums.length
-    ? visibleAlbums.map(card).join("")
+  grid.innerHTML = catalog.state.rows.length
+    ? catalog.state.rows.map(card).join("")
     : "<article class='artist-card'><h3>Sin álbumes</h3><p>Aún no hay álbumes que coincidan con la búsqueda.</p></article>";
   updateListLoadMore();
 }
 
 function beginAlbumLoad() {
-  page = 0;
-  totalResults = 0;
-  visibleAlbums = [];
   const grid = $("#albumsGrid");
   if (grid) grid.innerHTML = "<article class='artist-card shimmer-card'><h3>Buscando álbumes…</h3><p>Un momento por favor.</p></article>";
   setStatus("Buscando álbumes…");
@@ -101,49 +93,27 @@ function rpcErrorMessage(error, functionName, label) {
   return detail || "Revisa la conexión e inténtalo de nuevo.";
 }
 
-async function fetchAlbums(append = false) {
-  if (!db || (append && loading)) return;
-  const token = ++requestVersion;
-  const currentPage = append ? page + 1 : 0;
-  loading = true;
-  if (!append) beginAlbumLoad();
-  else updateListLoadMore();
-
-  try {
-    const { data, error } = await db.rpc("search_albums_catalog", {
-      p_query: String($("#albumSearch")?.value || "").trim() || null,
-      p_artist_id: null,
-      p_limit: PAGE_SIZE,
-      p_offset: currentPage * PAGE_SIZE
-    });
+const catalog = window.ShalomCatalogSongRow.createPager({
+  pageSize: PAGE_SIZE,
+  fetchPage: async ({ limit, offset }) => {
+    const { data, error } = await db.rpc("search_albums_catalog", { p_query: String($("#albumSearch")?.value || "").trim() || null, p_artist_id: null, p_limit: limit, p_offset: offset });
     if (error) throw error;
-    if (token !== requestVersion) return;
-
-    const rows = data || [];
-    const merged = window.ShalomCatalogSongRow.mergePage(visibleAlbums, rows, append);
-    page = currentPage;
-    totalResults = merged.total;
-    visibleAlbums = merged.rows;
-    loading = false;
-    renderAlbums();
-  } catch (error) {
-    if (token !== requestVersion) return;
-    totalResults = 0;
-    visibleAlbums = [];
-    loading = false;
+    return data || [];
+  },
+  onStart: append => append ? updateListLoadMore() : beginAlbumLoad(),
+  onRender: renderAlbums,
+  onError: error => {
     const grid = $("#albumsGrid");
     if (grid) grid.innerHTML = `<article class='artist-card'><h3>No se pudieron cargar los álbumes</h3><p>${esc(rpcErrorMessage(error, "search_albums_catalog", "álbumes"))}</p></article>`;
     setStatus("No se pudieron cargar los álbumes.");
     const button = ensureListLoadMore();
     if (button) button.hidden = true;
-  } finally {
-    if (token === requestVersion && loading) {
-      loading = false;
-      renderAlbums();
-    }
   }
+});
+function fetchAlbums(append = false) {
+  if (!db) return;
+  return catalog.load(append);
 }
-
 function songRow(song) {
   const artists = names(song._artists);
   const type = song.song_type || "Canción";
