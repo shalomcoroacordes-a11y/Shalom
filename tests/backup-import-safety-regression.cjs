@@ -140,3 +140,19 @@ async function nativeRecovery(){
  console.log("Native trash compatibility: owner RPC, no fallback, invalid snapshots, cancellation and legacy route verified.");
 }
 nativeRecovery().catch(error=>{console.error(error);process.exitCode=1});
+
+// SQL source contract only; database execution must be verified in an isolated environment.
+const trashSql=fs.readFileSync("sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql","utf8");
+const delSql=trashSql.slice(0,trashSql.indexOf("create or replace function public.admin_restore_song"));
+const restoreSql=trashSql.slice(trashSql.indexOf("create or replace function public.admin_restore_song"));
+assert.match(delSql,/auth\.uid\(\) is null or not public\.admin_has_permission\('songs.delete'\)/);
+assert.match(restoreSql,/auth\.uid\(\) is null or not public\.admin_is_owner\(\)/);
+assert.ok(delSql.indexOf("perform 1 from public.song_studio_arrangements")<delSql.indexOf("select jsonb_build_object"));
+assert.match(delSql,/'song_studio_arrangements',coalesce\(\(select jsonb_agg\(to_jsonb\(r\)\) from public\.song_studio_arrangements/);
+assert.ok(delSql.indexOf("'song_studio_arrangements',coalesce")<delSql.indexOf("delete from public.songs"));
+assert.match(restoreSql,/coalesce\(old.snapshot->'song_studio_arrangements','\[\]'::jsonb\)/);
+assert.match(restoreSql,/r.song_id is distinct from old.original_id/);
+assert.match(restoreSql,/select song_id,song_revision,arrangement,updated_at from jsonb_populate_recordset/);
+assert.ok(restoreSql.indexOf("insert into public.song_studio_arrangements")<restoreSql.indexOf("delete from public.admin_trash"));
+assert.match(trashSql,/revoke all on function public.admin_restore_song\(uuid\) from public,anon/);
+console.log("Studio trash SQL contract: snapshot, identity, revision and permission checks; live transaction tests still required.");
