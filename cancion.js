@@ -272,6 +272,16 @@ function renderLinks(relations) {
   const container = $("#songLinks");
   if (!container) return;
   const links = relations.links || [];
+  let heading = $("#songResourcesHeading");
+  if (links.length && !heading) {
+    heading = document.createElement("h3");
+    heading.id = "songResourcesHeading";
+    heading.className = "song-resource-heading";
+    heading.textContent = "Recursos";
+    container.before(heading);
+  } else if (!links.length) {
+    heading?.remove();
+  }
   container.hidden = links.length === 0;
   container.innerHTML = links.length ? links.map((link) => `<a class="quick-card" href="${escapeHTML(link.url || "#")}" target="_blank" rel="noopener"><h3>${escapeHTML(link.title || link.link_type || "Recurso")}</h3><p>${escapeHTML([link.platform, link.link_type].filter(Boolean).join(" · ") || "Abrir recurso")}</p></a>`).join("") : "";
 }
@@ -333,6 +343,51 @@ async function renderRelatedSongs(song, relations) {
   }).join("");
 }
 
+function renderReaderOverview(type, title, subtitle) {
+  const toolbar = $("#songReaderToolbar");
+  const lyrics = $("#songLyrics");
+  if (!toolbar || !lyrics) return;
+  type = String(type || "").trim() || "Canción";
+  title = String(title || "").trim();
+  subtitle = String(subtitle || "").trim();
+
+  if (!document.getElementById("songReaderOverview")) {
+    const overview = document.createElement("section");
+    overview.id = "songReaderOverview";
+    overview.className = "song-reader-overview";
+
+    const copy = document.createElement("div");
+    copy.className = "song-reader-overview-copy";
+    const kicker = document.createElement("p");
+    kicker.className = "hero-kicker";
+    kicker.textContent = type;
+    const heading = document.createElement("h2");
+    heading.textContent = "Letra y acordes";
+    const description = document.createElement("p");
+    description.textContent = subtitle || (title ? `Consulta ${title} y prepara tu interpretación.` : "Prepara tu interpretación con letra, acordes y ajustes de tono.");
+    copy.append(kicker, heading, description);
+
+    const actions = document.createElement("div");
+    actions.className = "song-reader-overview-actions";
+    actions.innerHTML = '<a class="song-btn secondary" href="#songLyrics">Ir a la letra</a><a class="song-btn secondary" href="#relatedSongsSection">Relacionadas</a>';
+    overview.append(copy, actions);
+    toolbar.before(overview);
+  }
+
+  if (!document.getElementById("songLyricsHeading")) {
+    const heading = document.createElement("div");
+    heading.id = "songLyricsHeading";
+    heading.className = "song-lyrics-heading";
+    heading.innerHTML = "<div><p class='hero-kicker'>Cancionero</p><h2>Letra y acordes</h2><p>Ajusta el tono, capo y tamaño de letra desde los controles.</p></div>";
+    lyrics.before(heading);
+  }
+  const overview = $("#songReaderOverview");
+  const kicker = overview?.querySelector(".hero-kicker");
+  const description = overview?.querySelector(".song-reader-overview-copy > p:last-child");
+  if (kicker) kicker.textContent = type;
+  if (description) description.textContent = subtitle || (title ? `Consulta ${title} y prepara tu interpretación.` : "Prepara tu interpretación con letra, acordes y ajustes de tono.");
+}
+
 function renderSongFeedback(title, subtitle) {
   const lyrics = $("#songLyrics");
   const shell = lyrics?.closest(".song-reader-shell");
@@ -365,6 +420,7 @@ function renderSong(song, relations) {
   renderReaderNavigation(song, relations);
   renderMeta(song, relations);
   renderControls(relations);
+  renderReaderOverview(type, title, artistText ? `Por ${artistText}` : "Canción del cancionero.");
   renderChordLyrics();
   renderLinks(relations);
   renderSongFeedback(title, artistText ? `Por ${artistText}` : "Canción del cancionero.");
