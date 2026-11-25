@@ -16,7 +16,7 @@ const {sendRequest}=require("./src/requests");
 const RequestScreen=require("./src/request-screen-ui");
 const SettingsScreen=require("./src/settings-screen-ui");
 const {MoreScreen,ExploreScreen,AlbumsScreen}=require("./src/exploration-screens-ui");
-const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
+const {FAVORITES_KEY,parseFavorites,hasFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const {personalCounts,officialHighlights}=require("./src/home-spotlight");
 const PersonalCollectionsScreen=require("./src/personal-ui");
@@ -27,6 +27,7 @@ const PersonalBackupScreen=require("./src/personal-backup-ui");
 const ProfileOptionsMenu=require("./src/profile-options-menu");
 const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./src/personal-backup-io");
 const {createPersonalBackupController}=require("./src/personal-backup-controller");
+const {createPersonalEditController}=require("./src/personal-edit-controller");
 const {addToPersonal}=require("./src/song-actions-core");
 const {songPermalink,createSongReaderActions}=require("./src/song-reader-actions");
 const {capoSelection}=require("./src/song-capo-core");
@@ -119,8 +120,6 @@ function AppScreen() {
   return()=>{if(nestedBackRef.current===handler)nestedBackRef.current=null;};
  },[]);
  const [profileEditNonce,setProfileEditNonce]=useState(0);
- const profileWriteRef=useRef(Promise.resolve());
- const personalWriteRef=useRef(Promise.resolve());
  const [onlyLiked,setOnlyLiked]=useState(false);
  const [countLimit,setCountLimit]=useState(80);
  const [requestKind,setRequestKind]=useState("song");
@@ -138,7 +137,6 @@ function AppScreen() {
  const detailHistoryRef=useRef([]);
  const tabHistoryRef=useRef([]);
  const likedRef=useRef([]);
- const likedWriteRef=useRef(Promise.resolve());
  function showLocalNotice(message,onUndo){
   if(noticeTimerRef.current)clearTimeout(noticeTimerRef.current);
   setNotice({id:Date.now()+Math.random(),message,onUndo});
@@ -167,62 +165,16 @@ function AppScreen() {
  }else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setSongLibraryOpen(next==="Canciones"&&Boolean(options.search||options.liked||options.openLibrary));setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
  function rememberRead(next){lastReadRef.current=next;setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
- function personalTotals(value){
-  const groups=value?.collections||[];
-  return {folders:groups.length,entries:groups.reduce((n,c)=>n+c.entries.length,0)};
- }
- function savePersonal(next,options={}){
-  const prev=personalRef.current;
-  personalRef.current=next;setPersonal(next);
-  const payload=JSON.stringify(next);
-  personalWriteRef.current=personalWriteRef.current.catch(()=>{}).then(()=>setMetadata(PERSONAL_KEY,payload));
-  personalWriteRef.current.catch(err=>{
-   if(personalRef.current===next){personalRef.current=prev;setPersonal(prev);}
-   clearLocalNotice();
-   Alert.alert("No se guardó la colección",(err?.message||"Revisa el espacio del teléfono.")+" Tus cantos oficiales no se modificaron.");
-  });
-  if(!options.quiet){
-   const old=personalTotals(prev),current=personalTotals(next);
-   const msg=options.notice||(current.folders>old.folders?"Colección creada":
-    current.entries>old.entries?"Composición guardada":null);
-   if(msg)showLocalNotice(msg,()=>savePersonal(prev,{quiet:true}));
-  }
- }
- function saveProfile(next,options={}){
-  const prev=profileRef.current;
-  const clean=parseProfile(JSON.stringify(next));
-  profileRef.current=clean;setProfile(clean);
-  profileWriteRef.current=profileWriteRef.current.catch(()=>{}).then(()=>setMetadata(PROFILE_KEY,JSON.stringify(clean)));
-  profileWriteRef.current.catch(e=>{
-   if(profileRef.current===clean){profileRef.current=prev;setProfile(prev);}
-   clearLocalNotice();
-   Alert.alert("No se guardó el perfil",(e?.message||"Revisa el almacenamiento privado del teléfono."));
-  });
-  if(!options.quiet)showLocalNotice("Perfil guardado",()=>saveProfile(prev,{quiet:true}));
- }
+ const personalEditsRef=useRef(null);
+ if(!personalEditsRef.current)personalEditsRef.current=createPersonalEditController({
+  personalRef,profileRef,likedRef,setPersonal,setProfile,setLikedIds,write:setMetadata,
+  notice:showLocalNotice,clearNotice:clearLocalNotice,alert:(title,message)=>Alert.alert(title,message)
+ });
+ const {savePersonal,saveProfile,toggleLike}=personalEditsRef.current;
  function openProfileMenu(){setProfileMenuOpen(true);}
- function setFavoritesLocal(next){
-  const prev=likedRef.current;
-  likedRef.current=next;setLikedIds(next);
-  const payload=JSON.stringify(next);
-  const write=likedWriteRef.current.catch(()=>{}).then(()=>setMetadata(FAVORITES_KEY,payload));
-  likedWriteRef.current=write;
-  write.catch(e=>{
-   if(likedRef.current===next){likedRef.current=prev;setLikedIds(prev);}
-   clearLocalNotice();
-   Alert.alert("No se guardó Me gusta",(e?.message||"Revisa el almacenamiento del teléfono.")+" No se modificó el catálogo.");
-  });
- }
- function toggleLike(songId){
-  const prev=likedRef.current;
-  const next=toggleFavorite(prev,songId);
-  setFavoritesLocal(next);
-  showLocalNotice(next.includes(String(songId))?"Agregado a Mis me gusta":"Quitado de Mis me gusta",
-   ()=>setFavoritesLocal(prev));
- }
  const backupControllerRef=useRef(null);
  if(!backupControllerRef.current)backupControllerRef.current=createPersonalBackupController({
-  waitForWrites:()=>Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]),
+  waitForWrites:personalEditsRef.current.waitForWrites,
   readCurrent:()=>({profile:profileRef.current,personal:personalRef.current,likedIds:likedRef.current,lastRead:lastReadRef.current}),
   exportFile:exportPersonalBackup,stagePhotos:stageRestoredPhotos,commitMetadata:setMetadataBatch,
   applyRestored:next=>{

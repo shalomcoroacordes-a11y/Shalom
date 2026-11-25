@@ -26,7 +26,8 @@ const cover=fs.readFileSync("src/collection-covers.js","utf8");
 assert.match(app,/h\(ProfileScreen,/,"Perfil como quinta sección");
 assert.match(app,/getMetadataBatch\(\{[^\n]*\[PROFILE_KEY\]:""/,"Leer perfil local al iniciar");
 assert.match(app,/profileRaw=prefs\[PROFILE_KEY\]/);
-assert.match(app,/setMetadata\(PROFILE_KEY,JSON\.stringify\(clean\)\)/,"Guardar perfil privado");
+assert.match(app,/write:setMetadata/,"Guardar perfil privado");
+assert.match(fs.readFileSync("src/personal-edit-controller.js","utf8"),/key:PROFILE_KEY/);
 assert.match(app,/onPress:\(\)=>tab==="Perfil"\?openProfileMenu\(\)/,"Opciones de perfil en tres puntos");
 assert.match(app,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,
  "El destacado usa la foto local seleccionada");
