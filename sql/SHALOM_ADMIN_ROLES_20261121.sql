@@ -279,8 +279,8 @@ begin
  foreach t in array array['admin_roles','admin_role_permissions','admin_user_roles','admin_permission_overrides','admin_access_blocks','admin_invites','admin_profiles','admin_audit_log']
  loop
   execute format('alter table public.%I enable row level security',t);
-  execute format('revoke all on public.%I from anon',t);
-  execute format('grant select on public.%I to authenticated',t);
+  execute format('revoke all privileges on table public.%I from anon, authenticated',t);
+  execute format('grant select on table public.%I to authenticated',t);
  end loop;
 end$$;
 create policy "Roles visible a administradores" on public.admin_roles for select to authenticated using (
