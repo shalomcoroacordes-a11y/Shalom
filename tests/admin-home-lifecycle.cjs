@@ -8,7 +8,7 @@ const pending=[];
 const view={set innerHTML(v){this.content=v;current={innerHTML:""}},get innerHTML(){return this.content},querySelector:()=>current};
 const document={getElementById(id){return id==="adminView"?view:id==="adminHomeSectionContent"?current:null},querySelector(q){return q==="[data-jhd-home-section-tab]"?{classList:{contains:()=>active}}:null},querySelectorAll(){return []}};
 const db={from(table){return {select(){if(table==="song_artists")return Promise.resolve({data:[]});return {order(){if(table==="home_recommendations")return new Promise((resolve,reject)=>pending.push({resolve,reject}));return Promise.resolve({data:table==="categories"?[{id:"c",name:"Carpeta de prueba",song_type:"catolico"}]:[]})}}}}}};
-const window={supabaseClient:db};
+const window={supabaseClient:db,ShalomHomeRecommendations:require("../home-recommendation-core.js")};
 vm.runInNewContext(source,{window,document});
 const mount=window.ShalomAdminHome.mount;
 async function test(){

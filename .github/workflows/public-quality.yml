@@ -215,6 +215,9 @@ jobs:
       - name: Test direct home recommendations rendering
         run: node tests/home-access-rendering.cjs
 
+      - name: Test shared home recommendation rules
+        run: node tests/home-recommendation-core.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

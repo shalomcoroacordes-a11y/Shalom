@@ -16,22 +16,12 @@
 
   const esc = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const normalize = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const contentType = (value) => {
-    const type = normalize(value);
-    if (type.includes("catolic")) return "catolico";
-    if (type.includes("cristian")) return "cristiano";
-    if (type.includes("mixto")) return "mixto";
-    return "general";
-  };
+  const { contentType, sectionFor } = window.ShalomHomeRecommendations;
   const typeLabel = (type) => ({ catolico: "Católico", cristiano: "Cristiano", mixto: "Mixto", general: "General" }[type] || "General");
   const sectionLabel = (section) => section === "cristiano" ? "Cristiana" : "Católica";
 
   function targetFor(type, id) {
     return (type === "song" ? songs : categories).find((item) => String(item.id) === String(id)) || null;
-  }
-
-  function sourceType(type, item) {
-    return contentType(type === "song" ? item?.song_type : item?.song_type);
   }
 
   function targetName(type, item) {
@@ -48,14 +38,9 @@
     return ["Carpeta", item.parent_id ? "Subcarpeta" : "Carpeta principal"].join(" · ");
   }
 
-  function sectionFor(row, item) {
-    const type = sourceType(row.target_type, item);
-    return type === "catolico" || type === "cristiano" ? type : (row.section_type === "cristiano" ? "cristiano" : "catolico");
-  }
-
   function draftSection() {
     const item = targetFor(draft.targetType, draft.targetId);
-    const type = sourceType(draft.targetType, item);
+    const type = contentType(item?.song_type);
     return type === "catolico" || type === "cristiano" ? type : draft.sectionType;
   }
 
@@ -67,7 +52,7 @@
     const source = draft.targetType === "song" ? songs : categories;
     const key = normalize(draft.query);
     return source.filter((item) => {
-      const type = sourceType(draft.targetType, item);
+      const type = contentType(item?.song_type);
       const typeMatches = draft.typeFilter === "all" || (draft.typeFilter === "mixto-general" ? (type === "mixto" || type === "general") : type === draft.typeFilter);
       const haystack = draft.targetType === "song"
         ? [item.title, item.tone, item.song_type, (artistNamesBySong.get(String(item.id)) || []).join(" ")].join(" ")
@@ -97,7 +82,7 @@
     const duplicates = duplicateRows();
     if (!rows.length) return '<div class="jhd-home-section-empty">Aún no hay recomendaciones en esta columna.</div>';
     return rows.map(({ row, item }) => {
-      const type = sourceType(row.target_type, item);
+      const type = contentType(item?.song_type);
       const manual = type === "mixto" || type === "general";
       const duplicate = duplicates.get(`${row.target_type}:${row.target_id}`) > 1;
       const placement = manual
@@ -115,19 +100,19 @@
       const matches = candidates();
       list.innerHTML = matches.length ? matches.map((item) => {
         const selected = String(item.id) === String(draft.targetId);
-        const type = sourceType(draft.targetType, item);
+        const type = contentType(item?.song_type);
         return `<button class="jhd-recommendation-target ${selected ? "is-selected" : ""}" type="button" data-target-id="${esc(item.id)}"><span class="jhd-recommendation-target-icon" aria-hidden="true">${draft.targetType === "song" ? "♫" : "✝"}</span><span><strong>${esc(targetName(draft.targetType, item))}</strong><small>${esc(targetMeta(draft.targetType, item))}</small></span>${typeBadge(type)}${selected ? '<em>Seleccionado</em>' : ""}</button>`;
       }).join("") : '<div class="jhd-recommendation-empty">No encontramos resultados con ese tipo o búsqueda.</div>';
       list.querySelectorAll("[data-target-id]").forEach((button) => button.addEventListener("click", () => {
         draft.targetId = button.dataset.targetId || "";
         const item = targetFor(draft.targetType, draft.targetId);
-        const type = sourceType(draft.targetType, item);
+        const type = contentType(item?.song_type);
         if (type === "catolico" || type === "cristiano") draft.sectionType = type;
         renderTargetList();
       }));
     }
     const item = targetFor(draft.targetType, draft.targetId);
-    const type = sourceType(draft.targetType, item);
+    const type = contentType(item?.song_type);
     const forced = type === "catolico" || type === "cristiano";
     if (sectionSelect) {
       sectionSelect.disabled = forced;
@@ -262,7 +247,7 @@
       const writes = cards.map((card) => {
         const row = recommendations.find((item) => String(item.id) === String(card.dataset.recId));
         const target = row && targetFor(row.target_type, row.target_id);
-        const type = row ? sourceType(row.target_type, target) : "general";
+        const type = row ? contentType(target?.song_type) : "general";
         const data = {
           sort_order: Math.max(0, Number(card.querySelector("[data-rec-order]")?.value || 0)),
           is_visible: Boolean(card.querySelector("[data-rec-visible]")?.checked)
