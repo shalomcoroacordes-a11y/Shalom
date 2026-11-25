@@ -69,12 +69,13 @@ for(const value of ["Quitar de Mis me gusta","Agregar a Mis me gusta","Agregar a
  "Agregar a popurrí","Compartir canción","Imprimir letra y acordes","Descargar sin conexión"]){
  assert.ok(sheet.includes(value),"Falta acción "+value);
 }
-assert.match(app,/if\(nestedBackRef\.current\?\.\(\)\)return true/,"Android respeta pantallas internas");
-assert.match(app,/tabHistoryRef\.current\.pop\(\)/,"Android regresa a pestaña anterior");
-assert.match(app,/detailHistoryRef\.current\.pop\(\)/,"Android regresa a detalle anterior");
-assert.match(app,/if\(immersiveActive\)/,"Android sale primero de pantalla completa");
-assert.match(app,/if\(settingsOpen\)/,"Android cierra ajustes");
-assert.match(app,/tab==="Categorías"&&folderId/,"Android retrocede en subcategorías");
+const navigation=fs.readFileSync("src/navigation-core.js","utf8");
+assert.match(navigation,/if\(nestedBackRef\.current\?\.\(\)\)return true/,"Android respeta pantallas internas");
+assert.match(navigation,/tabHistoryRef\.current\.pop\(\)/,"Android regresa a pestaña anterior");
+assert.match(navigation,/detailHistoryRef\.current\.pop\(\)/,"Android regresa a detalle anterior");
+assert.match(navigation,/if\(immersiveActive\)/,"Android sale primero de pantalla completa");
+assert.match(navigation,/if\(settingsOpen\)/,"Android cierra ajustes");
+assert.match(navigation,/tab==="Categorías"&&folderId/,"Android retrocede en subcategorías");
 assert.match(personal,/if\(view==="reading"\)\{setView\("editing"\)/,"Retroceso desde lectura personal");
 assert.match(personal,/if\(showFolderForm\)\{setShowFolderForm\(false\);return true;\}/,"Retroceso al crear carpetas opcionales");
 assert.match(personal,/initialNav\?\.folderId/,"Volver desde canción conserva la colección anterior");

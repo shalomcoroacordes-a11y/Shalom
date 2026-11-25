@@ -29,7 +29,7 @@ assert.match(home,/function renderHome\(\)\{\s*const term=normalize\(homeSearch\
 const broken=home.replace("const term=normalize(homeSearch.trim());\n  const found=homeMatches;","const found=homeMatches;");
 assert.ok(unknownIdentifiers(broken).some(x=>x.startsWith("term@")),
  "Scope checker must catch the real missing Home variable");
-for(const file of ["App.js","src/app-styles.js","src/app-components.js","src/library-selectors.js","src/studio-queue.js","src/song-reader-actions.js"]){
+for(const file of ["App.js","src/app-styles.js","src/app-components.js","src/library-selectors.js","src/studio-queue.js","src/song-reader-actions.js","src/navigation-core.js","src/settings-screen-ui.js"]){
  const missing=unknownIdentifiers(fs.readFileSync(file,"utf8"));
  assert.deepEqual(missing,[],"Unbound JS variables in "+file+": "+missing.join(", "));
 }

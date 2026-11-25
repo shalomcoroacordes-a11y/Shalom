@@ -2,7 +2,7 @@ const React=require("react");
 const {useEffect,useMemo,useState,useRef,useCallback}=React;
 const {
  View,Text,TextInput,Pressable,ScrollView,StatusBar,
- Switch,Alert,AppState,BackHandler,Platform,Linking,Image,ActivityIndicator,Share
+ Alert,AppState,BackHandler,Platform,Linking,Image,ActivityIndicator,Share
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
@@ -14,6 +14,7 @@ const {clampReaderFont}=require("./src/score-zoom");
 const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
 const {sendRequest}=require("./src/requests");
 const RequestScreen=require("./src/request-screen-ui");
+const SettingsScreen=require("./src/settings-screen-ui");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const {personalCounts,officialHighlights}=require("./src/home-spotlight");
@@ -50,7 +51,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const {tabs,isSelectedTab,routeForTab,matchesSearch}=require("./src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,matchesSearch,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
 const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
@@ -264,27 +265,14 @@ function AppScreen() {
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
-  if(profileMenuOpen){setProfileMenuOpen(false);return true;}
-  if(actionSongId){setActionSongId(null);return true;}
-  if(immersiveActive){setImmersive(false);return true;}
-  if(settingsOpen){setSettingsOpen(false);return true;}
-  if(detail){
-   if(detail.type==="song"&&capoExpanded){setCapoExpanded(false);return true;}
-   setDetail(detailHistoryRef.current.pop()||null);return true;
-  }
-  if(nestedBackRef.current?.())return true;
-  if(tab==="Repertorios"&&repertoireSearchOpen){setRepertoireSearchOpen(false);setQuery("");return true;}
-  if(sectionSearchOpen){setSectionSearchOpen(false);setQuery("");return true;}
-  if(tab==="Inicio"&&homeSearch){setHomeSearch("");return true;}
-  if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current,{replace:true});return true;}
-  if(tab==="Categorías"&&folderId){
-   const parent=model.categoryMap.get(folderId)?.parent_id;
-   setFolderId(parent&&model.categoryMap.has(parent)?parent:"");return true;
-  }
-  if(tab==="Categorías"&&folderType){setFolderType("");return true;}
-  if(tab==="Canciones"&&songLibraryOpen){setSongLibraryOpen(false);setQuery("");setOnlyLiked(false);setTypeFilter("");return true;}
-  if(tab!=="Inicio"){const previous=tabHistoryRef.current.pop();goTab(previous||"Inicio",{replace:true});return true;}
-  return false;
+  return handleBack({
+   profileMenuOpen,actionSongId,immersiveActive,settingsOpen,detail,capoExpanded,
+   tab,repertoireSearchOpen,sectionSearchOpen,homeSearch,folderId,folderType,songLibraryOpen,
+   detailHistoryRef,tabHistoryRef,previousTabRef,nestedBackRef,model
+  },{
+   setProfileMenuOpen,setActionSongId,setImmersive,setSettingsOpen,setCapoExpanded,setDetail,setRepertoireSearchOpen,setQuery,
+   setSectionSearchOpen,setHomeSearch,goTab,setFolderId,setFolderType,setSongLibraryOpen,setOnlyLiked,setTypeFilter
+  });
  }
  useEffect(()=>{
   if(Platform.OS!=="android")return;
@@ -399,26 +387,7 @@ function AppScreen() {
    songs.length>limit?h(Btn,{text:"Mostrar más cantos",secondary:true,onPress:()=>setCountLimit(v=>v+80)}):null);
  }
  function renderSettings(){
-  return h(View,null,
-   title("Configuración","Preferencias de SHALOM Android"),
-   h(Card,null,
-    label("Biblioteca y sincronización",S.listTitle),
-    label(copy?.syncedAt?"Última actualización: "+new Date(copy.syncedAt).toLocaleString("es-MX"):"Todavía no has descargado la biblioteca.",S.rowMeta),
-    h(View,{style:S.metrics},metric("Cantos",model.songs.length),metric("Artistas",model.artists.length),metric("Categorías",model.categories.length)),
-    h(View,{style:S.switchRow},
-     h(View,{style:{flex:1}},label("Preferir Wi-Fi",S.listTitle),label("Sincronización automática al abrir la aplicación.",S.smallMuted)),
-     h(Switch,{value:wifiOnly,onValueChange:changeWifi,trackColor:{false:C.border,true:"#1f8f60"},thumbColor:C.pale})),
-    h(Btn,{text:busy?"Actualizando…":"Actualizar cancionero",onPress:manualSync,disabled:busy}),
-    busy?h(ActivityIndicator,{color:C.green,style:{marginTop:8}}):null,
-    progress?label(progress,S.info):null,error?label(error,S.error):null),
-   title("Tus datos personales"),
-   h(Btn,{text:"Respaldo y restauración",secondary:true,onPress:()=>goTab("Respaldo")}),
-   label("Conserva una copia fuera del teléfono para recuperar tu perfil, fotos y creaciones.",S.smallMuted),
-   title("Información de SHALOM"),
-   h(Btn,{text:"Acerca de SHALOM ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")}),
-   h(View,{style:{height:10}}),
-   h(Btn,{text:"Donaciones ↗",secondary:true,onPress:()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")}),
-  );
+  return h(SettingsScreen,{S,C,title,label,Card,Btn,copy,model,wifiOnly,changeWifi,busy,manualSync,progress,error,goTab,openWeb});
  }
  function renderHome(){
   const term=normalize(homeSearch.trim());
@@ -1071,7 +1040,6 @@ function AppScreen() {
    onSubmit:submitRequest,ui:{title,label,inputField,Chip,Btn}
   });
  }
- function metric(name,n){return h(View,{style:S.metric,key:name},label(String(n),S.metricNumber),label(name,S.smallMuted))}
  const page=detail?.type==="repertoire"&&focusedRepertoire?renderRepertoireDetail(focusedRepertoire)
   :detail?.type==="medley"&&focusedMedley?renderMedleyDetail(focusedMedley)
    :detail?.type==="song"&&active?renderSongDetail(active)
