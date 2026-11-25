@@ -94,3 +94,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Consulta de cantos relacionados
 
 `song-related-catalog.js` contiene la consulta y clasificación por artista (3), categoría (2) y álbum (1), con desempate por título y límite de seis sugerencias. `cancion.js` conserva el montaje, los textos y la presentación de las tarjetas. El módulo no depende del DOM y recibe explícitamente cliente, canción y relaciones; `tests/song-related-catalog.cjs` prueba consultas simuladas y resultados. No cambia el algoritmo ni los permisos de lectura.
+
+## Intérprete del lector web
+
+`cancion.js` usa exclusivamente `song-chords.js` para interpretar las letras, acordes superiores, acordes entre paréntesis y secciones. El lector conserva su cálculo de transposición y capo; el intérprete compartido valida cada token y recibe una función para transponerlo. Se elimina el analizador alternativo anterior, que no soportaba todos los formatos. Si falta el script canónico, se muestra el texto fuente sin interpretar y un aviso de recarga; no se simula una transposición. `tests/song-reader-chords.cjs` verifica equivalencia de la ruta habitual y el modo degradado. No se cambia el motor nativo ni otros consumidores web.
