@@ -68,3 +68,7 @@ SHALOM tiene tres partes conectadas:
 Este documento es el **punto de partida**: no afirma que la reorganización ya esté hecha.
 
 El perfil público se carga únicamente mediante `artist-page.js`; biografía, enlaces sociales (incluido el respaldo histórico), destacados y catálogo paginado pertenecen a ese módulo. Los antiguos complementos de perfil ya no forman parte del repositorio.
+
+### Respaldo del catálogo v2
+
+El núcleo `admin-backup-core.js` define el formato, las 13 tablas, el orden de dependencia, las claves de paginación y las reglas de revisión Studio. El importador acepta v1 sin Studio ni versiones alternativas y v2 con ambas secciones. Los arreglos vigentes en la revisión del archivo se vinculan exclusivamente a la revisión devuelta por la escritura del canto; los anteriores se conservan en el JSON sin publicarse. La descarga previa utiliza el mismo esquema. La lectura y la restauración web siguen siendo multiconsulta (no una transacción), sujetas a permisos RLS y concurrencia; los borradores locales no están incluidos. El formato de papelera es independiente.

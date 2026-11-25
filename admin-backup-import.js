@@ -3,7 +3,7 @@
   window.__jhdAdminBackupImport = true;
 
   const db = window.supabaseClient || window.AdminPro;
-  const { TABLES, FORMAT, VERSION, conflictKey, cleanRow: sanitizeRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
+  const { TABLES, FORMAT, VERSION, conflictKey, planStudioRestore, bindStudioRevisions, cleanRow: sanitizeRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   const BATCH_SIZE = 200;
   const LABELS = {
     artists: "artistas",
@@ -16,7 +16,9 @@
     album_songs: "relaciones de álbumes",
     song_links: "enlaces de canciones",
     song_capo_versions: "versiones con capo",
-    artist_featured_songs: "canciones destacadas"
+    artist_featured_songs: "canciones destacadas",
+    song_versions: "versiones alternativas",
+    song_studio_arrangements: "arreglos Studio"
   };
 
   let selectedBackup = null;
@@ -62,8 +64,13 @@
   function validateBackup(payload) {
     if (!isObject(payload)) throw new Error("El archivo no contiene un respaldo válido.");
     if (payload.format !== FORMAT) throw new Error("Este archivo no es un respaldo de SHALOM.");
-    if (Number(payload.version) !== VERSION) throw new Error("La versión de este respaldo no es compatible.");
+    const version = Number(payload.version);
+    if (version !== 1 && version !== VERSION) throw new Error("La versión de este respaldo no es compatible.");
     if (!isObject(payload.catalog)) throw new Error("El respaldo no contiene el catálogo.");
+    for (const table of ["song_versions", "song_studio_arrangements"]) {
+      if (version === 1 && Object.hasOwn(payload.catalog, table)) throw new Error("El archivo contiene datos de versión 2 con un formato anterior.");
+      if (version === VERSION && !Array.isArray(payload.catalog[table])) throw new Error(`Falta la sección “${table}” del respaldo.`);
+    }
 
     let total = 0;
     const counts = {};
@@ -77,7 +84,8 @@
     });
 
     if (!total) throw new Error("El respaldo está vacío.");
-    return { counts, total };
+    const studioPlan = version === VERSION ? planStudioRestore(payload.catalog) : { current: [], stale: 0 };
+    return { counts, total, studioPlan };
   }
 
   function renderSelection() {
@@ -93,9 +101,11 @@
       return;
     }
 
-    const { file, payload, counts, total } = selectedBackup;
-    const highlights = ["songs", "artists", "categories", "albums"].filter((table) => counts[table]);
+    const { file, payload, counts, total, studioPlan } = selectedBackup;
+    const highlights = ["songs", "artists", "categories", "albums", "song_versions", "song_studio_arrangements"].filter((table) => counts[table]);
     summary.innerHTML = `<p class="jhd-import-file"><strong>${esc(file.name)}</strong><br>Creado: ${esc(safeDate(payload.created_at))} · ${esc(total)} registros.</p><div class="jhd-import-summary">${highlights.map((table) => `<span>${esc(counts[table])} ${esc(LABELS[table])}</span>`).join("")}</div>`;
+    if (studioPlan.stale) summary.innerHTML += `<p>${esc(studioPlan.stale)} arreglos de revisiones anteriores quedarán en el archivo sin publicarse.</p>`;
+    if (Number(payload.version) === 1) summary.innerHTML += "<p>Este respaldo anterior no incluye arreglos Studio ni versiones alternativas.</p>";
     restore.disabled = importBusy;
     clear.hidden = false;
   }
@@ -119,8 +129,8 @@
     setStatus("Revisando el archivo…");
     try {
       const payload = JSON.parse(await file.text());
-      const { counts, total } = validateBackup(payload);
-      selectedBackup = { file, payload, counts, total };
+      const { counts, total, studioPlan } = validateBackup(payload);
+      selectedBackup = { file, payload, counts, total, studioPlan };
       renderSelection();
       setStatus("Archivo listo. Revisa el resumen y confirma la restauración.", "success");
     } catch (error) {
@@ -170,21 +180,29 @@
     return result;
   }
 
-  async function restoreTable(table, rows) {
+  async function restoreTable(table, rows, revisions = null) {
     const cleanRows = rows.map(cleanRow).filter((row) => Object.keys(row).length);
     const orderedRows = table === "categories" ? categoryOrder(cleanRows) : cleanRows;
     for (const group of chunks(orderedRows)) {
-      const result = await db.from(table).upsert(group, { onConflict: conflictKey(table) });
+      const write = db.from(table).upsert(group, { onConflict: conflictKey(table) });
+      const result = await (table === "songs" && revisions ? write.select("id,updated_at") : write);
       if (result.error) throw new Error(`${LABELS[table] || table}: ${result.error.message}`);
+      if (table === "songs" && revisions) {
+        const returned = new Map((result.data || []).map((row) => [row.id, row.updated_at]));
+        for (const row of group) {
+          if (!returned.get(row.id)) throw new Error("No se confirmó la revisión de todos los cantos restaurados.");
+          revisions.set(row.id, returned.get(row.id));
+        }
+      }
     }
     return orderedRows.length;
   }
 
   async function importBackup() {
     if (!selectedBackup || importBusy || !db) return;
-    const { file, payload, total } = selectedBackup;
+    const { file, payload, total, studioPlan } = selectedBackup;
     const accepted = confirm(
-      `Se descargará primero una copia de seguridad del catálogo actual.\n\nDespués se fusionará “${file.name}” (${total} registros): los elementos con el mismo ID se actualizarán y los que falten se crearán. No se borrará contenido que ya exista.\n\n¿Deseas continuar?`
+      `Se descargará primero una copia de seguridad del catálogo actual.\n\nDespués se fusionará “${file.name}” (${total} registros): los elementos con el mismo ID se actualizarán y los que falten se crearán. No se borrarán registros existentes, pero se actualizarán los que coincidan. Actualizar un canto puede invalidar un arreglo de una revisión anterior. Los arreglos antiguos del archivo no se publicarán.\n\n¿Deseas continuar?`
     );
     if (!accepted) return;
 
@@ -196,15 +214,17 @@
       await createSafetyBackup();
 
       let restored = 0;
+      const revisions = studioPlan.current.length ? new Map() : null;
       restorationStarted = true;
       for (const table of TABLES) {
-        const rows = getRows(payload.catalog, table);
+        const rows = table === "song_studio_arrangements" ? bindStudioRevisions(studioPlan, revisions) : getRows(payload.catalog, table);
         if (!rows.length) continue;
         setStatus(`Restaurando ${LABELS[table] || table} (${rows.length})…`);
-        restored += await restoreTable(table, rows);
+        restored += await restoreTable(table, rows, revisions);
       }
 
-      setStatus(`Respaldo restaurado correctamente: ${restored} registros procesados.`, "success");
+      const skipped = studioPlan.stale ? ` ${studioPlan.stale} arreglos antiguos permanecen en el archivo sin publicarse.` : "";
+      setStatus(`Respaldo restaurado correctamente: ${restored} registros procesados.${skipped}`, "success");
       selectedBackup = null;
       renderSelection();
       await window.apRefresh?.("Respaldo cargado correctamente.");

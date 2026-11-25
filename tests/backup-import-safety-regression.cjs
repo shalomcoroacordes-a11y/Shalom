@@ -54,11 +54,11 @@ core.downloadJson({format:"SHALOM backup",version:1},"backup.json");
 assert.equal(anchor.download,"backup.json");assert.equal(anchor.href,"blob:test");assert.equal(downloads[0].parts[0],JSON.stringify({format:"SHALOM backup",version:1},null,2));assert.equal(downloads[0].options.type,"application/json;charset=utf-8");assert.equal(downloads.slice(1).join(","),"click,remove,blob:test");
 async function sharedPagination(){
  const calls=[],records=Array.from({length:1000},(_,id)=>({id}));
- const db={from(table){assert.equal(table,"songs");return {select(fields){assert.equal(fields,"*");return {async range(first,last){calls.push([first,last]);return {data:records.slice(first,last+1)}}}}}}};
+ const db={from(table){assert.equal(table,"songs");return {select(fields){assert.equal(fields,"*");return {order(key,opts){assert.equal(key,"id");assert.equal(opts.ascending,true);return this},async range(first,last){calls.push([first,last]);return {data:records.slice(first,last+1)}}}}}}};
  assert.equal(JSON.stringify(await core.selectAll(db,"songs")),JSON.stringify(records));
  assert.deepEqual(calls,[[0,499],[500,999],[1000,1499]]);
  const denied={message:"Sin permiso"};
- const failed={from(){return {select(){return {async range(){return {error:denied}}}}}}};
+ const failed={from(){return {select(){return {order(){return this},async range(){return {error:denied}}}}}}};
  await assert.rejects(core.selectAll(failed,"songs"),error=>error===denied);
  await assert.rejects(core.selectAll(failed,"songs",(error,table)=>new Error(table+": "+error.message)),/songs: Sin permiso/);
  console.log("Backup core: row sanitation, download format, pagination and legacy errors verified.");
@@ -158,9 +158,9 @@ assert.match(trashSql,/revoke all on function public.admin_restore_song\(uuid\) 
 console.log("Studio trash SQL contract: snapshot, identity, revision and permission checks; live transaction tests still required.");
 
 // The import, export and safety backup share one schema and preserve old format.
-assert.equal(core.FORMAT,"SHALOM backup");assert.equal(core.VERSION,1);
+assert.equal(core.FORMAT,"SHALOM backup");assert.equal(core.VERSION,2);
 assert.ok(Object.isFrozen(core.TABLES));
-assert.equal(core.TABLES.length,11);assert.equal(new Set(core.TABLES).size,11);
+assert.equal(core.TABLES.length,13);assert.equal(new Set(core.TABLES).size,13);
 assert.ok(core.TABLES.indexOf("songs")<core.TABLES.indexOf("song_artists"));
 assert.ok(core.TABLES.indexOf("artists")<core.TABLES.indexOf("artist_featured_songs"));
 assert.equal(core.conflictKey("artist_featured_songs"),"artist_id,song_id");
@@ -181,3 +181,37 @@ async function backupConflictKeys(){
  console.log("Backup schema: one table manifest and correct composite conflict key verified.");
 }
 backupConflictKeys().catch(error=>{console.error(error);process.exitCode=1});
+
+// V2 backup: preserve Studio and alternate versions, never activate stale arrangements.
+const revA="2026-11-20T12:00:00.123456+00:00",revB="2026-11-20T12:00:00.123457+00:00",revNew="2026-11-25T12:00:00.654321+00:00";
+const arrangement={v:1,pattern:["D","U"],sections:[{id:"verse"}]};
+const backupCatalog={songs:[{id:"s",updated_at:revA},{id:"old",updated_at:revB}],song_versions:[{id:"v",parent_song_id:"s",version_song_id:"old"}],song_studio_arrangements:[{song_id:"s",song_revision:revA,arrangement},{song_id:"old",song_revision:revA,arrangement}]};
+const plan=core.planStudioRestore(backupCatalog);
+assert.equal(plan.current.length,1);assert.equal(plan.stale,1);
+assert.equal(plan.current[0].song_id,"s");
+assert.equal(core.conflictKey("song_studio_arrangements"),"song_id");
+assert.equal(core.TABLES.at(-1),"song_studio_arrangements");
+assert.throws(()=>core.bindStudioRevisions(plan,new Map()),/No se confirmó/);
+assert.equal(JSON.stringify(core.bindStudioRevisions(plan,new Map([["s",revNew]]))),JSON.stringify([{song_id:"s",arrangement,song_revision:revNew}]));
+assert.equal(core.bindStudioRevisions({current:[],stale:0},null).length,0);
+for(const row of [{song_id:"missing",song_revision:revA,arrangement},{song_id:"s",song_revision:"bad",arrangement},{song_id:"s",song_revision:revA,arrangement:{v:2}}]){
+ assert.throws(()=>core.planStudioRestore({...backupCatalog,song_studio_arrangements:[row]}),/arreglo Studio inválido/);
+}
+assert.throws(()=>core.planStudioRestore({...backupCatalog,song_studio_arrangements:[backupCatalog.song_studio_arrangements[0],backupCatalog.song_studio_arrangements[0]]}),/arreglo Studio inválido/);
+const validationStart=source.indexOf("  function getRows("),validationEnd=source.indexOf("  function renderSelection(",validationStart);
+const validationCtx={FORMAT:core.FORMAT,VERSION:core.VERSION,TABLES:core.TABLES,planStudioRestore:core.planStudioRestore,isObject:value=>Boolean(value)&&typeof value==="object"&&!Array.isArray(value)};
+vm.createContext(validationCtx);vm.runInContext(source.slice(validationStart,validationEnd),validationCtx);
+assert.equal(validationCtx.validateBackup({format:core.FORMAT,version:1,catalog:{songs:[{id:"legacy"}]}}).studioPlan.current.length,0);
+assert.throws(()=>validationCtx.validateBackup({format:core.FORMAT,version:2,catalog:{songs:[{id:"s"}]}}),/Falta la sección/);
+assert.equal(validationCtx.validateBackup({format:core.FORMAT,version:2,catalog:backupCatalog}).studioPlan.stale,1);
+async function studioBackupWrite(){
+ const calls=[],revisions=new Map();
+ const ctx={cleanRow:row=>core.cleanRow(row,true),categoryOrder:rows=>rows,chunks:rows=>[rows],LABELS:{},conflictKey:core.conflictKey,db:{from(table){return {upsert(rows,opts){calls.push({table,rows,opts});return table==="songs"?{async select(columns){assert.equal(columns,"id,updated_at");return {data:rows.map(row=>({id:row.id,updated_at:revNew}))}}}:Promise.resolve({error:null})}}}}};
+ vm.createContext(ctx);vm.runInContext(source.slice(tableStart,tableEnd),ctx);
+ await ctx.restoreTable("songs",backupCatalog.songs,revisions);
+ assert.equal(calls[0].rows[0].updated_at,undefined);
+ await ctx.restoreTable("song_studio_arrangements",core.bindStudioRevisions(plan,revisions),revisions);
+ assert.equal(calls[1].opts.onConflict,"song_id");assert.equal(calls[1].rows.length,1);assert.equal(calls[1].rows[0].song_revision,revNew);
+ console.log("Backup v2: legacy format, exact revision precision, stale exclusion and returned-revision restoration verified.");
+}
+studioBackupWrite().catch(error=>{console.error(error);process.exitCode=1});
