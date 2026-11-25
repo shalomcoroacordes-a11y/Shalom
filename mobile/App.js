@@ -50,7 +50,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const {tabs,isSelectedTab,routeForTab,matchesSearch}=require("./src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,matchesSearch,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
 const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
@@ -264,27 +264,14 @@ function AppScreen() {
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
-  if(profileMenuOpen){setProfileMenuOpen(false);return true;}
-  if(actionSongId){setActionSongId(null);return true;}
-  if(immersiveActive){setImmersive(false);return true;}
-  if(settingsOpen){setSettingsOpen(false);return true;}
-  if(detail){
-   if(detail.type==="song"&&capoExpanded){setCapoExpanded(false);return true;}
-   setDetail(detailHistoryRef.current.pop()||null);return true;
-  }
-  if(nestedBackRef.current?.())return true;
-  if(tab==="Repertorios"&&repertoireSearchOpen){setRepertoireSearchOpen(false);setQuery("");return true;}
-  if(sectionSearchOpen){setSectionSearchOpen(false);setQuery("");return true;}
-  if(tab==="Inicio"&&homeSearch){setHomeSearch("");return true;}
-  if(tab==="Solicitar"){goTab(previousTabRef.current==="Solicitar"?"Inicio":previousTabRef.current,{replace:true});return true;}
-  if(tab==="Categorías"&&folderId){
-   const parent=model.categoryMap.get(folderId)?.parent_id;
-   setFolderId(parent&&model.categoryMap.has(parent)?parent:"");return true;
-  }
-  if(tab==="Categorías"&&folderType){setFolderType("");return true;}
-  if(tab==="Canciones"&&songLibraryOpen){setSongLibraryOpen(false);setQuery("");setOnlyLiked(false);setTypeFilter("");return true;}
-  if(tab!=="Inicio"){const previous=tabHistoryRef.current.pop();goTab(previous||"Inicio",{replace:true});return true;}
-  return false;
+  return handleBack({
+   profileMenuOpen,actionSongId,immersiveActive,settingsOpen,detail,capoExpanded,
+   tab,repertoireSearchOpen,sectionSearchOpen,homeSearch,folderId,folderType,songLibraryOpen,
+   detailHistoryRef,tabHistoryRef,previousTabRef,nestedBackRef,model
+  },{
+   setProfileMenuOpen,setActionSongId,setImmersive,setSettingsOpen,setCapoExpanded,setDetail,setRepertoireSearchOpen,setQuery,
+   setSectionSearchOpen,setHomeSearch,goTab,setFolderId,setFolderType,setSongLibraryOpen,setOnlyLiked,setTypeFilter
+  });
  }
  useEffect(()=>{
   if(Platform.OS!=="android")return;
