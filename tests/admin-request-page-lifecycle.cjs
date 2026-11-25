@@ -33,7 +33,11 @@ function publicFixture(db){
  vm.runInNewContext(publicSource,{window:publicWindow,document:publicDocument});
  return {nodes,meta,publicDocument};
 }
-vm.runInNewContext(source,{window,document,setTimeout:()=>0});
+const adminContext={window,document,setTimeout:()=>0};
+vm.createContext(adminContext);
+vm.runInContext(fs.readFileSync("admin-content-editor.js","utf8"),adminContext);
+vm.runInContext(source,adminContext);
+assert.ok(html.indexOf('src="admin-content-editor.js')<moduleIndex);
 const mount=window.ShalomAdminRequestPage.mount;
 async function test(){
  const offline=publicFixture(null);
