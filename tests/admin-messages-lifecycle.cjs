@@ -3,7 +3,8 @@ const source=fs.readFileSync("admin-messages.js","utf8"),html=fs.readFileSync("a
 assert.doesNotMatch(source,/MutationObserver/);
 const owner=html.search(/src="admin-pro\.js\?v=\d+"/),moduleIndex=html.search(/src="admin-messages\.js\?v=\d+"/);
 assert.ok(moduleIndex>=0&&owner>moduleIndex);
-let current=null,active=true,allowDelete=true;
+let current=null,active=true,allowDelete=true,writeError=null;
+const drain=()=>new Promise(resolve=>setImmediate(resolve));
 const writes=[];
 const statusBox={textContent:"",style:{}};
 function button(dataset){return {dataset,addEventListener(name,fn){assert.equal(name,"click");this.click=fn}}}
@@ -12,7 +13,7 @@ const pending=[];
 const view={set innerHTML(value){this.content=value;current={innerHTML:""}},get innerHTML(){return this.content},querySelector:()=>current};
 const tab={classList:{contains:()=>active}};
 const document={querySelector:q=>q==="#adminMessagesContent"?current:q==="#adminMessagesTab"?tab:q==="#adminView"?view:q==="#messagesAdminStatus"?statusBox:null,querySelectorAll:q=>q==="[data-status-message]"?[updateButton]:q==="[data-delete-message]"?[deleteButton]:[]};
-const db={from(table){assert.equal(table,"contact_messages");return {select(){return this},order(){return this},limit(){return new Promise((resolve,reject)=>pending.push({resolve,reject}))},update(patch){return {eq(key,id){writes.push({kind:"update",patch,key,id});return Promise.resolve({error:writes.at(-1).error||null})}}},delete(){return {eq(key,id){writes.push({kind:"delete",key,id});return Promise.resolve({error:null})}}}}}};
+const db={from(table){assert.equal(table,"contact_messages");return {select(){return this},order(){return this},limit(){return new Promise((resolve,reject)=>pending.push({resolve,reject}))},update(patch){return {eq(key,id){writes.push({kind:"update",patch,key,id});return Promise.resolve({error:writeError})}}},delete(){return {eq(key,id){writes.push({kind:"delete",key,id});return Promise.resolve({error:null})}}}}}};
 const window={supabaseClient:db};
 vm.runInNewContext(source,{window,document,confirm:()=>allowDelete});
 const mount=window.ShalomAdminMessages.mount;
@@ -29,13 +30,13 @@ async function test(){
  active=true;const fail=mount(view),failure=current;pending[3].reject(Error("Sin conexión"));await fail;
  assert.match(failure.innerHTML,/Sin conexión/);
  const ready=mount(view);pending[4].resolve({data:[{id:"a",song_title:"Canto",status:"pendiente"}]});await ready;
- const change=updateButton.click();await Promise.resolve();
+ const change=updateButton.click();await drain();
  assert.equal(writes[0].kind,"update");assert.equal(writes[0].key,"id");assert.equal(writes[0].id,"a");assert.equal(writes[0].patch.status,"revisado");assert.ok(Number.isFinite(Date.parse(writes[0].patch.updated_at)));
  pending[5].resolve({data:[]});await change;assert.equal(statusBox.textContent,"Estado actualizado.");
  allowDelete=false;await deleteButton.click();assert.equal(writes.length,1);
- allowDelete=true;const remove=deleteButton.click();await Promise.resolve();assert.equal(writes[1].kind,"delete");assert.equal(writes[1].id,"a");pending[6].resolve({data:[]});await remove;assert.equal(statusBox.textContent,"Mensaje eliminado.");
+ allowDelete=true;const remove=deleteButton.click();await drain();assert.equal(writes[1].kind,"delete");assert.equal(writes[1].id,"a");pending[6].resolve({data:[]});await remove;assert.equal(statusBox.textContent,"Mensaje eliminado.");
  const abandoned=updateButton.click();active=false;await abandoned;assert.equal(pending.length,7);assert.equal(statusBox.textContent,"Mensaje eliminado.");
- active=true;
+ active=true;writeError={message:"Sin permiso"};await updateButton.click();assert.equal(pending.length,7);assert.equal(statusBox.textContent,"Error: Sin permiso");assert.equal(statusBox.style.color,"#ffb4b4");
  console.log("Messages: direct mount, active section, overlapping loads, errors, updates, deletion confirmation and navigation verified.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});
