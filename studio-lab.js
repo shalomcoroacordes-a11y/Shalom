@@ -284,11 +284,17 @@ $("score").addEventListener("touchcancel",endScoreTouch,{passive:true});
 $("score").addEventListener("wheel",e=>{if(playing&&Math.abs(e.deltaY)>Math.abs(e.deltaX))setFollow(false)},{passive:true});
 window.addEventListener("resize",syncTransportSpace);
 if(typeof ResizeObserver!=="undefined")new ResizeObserver(syncTransportSpace).observe($("transport"));
+// The compiled playback timeline is read-only; index once per active timeline.
+let indexedTimeline=null,upcomingIndices=null;
+function nextPlaybackChord(timeline,index){
+ if(indexedTimeline!==timeline){upcomingIndices=core.upcomingChordIndices(timeline);indexedTimeline=timeline;}
+ return timeline[upcomingIndices[index]];
+}
 function showStep(timeline,i){
  const e=timeline[i];if(!e)return;originalScore=null;const n=size(),anchorIndex=anchors.findIndex(a=>a.id===e.anchorId),parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
  if($("chord").textContent!==(e.chord||"—")){$("chord").textContent=e.chord||"—";diagram(e.chord)}
  $("transportSection").textContent=anchors[anchorIndex]?.section||"Inicio";$("where").textContent="Compás "+(bar+1)+" · Pulso "+(beat+1)+(e.tempo?" · "+Math.round(e.tempo)+" BPM":"");
- const upcoming=timeline.find((x,j)=>j>i&&x.anchorId!==e.anchorId&&x.chord);
+ const upcoming=nextPlaybackChord(timeline,i);
  $("transportChord").textContent=(e.chord||"—")+" → "+(upcoming?.chord||"Fin");
  $("transportWhere").textContent=$("where").textContent;
  const live=$("live"), pattern=timeline.slice(start,Math.min(start+n,sectionEnd)).map(x=>arrows[x.hit]+(x.accent?"′":""));
@@ -316,7 +322,7 @@ function showStep(timeline,i){
  }
  if(playing)followLine(line);
 }
-function stop(){const wasInline=inlineSection;inlineSection=null;playing=false;audition=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop();$("hearBar").textContent="▶ Escuchar compás";$("auditionStatus").textContent="";$("grid").querySelector(".audition-active")?.classList.remove("audition-active");if(wasInline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="▶ Escuchar";const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Escucha detenida."}}
+function stop(){indexedTimeline=null;upcomingIndices=null;const wasInline=inlineSection;inlineSection=null;playing=false;audition=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop();$("hearBar").textContent="▶ Escuchar compás";$("auditionStatus").textContent="";$("grid").querySelector(".audition-active")?.classList.remove("audition-active");if(wasInline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="▶ Escuchar";const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Escucha detenida."}}
 function prepareSequence(){
  const tracks=sequence.map(p=>{
   $("source").value=p.song.lyrics;const a=core.anchorsFromRows(readRows()),cfg=window.ShalomStudioCodec.decode(a,p.arrangement);

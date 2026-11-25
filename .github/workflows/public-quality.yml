@@ -122,6 +122,9 @@ jobs:
       - name: Test Studio score reuse and playback invalidation
         run: node tests/studio-score-rendering.cjs
 
+      - name: Test indexed upcoming chord lookup
+        run: node tests/studio-upcoming-chord-index.cjs
+
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
       - name: Test Studio historical recovery contracts

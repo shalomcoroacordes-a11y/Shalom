@@ -142,3 +142,7 @@ El refresco completo del editor calcula la huella canónica una vez y la pasa a 
 ## Reutilización de la partitura de Studio
 
 `readRows` conserva únicamente la partitura original sin transposición ni resaltado para la misma fuente textual y nodo de destino. Los recorridos posteriores no reconstruyen el DOM ni recalculan filas. Un cambio de letra, nodo, reproducción transpuesta o resaltado invalida la reutilización. `renderPlaybackScore` concentra las escrituras de reproducción, y `showStep` invalida antes de modificar la partitura. La prueba cuenta renderizados y escrituras, no mide latencia de dispositivos. Copias nativas y caché Offline v28 sincronizadas. No se modifica el formato musical persistido.
+
+## Índice del próximo acorde durante reproducción
+
+`upcomingChordIndices` construye en una pasada inversa un índice de próximos acordes sonoros con identificador de ancla distinto. Preserva exactamente la búsqueda anterior, incluidos silencios y acordes repetidos. Studio conserva un índice para la línea temporal compilada activa y lo libera al detener reproducción; reconstruye si cambia la línea temporal. La búsqueda del próximo acorde pasa de un recorrido por cuadro a acceso por índice, con coste inicial lineal y memoria proporcional a los pasos. No se cambia el reloj, audio ni formato de arreglos. Pruebas de equivalencia y conteo; no se ha medido latencia real. Copias nativas y caché Offline v29 actualizadas.
