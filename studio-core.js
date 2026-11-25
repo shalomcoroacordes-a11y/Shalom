@@ -283,5 +283,18 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Review data is derived without DOM or mutation.
+  function reviewSummary(anchors,config,groups){
+    const timeline=compile(anchors,config);
+    const seconds=Math.round(clockRange(timeline,0,config.endStep??config.totalSteps).duration);
+    return [
+      ["Velocidad",(config.sections||[]).length?"Por sección":config.bpm+" BPM"],
+      ["Compás",config.meter],
+      ["Acordes",anchors.length],
+      ["Secciones",groups.length],
+      ["Duración",Math.floor(seconds/60)+" min "+seconds%60+" s"],
+      ["Patrones",config.patterns.length+(config.sections||[]).reduce((n,p)=>n+(p.patterns?.length||0),0)]
+    ];
+  }
+  return Object.freeze({reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
