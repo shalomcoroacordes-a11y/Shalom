@@ -120,10 +120,10 @@ async function fetchAlbums(append = false) {
     if (token !== requestVersion) return;
 
     const rows = data || [];
-    const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+    const merged = window.ShalomCatalogSongRow.mergePage(visibleAlbums, rows, append);
     page = currentPage;
-    totalResults = append ? (rows.length ? serverTotal : visibleAlbums.length) : serverTotal;
-    visibleAlbums = append ? [...visibleAlbums, ...rows] : rows;
+    totalResults = merged.total;
+    visibleAlbums = merged.rows;
     loading = false;
     renderAlbums();
   } catch (error) {
@@ -194,10 +194,10 @@ async function fetchAlbumSongs(append = false) {
     if (token !== songRequestVersion) return;
 
     const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
-    const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+    const merged = window.ShalomCatalogSongRow.mergePage(visibleSongs, rows, append);
     songPage = currentPage;
-    songTotal = append ? (rows.length ? serverTotal : visibleSongs.length) : serverTotal;
-    visibleSongs = append ? [...visibleSongs, ...rows] : rows;
+    songTotal = merged.total;
+    visibleSongs = merged.rows;
     songLoading = false;
     renderAlbumDetail();
   } catch (error) {

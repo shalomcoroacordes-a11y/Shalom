@@ -20,5 +20,13 @@
     };
   }
 
-  window.ShalomCatalogSongRow = Object.freeze({ rowToSong });
+  // Merge a successful server page only after the owning screen checks its request token.
+  function mergePage(previous, rows, append) {
+    const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+    return {
+      total: append ? (rows.length ? serverTotal : previous.length) : serverTotal,
+      rows: append ? [...previous, ...rows] : rows
+    };
+  }
+  window.ShalomCatalogSongRow = Object.freeze({ jsonList, rowToSong, mergePage });
 })();

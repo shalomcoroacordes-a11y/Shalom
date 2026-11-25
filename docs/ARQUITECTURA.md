@@ -71,4 +71,10 @@ El perfil público se carga únicamente mediante `artist-page.js`; biografía, e
 
 Motor musical nativo: `native-chords.js` es la fuente; `scripts/build-native-chords.js` genera `mobile/src/chords.js` y `admin-mobile/src/chords.js`. Cada APK conserva su módulo local. La verificación compara ambas salidas byte por byte con la fuente y el encabezado generado.
 
+
+### Respaldo del catálogo v2
+
+El núcleo `admin-backup-core.js` define el formato, las 13 tablas, el orden de dependencia, las claves de paginación y las reglas de revisión Studio. El importador acepta v1 sin Studio ni versiones alternativas y v2 con ambas secciones. Los arreglos vigentes en la revisión del archivo se vinculan exclusivamente a la revisión devuelta por la escritura del canto; los anteriores se conservan en el JSON sin publicarse. La descarga previa utiliza el mismo esquema. La lectura y la restauración web siguen siendo multiconsulta (no una transacción), sujetas a permisos RLS y concurrencia; los borradores locales no están incluidos. El formato de papelera es independiente.
+
+
 Studio comparte `studio-native-screen.js` (fábrica de pantalla nativa), `studio-collections.js` (planificación de colecciones) y las fuentes web de Studio. `scripts/build-studio-native.js` genera las cinco salidas que usan las apps; la pantalla Admin recibe su mensaje de publicación específico y la pública su cola opcional desde el lector.

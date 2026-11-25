@@ -1,0 +1,37 @@
+name: SHALOM isolated PostgreSQL trash transaction tests
+on:
+  pull_request:
+    paths:
+      - 'sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql'
+      - 'tests/sql/trash-transaction.sql'
+      - '.github/workflows/trash-transaction.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transaction-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-test-only
+          POSTGRES_DB: shalom_trash_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d shalom_trash_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run synthetic PostgreSQL roundtrip (no production credentials)
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: ${{ job.services.postgres.ports[5432] }}
+          PGUSER: postgres
+          PGPASSWORD: disposable-test-only
+          PGDATABASE: shalom_trash_test
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/sql/trash-transaction.sql

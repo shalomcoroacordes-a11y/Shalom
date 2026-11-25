@@ -17,11 +17,24 @@ for (const artists of cases) for (const categories of cases) for (const albums o
   if(Array.isArray(categories)) assert.equal(actual._categories,categories);
   if(Array.isArray(albums)) assert.equal(actual._albums,albums);
 }
-for (const name of ["canciones","categorias","albumes"]) {
- const html=fs.readFileSync(name+".html","utf8"), js=fs.readFileSync(name+".js","utf8");
- assert.equal((html.match(/src="catalog-song-row\.js\?v=1"/g)||[]).length,1);
- assert.ok(html.indexOf('src="catalog-song-row.js')<html.indexOf('src="'+name+'.js'));
- assert.match(js,/\.map\(window\.ShalomCatalogSongRow\.rowToSong\)/);
+for (const [name,owner] of [["canciones","canciones"],["categorias","categorias"],["albumes","albumes"],["artista","artist-page"],["artistas","artistas"]]) {
+ const html=fs.readFileSync(name+".html","utf8"), js=fs.readFileSync(owner+".js","utf8");
+ assert.equal((html.match(/src="catalog-song-row\.js\?v=2"/g)||[]).length,1);
+ assert.ok(html.indexOf('src="catalog-song-row.js')<html.indexOf('src="'+owner+'.js'));
+ if(name!=="artistas") assert.match(js,/\.map\(window\.ShalomCatalogSongRow\.rowToSong\)/);
+ assert.match(js,/window\.ShalomCatalogSongRow\.mergePage\(/);
+ assert.doesNotMatch(js,/const serverTotal = rows\.length/);
  assert.doesNotMatch(js,/function jsonList\(/);
 }
-console.log("Catalog row normalization: "+cases.length**3+" legacy-equivalence cases and all three script owners verified.");
+console.log("Catalog row normalization: "+cases.length**3+" legacy-equivalence cases and five script owners verified.");
+
+const {mergePage,jsonList}=window.ShalomCatalogSongRow;
+for(const previous of [[],[{id:"a"}],[{id:"a"},{id:"b"}]])for(const rows of [[],[{id:"c",total_count:9}],[{id:"c",total_count:"12"},{id:"d"}],[{id:"c",total_count:0}],[{id:"c"}]])for(const append of [false,true]){
+ const oldTotal=rows.length?Number(rows[0].total_count||0):0;
+ const actual=mergePage(Object.freeze(previous),Object.freeze(rows),append);
+ assert.equal(actual.total,append?(rows.length?oldTotal:previous.length):oldTotal);
+ assert.equal(JSON.stringify(actual.rows),JSON.stringify(append?[...previous,...rows]:rows));
+ if(!append)assert.equal(actual.rows,rows);
+}
+for(const value of cases)assert.equal(JSON.stringify(jsonList(value)),JSON.stringify(legacy(value)));
+console.log("Catalog pagination: 30 legacy-equivalence cases, six call sites and shared artist profile parser.");

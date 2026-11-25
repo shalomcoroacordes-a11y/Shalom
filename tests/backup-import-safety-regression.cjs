@@ -9,7 +9,8 @@ assert.ok(start>=0&&end>start);
 const body=source.slice(start,end);
 assert.match(body,/let restorationStarted = false/);
 assert.ok(body.indexOf("await createSafetyBackup()")<body.indexOf("restorationStarted = true"));
-assert.ok(body.indexOf("restorationStarted = true")<body.indexOf("await restoreTable(table, rows)"));
+const writeIndex=body.indexOf("await restoreTable(table, rows, revisions)");
+assert.ok(writeIndex>=0&&body.indexOf("restorationStarted = true")<writeIndex);
 assert.match(body,/No se inició la restauración:/);
 assert.match(body,/No se modificó ningún registro durante este intento/);
 assert.match(body,/Algunos registros pueden haberse restaurado/);
@@ -54,11 +55,11 @@ core.downloadJson({format:"SHALOM backup",version:1},"backup.json");
 assert.equal(anchor.download,"backup.json");assert.equal(anchor.href,"blob:test");assert.equal(downloads[0].parts[0],JSON.stringify({format:"SHALOM backup",version:1},null,2));assert.equal(downloads[0].options.type,"application/json;charset=utf-8");assert.equal(downloads.slice(1).join(","),"click,remove,blob:test");
 async function sharedPagination(){
  const calls=[],records=Array.from({length:1000},(_,id)=>({id}));
- const db={from(table){assert.equal(table,"songs");return {select(fields){assert.equal(fields,"*");return {async range(first,last){calls.push([first,last]);return {data:records.slice(first,last+1)}}}}}}};
+ const db={from(table){assert.equal(table,"songs");return {select(fields){assert.equal(fields,"*");return {order(key,opts){assert.equal(key,"id");assert.equal(opts.ascending,true);return this},async range(first,last){calls.push([first,last]);return {data:records.slice(first,last+1)}}}}}}};
  assert.equal(JSON.stringify(await core.selectAll(db,"songs")),JSON.stringify(records));
  assert.deepEqual(calls,[[0,499],[500,999],[1000,1499]]);
  const denied={message:"Sin permiso"};
- const failed={from(){return {select(){return {async range(){return {error:denied}}}}}}};
+ const failed={from(){return {select(){return {order(){return this},async range(){return {error:denied}}}}}}};
  await assert.rejects(core.selectAll(failed,"songs"),error=>error===denied);
  await assert.rejects(core.selectAll(failed,"songs",(error,table)=>new Error(table+": "+error.message)),/songs: Sin permiso/);
  console.log("Backup core: row sanitation, download format, pagination and legacy errors verified.");
@@ -140,3 +141,100 @@ async function nativeRecovery(){
  console.log("Native trash compatibility: owner RPC, no fallback, invalid snapshots, cancellation and legacy route verified.");
 }
 nativeRecovery().catch(error=>{console.error(error);process.exitCode=1});
+
+// SQL source contract only; database execution must be verified in an isolated environment.
+const trashSql=fs.readFileSync("sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql","utf8");
+const delSql=trashSql.slice(0,trashSql.indexOf("create or replace function public.admin_restore_song"));
+const restoreSql=trashSql.slice(trashSql.indexOf("create or replace function public.admin_restore_song"));
+assert.match(delSql,/auth\.uid\(\) is null or not public\.admin_has_permission\('songs.delete'\)/);
+assert.match(restoreSql,/auth\.uid\(\) is null or not public\.admin_is_owner\(\)/);
+assert.ok(delSql.indexOf("perform 1 from public.song_studio_arrangements")<delSql.indexOf("select jsonb_build_object"));
+assert.match(delSql,/'song_studio_arrangements',coalesce\(\(select jsonb_agg\(to_jsonb\(r\)\) from public\.song_studio_arrangements/);
+assert.ok(delSql.indexOf("'song_studio_arrangements',coalesce")<delSql.indexOf("delete from public.songs"));
+assert.match(restoreSql,/coalesce\(old.snapshot->'song_studio_arrangements','\[\]'::jsonb\)/);
+assert.match(restoreSql,/r.song_id is distinct from old.original_id/);
+assert.match(restoreSql,/select song_id,song_revision,arrangement,updated_at from jsonb_populate_recordset/);
+assert.ok(restoreSql.indexOf("insert into public.song_studio_arrangements")<restoreSql.indexOf("delete from public.admin_trash"));
+assert.match(trashSql,/revoke all on function public.admin_restore_song\(uuid\) from public,anon/);
+console.log("Studio trash SQL contract: snapshot, identity, revision and permission checks; live transaction tests still required.");
+
+// The import, export and safety backup share one schema and preserve old format.
+assert.equal(core.FORMAT,"SHALOM backup");assert.equal(core.VERSION,2);
+assert.ok(Object.isFrozen(core.TABLES));
+assert.equal(core.TABLES.length,13);assert.equal(new Set(core.TABLES).size,13);
+assert.ok(core.TABLES.indexOf("songs")<core.TABLES.indexOf("song_artists"));
+assert.ok(core.TABLES.indexOf("artists")<core.TABLES.indexOf("artist_featured_songs"));
+assert.equal(core.conflictKey("artist_featured_songs"),"artist_id,song_id");
+assert.equal(core.conflictKey("songs"),"id");
+assert.match(backup,/for \(const table of TABLES\)/);
+assert.equal((source.match(/for \(const table of TABLES\)/g)||[]).length,2);
+assert.doesNotMatch(source,/const TABLES = \[/);
+const tableStart=source.indexOf("  async function restoreTable("),tableEnd=source.indexOf("  async function importBackup(",tableStart);
+assert.ok(tableStart>=0&&tableEnd>tableStart);
+async function backupConflictKeys(){
+ const calls=[];
+ const ctx={cleanRow:row=>core.cleanRow(row,true),categoryOrder:rows=>rows,chunks:rows=>[rows],LABELS:{},conflictKey:core.conflictKey,db:{from(table){return {async upsert(rows,opts){calls.push({table,rows,opts});return {error:null}}}}}};
+ vm.createContext(ctx);vm.runInContext(source.slice(tableStart,tableEnd),ctx);
+ assert.equal(await ctx.restoreTable("artist_featured_songs",[{artist_id:"a",song_id:"s",sort_order:1}]),1);
+ assert.equal(calls[0].opts.onConflict,"artist_id,song_id");assert.equal(calls[0].rows[0].song_id,"s");
+ assert.equal(await ctx.restoreTable("songs",[{id:"s",title:"Canto"}]),1);
+ assert.equal(calls[1].opts.onConflict,"id");
+ console.log("Backup schema: one table manifest and correct composite conflict key verified.");
+}
+backupConflictKeys().catch(error=>{console.error(error);process.exitCode=1});
+
+// V2 backup: preserve Studio and alternate versions, never activate stale arrangements.
+const revA="2026-11-20T12:00:00.123456+00:00",revB="2026-11-20T12:00:00.123457+00:00",revNew="2026-11-25T12:00:00.654321+00:00";
+const arrangement={v:1,pattern:["D","U"],sections:[{id:"verse"}]};
+const backupCatalog={songs:[{id:"s",updated_at:revA},{id:"old",updated_at:revB}],song_versions:[{id:"v",parent_song_id:"s",version_song_id:"old"}],song_studio_arrangements:[{song_id:"s",song_revision:revA,arrangement},{song_id:"old",song_revision:revA,arrangement}]};
+const plan=core.planStudioRestore(backupCatalog);
+assert.equal(plan.current.length,1);assert.equal(plan.stale,1);
+assert.equal(plan.current[0].song_id,"s");
+assert.equal(core.conflictKey("song_studio_arrangements"),"song_id");
+assert.equal(core.TABLES.at(-1),"song_studio_arrangements");
+assert.throws(()=>core.bindStudioRevisions(plan,new Map()),/No se confirmó/);
+assert.equal(JSON.stringify(core.bindStudioRevisions(plan,new Map([["s",revNew]]))),JSON.stringify([{song_id:"s",arrangement,song_revision:revNew}]));
+assert.equal(core.bindStudioRevisions({current:[],stale:0},null).length,0);
+for(const row of [{song_id:"missing",song_revision:revA,arrangement},{song_id:"s",song_revision:"bad",arrangement},{song_id:"s",song_revision:revA,arrangement:{v:2}}]){
+ assert.throws(()=>core.planStudioRestore({...backupCatalog,song_studio_arrangements:[row]}),/arreglo Studio inválido/);
+}
+assert.throws(()=>core.planStudioRestore({...backupCatalog,song_studio_arrangements:[backupCatalog.song_studio_arrangements[0],backupCatalog.song_studio_arrangements[0]]}),/arreglo Studio inválido/);
+const validationStart=source.indexOf("  function getRows("),validationEnd=source.indexOf("  function renderSelection(",validationStart);
+const validationCtx={FORMAT:core.FORMAT,VERSION:core.VERSION,TABLES:core.TABLES,planStudioRestore:core.planStudioRestore,isObject:value=>Boolean(value)&&typeof value==="object"&&!Array.isArray(value)};
+vm.createContext(validationCtx);vm.runInContext(source.slice(validationStart,validationEnd),validationCtx);
+assert.equal(validationCtx.validateBackup({format:core.FORMAT,version:1,catalog:{songs:[{id:"legacy"}]}}).studioPlan.current.length,0);
+assert.throws(()=>validationCtx.validateBackup({format:core.FORMAT,version:2,catalog:{songs:[{id:"s"}]}}),/Falta la sección/);
+assert.equal(validationCtx.validateBackup({format:core.FORMAT,version:2,catalog:backupCatalog}).studioPlan.stale,1);
+async function studioBackupWrite(){
+ const calls=[],revisions=new Map();
+ const ctx={cleanRow:row=>core.cleanRow(row,true),categoryOrder:rows=>rows,chunks:rows=>[rows],LABELS:{},conflictKey:core.conflictKey,db:{from(table){return {upsert(rows,opts){calls.push({table,rows,opts});return table==="songs"?{async select(columns){assert.equal(columns,"id,updated_at");return {data:rows.map(row=>({id:row.id,updated_at:revNew}))}}}:Promise.resolve({error:null})}}}}};
+ vm.createContext(ctx);vm.runInContext(source.slice(tableStart,tableEnd),ctx);
+ await ctx.restoreTable("songs",backupCatalog.songs,revisions);
+ assert.equal(calls[0].rows[0].updated_at,undefined);
+ await ctx.restoreTable("song_studio_arrangements",core.bindStudioRevisions(plan,revisions),revisions);
+ assert.equal(calls[1].opts.onConflict,"song_id");assert.equal(calls[1].rows.length,1);assert.equal(calls[1].rows[0].song_revision,revNew);
+ console.log("Backup v2: legacy format, exact revision precision, stale exclusion and returned-revision restoration verified.");
+}
+studioBackupWrite().catch(error=>{console.error(error);process.exitCode=1});
+
+// Exercise the actual import controller: safety backup before writes, exact order,
+// no Studio publication if an intermediate operation fails, and honest notices.
+async function importControllerFlow(){
+ const catalog=backupCatalog;
+ for(const mode of ["success","cancel","backup-failure","write-failure","legacy"]){
+  const calls=[],notices=[],controls=[];
+  const payload=mode==="legacy"?{version:1,catalog:{songs:[{id:"legacy"}]}}:{version:2,catalog};
+  const selected={file:{name:"synthetic.json"},payload,total:3,studioPlan:mode==="legacy"?{current:[],stale:0}:plan};
+  const ctx={selectedBackup:selected,importBusy:false,db:{},TABLES:core.TABLES,LABELS:{},getRows:(c,t)=>c[t]||[],bindStudioRevisions:core.bindStudioRevisions,confirm:()=>mode!=="cancel",setStatus:(message,type)=>notices.push({message,type}),setControlsDisabled:x=>controls.push(x),createSafetyBackup:async()=>{calls.push("backup");if(mode==="backup-failure")throw Error("Disk failure");},restoreTable:async(table,rows,revisions)=>{calls.push(table);if(mode==="write-failure"&&table==="song_versions")throw Error("Write failure");if(table==="songs"&&revisions)for(const row of rows)revisions.set(row.id,revNew);if(table==="song_studio_arrangements"){assert.equal(rows.length,1);assert.equal(rows[0].song_revision,revNew);}return rows.length;},renderSelection(){},window:{async apRefresh(){calls.push("refresh")}}};
+  vm.createContext(ctx);vm.runInContext(source.slice(tableEnd,source.indexOf("  function bindCard(",tableEnd)),ctx);
+  await ctx.importBackup();assert.equal(ctx.importBusy,false);
+  if(mode==="cancel"){assert.equal(calls.length,0);continue;}
+  assert.deepEqual(controls,[true,false]);assert.equal(calls[0],"backup");
+  if(mode==="backup-failure"){assert.deepEqual(calls,["backup"]);assert.match(notices.at(-1).message,/No se modificó ningún registro/);}
+  else if(mode==="write-failure"){assert.deepEqual(calls,["backup","songs","song_versions"]);assert.match(notices.at(-1).message,/Algunos registros pueden haberse restaurado/);assert.equal(ctx.selectedBackup,selected);}
+  else if(mode==="legacy"){assert.deepEqual(calls,["backup","songs","refresh"]);assert.equal(ctx.selectedBackup,null);}
+  else{assert.deepEqual(calls,["backup","songs","song_versions","song_studio_arrangements","refresh"]);assert.match(notices.at(-1).message,/1 arreglos antiguos/);assert.equal(ctx.selectedBackup,null);}
+ }
+ console.log("Backup controller: full sequence, preflight failure, intermediate failure, cancellation and legacy compatibility verified.");
+}
+importControllerFlow().catch(error=>{console.error(error);process.exitCode=1});

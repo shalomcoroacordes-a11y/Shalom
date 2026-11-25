@@ -52,3 +52,8 @@ assert.equal(pkg.expo.android.edgeToEdgeEnabled,false);
 assert.ok(Number.isInteger(pkg.expo.android.versionCode)&&pkg.expo.android.versionCode>=7,"La versión oficial de Admin debe superar la anterior (5)");
 assert.equal(pkg.expo.version,JSON.parse(fs.readFileSync("package.json","utf8")).version,"Versiones de Expo y npm coherentes");
 console.log("Navegación segura, selectores y editor amplio comprobados.");
+
+assert.match(app,/const format=recoveryFormat\(t\)/);
+assert.match(app,/format==="native"\?button\("Restaurar canto"/);
+assert.match(app,/if\(restored!==true\)throw Error/);
+assert.match(app,/Respaldo del administrador web/);

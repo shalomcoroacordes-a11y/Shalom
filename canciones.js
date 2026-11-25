@@ -210,10 +210,10 @@ async function fetchSongs(append = false) {
     if (token !== requestVersion) return;
 
     const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
-    const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+    const merged = window.ShalomCatalogSongRow.mergePage(visibleSongs, rows, append);
     page = currentPage;
-    totalResults = append ? (rows.length ? serverTotal : visibleSongs.length) : serverTotal;
-    visibleSongs = append ? [...visibleSongs, ...rows] : rows;
+    totalResults = merged.total;
+    visibleSongs = merged.rows;
     loading = false;
     renderSongs();
   } catch (error) {

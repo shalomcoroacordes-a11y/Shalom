@@ -4,7 +4,7 @@
 
   const db = window.supabaseClient || window.AdminPro;
   const TRASH_TABLE = "admin_trash";
-  const { cleanRow, missingRelations, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
+  const { TABLES, FORMAT, VERSION, cleanRow, missingRelations, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   let trashRows = [];
   let busy = false;
 
@@ -157,13 +157,13 @@
     if (button) button.disabled = true;
     if (status) status.textContent = "Preparando respaldo del catálogo...";
     try {
-      const tables = ["artists", "categories", "albums", "songs", "song_artists", "song_categories", "album_songs", "song_links", "song_capo_versions", "artist_featured_songs", "donation_settings"];
+
       const catalog = {};
-      for (const table of tables) {
+      for (const table of TABLES) {
         if (status) status.textContent = `Respaldando ${table}...`;
         catalog[table] = await selectAll(table);
       }
-      const payload = { format: "SHALOM backup", version: 1, created_at: new Date().toISOString(), catalog };
+      const payload = { format: FORMAT, version: VERSION, created_at: new Date().toISOString(), catalog };
       downloadJson(payload, `juntos-hacia-dios-respaldo-${filenameDate()}.json`);
       if (status) status.textContent = "Respaldo descargado. Guárdalo en Drive o en otra ubicación segura.";
     } catch (error) {
@@ -270,7 +270,7 @@
 
   function backupViewHTML() {
     const state = app();
-    return `<section class="admin-section" id="jhdBackupView"><div class="admin-section-heading"><div><p class="hero-kicker">Protección del catálogo</p><h2>Respaldo y recuperación</h2></div><p class="admin-count">${esc((state?.songs || []).length + (state?.artists || []).length + (state?.categories || []).length)} elementos</p></div><div class="admin-backup-summary"><span>${esc((state?.songs || []).length)} canciones</span><span>${esc((state?.artists || []).length)} artistas</span><span>${esc((state?.categories || []).length)} categorías</span><span>${esc((state?.albums || []).length)} álbumes</span></div><div class="admin-backup-grid"><article class="admin-backup-card"><h3>Descargar respaldo</h3><p>Guarda una copia completa del cancionero en un archivo JSON. Incluye canciones, artistas, categorías, álbumes, enlaces, versiones con capo, donaciones y destacadas.</p><div class="admin-backup-actions"><button class="song-btn" type="button" id="jhdDownloadBackup">Descargar respaldo</button></div><p class="admin-backup-status" id="jhdBackupStatus"></p></article><article class="admin-backup-card"><h3>Papelera segura</h3><p>Antes de eliminar una canción, artista, categoría o álbum, el panel guarda una copia para poder restaurarla después.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdRefreshTrash">Actualizar papelera</button></div></article></div><p class="admin-backup-warning"><strong>Recomendación:</strong> descarga un respaldo antes de hacer cambios grandes. La papelera protege eliminaciones hechas desde este panel; no sustituye una copia guardada fuera del sitio.</p><section class="artist-profile-section"><div class="admin-section-heading"><div><p class="hero-kicker">Recuperación</p><h2>Papelera</h2></div></div><div class="admin-trash-list" id="jhdTrashList"><div class="admin-empty">Cargando papelera...</div></div></section></section>`;
+    return `<section class="admin-section" id="jhdBackupView"><div class="admin-section-heading"><div><p class="hero-kicker">Protección del catálogo</p><h2>Respaldo y recuperación</h2></div><p class="admin-count">${esc((state?.songs || []).length + (state?.artists || []).length + (state?.categories || []).length)} elementos</p></div><div class="admin-backup-summary"><span>${esc((state?.songs || []).length)} canciones</span><span>${esc((state?.artists || []).length)} artistas</span><span>${esc((state?.categories || []).length)} categorías</span><span>${esc((state?.albums || []).length)} álbumes</span></div><div class="admin-backup-grid"><article class="admin-backup-card"><h3>Descargar respaldo</h3><p>Guarda una copia completa del cancionero en un archivo JSON. Incluye canciones, artistas, categorías, álbumes, enlaces, versiones con capo, versiones alternativas, donaciones, destacadas y arreglos Studio publicados accesibles para tu cuenta.</p><div class="admin-backup-actions"><button class="song-btn" type="button" id="jhdDownloadBackup">Descargar respaldo</button></div><p class="admin-backup-status" id="jhdBackupStatus"></p></article><article class="admin-backup-card"><h3>Papelera segura</h3><p>Antes de eliminar una canción, artista, categoría o álbum, el panel guarda una copia para poder restaurarla después.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdRefreshTrash">Actualizar papelera</button></div></article></div><p class="admin-backup-warning"><strong>Recomendación:</strong> descarga un respaldo antes de hacer cambios grandes. La papelera protege eliminaciones hechas desde este panel; no sustituye una copia guardada fuera del sitio.</p><section class="artist-profile-section"><div class="admin-section-heading"><div><p class="hero-kicker">Recuperación</p><h2>Papelera</h2></div></div><div class="admin-trash-list" id="jhdTrashList"><div class="admin-empty">Cargando papelera...</div></div></section></section>`;
   }
 
   function renderBackupView(view) {
