@@ -54,6 +54,7 @@ const guarded=(url,opts)=>{
  await assert.rejects(a.roles(owner),/sesión cambió/);
  await assert.rejects(a.remove("songs","s",owner),/sesión cambió/);
  await assert.rejects(a.remove("albums","a",owner),/sesión cambió/);
+ for(const call of [()=>a.createRole({name:"x",permissions:[]},owner),()=>a.changeRole({id:"r",name:"x",permissions:[]},owner),()=>a.invite("test@example.test",["r"],owner),()=>a.restoreSong("t",owner),()=>a.blockUser("u","reason",owner),()=>a.unblockUser("u",owner)])await assert.rejects(call,/sesión cambió/);
  assert.equal(requests.length,2);
  let calls=0;
  const switched=createApi(async()=>{calls++;current="admin-b";return{ok:true,status:200,text:async()=>JSON.stringify(records.slice(0,250))}},{requireFresh:async()=>({user_id:current,access_token:"token-"+current})});
