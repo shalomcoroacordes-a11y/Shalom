@@ -113,3 +113,9 @@ Actualmente no hay package-lock.json versionado para las dos aplicaciones. La ca
 ### Autorización de APK oficiales
 
 Después de validar CI, las migraciones necesarias, el respaldo y la versión, ir a Actions, elegir el workflow oficial de Pública o Admin, seleccionar `main` y marcar `publish_official` solo para un lanzamiento autorizado. En Pública, cualquier otra ejecución omite la tarea oficial; en Admin se conserva el flujo de prueba con paquete `.preview`. No ejecutar desde ramas de integración. Los controles de versión, certificado, emulador y prohibición de sobrescribir un Release permanecen obligatorios. Esto no modifica la publicación web de GitHub Pages desde main.
+
+### Generación y verificación de lockfiles nativos
+
+El workflow `native-dependency-locks.yml` resuelve por separado los manifiestos de Pública y Admin en Node 22. Si existe un lockfile, lo conserva y lo verifica. Si no existe, genera un candidato auténtico desde npm sin ejecutar scripts de instalación durante la resolución. Después valida identidad del manifiesto, origen e integridad de paquetes, ejecuta `npm ci`, compatibilidad Expo, sintaxis y pruebas, y comprueba que el lock no cambió. Los candidatos y su procedencia se conservan como artefactos temporales, sin permisos de escritura en GitHub ni publicaciones.
+
+No se considera completada la transición hasta recuperar ambos artefactos verificados, revisarlos, versionar los dos lockfiles y repetir las pruebas de compilación y actualización con `npm ci` en todos los workflows relevantes. No cambiar los manifiestos para lograr una validación verde sin investigar la causa.
