@@ -154,3 +154,7 @@ El refresco completo del editor calcula la huella canónica una vez y la pasa a 
 ## Intérprete único de acordes
 
 `song-chords.js` es la única fuente del reconocimiento y combinación de filas, posiciones, espacios y etiquetas. `parseRows` conserva el tipo de presentación apilado/en línea para el renderizador web; `native-chords.js` adapta las filas sin ese campo, conserva transposición nativa y mediciones. El generador inserta la fábrica canónica en las dos copias Android autónomas; Studio incorpora el mismo script web mediante su generador existente. No hay dependencia de red ni cambio de formato de letra o arreglo. El HTML, clases CSS, normalización en Android y tono original web se conservan; se evita transponer anticipadamente una fila que no se consume. Se renueva la caché Offline v31 y se añaden pruebas de propiedad de fuente y markup exacto. Pendiente CI y revisión visual.
+
+## Generación reproducible de CSS público
+
+Los seis paquetes de estilos públicos conservan su orden de cascada y bytes originales. `scripts/build-public-css-bundles.cjs` declara explícitamente sus fuentes. `--check` (también por defecto) solo verifica; `--write` regenera las salidas estáticas. No se modifica ningún CSS ni HTML en esta migración. CI verifica inventario, diferencias y regeneración, además de mantener los controles independientes de cascada, imports y páginas.
