@@ -333,6 +333,26 @@ async function renderRelatedSongs(song, relations) {
   }).join("");
 }
 
+function renderSongFeedback(title, subtitle) {
+  const lyrics = $("#songLyrics");
+  const shell = lyrics?.closest(".song-reader-shell");
+  if (!shell || !title) return;
+  const artist = String(subtitle || "").trim().replace(/^Por\s+/i, "");
+  const query = new URLSearchParams({ tipo: "correccion", cancion: String(title).trim(), enlace: location.href });
+  if (artist && artist !== "Canción del cancionero.") query.set("artista", artist);
+  let feedback = $("#songFeedback");
+  if (!feedback) {
+    feedback = document.createElement("aside");
+    feedback.id = "songFeedback";
+    feedback.className = "song-feedback";
+    feedback.innerHTML = '<p><strong>¿Letra, acorde o tono incorrecto?</strong>Reporta el detalle y se revisará para mejorar el cancionero.</p><a class="text-link">Reportar detalle</a>';
+    const links = $("#songLinks");
+    if (links?.parentElement === shell) links.after(feedback);
+    else lyrics.after(feedback);
+  }
+  feedback.querySelector("a").href = "contacto.html?" + query.toString();
+}
+
 function renderSong(song, relations) {
   currentSong = song;
   const title = song.title || song.name || "Canción sin título";
@@ -347,6 +367,7 @@ function renderSong(song, relations) {
   renderControls(relations);
   renderChordLyrics();
   renderLinks(relations);
+  renderSongFeedback(title, artistText ? `Por ${artistText}` : "Canción del cancionero.");
   renderRelatedSongs(song, relations);
   // Only expose Studio for an available, current publication; never load audio here.
   if (window.ShalomStudioEntry && song.updated_at) {

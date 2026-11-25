@@ -194,6 +194,9 @@ jobs:
       - name: Test category descriptions at render source
         run: node tests/category-description-rendering.cjs
 
+      - name: Test song feedback rendering
+        run: node tests/song-feedback-rendering.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
