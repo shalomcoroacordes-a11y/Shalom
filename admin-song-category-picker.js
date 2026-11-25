@@ -1,7 +1,6 @@
 (() => {
   // Navegador de carpetas para asignar muchas categorías a una misma canción.
-  if (window.__shalomSongMultiCategoryFoldersV2) return;
-  window.__shalomSongMultiCategoryFoldersV2 = true;
+  if (window.ShalomAdminSongCategories) return;
 
   const TYPES = [
     ["catolico", "Católico"],
@@ -280,11 +279,8 @@
     updateSelected();
   }
 
-  const priorRender = apRenderView;
-  apRenderView = function (...args) {
-    priorRender.apply(this, args);
-    attach();
-  };
+  // The owning admin renderer calls this after mounting the song form.
+  window.ShalomAdminSongCategories = { mount: attach };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", attach);
   else attach();
 })();

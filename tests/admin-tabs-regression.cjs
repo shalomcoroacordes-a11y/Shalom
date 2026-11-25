@@ -19,6 +19,7 @@ const state={tab:"songs",user:{email:"admin@example.test"},songs:[]};
 const bound=[];
 const lifecycle=[];
 const focusCalls=[];
+const categoryMounts=[];
 const document={activeElement:null,getElementById(id){return id==="artistFilter"?{focus(options){focusCalls.push(options.preventScroll)},setSelectionRange(start,end){focusCalls.push(start,end)}}:null}};
 const scope={
  document,
@@ -39,7 +40,7 @@ const scope={
  apBindAlbums:()=>bound.push("albums"),
  apBindSongs:()=>bound.push("songs"),
  apBindDonations:()=>bound.push("donations"),
- window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)}}
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)}}
 };
 vm.createContext(scope);
 vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
@@ -60,4 +61,8 @@ assert.equal(lifecycle.at(-1),"artists","Form layout mounted through explicit li
 const layout=fs.readFileSync("admin-form-layout.js","utf8");
 assert.doesNotMatch(layout,/apRenderView\s*=/,"Form module must not replace renderer");
 assert.match(layout,/window\.ShalomAdminFormLayout = \{ enhance: enhanceForm \}/);
-console.log("SHALOM admin: tabs, form lifecycle and search cursor respond.");
+assert.deepEqual(categoryMounts,["songs","songs"],"Category selector mounts only when song view is rendered");
+const picker=fs.readFileSync("admin-song-category-picker.js","utf8");
+assert.doesNotMatch(picker,/apRenderView\s*=/,"Category picker must not replace the owner renderer");
+assert.match(picker,/window\.ShalomAdminSongCategories = \{ mount: attach \}/);
+console.log("SHALOM admin: tabs, form lifecycle, category mount and search cursor respond.");
