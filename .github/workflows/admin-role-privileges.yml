@@ -1,0 +1,38 @@
+name: SHALOM isolated PostgreSQL RBAC privilege tests
+on:
+  pull_request:
+    paths:
+      - 'sql/SHALOM_ADMIN_ROLE_PRIVILEGES.sql'
+      - 'sql/SHALOM_ADMIN_ROLES_20261121.sql'
+      - 'tests/sql/admin-role-privileges.sql'
+      - '.github/workflows/admin-role-privileges.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  privilege-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-test-only
+          POSTGRES_DB: shalom_privilege_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d shalom_privilege_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run isolated RBAC checks
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: ${{ job.services.postgres.ports[5432] }}
+          PGUSER: postgres
+          PGPASSWORD: disposable-test-only
+          PGDATABASE: shalom_privilege_test
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/sql/admin-role-privileges.sql
