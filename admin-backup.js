@@ -21,14 +21,6 @@
   };
   const filenameDate = () => new Date().toISOString().replace(/[:.]/g, "-");
 
-  function addStyle() {
-    if (document.getElementById("jhdAdminBackupStyle")) return;
-    const style = document.createElement("style");
-    style.id = "jhdAdminBackupStyle";
-    style.textContent = `.admin-backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.admin-backup-card{padding:21px;border:1px solid var(--border);border-radius:20px;background:var(--card-soft)}.admin-backup-card h3{margin:0 0 8px;color:var(--gold)}.admin-backup-card p{margin:0;color:var(--muted);line-height:1.55}.admin-backup-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.admin-backup-actions .song-btn{border:0;cursor:pointer}.admin-backup-summary{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.admin-backup-summary span{padding:8px 11px;border:1px solid var(--border);border-radius:999px;background:var(--card);font-size:.88rem;color:var(--muted)}.admin-trash-list{display:grid;gap:10px}.admin-trash-item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:15px;border:1px solid var(--border);border-radius:17px;background:var(--card)}.admin-trash-item h4,.admin-trash-item p{margin:0}.admin-trash-item h4{color:var(--text)}.admin-trash-item p{margin-top:5px;color:var(--muted);font-size:.88rem;line-height:1.45}.admin-trash-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.admin-trash-actions .song-btn{padding:8px 11px;font-size:.84rem}.admin-backup-status{min-height:1.4em;margin:13px 0 0;color:var(--muted);font-size:.92rem}.admin-backup-warning{margin-top:20px;padding:14px 16px;border:1px dashed rgba(47,199,131,.5);border-radius:16px;background:rgba(47,199,131,.06);color:var(--muted);line-height:1.55}.admin-backup-warning strong{color:var(--gold)}@media(max-width:760px){.admin-backup-grid{grid-template-columns:1fr}.admin-trash-item{grid-template-columns:1fr}.admin-trash-actions{justify-content:flex-start}}`;
-    document.head.append(style);
-  }
-
   function cleanRow(row, keepId = true) {
     const out = {};
     const blocked = new Set(["created_at", "updated_at", "artist", "artists", "album", "albums", "category", "categories"]);
@@ -288,7 +280,6 @@
   }
 
   function renderBackupView(view) {
-    addStyle();
     if (!view) return;
     view.innerHTML = backupViewHTML();
     document.getElementById("jhdDownloadBackup")?.addEventListener("click", downloadBackup);
@@ -318,7 +309,6 @@
   }
 
   function boot() {
-    addStyle();
     installDeleteInterception();
   }
 

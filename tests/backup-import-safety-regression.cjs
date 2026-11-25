@@ -26,7 +26,7 @@ const mountStart=backup.indexOf("  function renderBackupView(view)");
 const mountEnd=backup.indexOf("  // The main admin renderer",mountStart);
 assert.ok(mountStart>=0&&mountEnd>mountStart);
 const actions=[];
-const context={addStyle(){},backupViewHTML:()=>"<p>Backup</p>",downloadBackup(){},loadTrash(){actions.push("trash")},window:{ShalomAdminBackupImport:{mount(){actions.push("import")}}},document:{getElementById(id){return {addEventListener(event,handler){actions.push(id+":"+event)}}}}};
+const context={backupViewHTML:()=>"<p>Backup</p>",downloadBackup(){},loadTrash(){actions.push("trash")},window:{ShalomAdminBackupImport:{mount(){actions.push("import")}}},document:{getElementById(id){return {addEventListener(event,handler){actions.push(id+":"+event)}}}}};
 vm.createContext(context);
 vm.runInContext(backup.slice(mountStart,mountEnd),context);
 const view={innerHTML:""};
