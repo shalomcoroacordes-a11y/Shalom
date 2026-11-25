@@ -14,6 +14,6 @@ const render = vm.runInNewContext("const initials = " + initials[1] + "; (artist
 assert.match(render({name:"Coro Shalom",slug:"shalom"}), /home-search-artist-initials" aria-hidden="true">CS</);
 assert.match(render({name:" ",slug:"empty"}), />A<\/span>/);
 assert.match(render({name:"<Coro",slug:"safe"}), />&lt;<\/span>/);
-const access = fs.readFileSync(path.join(root,"home-access-control.js"),"utf8");
-assert.doesNotMatch(access,/improveArtistSearchResults|dataset\.artistInitials/);
+assert.doesNotMatch(source,/improveArtistSearchResults|dataset\.artistInitials|MutationObserver/);
+assert.equal(fs.existsSync(path.join(root,"home-access-control.js")),false);
 console.log("Home search renders artist initials directly, without post-render mutation.");

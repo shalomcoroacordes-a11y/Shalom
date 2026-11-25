@@ -212,6 +212,9 @@ jobs:
       - name: Test direct public SEO ownership
         run: node tests/public-seo-ownership.cjs
 
+      - name: Test direct home recommendations rendering
+        run: node tests/home-access-rendering.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

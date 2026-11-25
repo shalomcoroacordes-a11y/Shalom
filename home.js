@@ -168,7 +168,15 @@
     });
   }
 
-  function homeRoots(categories, type) {
+  const contentType = (value) => {
+    const type = normalize(value);
+    if (type.includes("catolic")) return "catolico";
+    if (type.includes("cristian")) return "cristiano";
+    if (type.includes("mixto")) return "mixto";
+    return "general";
+  };
+
+  function rootsForType(categories, type) {
     const typed = (categories || []).filter((category) => normalize(category.song_type) === type);
     let roots = typed.filter((category) => !category.parent_id);
     const generic = type === "catolico" ? ["catolico", "catolica"] : ["cristiano", "cristiana"];
@@ -179,38 +187,77 @@
     return roots.sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0) || String(a.name || "").localeCompare(String(b.name || ""), "es"));
   }
 
-  function renderFaithAccess(categories, songCategoryLinks) {
-    document.getElementById("homeFaithAccess")?.remove();
+  function descendants(categoryId, categories) {
+    const ids = new Set([String(categoryId)]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      (categories || []).forEach((category) => {
+        const id = String(category.id || "");
+        if (category.parent_id && ids.has(String(category.parent_id)) && !ids.has(id)) {
+          ids.add(id);
+          changed = true;
+        }
+      });
+    }
+    return ids;
+  }
+
+  function groupShell(type, title, description, cards) {
+    return `<article class="home-access-group"><div class="home-access-group-heading"><span class="home-access-symbol" aria-hidden="true">✝</span><div><h3>${title}</h3><p>${description}</p></div></div>${cards ? `<div class="home-access-grid">${cards}</div>` : '<p class="home-access-empty">Aún no hay recomendaciones en esta columna.</p>'}<div class="home-access-footer"><a class="text-link" href="categorias.html?tipo=${type}">Ver todas</a></div></article>`;
+  }
+
+  function categoryCard(category, categories, links, manual = false) {
+    const ids = descendants(category.id, categories);
+    const count = new Set((links || []).filter((row) => ids.has(String(row.category_id))).map((row) => String(row.song_id))).size;
+    const key = category.slug || category.id;
+    return `<a class="home-access-card ${manual ? "home-access-featured-category" : ""}" href="categorias.html?categoria=${encodeURIComponent(key)}"><strong>${esc(category.name || "Carpeta")}</strong><small>${manual ? "✝ Carpeta · " : ""}${count} ${count === 1 ? "canto" : "cantos"}</small></a>`;
+  }
+
+  function songCard(song, artistNames = []) {
+    const href = song.slug ? `cancion.html?slug=${encodeURIComponent(song.slug)}` : `cancion.html?id=${encodeURIComponent(song.id)}`;
+    const meta = [artistNames.join(" · "), song.tone ? `Tono ${song.tone}` : ""].filter(Boolean).join(" · ");
+    return `<a class="home-access-card home-access-featured-song" href="${href}"><strong>${esc(song.title || "Canto")}</strong><small>♫ Canto${meta ? ` · ${esc(meta)}` : ""}</small></a>`;
+  }
+
+  function renderFaithAccess(categories, links, songs = [], artistLinks = [], recommendations = []) {
     const hero = document.querySelector(".hero");
     if (!hero) return;
-    const descendants = (categoryId) => {
-      const ids = new Set([String(categoryId)]);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        (categories || []).forEach((category) => {
-          const id = String(category.id || "");
-          if (category.parent_id && ids.has(String(category.parent_id)) && !ids.has(id)) { ids.add(id); changed = true; }
-        });
-      }
-      return ids;
-    };
-    const countSongs = (categoryId) => {
-      const ids = descendants(categoryId);
-      return new Set((songCategoryLinks || []).filter((row) => ids.has(String(row.category_id))).map((row) => String(row.song_id))).size;
-    };
-    const group = (type, title, description, symbol) => {
-      const cards = homeRoots(categories, type).slice(0, 8).map((category) => {
-        const count = countSongs(category.id);
-        const key = category.slug || category.id;
-        return `<a class="home-access-card" href="categorias.html?tipo=${type}&carpeta=${encodeURIComponent(key)}"><strong>${esc(category.name || "Categoría")}</strong><small>${count} ${count === 1 ? "canto" : "cantos"}</small></a>`;
-      }).join("");
-      return `<article class="home-access-group"><div class="home-access-group-heading"><span class="home-access-symbol" aria-hidden="true">${symbol}</span><div><h3>${title}</h3><p>${description}</p></div></div>${cards ? `<div class="home-access-grid">${cards}</div>` : '<p class="home-access-empty">Las categorías aparecerán aquí cuando se agreguen.</p>'}<div class="home-access-footer"><a class="text-link" href="categorias.html?tipo=${type}">Ver todas</a></div></article>`;
-    };
     const section = document.createElement("section");
     section.id = "homeFaithAccess";
     section.className = "section home-faith-access";
-    section.innerHTML = `<div class="section-heading"><p class="hero-kicker">Encuentra rápido</p><h2>¿Para qué necesitas un canto?</h2></div><div class="home-access-groups">${group("catolico", "Católico", "Misa, tiempos litúrgicos y devociones.", "✝")}${group("cristiano", "Cristiano", "Alabanza, oración y ministerios.", "♫")}</div>`;
+    const songById = new Map(songs.map(song => [String(song.id), song]));
+    const categoryById = new Map(categories.map(category => [String(category.id), category]));
+    const artistNamesBySong = new Map();
+    artistLinks.forEach(row => {
+      if (!row.artists?.name) return;
+      const id = String(row.song_id || "");
+      if (!artistNamesBySong.has(id)) artistNamesBySong.set(id, []);
+      artistNamesBySong.get(id).push(row.artists.name);
+    });
+    const resolve = entry => entry.target_type === "song" ? songById.get(String(entry.target_id)) : categoryById.get(String(entry.target_id));
+    const sectionFor = (entry, item) => {
+      const type = contentType(item?.song_type);
+      return type === "catolico" || type === "cristiano" ? type : (entry.section_type === "cristiano" ? "cristiano" : "catolico");
+    };
+    const cardsFor = targetSection => {
+      if (!recommendations.length) return rootsForType(categories, targetSection).slice(0, 8).map(category => categoryCard(category, categories, links)).join("");
+      const seen = new Set();
+      return recommendations.filter(entry => entry.is_visible !== false)
+        .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+        .map(entry => ({ entry, item: resolve(entry) }))
+        .filter(({ entry, item }) => item && sectionFor(entry, item) === targetSection)
+        .filter(({ entry }) => {
+          const key = `${entry.target_type}:${entry.target_id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).slice(0, 8)
+        .map(({ entry, item }) => entry.target_type === "song" ? songCard(item, artistNamesBySong.get(String(item.id)) || []) : categoryCard(item, categories, links, true)).join("");
+    };
+    section.innerHTML = `<div class="section-heading"><p class="hero-kicker">Encuentra rápido</p><h2>¿Para qué necesitas un canto?</h2></div><div class="home-access-groups">${groupShell("catolico", "Católico", "Misa, tiempos litúrgicos y devociones.", cardsFor("catolico"))}${groupShell("cristiano", "Cristiano", "Alabanza, oración y ministerios.", cardsFor("cristiano"))}</div>`;
+    section.dataset.homeAccessConfigured = recommendations.length ? "manual" : "automatic";
+    document.getElementById("homeFaithAccess")?.remove();
     hero.insertAdjacentElement("afterend", section);
   }
 
@@ -233,12 +280,14 @@
       return;
     }
 
-    const [songsRes, artistsRes, categoriesRes, songCategoryRes, songArtistRes] = await Promise.all([
+    const [songsRes, artistsRes, categoriesRes, songCategoryRes, songArtistRes, recommendationSongsRes, recommendationsRes] = await Promise.all([
       JHD.sb.from("songs").select("id,title,slug,song_type,tone,difficulty,created_at").order("created_at", { ascending: false }).limit(6),
       JHD.sb.from("artists").select("id,name,slug,description,artist_type,created_at").order("created_at", { ascending: false }).limit(6),
       JHD.sb.from("categories").select("id,name,slug,parent_id,song_type,sort_order").order("sort_order", { ascending: true }).order("name", { ascending: true }),
       JHD.sb.from("song_categories").select("song_id,category_id,categories(id,name,slug,description,song_type,parent_id,sort_order)"),
-      JHD.sb.from("song_artists").select("song_id,artist_id,artists(id,name,slug,description,artist_type)")
+      JHD.sb.from("song_artists").select("song_id,artist_id,artists(id,name,slug,description,artist_type)"),
+      JHD.sb.from("songs").select("id,title,slug,tone,song_type").order("title", { ascending: true }),
+      JHD.sb.from("home_recommendations").select("id,target_type,target_id,section_type,sort_order,is_visible").order("sort_order", { ascending: true })
     ]);
 
     const songIds = new Set((songsRes.data || []).map((song) => String(song.id)));
@@ -280,7 +329,7 @@
       }
     }
 
-    renderFaithAccess(categoriesRes.data || [], (songCategoryRes.data || []).map((row) => ({ song_id: row.song_id, category_id: row.category_id })));
+    renderFaithAccess(categoriesRes.data || [], songCategoryRes.data || [], recommendationSongsRes.data || [], songArtistRes.data || [], categoriesRes.error || songCategoryRes.error || recommendationsRes.error ? [] : (recommendationsRes.data || []));
   }
 
   document.addEventListener("DOMContentLoaded", loadHome);
