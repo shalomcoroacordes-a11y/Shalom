@@ -13,9 +13,8 @@
     return `<ul>${rows}${extra}</ul>`;
   };
 
-  function setTabActive(button) {
-    document.querySelectorAll("#adminWorkspace .admin-tab").forEach((item) => item.classList.toggle("active", item === button));
-  }
+  let mounted = null;
+  const isCurrent = (section) => Boolean(section && section === mounted && document.getElementById("adminMaintenanceContent") === section && document.querySelector("[data-jhd-audit-tab]")?.classList.contains("active"));
 
   function issue(title, details, items, severity = "warning") {
     return { title, details, items: items || [], severity };
@@ -153,48 +152,31 @@
     return id ? `canción ${String(id).slice(0, 8)}` : "sin canción";
   }
 
-  function renderAudit(data) {
-    const view = document.getElementById("adminView");
-    if (!view) return;
+  function renderAudit(data, view) {
+    if (!isCurrent(view)) return;
     const issueHtml = data.issues.length
       ? `<div class="jhd-audit-list">${data.issues.map((entry) => `<details class="jhd-audit-issue is-${entry.severity}" ${entry.severity === "critical" ? "open" : ""}><summary><span class="jhd-audit-badge">${entry.items.length}</span><span>${esc(entry.title)}</span></summary><div class="jhd-audit-detail"><p>${esc(entry.details)}</p>${sample(entry.items, (item) => formatItem(entry, item))}</div></details>`).join("")}</div>`
       : '<div class="jhd-audit-good"><strong>Todo se ve bien.</strong><br>No se detectaron registros pendientes en la revisión automática.</div>';
 
-    view.innerHTML = `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Mantenimiento</p><h2>Revisión del catálogo</h2></div><p class="admin-count">${data.attention ? `${data.attention} por revisar` : "Sin alertas"}</p></div><div class="jhd-audit-toolbar"><p>Detecta cantos incompletos, acordes por revisar, URLs inválidas, categorías vacías y solicitudes pendientes.</p><button class="song-btn small-btn" type="button" id="jhdRunCatalogAudit">Reanalizar</button></div><div class="jhd-audit-grid"><article class="jhd-audit-stat"><strong>${data.totals.songs}</strong><span>Canciones</span></article><article class="jhd-audit-stat"><strong>${data.totals.artists}</strong><span>Artistas</span></article><article class="jhd-audit-stat"><strong>${data.totals.categories}</strong><span>Categorías</span></article><article class="jhd-audit-stat"><strong>${data.totals.albums}</strong><span>Álbumes</span></article></div><div class="admin-actions"><button type="button" class="song-btn small-btn secondary" id="maintenanceSongs">Editar cantos</button><button type="button" class="song-btn small-btn secondary" id="maintenanceMessages">Ver solicitudes</button></div>${issueHtml}</section>`;
-    document.getElementById("jhdRunCatalogAudit")?.addEventListener("click", openAudit);
+    view.innerHTML = `<div class="admin-section-heading"><div><p class="hero-kicker">Mantenimiento</p><h2>Revisión del catálogo</h2></div><p class="admin-count">${data.attention ? `${data.attention} por revisar` : "Sin alertas"}</p></div><div class="jhd-audit-toolbar"><p>Detecta cantos incompletos, acordes por revisar, URLs inválidas, categorías vacías y solicitudes pendientes.</p><button class="song-btn small-btn" type="button" id="jhdRunCatalogAudit">Reanalizar</button></div><div class="jhd-audit-grid"><article class="jhd-audit-stat"><strong>${data.totals.songs}</strong><span>Canciones</span></article><article class="jhd-audit-stat"><strong>${data.totals.artists}</strong><span>Artistas</span></article><article class="jhd-audit-stat"><strong>${data.totals.categories}</strong><span>Categorías</span></article><article class="jhd-audit-stat"><strong>${data.totals.albums}</strong><span>Álbumes</span></article></div><div class="admin-actions"><button type="button" class="song-btn small-btn secondary" id="maintenanceSongs">Editar cantos</button><button type="button" class="song-btn small-btn secondary" id="maintenanceMessages">Ver solicitudes</button></div>${issueHtml}`;
+    document.getElementById("jhdRunCatalogAudit")?.addEventListener("click", () => mount(document.getElementById("adminView")));
     document.getElementById("maintenanceSongs")?.addEventListener("click", () => document.querySelector('[data-admin-tab="songs"]')?.click());
     document.getElementById("maintenanceMessages")?.addEventListener("click", () => document.getElementById("adminMessagesTab")?.click());
   }
 
-  async function openAudit(event) {
-    const button = event?.currentTarget || document.querySelector("[data-jhd-audit-tab]");
-    setTabActive(button);
-    const view = document.getElementById("adminView");
+  async function mount(view) {
     if (!view) return;
-    view.innerHTML = '<section class="admin-section"><div class="admin-empty">Revisando el catálogo…</div></section>';
+    view.innerHTML = '<section class="admin-section" id="adminMaintenanceContent"><div class="admin-empty">Revisando el catálogo…</div></section>';
+    const section = view.querySelector("#adminMaintenanceContent");
+    mounted = section;
     try {
-      renderAudit(await runAudit());
+      const result = await runAudit();
+      if (isCurrent(section)) renderAudit(result, section);
     } catch (error) {
-      view.innerHTML = `<section class="admin-section"><div class="admin-empty">No se pudo revisar el catálogo: ${esc(error?.message || "Error desconocido.")}</div></section>`;
+      if (!isCurrent(section)) return;
+      section.innerHTML = `<div class="admin-empty">No se pudo revisar el catálogo: ${esc(error?.message || "Error desconocido.")}</div>`;
     }
   }
 
-  function install() {
-    const tabs = document.querySelector("#adminWorkspace .admin-tabs");
-    if (!tabs || tabs.querySelector("[data-jhd-audit-tab]")) return false;
-    const button = document.createElement("button");
-    button.className = "admin-tab";
-    button.type = "button";
-    button.dataset.jhdAuditTab = "true";
-    button.textContent = "Mantenimiento";
-    button.addEventListener("click", openAudit);
-    tabs.append(button);
-    tabs.querySelectorAll(".admin-tab:not([data-jhd-audit-tab])").forEach((tab) => tab.addEventListener("click", () => button.classList.remove("active")));
-    return true;
-  }
-
-  const observer = new MutationObserver(() => install());
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true });
-  else install();
+  window.ShalomAdminMaintenance = { mount };
 })();
