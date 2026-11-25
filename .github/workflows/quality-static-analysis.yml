@@ -1,0 +1,63 @@
+name: SHALOM static code analysis
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test ESLint report comparison
+        run: node tests/lint-report.test.cjs
+      - name: Check lint rules detect deliberate defects
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/shalom-lint-probes.json"
+          printf '%s\n' 'const unused = 1; missingName(); const obj = {a: 1, a: 2};' | npm exec --yes --package=eslint@9.39.1 -- eslint --stdin --stdin-filename mobile/src/lint-probe.js --format json --output-file "$report"
+          node -e 'const a=require("node:fs");const r=JSON.parse(a.readFileSync(process.argv[1],"utf8"));const rules=r.flatMap(f=>f.messages.map(m=>m.ruleId));for(const rule of ["no-undef","no-unused-vars","no-dupe-keys"])if(!rules.includes(rule))throw Error("Missing rule: "+rule)' "$report"
+      - name: Analyze source and compare existing debt
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/shalom-lint-reports"
+          mkdir -p "$report/head" "$report/base"
+          config="$GITHUB_WORKSPACE/eslint.config.cjs"
+          analyze() {
+            (cd "$1" && npm exec --yes --package=eslint@9.39.1 -- eslint '*.js' 'mobile/App.js' 'mobile/src/**/*.js' 'admin-mobile/App.js' 'admin-mobile/src/**/*.js' --config "$config" --format json --output-file "$2/eslint.json")
+            test -s "$2/eslint.json"
+          }
+          analyze "$GITHUB_WORKSPACE" "$report/head"
+          if [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] && [[ ! "$BASE_SHA" =~ ^0+$ ]]; then
+            base_dir="$(mktemp -d "$RUNNER_TEMP/shalom-lint-base.XXXXXX")"
+            trap 'git worktree remove --force "$base_dir" >/dev/null 2>&1 || true' EXIT
+            git worktree add --detach "$base_dir" "$BASE_SHA"
+            analyze "$base_dir" "$report/base"
+            node scripts/compare_lint_reports.cjs "$report/base/eslint.json" "$report/head/eslint.json" "$base_dir" "$GITHUB_WORKSPACE" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No comparable base; initial snapshot available in artifact." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain static analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shalom-eslint-reports
+          path: ${{ runner.temp }}/shalom-lint-reports/
+          retention-days: 14
+          if-no-files-found: warn

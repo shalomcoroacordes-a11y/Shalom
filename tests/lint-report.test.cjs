@@ -1,0 +1,17 @@
+"use strict";
+const assert=require("node:assert/strict");
+const {compare,summarize}=require("../scripts/compare_lint_reports.cjs");
+const m=(ruleId,severity=1)=>({ruleId,severity});
+const file=(filePath,messages=[])=>({filePath,messages});
+const base=[file("/base/mobile/App.js",[m("no-unused-vars")]),file("/base/home.js")];
+const head=[file("/head/mobile/App.js",[m("no-unused-vars"),m("no-unused-vars"),m("no-undef")]),file("/head/home.js")];
+const result=compare(base,head,"/base","/head");
+assert.deepEqual(result.base,{files:2,warnings:1,errors:0});
+assert.deepEqual(result.head,{files:2,warnings:3,errors:0});
+assert.equal(result.growth.length,2);
+assert.equal(result.growth.find(x=>x.rule==="no-unused-vars").added,1);
+assert.equal(compare(base,[file("/head/mobile/App.js",[m("no-unused-vars")])],"/base","/head").growth.length,0);
+assert.equal(summarize([file("/head/home.js",[m(null,2)])],"/head").errors,1);
+assert.throws(()=>summarize([],"/head"),/Empty/);
+assert.throws(()=>summarize([file("/elsewhere/home.js")],"/head"),/Invalid/);
+console.log("ESLint baseline comparison verified.");
