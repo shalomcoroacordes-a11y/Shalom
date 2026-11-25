@@ -52,7 +52,6 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [nameDraft,setNameDraft]=useState(()=>store.collections.find(c=>c.id===initialNav?.folderId)?.entries.find(e=>e.id===initialNav?.entryId)?.title||"");
  const [search,setSearch]=useState("");
  const [adding,setAdding]=useState(false);
- const [shareOpen,setShareOpen]=useState(false);
  const [shareInput,setShareInput]=useState("");
  const [readerShift,setReaderShift]=useState(0);
  const [readerFont,setReaderFont]=useState(16);
@@ -61,7 +60,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  useEffect(()=>{
   if(!registerBack)return;
   return registerBack(()=>back(true));
- },[registerBack,view,shareOpen,showFolderForm,customize,adding,filterKind,editReturn,shareReturn]);
+ },[registerBack,view,showFolderForm,customize,adding,filterKind,editReturn,shareReturn]);
  const folder=store.collections.find(c=>c.id===folderId);
  const entry=folder?.entries.find(e=>e.id===entryId);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
@@ -69,7 +68,6 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const updateFolder=fn=>commit(updateCollection(store,folderId,fn));
  const updateEntry=(fn,options)=>commit(updateComposition(store,folderId,entryId,fn),options);
  function back(fromNative=false){
-  if(shareOpen){setShareOpen(false);return true;}
   if(showFolderForm){setShowFolderForm(false);return true;}
   if(customize){setCustomize(false);return true;}
   if(view==="share"){setView(shareReturn);return true;}
@@ -101,7 +99,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function openReceive(target=null){
   setShareInput("");setImportTarget(target);setImportPreview(null);
-  setShareOpen(false);setView("import");
+  setView("import");
  }
  function openEntry(item,targetFolder,origin="home"){
   setFolderId(targetFolder.id);setEntryId(item.id);
@@ -139,7 +137,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function startNewFolder(){
   setNewFolderName("");setNewColor(COLORS[0]);setNewCoverPreset("dove");setNewCoverPhoto(null);
-  setShowFolderForm(true);setShareOpen(false);
+  setShowFolderForm(true);
  }
  function createEntry(kind){
   if(!folder)return;
@@ -196,43 +194,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      "\n\nPara usarlo: abre SHALOM > Mis colecciones > Importar código, pega este mensaje y guarda. No necesitas descargar archivos."});
   }catch(e){Alert.alert("No se pudo compartir",e.message||"Inténtalo de nuevo.");}
  }
- function pasteImport(){
-  try{
-   const preview=codePreview(shareInput,songs);
-   const imported=preview.entry;
-   const missing=preview.missingCount;
-   Alert.alert("Importar "+kindName(imported.kind),imported.title+"\n"+
-    preview.count+" fragmentos.\n"+
-    (missing?"Hay "+missing+" cantos que no están descargados. Podrás revisarlos al actualizar la biblioteca.":
-     "Todos los cantos están en tu biblioteca local.")+
-    "\nSe guardará solo en tu teléfono.",[
-    {text:"Cancelar",style:"cancel"},
-    {text:"Guardar",onPress:()=>{
-     try{
-      // Recibir composiciones vive en Mis creaciones > Recibir composición.
-      const result=receivePersonal(store,shareInput,folder?.id||null);
-      commit(result.store,{notice:"Composición recibida y guardada"});
-      setFolderId(result.folder.id);setEntryId(result.entry.id);
-      setNameDraft(result.entry.title);setEditReturn("home");
-      setSearch("");setAdding(false);setExpandedPartId(null);
-      setShareInput("");setShareOpen(false);setView("editing");
-     }catch(e){Alert.alert("No se pudo importar",e?.message||"Comprueba el código.");}
-    }}
-   ]);
-  }catch(e){Alert.alert("Código no reconocido",e?.message||"Revisa el mensaje recibido.");}
- }
- function importPanel(){
-  if(!shareOpen)return null;
-  return h(View,{style:styles.card},
-   label("Importar código de SHALOM",styles.cardTitle),
-   label("Pega aquí el texto recibido por WhatsApp. No se enviará a internet.",styles.description),
-   input(shareInput,setShareInput,"Pega el código SHALOM1-…",true),
-   h(View,{style:styles.actions},action("Guardar en mis colecciones",pasteImport),
-    action("Cancelar",()=>{setShareOpen(false);setShareInput("")},true)));
- }
-
  function openFolder(c,custom=false){
-  setFolderId(c.id);setView("folder");setCustomize(custom);setShareOpen(false);
+  setFolderId(c.id);setView("folder");setCustomize(custom);
  }
  function collectionCard(c){
   const compositions=c.entries.length;
@@ -606,27 +569,6 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
    action("Compartir",()=>showShare(entry,folder,"reading"),true));
- }
- function filteredEntriesView(){
-  const name=filterKind==="misa"?"Mis misas":"Mis popurrís";
-  const entries=store.collections.flatMap(c=>c.entries.filter(e=>e.kind===filterKind)
-   .map(e=>({folder:c,entry:e})));
-  return h(View,{style:styles.container},
-   action("← Mis colecciones",onClearFilter,true),
-   label(name,styles.pageTitle),
-   label("Tus "+(filterKind==="misa"?"misas":"popurrís")+" personales. Guardados solo en este celular.",styles.description),
-   ...entries.map(({folder:c,entry:item})=>h(View,{key:c.id+"-"+item.id,style:styles.entryCard},
-    label(c.name,styles.tag),
-    label(item.title,styles.cardTitle),
-    label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
-    h(View,{style:styles.actions},
-     action("Abrir",()=>{setFolderId(c.id);setEntryId(item.id);setView("reading");setReaderShift(0)},false,item.parts.length===0),
-     action("Editar",()=>{setFolderId(c.id);editEntry(item)},true),
-     action("Compartir",()=>shareEntry(item),true,item.parts.length===0)))),
-   !entries.length?h(View,{style:styles.folderEmpty},
-    label("Todavía no tienes "+(filterKind==="misa"?"misas":"popurrís")+" personales.",styles.emptyTitle),
-    label("Crea una colección y añade tu primera composición, o importa un código SHALOM.",styles.description),
-    action("Ir a mis colecciones",onClearFilter)):null);
  }
  if(view==="reading")return readingView();
  if(view==="editing")return editView();
