@@ -18,6 +18,7 @@ const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
 const {recoveryFormat}=require("./src/trash-format");
 const {createSync}=require("./src/sync");
+const {createUserManagement}=require("./src/user-management");
 const store=require("./src/store");
 const h=React.createElement;
 const auth=createAuth(fetch,SecureStore);
@@ -61,15 +62,20 @@ function Main(){
  const [studioPayload,setStudioPayload]=useState(null),[studioStatus,setStudioStatus]=useState(null);
  const editorOrigin=useRef("Cantos"),editorBaseline=useRef(null),leavingEditor=useRef(false);
  const owner=session?.user_id;
+ const usersRef=useRef(null);
+ if(!usersRef.current)usersRef.current=createUserManagement({api,auth,apply:data=>{
+  setRoles(data.roles);setProfiles(data.profiles);setBlockedUsers(data.blocks);setTrash(data.trash);setAssigned(data.assigned);setOverrides(data.overrides);
+ }});
+ const users=usersRef.current;
  async function hydrate(s){
-  setSession(s);setBoot(false);
+  users.reset(s?.user_id||null);setSession(s);setBoot(false);
   if(!s)return;
   const d=await store.listDrafts(s.user_id);setDrafts(d);
   const cached=await sync.snapshot(s.user_id);setLists(cached);
   if(await network()){
    try{const a=await api.myAccess();if(!a?.authorized)throw Error("Sin permisos de administración");
     setAccess(a);setOffline(false);
-    await reloadCatalog(s.user_id);await loadUsers(a);
+    await reloadCatalog(s.user_id);await loadUsers(a,s.user_id);
    }catch(e){setMessage(e.message);setAccess(null); if(/sin permisos|bloquead|revocad/i.test(e.message))await auth.clear();}
   }else{setOffline(true);setMessage("Sin internet: borradores disponibles. No se permite publicar hasta verificar permisos.");}
  }
@@ -94,14 +100,10 @@ function Main(){
   const o=await sync.snapshot(id);
   setLists(o);setOffline(false);
  }
- async function loadUsers(a=access){
-  if(!a?.owner)return;
-  try{
-   const [r,u,assignments,blocks,exceptions,trashItems]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks"),api.list("admin_permission_overrides"),api.list("admin_trash")]);
-   setRoles(r);setProfiles(u);setBlockedUsers(blocks);setTrash(trashItems);
-   setOverrides(Object.fromEntries(u.map(p=>[p.user_id,Object.fromEntries(exceptions.filter(x=>x.user_id===p.user_id).map(x=>[x.permission,x.allowed]))])));
-   setAssigned(Object.fromEntries(u.map(p=>[p.user_id,assignments.filter(x=>x.user_id===p.user_id).map(x=>x.role_id)])));
-  }catch(e){setMessage("Permisos: "+e.message);}
+ async function loadUsers(a=access,id=owner){
+  if(!a?.owner||!id)return;
+  try{await users.load(id);}
+  catch(e){setMessage("Permisos: "+e.message);}
  }
  async function sendQueue(){
   if(!owner||busy)return;
@@ -142,7 +144,7 @@ function Main(){
    }}
   ]);
  }
- async function logout(){setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
+ async function logout(){users.reset();setOverrideUser(null);setEditingRole(null);setShowRoleEditor(false);setNewRole("");setRoleDescription("");setRolePermissions([]);setInviteEmail("");setInviteRoles([]);setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
   try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
@@ -151,12 +153,8 @@ function Main(){
   }catch(e){Alert.alert("Error de rol",e.message);}
  }
  async function updateOverride(userId,permission){
-  const old=overrides[userId]||{};
-  const exists=Object.prototype.hasOwnProperty.call(old,permission);
-  const next=!exists?true:old[permission]===true?false:null;
-  try{await api.setPermissionOverride(userId,permission,next);
-   setOverrides(value=>{const u={...(value[userId]||{})};if(next===null)delete u[permission];else u[permission]=next;return {...value,[userId]:u};});
-  }catch(e){Alert.alert("Error de permiso",e.message);}
+  try{await users.toggleOverride(owner,userId,permission);}
+  catch(e){Alert.alert("Error de permiso",e.message);}
  }
  async function sendInvite(){
   if(!inviteEmail.trim()||!inviteRoles.length)return Alert.alert("Faltan datos","Indica correo y al menos un rol.");
@@ -190,8 +188,7 @@ function Main(){
     txt(u.display_name||u.email||u.user_id,S.itemTitle),txt(u.email||"",S.itemSub),
     txt(blockedUsers.some(b=>b.user_id===u.user_id)?"ACCESO BLOQUEADO":"Roles activos",blockedUsers.some(b=>b.user_id===u.user_id)?S.error:S.caption),
     wrapChips(roles.map(r=>[r.id,r.name]),assigned[u.user_id]||[],async id=>{
-     const current=assigned[u.user_id]||[];const next=current.includes(id)?current.filter(x=>x!==id):[...current,id];
-     try{await api.assignUserRoles(u.user_id,next);setAssigned(old=>({...old,[u.user_id]:next}));}catch(e){Alert.alert("Error",e.message);}
+     try{await users.toggleRole(owner,u.user_id,id);}catch(e){Alert.alert("Error",e.message);}
     }),
     button(overrideUser===u.user_id?"Ocultar permisos individuales":"Permisos individuales",()=>setOverrideUser(overrideUser===u.user_id?null:u.user_id),"secondary"),
     overrideUser===u.user_id?h(View,{style:{gap:12}},txt("Permiso individual: ✓ permitir, ✕ denegar, · heredar del rol",S.note),
