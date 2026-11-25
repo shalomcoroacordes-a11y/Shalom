@@ -90,3 +90,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Base compartida del lector y páginas informativas
 
 `public-content-base-bundle.css` conserva, en este orden, `site-shell.css`, `public-cards.css` y `public-accessibility.css`. Canción carga a continuación `song-reader-bundle.css` con sus nueve fuentes específicas en orden original; Acerca de, Contacto y Solicitar canto cargan `public-info-pages.css`. Los dos paquetes anteriores se retiran. Las pruebas de equivalencia exacta y orden de hojas permanecen en `tests/song-detail-bundle-regression.cjs` y `tests/public-info-bundle-regression.cjs`. El lector conserva impresión, capo y preferencias. No se altera la caché de Offline. La separación agrega una petición CSS por página y permite reutilizar la base; se requiere medición y revisión visual antes de afirmar una mejora de rendimiento.
+
+## Consulta de cantos relacionados
+
+`song-related-catalog.js` contiene la consulta y clasificación por artista (3), categoría (2) y álbum (1), con desempate por título y límite de seis sugerencias. `cancion.js` conserva el montaje, los textos y la presentación de las tarjetas. El módulo no depende del DOM y recibe explícitamente cliente, canción y relaciones; `tests/song-related-catalog.cjs` prueba consultas simuladas y resultados. No cambia el algoritmo ni los permisos de lectura.

@@ -171,6 +171,9 @@ jobs:
       - name: Test shared artist and album presentation
         run: node tests/catalog-list-view.cjs
 
+      - name: Test related song catalog queries and ranking
+        run: node tests/song-related-catalog.cjs
+
       - name: Verify song detail CSS bundle against original files
         run: node tests/song-detail-bundle-regression.cjs
 
