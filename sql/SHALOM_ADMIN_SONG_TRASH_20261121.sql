@@ -49,6 +49,7 @@ begin
   raise exception 'CONFLICT: este identificador de canto ya existe. No se sobreescribió';
  end if;
  song:=coalesce(old.snapshot->'song',old.snapshot);
+ if (song->>'id')::uuid is distinct from old.original_id then raise exception 'El respaldo no coincide con el canto original';end if;
  insert into public.songs select * from jsonb_populate_record(null::public.songs,song);
  if old.snapshot ? 'song' then
   parts:=coalesce(old.snapshot->'song_artists','[]'::jsonb);
