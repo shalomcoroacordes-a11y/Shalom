@@ -373,6 +373,9 @@ function apBindSongs() {
     async function refreshStudioStatus(){const saved=AP.songs.find(row=>apId(row.id)===apId(AP.edits.song));if(!saved?.updated_at){studioStatus.textContent="Guarda primero el canto.";return;}try{const {data,error}=await AdminPro.from("song_studio_arrangements").select("song_id,song_revision").eq("song_id",saved.id).maybeSingle();if(error)throw error;if(data&&data.song_revision!==saved.updated_at){studioStatus.textContent="Existe un acompañamiento de una revisión anterior. Descarga un respaldo antes de sustituirlo; no se publicará automáticamente con la letra nueva.";b.textContent="Revisar acompañamiento";}else{studioStatus.textContent=data?"✓ Acompañamiento publicado":"Sin acompañamiento publicado";b.textContent=data?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra";}}catch{studioStatus.textContent="No se pudo consultar el estado del acompañamiento.";}}
     const actions = form.querySelector(".admin-actions");
     actions?.insertAdjacentElement("beforebegin", studioStatus);actions?.insertAdjacentElement("beforebegin", b);refreshStudioStatus();
+    const historyButton=document.createElement("button");historyButton.type="button";historyButton.className="song-btn secondary";historyButton.textContent="Historial Studio";
+    actions?.insertAdjacentElement("beforebegin",historyButton);
+    historyButton.addEventListener("click",async()=>{const saved=AP.songs.find(row=>apId(row.id)===apId(AP.edits.song));if(!saved?.updated_at)return apNote("Guarda primero el canto.",true);historyButton.disabled=true;try{await window.ShalomStudioHistory.open({client:AdminPro,song:saved,owner:AP.user?.id,onClose:refreshStudioStatus});}catch(e){apNote(e.message,true);}finally{historyButton.disabled=false;}});
     b.addEventListener("click", async () => {
       const saved = AP.songs.find(row => apId(row.id) === apId(AP.edits.song));
       const lyrics = ap$("#songLyricsField")?.value || "";

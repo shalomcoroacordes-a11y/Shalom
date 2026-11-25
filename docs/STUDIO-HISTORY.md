@@ -22,3 +22,7 @@ En Admin web > Respaldo, la opción Descargar historial Studio exporta el histor
 4. Mantener exportación de historial antes de una eventual retirada de la funcionalidad; no borrar la tabla al desactivar los disparadores.
 
 Estado: propuesta guardada en repositorio, sin aplicar a producción.
+
+## Consulta y edición desde Admin web
+
+En el editor de un canto, Historial Studio muestra las últimas 30 revisiones. La escucha histórica usa el reproductor sin permisos de escritura y exige la letra exacta conservada. Cargar para editar solo se habilita cuando la revisión corresponde al canto vigente y vuelve a comprobarse contra el servidor. El codec valida los acordes y el patrón; la edición se carga sin publicar ni sustituir el borrador guardado hasta que el usuario lo guarde expresamente. Publicar conserva la confirmación habitual y la verificación de identidad. Para revisiones de letra distintas, descargar el historial privado y reconstruir manualmente; no se reetiquetan revisiones. El historial completo se conserva en la exportación y la interfaz Android específica sigue pendiente.
