@@ -25,8 +25,10 @@ assert.ok(!app.includes('label(network.online?(network.wifi?"Wi-Fi":"Online"):"O
 for(const label of ['← Volver a artistas','← Volver a álbumes','← Volver a repertorios','← Volver a Popurrís']){
  assert.ok(!app.includes(label),"Duplicate in-content back control removed: "+label);
 }
-assert.match(app,/if\(settingsOpen\)\{setSettingsOpen\(false\);return true;\}/);
-assert.match(app,/if\(detail\)\{/,"Back must handle nested song details");
-assert.match(app,/setDetail\(detailHistoryRef\.current\.pop\(\)\|\|null\);return true/,"Back returns to previous detail");
-assert.match(app,/if\(nestedBackRef\.current\?\.\(\)\)return true/,"Back respects nested collection and profile screens");
+const navigation=fs.readFileSync("mobile/src/navigation-core.js","utf8");
+assert.match(app,/return handleBack\(\{/);
+assert.match(navigation,/if\(settingsOpen\)\{setSettingsOpen\(false\);return true;\}/);
+assert.match(navigation,/if\(detail\)\{/,"Back must handle nested song details");
+assert.match(navigation,/setDetail\(detailHistoryRef\.current\.pop\(\)\|\|null\);return true/,"Back returns to previous detail");
+assert.match(navigation,/if\(nestedBackRef\.current\?\.\(\)\)return true/,"Back respects nested collection and profile screens");
 console.log("SHALOM Android safe-area, consistent headers and detail navigation verified.");
