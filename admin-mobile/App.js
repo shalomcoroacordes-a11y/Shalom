@@ -8,16 +8,18 @@ const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {S,C}=require("./src/styles");
-const {TITLES,FIELDS,displayTitle}=require("./src/model");
+const {TITLES}=require("./src/model");
 const {createEditorController}=require("./src/editor-controller");
-const {RESOURCES,ACTIONS,effective,canPublish,canEdit,mapped}=require("./src/permissions");
+const {effective,mapped}=require("./src/permissions");
 const {TABLES}=require("./src/config");
-const {renderLines}=require("./src/score");
-const {txt,heading,button,input,wrapChips,itemRow}=require("./src/components/Controls");
-const {Field}=require("./src/components/EditorFields");
+const {txt,button,input,wrapChips}=require("./src/components/Controls");
+const UsersScreen=require("./src/screens/UsersScreen");
+const EditorScreen=require("./src/screens/EditorScreen");
+const CatalogScreen=require("./src/screens/CatalogScreen");
+const PendingScreen=require("./src/screens/PendingScreen");
+const HomeScreen=require("./src/screens/HomeScreen");
 const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
-const {recoveryFormat}=require("./src/trash-format");
 const {createSync}=require("./src/sync");
 const {createStudioPersistence}=require("./src/studio-persistence");
 const {createUserManagement}=require("./src/user-management");
@@ -141,12 +143,12 @@ function Main(){
  }
  function begin(table,record,fromDraft){editor.begin({owner,table,record,fromDraft,lists,origin:tab});}
  function saveDraft(queue=false){return editor.save(queue);}
- function confirmRemove(record){
-  if(!effective(access,mapped(selectedType)+".delete"))return Alert.alert("Sin permiso","No puedes eliminar este contenido");
+ function confirmRemove(type,record){
+  if(!owner||!effective(access,mapped(type)+".delete"))return Alert.alert("Sin permiso","No puedes eliminar este contenido");
   Alert.alert("Eliminar contenido","Esta acción elimina datos del servidor. ¿Continuar?",[
    {text:"Cancelar",style:"cancel"},
    {text:"Eliminar",style:"destructive",onPress:async()=>{
-    try{await api.remove(selectedType,record.id||record.content_key);await reloadCatalog();setMessage("Contenido eliminado");}
+    try{await api.remove(type,record.id||record.content_key,owner);if(editorCallbacks.current.owner===owner){await reloadCatalog();setMessage("Contenido eliminado");}}
     catch(e){Alert.alert("No se pudo eliminar",e.message);}
    }}
   ]);
@@ -168,59 +170,11 @@ function Main(){
   try{await api.invite(inviteEmail.trim(),inviteRoles);setMessage("Invitación preparada para "+inviteEmail+". Comparte el correo y pide registrarse con esa dirección.");setInviteEmail("");}
   catch(e){Alert.alert("Invitación",e.message);}
  }
- function usersPanel(){
-  if(!access?.owner)return h(View,{style:S.card},txt("Solo el superadministrador puede gestionar usuarios y roles.",S.subtitle));
-  return h(View,{style:{gap:15}},
-   heading("Administradores y roles"),
-   txt("Solo tú gestionas invitaciones, permisos, suspensiones y roles. Los usuarios pueden tener varios roles.",S.subtitle),
-   button(showRoleEditor?"Cerrar nuevo rol":"+ Crear rol personalizado",()=>setShowRoleEditor(!showRoleEditor),"secondary"),
-   showRoleEditor?h(View,{style:S.card},
-    input("Nombre del rol",newRole,setNewRole),
-    input("Descripción",roleDescription,setRoleDescription),
-    txt("Permisos por apartado",S.label),
-    RESOURCES.map(([resource,label])=>h(View,{key:resource,style:{gap:8}},txt(label,S.itemTitle),
-     wrapChips(ACTIONS.map(([verb,name])=>[resource+"."+verb,name]),rolePermissions,v=>setRolePermissions(old=>old.includes(v)?old.filter(x=>x!==v):[...old,v])))),
-    button("Guardar rol",createRole)
-   ):null,
-   heading("Roles existentes"),
-   roles.map(r=>h(View,{key:r.id,style:S.card},txt(r.name,S.itemTitle),txt(r.description||"Sin descripción",S.note),txt((r.permissions||[]).join(" · "),S.caption),
-    button("Editar este rol",()=>{setEditingRole(r.id);setNewRole(r.name);setRoleDescription(r.description||"");setRolePermissions(r.permissions||[]);setShowRoleEditor(true);},"secondary"))),
-   heading("Invitar a un administrador"),
-   input("Correo del invitado",inviteEmail,setInviteEmail,{email:true}),
-   txt("Asignar uno o varios roles",S.label),
-   wrapChips(roles.map(r=>[r.id,r.name]),inviteRoles,id=>setInviteRoles(old=>old.includes(id)?old.filter(x=>x!==id):[...old,id])),
-   button("Preparar invitación",sendInvite,null,!inviteRoles.length),
-   heading("Usuarios autorizados"),
-   profiles.map(u=>h(View,{key:u.user_id,style:S.card},
-    txt(u.display_name||u.email||u.user_id,S.itemTitle),txt(u.email||"",S.itemSub),
-    txt(blockedUsers.some(b=>b.user_id===u.user_id)?"ACCESO BLOQUEADO":"Roles activos",blockedUsers.some(b=>b.user_id===u.user_id)?S.error:S.caption),
-    wrapChips(roles.map(r=>[r.id,r.name]),assigned[u.user_id]||[],async id=>{
-     try{await users.toggleRole(owner,u.user_id,id);}catch(e){Alert.alert("Error",e.message);}
-    }),
-    button(overrideUser===u.user_id?"Ocultar permisos individuales":"Permisos individuales",()=>setOverrideUser(overrideUser===u.user_id?null:u.user_id),"secondary"),
-    overrideUser===u.user_id?h(View,{style:{gap:12}},txt("Permiso individual: ✓ permitir, ✕ denegar, · heredar del rol",S.note),
-      RESOURCES.map(([resource,label])=>h(View,{key:resource,style:{gap:5}},txt(label,S.itemTitle),
-        wrapChips(ACTIONS.map(([verb,name])=>{const key=resource+"."+verb;const val=(overrides[u.user_id]||{})[key];return [key,name+" "+(val===true?"✓":val===false?"✕":"·")];}),
-        Object.entries(overrides[u.user_id]||{}).filter(([_,value])=>value===true).map(([key])=>key),
-        key=>updateOverride(u.user_id,key))
-      ))):null,
-    h(View,{style:S.row},button("Bloquear acceso",()=>Alert.alert("Bloquear administrador","Sus permisos dejarán de funcionar al consultar el servidor.",[
-      {text:"Cancelar"},{text:"Bloquear",style:"destructive",onPress:async()=>{try{await api.blockUser(u.user_id,"Revocado por propietario");await loadUsers();}catch(e){Alert.alert("Error",e.message);}}}
-    ]),"danger"),button("Restaurar",async()=>{try{await api.unblockUser(u.user_id);await loadUsers();}catch(e){Alert.alert("Error",e.message);}},"secondary")))
-   ),
-   heading("Papelera de cantos"),
-   txt("Conserva el canto eliminado con sus enlaces, capos y relaciones para poder restaurarlo.",S.note),
-   trash.filter(t=>t.item_type==="song").map(t=>{
-    const format=recoveryFormat(t);
-    return h(View,{key:t.id,style:S.card},
-     txt(t.item_name||"Canto eliminado",S.itemTitle),txt("Eliminado el "+String(t.deleted_at||"").slice(0,10),S.itemSub),
-     format==="native"?button("Restaurar canto",()=>Alert.alert("Restaurar canto","Se recuperará el canto con sus relaciones guardadas si los artistas y categorías todavía existen.",[
-      {text:"Cancelar"},{text:"Restaurar",onPress:async()=>{try{const restored=await api.restoreSong(t.id);if(restored!==true)throw Error("No se confirmó la restauración del canto.");await loadUsers();await reloadCatalog();setMessage("Canto restaurado de la papelera.");}catch(e){Alert.alert("No se pudo restaurar",e.message);}}}
-     ]),"secondary"):txt(format==="web"?"Respaldo del administrador web. Restáuralo desde Respaldo en SHALOM Admin web.":"Formato de respaldo no reconocido. Conserva esta copia y revisa su contenido antes de restaurar.",S.note));
-   }),
-   !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
-  );
- }
+ async function toggleRole(userId,id){try{await users.toggleRole(owner,userId,id);}catch(e){Alert.alert("Error",e.message);}}
+ async function blockUser(userId){try{await api.blockUser(userId,"Revocado por propietario");await loadUsers();}catch(e){Alert.alert("Error",e.message);}}
+ async function unblockUser(userId){try{await api.unblockUser(userId);await loadUsers();}catch(e){Alert.alert("Error",e.message);}}
+ async function restoreSong(id){try{const restored=await api.restoreSong(id);if(restored!==true)throw Error("No se confirmó la restauración del canto.");await loadUsers();await reloadCatalog();setMessage("Canto restaurado de la papelera.");}catch(e){Alert.alert("No se pudo restaurar",e.message);}}
+ function usersPanel(){return h(UsersScreen,{access,showRoleEditor,setShowRoleEditor,newRole,setNewRole,roleDescription,setRoleDescription,rolePermissions,setRolePermissions,createRole,roles,setEditingRole,inviteEmail,setInviteEmail,inviteRoles,setInviteRoles,sendInvite,profiles,blockedUsers,assigned,onToggleRole:toggleRole,overrideUser,setOverrideUser,overrides,updateOverride,onBlock:blockUser,onUnblock:unblockUser,trash,onRestore:restoreSong});}
  function studioSong(saved){return {id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at};}
  const studioContext=useRef(null);
  studioContext.current={owner,tab,selectedType,id:editing?.id,lyrics:form?.lyrics,revision:(lists.songs||[]).find(s=>s.id===editing?.id)?.updated_at};
@@ -257,74 +211,13 @@ function Main(){
   return false;
  }
  useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType]);
- function editorPanel(){
-  if(!form)return null;
-  const specs=FIELDS[selectedType]||[];
-  const song=selectedType==="songs";
-  const available= song && section==="Datos"?specs.filter(x=>!["lyrics","links","capos"].includes(x[0])):
-    song&&section==="Letra"?specs.filter(x=>x[0]==="lyrics"):
-    song&&section==="Capos"?specs.filter(x=>x[0]==="capos"):
-    song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:specs;
-  const update=(key,v)=>editor.update(key,v);
-  return h(View,{style:{gap:14}},
-   h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",adminBack,"secondary")),
-   song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):null,
-   section==="Vista previa"&&song?h(View,{style:S.preview},
-    txt(form.title||"Canto sin título",S.section),
-    txt("TONO "+(form.tone||"—")+" · CAPO "+(form.capo_position||0),S.caption),
-    h(ScrollView,{horizontal:true,nestedScrollEnabled:true,showsHorizontalScrollIndicator:true,
-      contentContainerStyle:{paddingVertical:8,minWidth:"100%"}},
-      h(View,{style:{gap:2}},renderLines(form.lyrics).map((r,i)=>h(Text,{key:"line"+i,
-       style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
-        {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
-   ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists,createId:localId}))),
-   song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión"):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&(studioStatus.arrangement||studioStatus.draft)?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
-   h(View,{style:S.divider}),
-   h(View,{style:{gap:9}},button(editorSaving?"Guardando…":"Guardar borrador local",()=>saveDraft(false),"secondary",editorSaving),
-    button("Enviar a publicación",()=>saveDraft(true),null,editorSaving||(!canPublish(access,selectedType)&&!offline))),
-   txt("Sin internet se guarda localmente. La publicación se confirma solo después de verificar sesión y permisos en Supabase.",S.note)
-  );
- }
- function catalogPanel(type){
-  const rows=(lists[type]||[]).filter(x=>displayTitle(type,x).toLowerCase().includes(search.toLowerCase()));
-  return h(View,{style:{gap:13}},
-   h(View,{style:S.apart},heading(TITLES[type]),type==="contact_messages"?null:button("+ Nuevo",()=>begin(type),null,!canEdit(access,type)&&!offline)),
-   input("Buscar "+TITLES[type],search,setSearch),
-   rows.map(r=>h(View,{key:String(r.id||r.content_key),style:S.item},
-    itemRow(displayTitle(type,r),(r.tone?"Tono "+r.tone:"")+(r.song_type?" · "+r.song_type:""),()=>begin(type,r)),
-    !!access&&effective(access,mapped(type)+".delete")?button("Eliminar",()=>confirmRemove(r),"danger"):null
-   )),
-   !rows.length&&txt("No hay registros descargados. Conéctate y pulsa Actualizar para consultar el catálogo.",S.note)
-  );
- }
- function pendingPanel(){
-  return h(View,{style:{gap:14}},heading("Guardados en este teléfono"),
-   txt("Los borradores no salen de tu dispositivo hasta que pulses Enviar a publicación. La cola se reintenta con internet.",S.subtitle),
-   button(busy?"Sincronizando...":"Sincronizar pendientes",sendQueue,null,busy||offline),
-   drafts.map(d=>h(View,{key:d.id,style:S.card},
-    h(View,{style:S.apart},txt(displayTitle(d.type,d.body),S.itemTitle),txt(d.status.toUpperCase(),{color:d.status==="conflict"?C.danger:C.green,fontSize:10,fontWeight:"800"})),
-    txt(TITLES[d.type]||d.type,S.itemSub),d.error?txt(d.error,S.error):null,
-    h(View,{style:S.row},
-     button("Editar",()=>begin(d.type,null,d),"secondary"),
-     button(d.status==="queued"?"Volver a borrador":"Enviar",async()=>{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(!changed)setMessage("El borrador cambió. Revisa la versión actual.");},"secondary"),
-     button("Borrar",()=>Alert.alert("Eliminar borrador local","No podrás recuperar los cambios sin publicar.",[
-      {text:"Cancelar"},{text:"Eliminar",style:"destructive",onPress:async()=>{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}}
-     ]),"danger")))),
-   !drafts.length&&txt("No hay borradores pendientes.",S.note)
-  );
- }
- function homePanel(){
-  return h(View,{style:{gap:15}},
-   txt("HOLA, ADMINISTRACIÓN",S.kicker),txt("Bienvenido a SHALOM",S.title),
-   txt("Un mismo cancionero para la página y las apps. Adminístralo desde cualquier lugar.",S.subtitle),
-   h(View,{style:S.row},...[["Cantos",(lists.songs||[]).length],["Artistas",(lists.artists||[]).length],["Pendientes",drafts.length]].map(([label,value])=>h(View,{key:label,style:S.metric},txt(value,S.metricNumber),txt(label,S.caption)))),
-   h(View,{style:S.card},txt("Continuar trabajando",S.section),txt("Crea, corrige o publica incluso si no tienes conexión.",S.note),button("+ Crear canto",()=>begin("songs"))),
-   h(View,{style:S.card},txt("Misa y repertorios",S.section),txt("Prepara las celebraciones y ensayos de SHALOM.",S.note),button("Administrar repertorios",()=>{setSelectedType("repertoires");setTab("Catálogo");},"secondary")),
-   button(busy?"Actualizando...":"↻ Actualizar y sincronizar",refresh,"secondary",busy||offline),
-   txt("Sesión: "+(session?.email||"")+(access?.owner?" · Superadministrador":""),S.note),
-   button("Cerrar sesión",logout,"secondary")
-  );
- }
+ function editorPanel(){return h(EditorScreen,{form,selectedType,section,update:editor.update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio,editorSaving,saveDraft,access,offline});}
+ function catalogPanel(type){return h(CatalogScreen,{type,lists,search,setSearch,begin,access,offline,confirmRemove});}
+ async function transitionPending(d){try{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(!changed)setMessage("El borrador cambió. Revisa la versión actual.");}catch(e){Alert.alert("No se pudo actualizar",e.message);}}
+ async function deletePending(d){try{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}catch(e){Alert.alert("No se pudo borrar",e.message);}}
+ function openRepertoires(){setSelectedType("repertoires");setTab("Catálogo");}
+ function pendingPanel(){return h(PendingScreen,{busy,offline,sendQueue,drafts,begin,onTransition:transitionPending,onDelete:deletePending});}
+ function homePanel(){return h(HomeScreen,{lists,drafts,begin,onRepertoires:openRepertoires,busy,refresh,offline,session,access,logout});}
  if(boot)return h(View,{style:{flex:1,backgroundColor:C.bg,justifyContent:"center",alignItems:"center"}},h(ActivityIndicator,{color:C.green}),txt("Preparando SHALOM Admin...",S.subtitle));
  if(!session)return h(SafeAreaView,{style:S.screen,edges:["top","bottom"]},h(Login,{onSuccess:hydrate}));
  return h(SafeAreaView,{style:S.screen,edges:["top"]},

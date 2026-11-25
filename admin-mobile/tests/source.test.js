@@ -6,7 +6,9 @@ const pkg=JSON.parse(fs.readFileSync("app.json","utf8"));
 assert.equal(pkg.expo.android.package,"com.shalomcoroacordes.admin");
 assert.notEqual(pkg.expo.android.package,"com.shalomcoroacordes.cancionero");
 for(const section of ["Inicio","Cantos","Catálogo","Pendientes","Usuarios"])assert.ok(app.includes(section));
-for(const section of ["Capos","Enlaces","Vista previa"])assert.ok(app.includes(section));
+const editorScreen=fs.readFileSync("src/screens/EditorScreen.js","utf8");
+const usersScreen=fs.readFileSync("src/screens/UsersScreen.js","utf8");
+for(const section of ["Capos","Enlaces","Vista previa"])assert.ok(editorScreen.includes(section));
 const users=fs.readFileSync("src/user-management.js","utf8");
 assert.match(app,/users\.toggleRole/);
 assert.match(users,/api\.assignUserRoles/);
@@ -46,7 +48,7 @@ assert.doesNotMatch(styles,/position:"absolute",bottom:7/,"Prohibido solapar bar
 assert.match(styles,/minHeight:53/,"Objetivos táctiles grandes");
 const editorFields=fs.readFileSync("src/components/EditorFields.js","utf8");
 assert.match(editorFields,/categoryChoices/);
-assert.match(app,/h\(Field,\{key:spec\[0\],spec,form,onChange:update,lists,createId:localId\}\)/);
+assert.match(editorScreen,/h\(Field,\{key:spec\[0\],spec,form,onChange:update,lists,createId:localId\}\)/);
 assert.doesNotMatch(app,/function (?:Field|CompositeEditor|NestedEditor)\(/);
 assert.match(picker,/filterChoices/);
 assert.match(picker,/selectedNames/);
@@ -58,7 +60,10 @@ assert.ok(Number.isInteger(pkg.expo.android.versionCode)&&pkg.expo.android.versi
 assert.equal(pkg.expo.version,JSON.parse(fs.readFileSync("package.json","utf8")).version,"Versiones de Expo y npm coherentes");
 console.log("Navegación segura, selectores y editor amplio comprobados.");
 
-assert.match(app,/const format=recoveryFormat\(t\)/);
-assert.match(app,/format==="native"\?button\("Restaurar canto"/);
+assert.match(usersScreen,/const format=recoveryFormat\(t\)/);
+assert.match(usersScreen,/format==="native"\?button\("Restaurar canto"/);
 assert.match(app,/if\(restored!==true\)throw Error/);
-assert.match(app,/Respaldo del administrador web/);
+assert.match(usersScreen,/Respaldo del administrador web/);
+
+for(const name of ["HomeScreen","CatalogScreen","EditorScreen","PendingScreen","UsersScreen"])assert.match(app,new RegExp("require\\(\\\"./src/screens/"+name+"\\\"\\)"));
+assert.match(app,/api\.remove\(type,record\.id\|\|record\.content_key,owner\)/);

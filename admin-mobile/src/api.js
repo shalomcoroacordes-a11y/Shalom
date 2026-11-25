@@ -74,10 +74,10 @@ function createApi(fetcher,auth){
   if(!Array.isArray(created)||created.length!==1)throw Error("El servidor no confirmó la creación.");
   return created[0];
  }
- async function remove(table,id){
-  if(table==="songs")return raw("/rest/v1/rpc/admin_delete_song","POST",{p_song_id:id});
+ async function remove(table,id,owner){
+  if(table==="songs")return raw("/rest/v1/rpc/admin_delete_song","POST",{p_song_id:id},undefined,owner);
   const column=ID_FIELDS[table]||"id";
-  return raw("/rest/v1/"+quote(table)+"?"+column+"=eq."+quote(id),"DELETE",undefined,"return=representation");
+  return raw("/rest/v1/"+quote(table)+"?"+column+"=eq."+quote(id),"DELETE",undefined,"return=representation",owner);
  }
  async function myAccess(owner){return raw("/rest/v1/rpc/admin_my_access","POST",{},undefined,owner);}
  async function redeem(){return raw("/rest/v1/rpc/admin_redeem_invite","POST",{});}
