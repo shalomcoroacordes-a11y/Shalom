@@ -59,9 +59,11 @@ assert.match(app,/tab==="Respaldo"\?h\(PersonalBackupScreen/,"Backup is accessib
 const profileMenu=fs.readFileSync("src/profile-options-menu.js","utf8");
 assert.match(profileMenu,/Respaldo y restauración/,"Backup appears in the native profile options");
 assert.match(profileMenu,/onRequestClose:onDismiss/,"Android Back closes the menu without leaving the profile");
-assert.match(app,/savePersonal\(prev,\{quiet:true\}\)/,"Undo restores previous collection state");
-assert.match(app,/saveProfile\(prev,\{quiet:true\}\)/,"Undo restores previous profile state");
-assert.match(app,/setFavoritesLocal\(prev\)/,"Undo restores the previous favorites");
+const edits=fs.readFileSync("src/personal-edit-controller.js","utf8");
+assert.match(app,/createPersonalEditController\(\{/);
+assert.match(edits,/savePersonal\(previous,\{quiet:true\}\)/,"Undo restores previous collection state");
+assert.match(edits,/saveProfile\(previous,\{quiet:true\}\)/,"Undo restores previous profile state");
+assert.match(edits,/setFavoritesLocal\(previous\)/,"Undo restores the previous favorites");
 assert.match(app,/showLocalNotice/,"Use unobtrusive notice instead of modal saved alert");
 assert.match(notice,/Deshacer/,"Visible action for reversing the latest change");
 assert.match(actions,/if\(outcome\?\.already\)Alert/,"Still report harmless duplicates");

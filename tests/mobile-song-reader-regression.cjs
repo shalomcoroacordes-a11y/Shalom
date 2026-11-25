@@ -13,7 +13,8 @@ assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.lyricL
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/Courier New/, "The same browser font is used as public web/admin");
 assert.ok(reader.includes("toggleLike(song.id)"),"The song reader must allow local likes");
 assert.ok(!/Editar|Reportar letra|Corregir acordes|requestForm\(/.test(reader),"No editor or correction requests inside the reader");
-assert.match(app,/setMetadata\(FAVORITES_KEY,payload\)/,"Likes must be written to local metadata");
+assert.match(app,/write:setMetadata/,"Likes must be written to local metadata");
+assert.match(fs.readFileSync("mobile/src/personal-edit-controller.js","utf8"),/key:FAVORITES_KEY/);
 assert.match(app,/getMetadataBatch\(\{[^\n]*\[FAVORITES_KEY\]:"\[\]"/,"Likes must be restored locally on startup");
 assert.match(app,/likedRaw=prefs\[FAVORITES_KEY\]/);
 assert.match(app,/setOnlyLiked\(value==="liked"\)/,"Users need to filter their liked songs");
