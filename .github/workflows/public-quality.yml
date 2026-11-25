@@ -206,6 +206,9 @@ jobs:
       - name: Test explicit reading mode and preferences lifecycle
         run: node tests/song-reading-lifecycle.cjs
 
+      - name: Test shared Studio collection stylesheet
+        run: node tests/studio-collection-styles.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
