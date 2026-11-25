@@ -71,3 +71,9 @@ assert.equal(selectDetailRecords(numeric,{type:"song",id:"12"}).active,undefined
 const appSource=require("node:fs").readFileSync("App.js","utf8");
 assert.ok(appSource.includes("selectDetailRecords(model,detail)"));
 assert.ok(appSource.includes("selectActionSong(model,actionSongId)"));
+
+let reads=0;
+const previewModel={songs:Array.from({length:1000},(_,i)=>({id:String(i),get title(){reads++;return "Canto "+i},lyrics:"Gloria",_artists:[],_categories:[]}))};
+assert.equal(searchHomeSongs(previewModel,"Gloria",6).length,6);assert.equal(reads,6,"Stop after filling the six preview matches");
+assert.deepEqual(searchHomeSongs(previewModel,"Gloria",0),[]);assert.equal(reads,6);
+assert.equal(searchHomeSongs(previewModel,"Gloria",-1).length,999,"Preserve slice semantics");

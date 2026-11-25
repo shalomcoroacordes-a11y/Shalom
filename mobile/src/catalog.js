@@ -43,41 +43,57 @@ function buildCatalog(data={}) {
   const path=ancestors(category),top=path[0]||category;
   return [typeLabel(top?.song_type),...path.map(x=>x.name||"Carpeta")].join(" › ");
  }
+ // Build adjacency once; the visited set also protects malformed cyclic folders.
+ const hierarchy=new Map();
+ for(const item of categories.values()){
+  const parent=String(item.parent_id);
+  if(!hierarchy.has(parent))hierarchy.set(parent,[]);
+  hierarchy.get(parent).push(String(item.id));
+ }
  function descendants(id) {
-  const included=new Set([String(id)]);
-  let change=true;
-  while(change) {
-   change=false;
-   for(const item of categories.values()) {
-    if(included.has(String(item.parent_id))&&!included.has(String(item.id))) {
-     included.add(String(item.id));change=true;
-    }
+  const included=new Set([String(id)]),queue=[String(id)];
+  for(let cursor=0;cursor<queue.length;cursor++){
+   for(const child of hierarchy.get(queue[cursor])||[]){
+    if(!included.has(child)){included.add(child);queue.push(child);}
    }
   }
   return included;
  }
  const artistRows=[...artists.values()].sort(byTitle);
- const categoryRows=[...categories.values()].sort((a,b)=>
-  categoryPath(a).localeCompare(categoryPath(b),"es"));
+ const paths=new Map([...categories.values()].map(category=>[category,categoryPath(category)]));
+ const categoryRows=[...categories.values()].sort((a,b)=>paths.get(a).localeCompare(paths.get(b),"es"));
  const albumRows=[...albums.values()].sort(byTitle);
  const medleys=(data.medleys||[]).filter(x=>x.is_published===true&&Array.isArray(x.parts)).sort(byTitle);
  const repertoires=(data.repertoires||[]).filter(x=>x.is_published===true&&Array.isArray(x.items))
   .sort((a,b)=>String(a.event_date||"9999").localeCompare(String(b.event_date||"9999"))||byTitle(a,b));
- function songsForArtist(id) {
-  return songs.filter(song=>song._artists.some(a=>String(a.id)===String(id)));
+ // Index sorted songs by relation so a card count no longer scans the library.
+ function relationIndex(key){
+  const map=new Map();
+  for(const song of songs)for(const id of new Set(song[key].map(row=>String(row.id)))){
+   if(!map.has(id))map.set(id,[]);
+   map.get(id).push(song);
+  }
+  return map;
  }
- function songsForCategory(id) {
-  const ids=descendants(id);
-  return songs.filter(song=>song._categories.some(a=>ids.has(String(a.id))));
+ const byArtist=relationIndex("_artists"),byAlbum=relationIndex("_albums"),byCategory=relationIndex("_categories");
+ const rank=new Map(songs.map((song,i)=>[song,i]));
+ const childIndex=new Map();
+ for(const category of categoryRows){
+  const parent=String(category.parent_id||"");
+  if(!childIndex.has(parent))childIndex.set(parent,[]);
+  childIndex.get(parent).push(category);
  }
- function songsForAlbum(id) {
-  return songs.filter(song=>song._albums.some(a=>String(a.id)===String(id)));
+ for(const rows of childIndex.values())rows.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||byTitle(a,b));
+ function songsForArtist(id){return [...(byArtist.get(String(id))||[])];}
+ function songsForAlbum(id){return [...(byAlbum.get(String(id))||[])];}
+ function songsForCategory(id){
+  const matches=new Set();
+  for(const category of descendants(id))for(const song of byCategory.get(category)||[])matches.add(song);
+  return [...matches].sort((a,b)=>rank.get(a)-rank.get(b));
  }
- function children(parentId,type) {
-  return categoryRows.filter(category=>
-   String(category.parent_id||"")===String(parentId||"")&&
-   (!type||(normalize(category.song_type)||"general")===normalize(type))
-  ).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||byTitle(a,b));
+ function children(parentId,type){
+  const rows=childIndex.get(String(parentId||""))||[];
+  return type?rows.filter(category=>(normalize(category.song_type)||"general")===normalize(type)):[...rows];
  }
  return {songs,artists:artistRows,categories:categoryRows,albums:albumRows,medleys,repertoires,
   artistMap:artists,categoryMap:categories,albumMap:albums,
