@@ -45,8 +45,8 @@ assert.ok(saveStart>=0&&saveEnd>saveStart);
 function publicationFixture({edit=true, response, networkError, pending}={}){
  const state={user:{id:"owner"},draft:{title:"Canto",tone:"G",lyrics:"G\\nLetra",main_artist_id:"a1",collaborators:["a1","a2"],category_ids:["c1","c2","c1"],album_id:"al",capo_position:"2",capo_key:"F"},links:[{url:"https://example.test"}],capos:[{capo_position:3,capo_key:"E"}],edits:{song:edit?"s":null},songEdit:{id:edit?"s":null,expected:edit?"original":null},songSaving:false};
  const calls=[],notes=[],refreshes=[];
- const context={AP:state,apId:x=>String(x||""),apSlug:x=>String(x).toLowerCase(),apCaptureSongDraft(){},apNote:(...args)=>notes.push(args),crypto:{randomUUID:()=>"new-id"},apResetDraft(){state.draft=null;state.songEdit=null;},apRefresh:async x=>refreshes.push(x),AdminPro:{async rpc(name,args){calls.push({name,args});if(pending)await pending;if(networkError)throw networkError;return response||{data:{id:args.p_song.id,updated_at:"confirmed"}};}}};
- vm.createContext(context);vm.runInContext(source.slice(saveStart,saveEnd),context);
+ const context={window:{},AP:state,apId:x=>String(x||""),apSlug:x=>String(x).toLowerCase(),apCaptureSongDraft(){},apNote:(...args)=>notes.push(args),crypto:{randomUUID:()=>"new-id"},apResetDraft(){state.draft=null;state.songEdit=null;},apRefresh:async x=>refreshes.push(x),AdminPro:{async rpc(name,args){calls.push({name,args});if(pending)await pending;if(networkError)throw networkError;return response||{data:{id:args.p_song.id,updated_at:"confirmed"}};}}};
+ vm.createContext(context);vm.runInContext(fs.readFileSync("admin-song-publication.js","utf8"),context);vm.runInContext(source.slice(saveStart,saveEnd),context);
  return {state,calls,notes,refreshes,run:()=>context.apSaveSong({preventDefault(){}})};
 }
 (async()=>{

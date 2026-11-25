@@ -110,3 +110,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Preparación de borradores de cantos (Admin web)
 
 `admin-song-draft.js` contiene las funciones puras `fromSong` y `capture`, que preparan el borrador, revisión original, relaciones, enlaces y capos, y fusionan valores del formulario sin cambiar la selección múltiple de categorías. `admin-pro.js` conserva los eventos, el estado AP y la publicación transaccional. No hay escritura de datos en el módulo nuevo. `tests/admin-song-draft.cjs` y la regresión de publicación verifican el contrato y la preservación de los cambios.
+
+## Preparación de publicaciones de cantos (Admin web)
+
+`admin-song-publication.js` contiene la validación de campos y la construcción pura del contrato `admin_publish_song`. No ejecuta solicitudes ni altera los borradores. `admin-pro.js` conserva la sesión autorizada, el identificador idempotente, la revisión original, el control de concurrencia, la llamada RPC y la confirmación de guardado. `tests/admin-song-publication.cjs` comprueba el contrato completo y `tests/admin-save-regression.cjs` mantiene la cobertura de errores, conflictos y cambios posteriores.

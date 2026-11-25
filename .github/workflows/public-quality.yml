@@ -159,6 +159,9 @@ jobs:
       - name: Test pure admin song draft preparation and capture
         run: node tests/admin-song-draft.cjs
 
+      - name: Test pure admin publication validation and RPC payload
+        run: node tests/admin-song-publication.cjs
+
       - name: Verify legacy admin cleanup and active dependencies
         run: node tests/legacy-admin-cleanup-regression.cjs
 
