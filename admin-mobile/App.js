@@ -2,7 +2,7 @@
 const React=require("react");
 const {useState,useEffect,useRef}=React;
 const RN=require("react-native");
-const {View,Text,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
+const {View,Text,Pressable,ScrollView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
@@ -12,7 +12,7 @@ const {TITLES,FIELDS,initial,fromServer,draftRecord,displayTitle}=require("./src
 const {RESOURCES,ACTIONS,effective,canPublish,canEdit,mapped}=require("./src/permissions");
 const {TABLES}=require("./src/config");
 const {renderLines}=require("./src/score");
-const {txt,heading,button,chip,input,wrapChips,itemRow}=require("./src/components/Controls");
+const {txt,heading,button,input,wrapChips,itemRow}=require("./src/components/Controls");
 const {Field}=require("./src/components/EditorFields");
 const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");

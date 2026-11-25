@@ -11,7 +11,7 @@ const {syncAll,networkState}=require("./src/sync");
 const {parseSong,transposeOne}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {clampReaderFont}=require("./src/score-zoom");
-const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog");
+const {buildCatalog,normalize,names,safeWebUrl}=require("./src/catalog");
 const {sendRequest}=require("./src/requests");
 const RequestScreen=require("./src/request-screen-ui");
 const SettingsScreen=require("./src/settings-screen-ui");
@@ -30,12 +30,11 @@ const {addToPersonal}=require("./src/song-actions-core");
 const {songPermalink,createSongReaderActions}=require("./src/song-reader-actions");
 const {capoSelection}=require("./src/song-capo-core");
 const Print=require("expo-print");
-const {ProfileScreen,ACTION_LABEL}=require("./src/profile-ui");
+const {ProfileScreen}=require("./src/profile-ui");
 const {PROFILE_KEY,defaults:profileDefaults,parseProfile}=require("./src/profile-core");
 const {InitialCover}=require("./src/visual-ui");
 const {CoverArt}=require("./src/personal-cover-ui");
-const {LibraryHero,LibrarySearch,LibraryChipRow,LibrarySongRow,FavoriteSongCard,LibraryArtistCard}=require("./src/library-ui");
-const {LinearGradient}=require("expo-linear-gradient");
+const {LibraryHero,LibrarySearch,LibraryChipRow,LibrarySongRow,LibraryArtistCard}=require("./src/library-ui");
 const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
 const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
@@ -393,7 +392,6 @@ function AppScreen() {
  function renderHome(){
   const term=normalize(homeSearch.trim());
   const found=homeMatches;
-  const likes=favorites;
   const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
   function goBanner(){
    switch(profile.bannerAction){
@@ -656,7 +654,6 @@ function AppScreen() {
    ["otras","Otras","calendar"]
   ];
   const visible=filterRepertoires(model.repertoires,repertoireFilter,query);
-  const iconFor=kind=>kind==="misa"?"mass":kind==="ensayo"?"artists":"calendar";
   return h(View,{style:S.repPage},
    h(View,{style:S.repHeading},
     h(View,{style:{flex:1,minWidth:0}},
@@ -678,7 +675,6 @@ function AppScreen() {
     accessibilityLabel:"Buscar repertorios",autoCorrect:false}):null,
    h(View,{style:S.repCards},
     ...visible.map(rep=>{
-     const code=repertoireType(rep);
      const count=Array.isArray(rep.items)?rep.items.length:0;
      return h(Pressable,{key:rep.id,onPress:()=>selectRepertoire(rep),
       accessibilityRole:"button",accessibilityLabel:(rep.title||"Repertorio")+", "+count+" cantos",

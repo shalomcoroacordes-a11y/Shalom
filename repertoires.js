@@ -3,7 +3,7 @@
  const db=window.supabaseClient,R=window.ShalomRepertoires;
  const $=id=>document.getElementById(id);
  const esc=R.html;
- let rows=[],current=null,songs=new Map(),position=0,loading=false;
+ let rows=[],current=null,songs=new Map(),loading=false;
  const typeName=kind=>kind==="misa"?"Misa":"Ensayo";
  const friendlyDate=v=>R.formatDate(v);
  const menu=$("menuToggle"),nav=$("navMenu");
@@ -36,7 +36,7 @@
   }
  }
  function reader(rep){
-  current=rep;position=0;
+  current=rep;
   $("repCatalog").hidden=true;$("repReader").hidden=false;
   $("repReaderKind").textContent=typeName(rep.kind);
   $("repReaderTitle").textContent=rep.title;
