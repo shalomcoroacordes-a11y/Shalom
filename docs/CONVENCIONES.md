@@ -75,3 +75,5 @@ El reloj de reproducción de Studio pertenece a `studio-core.js`: `playbackSpeed
 ### Aplicación pública
 
 `mobile/src/library-selectors.js` es responsable de resolver filtros, búsqueda y registros abiertos del catálogo; `mobile/src/studio-queue.js` decide la posición de la cola de práctica sin modificar el estado anterior. `mobile/App.js` conserva los hooks, navegación y presentación. Los selectores deben conservar la diferencia existente entre identificadores estrictos de detalles y equivalencia textual en acciones de canto. No cambiar el modelo de almacenamiento ni rutas al extraer estas funciones.
+
+`mobile/src/song-reader-actions.js` concentra las acciones de compartir, imprimir, comprobar disponibilidad offline y abrir video del lector público. Recibe servicios nativos y el estado actual desde `mobile/App.js`; no posee hooks ni modifica catálogo o almacenamiento. `song-print.js` sigue siendo el único responsable del HTML de impresión. Las acciones se prueban con servicios simulados y conservan los mensajes y rutas existentes.
