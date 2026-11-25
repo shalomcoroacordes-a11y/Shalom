@@ -130,3 +130,7 @@ El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interf
 ## Duración y sincronización de Studio
 
 `studio-core.js` centraliza las opciones de duración, conversión exacta de pulsos, cambios de resonancia, desplazamiento de acordes, rangos de escucha y sugerencias de fragmentos. Se conserva la protección de la entrada de sección, confirmación previa a cambios de tiempo, invalidación de fragmentos al desplazar acordes y validación por compilación antes de sustituir el arreglo. El guardado manual de rangos conserva su implementación previa. Ambas salidas nativas se sincronizan y la caché Offline pasa a v25. Pruebas de equivalencia y roundtrip del formato existente.
+
+## Seguridad al deshacer cambios en Studio
+
+Los snapshots de tiempo y rasgueo usan `undoSnapshot` y `canUndo` del núcleo musical. Antes, deshacer tiempo restauraba todo el arreglo aun tras cambios posteriores. Ahora ambas operaciones requieren coincidencia con la huella canónica de la revisión que produjo el cambio; una huella inválida no permite restaurar. Se reinician ambas memorias al generar otro arreglo y se actualizan los controles al editar fragmentos, resonancia, ritmo y tempo. No es un historial multinivel: se conserva un snapshot por tipo y solo se habilita si es seguro. El cambio detiene la reproducción al restaurar tiempo. No se modifican los arreglos persistidos. Caché v26 y copias nativas sincronizadas; pendiente verificación integral.
