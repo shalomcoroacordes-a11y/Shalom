@@ -86,7 +86,7 @@
     enhance(document.getElementById("songMainArtist"));
   }
 
-  new MutationObserver(run).observe(document.documentElement, { childList: true, subtree: true });
+  window.ShalomAdminMainArtistSearch = { mount: run };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run, { once: true });
   else run();
 })();

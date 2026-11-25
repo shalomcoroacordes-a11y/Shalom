@@ -164,6 +164,9 @@ jobs:
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
 
+      - name: Test explicit artist search lifecycle
+        run: node tests/admin-artist-search-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

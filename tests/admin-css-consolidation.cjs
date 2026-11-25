@@ -59,7 +59,7 @@ const extractedStyles=[
     "file": "admin-main-artist-search.js",
     "marker": "/* ===== Admin main artist search ===== */",
     "hash": 1903675381,
-    "version": 4
+    "version": 5
   },
   {
     "file": "admin-artist-profile-storage.js",
