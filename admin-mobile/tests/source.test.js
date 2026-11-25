@@ -20,7 +20,10 @@ assert.match(app,/admin_permission_overrides/);
 assert.match(app,/setPermissionOverride/);
 assert.match(app,/donation_settings/);
 
-assert.match(app,/featured_song_ids/);
+const model=fs.readFileSync("src/model.js","utf8");
+assert.match(model,/featured_song_ids/);
+assert.match(app,/fromServer\(table,record,lists\)/);
+assert.match(app,/store\.upsertDraft\(owner,draftRecord\(selectedType,form,editing,queue\)\)/);
 assert.match(app,/requestRecovery/);
 
 assert.match(fs.readFileSync("../sql/SHALOM_ADMIN_DONATIONS_RBAC_20261121.sql","utf8"),/donation_settings/);
