@@ -192,6 +192,9 @@ jobs:
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
 
+      - name: Test per-song admin editor cursor and scroll lifecycle
+        run: node tests/admin-editor-position.cjs
+
       - name: Test explicit artist search lifecycle
         run: node tests/admin-artist-search-lifecycle.cjs
 

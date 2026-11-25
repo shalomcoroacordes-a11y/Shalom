@@ -102,3 +102,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Retiro del intérprete histórico y equivalencia musical
 
 `details.js` no tiene consumidores activos y se retira; su historial permanece en Git. El lector web utiliza `song-chords.js`, mientras las aplicaciones conservan las salidas generadas desde `native-chords.js`. `tests/chord-engine-parity.cjs` convierte el HTML web a filas semánticas y compara con el motor nativo para 20 ejemplos y 25 desplazamientos, incluidos espacios, secciones, acordes con bajo, formato mixto y caracteres HTML. Esta prueba comprueba equivalencia en las muestras, no una fusión de motores ni medición visual. También rechaza referencias al módulo retirado en archivos de código y configuración versionados.
+
+## Posición del editor de cantos (Admin web)
+
+`admin-editor-position.js` administra exclusivamente el cursor y desplazamiento horizontal/vertical por canto durante la sesión. Conserva la clave `shalom-admin-editor-positions-v1` y la estructura anterior; no guarda letras ni escribe en Supabase. `admin-pro.js` mantiene la propiedad de los eventos y del ciclo de montaje, y limpia únicamente la posición del borrador nuevo al reiniciarlo. El servicio tolera almacenamiento bloqueado o corrupto y conserva el estado en memoria. La prueba `tests/admin-editor-position.cjs` verifica restauración, límites del cursor y compatibilidad con registros anteriores.

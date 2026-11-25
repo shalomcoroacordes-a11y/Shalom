@@ -26,39 +26,13 @@ const AP = {
   capos: []
 };
 
-// La edición recuerda su altura y posición del cursor al cambiar de sección.
-const AP_EDITOR_POSITION_KEY = "shalom-admin-editor-positions-v1";
-const apEditorPositions = (() => {
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(AP_EDITOR_POSITION_KEY) || "{}");
-    return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  } catch { return {}; }
-})();
-function apPersistEditorPositions() {
-  try { sessionStorage.setItem(AP_EDITOR_POSITION_KEY, JSON.stringify(apEditorPositions)); } catch {}
-}
+// La edición conserva el cursor y desplazamiento de cada canto durante la sesión.
+const apEditorPosition = window.ShalomAdminEditorPosition.create(() => sessionStorage);
 function apRememberEditorPosition() {
-  const editor = ap$("#songLyricsField");
-  const key = editor?.dataset.scrollSong;
-  if (!editor || !key) return;
-  apEditorPositions[key] = {
-    top: editor.scrollTop,
-    left: editor.scrollLeft,
-    start: editor.selectionStart,
-    end: editor.selectionEnd
-  };
-  apPersistEditorPositions();
+  apEditorPosition.remember(ap$("#songLyricsField"));
 }
 function apRestoreEditorPosition() {
-  const editor = ap$("#songLyricsField");
-  if (!editor) return;
-  const saved = apEditorPositions[editor.dataset.scrollSong];
-  if (!saved) return;
-  const start = Math.min(editor.value.length, Math.max(0, Number(saved.start) || 0));
-  const end = Math.min(editor.value.length, Math.max(start, Number(saved.end) || start));
-  editor.setSelectionRange(start, end);
-  editor.scrollTop = Number(saved.top) || 0;
-  editor.scrollLeft = Number(saved.left) || 0;
+  apEditorPosition.restore(ap$("#songLyricsField"));
 }
 
 function apNote(text, bad = false) {
@@ -125,7 +99,7 @@ function apResetDraft(song) {
   };
   AP.links = links.map((row, index) => ({ title: row.title || "", link_type: row.link_type || "Tutorial", platform: row.platform || "", url: row.url || "", sort_order: index }));
   AP.capos = capos.map((row, index) => ({ label: row.label || "", capo_position: Number(row.capo_position || 0), capo_key: row.capo_key || "", sort_order: index }));
-  if (!song) { delete apEditorPositions.__new__; apPersistEditorPositions(); }
+  if (!song) apEditorPosition.clear("__new__");
 }
 function apCaptureSongDraft() {
   const form = ap$("#songAdminForm");
