@@ -68,3 +68,5 @@ SHALOM tiene tres partes conectadas:
 Este documento es el **punto de partida**: no afirma que la reorganización ya esté hecha.
 
 El perfil público se carga únicamente mediante `artist-page.js`; biografía, enlaces sociales (incluido el respaldo histórico), destacados y catálogo paginado pertenecen a ese módulo. Los antiguos complementos de perfil ya no forman parte del repositorio.
+
+Motor musical nativo: `native-chords.js` es la fuente; `scripts/build-native-chords.js` genera `mobile/src/chords.js` y `admin-mobile/src/chords.js`. Cada APK conserva su módulo local. La verificación compara ambas salidas byte por byte con la fuente y el encabezado generado.
