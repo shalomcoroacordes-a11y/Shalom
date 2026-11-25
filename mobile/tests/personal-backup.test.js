@@ -77,3 +77,7 @@ assert.match(io,/file\.base64\(\)/,"Photo binary data is included, not just path
 assert.match(io,/await dest\.write\(image\.base64,\{encoding:"base64"\}\)/,"Photos restored from encoded binary");
 assert.doesNotMatch(io,/fetch\(|supabase\.|https?:/i,"No photo is uploaded to a remote API");
 console.log("SHALOM v0.4.2 personal backup, images, validation, undo notices and native flows verified.");
+
+assert.match(app,/commitMetadata:setMetadataBatch/,"Personal restore uses local batch storage");
+assert.match(fs.readFileSync("src/personal-backup-controller.js","utf8"),/await commitMetadata\(metadataFor\(next\)\)/,"Personal restore commits one batch");
+assert.match(app,/getMetadataBatch\(\{wifi_only:/,"Startup reads one reconciled preference snapshot");

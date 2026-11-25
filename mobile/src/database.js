@@ -1,6 +1,7 @@
 // SHALOM: SQLite en datos privados Android y respaldo en Archivos privados.
 const {TABLES}=require("./config");
 const backup=require("./file-storage");
+const {REVISION_KEY,validRevisions,mergePreferences,updatePreferences}=require("./preference-core");
 let SQLite=null;
 let nativeError=null;
 try{SQLite=require("expo-sqlite")}
@@ -109,29 +110,49 @@ async function writeCatalog(data){
  if(!fileSaved&&!sqlSaved)throw new Error("No se pudo guardar el cancionero: "+errors.join(" / "));
  return syncedAt;
 }
-async function getMetadata(key,fallback=null){
- try{
-  const db=await openDb(),row=await db.getFirstAsync("SELECT meta_value FROM metadata WHERE meta_key=?",key);
-  if(row?.meta_value!=null)return row.meta_value;
- }catch(_){}
- return backup.getPreference(key,fallback);
+// Read all user preferences from a single SQLite snapshot; never mix the catalog timestamp.
+async function sqlitePreferences(){
+ const db=await openDb();
+ const rows=await db.getAllAsync("SELECT meta_key,meta_value FROM metadata WHERE meta_key <> 'last_sync'");
+ const data=Object.fromEntries(rows.filter(row=>row.meta_key!==REVISION_KEY).map(row=>[row.meta_key,row.meta_value]));
+ const raw=rows.find(row=>row.meta_key===REVISION_KEY)?.meta_value;
+ let revisions={};
+ if(raw){revisions=JSON.parse(raw);if(!validRevisions(data,revisions))throw Error("Revisiones SQLite incorrectas");}
+ return {data,revisions};
 }
-// Preserve the order of writes from independent profile/likes/collection UI queues.
+async function readMetadata(){
+ const empty={data:{},revisions:{}};
+ const [native,file]=await Promise.allSettled([sqlitePreferences(),backup.readPreferences()]);
+ if(native.status==="rejected"&&file.status==="rejected")throw Error("No se pudieron leer las preferencias");
+ return mergePreferences(native.status==="fulfilled"?native.value:empty,file.status==="fulfilled"?file.value:empty);
+}
+async function getMetadataBatch(fallbacks){
+ const {data}=await readMetadata();
+ return Object.fromEntries(Object.entries(fallbacks).map(([key,fallback])=>[key,Object.hasOwn(data,key)?data[key]:fallback]));
+}
+async function getMetadata(key,fallback=null){
+ return (await getMetadataBatch({[key]:fallback}))[key];
+}
 let metadataWrites=Promise.resolve();
-function setMetadata(key,value){
- const task=metadataWrites.then(()=>writeMetadata(key,value));
+function setMetadataBatch(changes){
+ const task=metadataWrites.then(()=>writeMetadata(changes));
  metadataWrites=task.catch(()=>{});
  return task;
 }
-async function writeMetadata(key,value){
+function setMetadata(key,value){return setMetadataBatch({[key]:value});}
+async function writeMetadata(changes){
+ const next=updatePreferences(await readMetadata(),changes);
  let okay=false,lastError=null;
  try{
   const db=await openDb();
-  await db.runAsync("INSERT INTO metadata(meta_key,meta_value) VALUES(?,?) "+
-   "ON CONFLICT(meta_key) DO UPDATE SET meta_value=excluded.meta_value",key,String(value));
+  await db.withExclusiveTransactionAsync(async tx=>{
+   for(const [key,value] of Object.entries({...next.data,[REVISION_KEY]:JSON.stringify(next.revisions)})){
+    await tx.runAsync("INSERT INTO metadata(meta_key,meta_value) VALUES(?,?) ON CONFLICT(meta_key) DO UPDATE SET meta_value=excluded.meta_value",key,value);
+   }
+  });
   okay=true;
  }catch(err){lastError=err}
- try{await backup.setPreference(key,value);okay=true}catch(err){lastError=lastError||err}
- if(!okay)throw lastError||new Error("No se pudo guardar la preferencia");
+ try{await backup.savePreferences(next);okay=true}catch(err){lastError=lastError||err}
+ if(!okay)throw lastError||new Error("No se pudieron guardar las preferencias");
 }
-module.exports={openDb,getCatalog,commitCatalog,getMetadata,setMetadata};
+module.exports={openDb,getCatalog,commitCatalog,getMetadata,getMetadataBatch,setMetadata,setMetadataBatch};

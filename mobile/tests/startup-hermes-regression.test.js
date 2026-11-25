@@ -24,6 +24,7 @@ const sandbox={
  require(name){
   if(name==="expo-file-system")return {File:MockFile,Paths:{document:"private"}};
   if(name==="./config")return metadata;
+  if(name==="./preference-core")return require("../src/preference-core");
   throw Error("Unexpected import: "+name);
  },
  Date,Math,JSON,String,Number,Set,Object,Array
