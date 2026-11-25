@@ -8,7 +8,8 @@
   let messages = [];
   let filter = "pendiente";
   let query = "";
-  let open = false;
+  let mounted = null;
+  const isCurrent = (section) => Boolean(section && section === mounted && $("#adminMessagesContent") === section && $("#adminMessagesTab")?.classList.contains("active"));
 
   const missingTable = (error) => /contact_messages|relation|schema cache|PGRST205/i.test(String(error?.message || error?.code || ""));
   const statusLabels = { pendiente: "Pendiente", revisado: "Revisado", resuelto: "Resuelto", descartado: "Descartado" };
@@ -25,7 +26,7 @@
     if (!db) throw new Error("No hay conexión con Supabase.");
     const { data, error } = await db.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(200);
     if (error) throw error;
-    messages = data || [];
+    return data || [];
   }
 
   function filteredRows() {
@@ -44,36 +45,41 @@
   }
 
   function render() {
-    const view = $("#adminView");
-    const tab = $("#adminMessagesTab");
-    if (!view || !tab) return;
-    document.querySelectorAll(".admin-tab").forEach((button) => button.classList.remove("active"));
-    tab.classList.add("active");
+    const view = mounted;
+    if (!isCurrent(view)) return;
     const rows = filteredRows();
     const pending = messages.filter((row) => (row.status || "pendiente") === "pendiente").length;
-    view.innerHTML = `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Bandeja</p><h2>Mensajes recibidos</h2></div><p class="admin-count">${pending} pendientes</p></div><div class="admin-filter-row"><input class="admin-filter-input" id="messagesSearch" type="search" value="${esc(query)}" placeholder="Buscar por canto, artista, mensaje o contacto"><select id="messagesStatus"><option value="pendiente" ${filter === "pendiente" ? "selected" : ""}>Pendientes</option><option value="revisado" ${filter === "revisado" ? "selected" : ""}>Revisados</option><option value="resuelto" ${filter === "resuelto" ? "selected" : ""}>Resueltos</option><option value="descartado" ${filter === "descartado" ? "selected" : ""}>Descartados</option><option value="todos" ${filter === "todos" ? "selected" : ""}>Todos</option></select><button class="song-btn small-btn secondary" id="messagesRefresh" type="button">Actualizar</button></div><div class="admin-list">${rows.length ? rows.map(renderCard).join("") : `<div class="admin-empty">No hay mensajes con este filtro.</div>`}</div><p class="admin-message" id="messagesAdminStatus" aria-live="polite"></p></section>`;
+    view.innerHTML = `<div class="admin-section-heading"><div><p class="hero-kicker">Bandeja</p><h2>Mensajes recibidos</h2></div><p class="admin-count">${pending} pendientes</p></div><div class="admin-filter-row"><input class="admin-filter-input" id="messagesSearch" type="search" value="${esc(query)}" placeholder="Buscar por canto, artista, mensaje o contacto"><select id="messagesStatus"><option value="pendiente" ${filter === "pendiente" ? "selected" : ""}>Pendientes</option><option value="revisado" ${filter === "revisado" ? "selected" : ""}>Revisados</option><option value="resuelto" ${filter === "resuelto" ? "selected" : ""}>Resueltos</option><option value="descartado" ${filter === "descartado" ? "selected" : ""}>Descartados</option><option value="todos" ${filter === "todos" ? "selected" : ""}>Todos</option></select><button class="song-btn small-btn secondary" id="messagesRefresh" type="button">Actualizar</button></div><div class="admin-list">${rows.length ? rows.map(renderCard).join("") : `<div class="admin-empty">No hay mensajes con este filtro.</div>`}</div><p class="admin-message" id="messagesAdminStatus" aria-live="polite"></p>`;
     bind();
   }
 
   async function updateMessage(id, patch, message) {
+    const section = mounted;
     const { error } = await db.from("contact_messages").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+    if (!isCurrent(section)) return;
     if (error) {
       note(`Error: ${error.message}`, true);
       return;
     }
-    await load();
+    const rows = await load();
+    if (!isCurrent(section)) return;
+    messages = rows;
     render();
     note(message || "Mensaje actualizado.");
   }
 
   async function removeMessage(id) {
     if (!confirm("¿Eliminar este mensaje?")) return;
+    const section = mounted;
     const { error } = await db.from("contact_messages").delete().eq("id", id);
+    if (!isCurrent(section)) return;
     if (error) {
       note(`Error: ${error.message}`, true);
       return;
     }
-    await load();
+    const rows = await load();
+    if (!isCurrent(section)) return;
+    messages = rows;
     render();
     note("Mensaje eliminado.");
   }
@@ -81,7 +87,7 @@
   function bind() {
     $("#messagesSearch")?.addEventListener("input", (event) => { query = event.target.value; render(); });
     $("#messagesStatus")?.addEventListener("change", (event) => { filter = event.target.value; render(); });
-    $("#messagesRefresh")?.addEventListener("click", openInbox);
+    $("#messagesRefresh")?.addEventListener("click", () => mount($("#adminView")));
     $$('[data-status-message]').forEach((button) => button.addEventListener("click", () => updateMessage(button.dataset.statusMessage, { status: button.dataset.status }, "Estado actualizado.")));
     $$('[data-save-note]').forEach((button) => button.addEventListener("click", () => {
       const id = button.dataset.saveNote;
@@ -90,38 +96,22 @@
     $$('[data-delete-message]').forEach((button) => button.addEventListener("click", () => removeMessage(button.dataset.deleteMessage)));
   }
 
-  async function openInbox() {
-    open = true;
-    const view = $("#adminView");
-    const tab = $("#adminMessagesTab");
-    if (!view || !tab) return;
-    document.querySelectorAll(".admin-tab").forEach((button) => button.classList.remove("active"));
-    tab.classList.add("active");
-    view.innerHTML = `<section class="admin-section"><div class="admin-card"><p class="admin-note">Cargando mensajes…</p></div></section>`;
+  async function mount(view) {
+    if (!view) return;
+    view.innerHTML = '<section class="admin-section" id="adminMessagesContent"><div class="admin-card"><p class="admin-note">Cargando mensajes…</p></div></section>';
+    const section = view.querySelector("#adminMessagesContent");
+    mounted = section;
     try {
-      await load();
-      if (open) render();
+      const rows = await load();
+      if (!isCurrent(section)) return;
+      messages = rows;
+      render();
     } catch (error) {
+      if (!isCurrent(section)) return;
       const msg = missingTable(error) ? "Falta ejecutar supabase-contact-messages.sql en Supabase." : (error.message || "No se pudieron cargar los mensajes.");
-      view.innerHTML = `<section class="admin-section"><div class="admin-card"><h3>No se pudieron cargar los mensajes</h3><p class="admin-note">${esc(msg)}</p></div></section>`;
+      section.innerHTML = `<div class="admin-card"><h3>No se pudieron cargar los mensajes</h3><p class="admin-note">${esc(msg)}</p></div>`;
     }
   }
 
-  function attach() {
-    const workspace = $("#adminWorkspace");
-    const tabs = workspace?.querySelector(".admin-tabs");
-    if (!tabs || $("#adminMessagesTab")) return;
-    const button = document.createElement("button");
-    button.id = "adminMessagesTab";
-    button.className = "admin-tab";
-    button.type = "button";
-    button.textContent = "Mensajes";
-    button.addEventListener("click", openInbox);
-    tabs.append(button);
-    tabs.querySelectorAll("[data-admin-tab]").forEach((tab) => tab.addEventListener("click", () => { open = false; }));
-  }
-
-  const observer = new MutationObserver(attach);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  attach();
+  window.ShalomAdminMessages = { mount };
 })();

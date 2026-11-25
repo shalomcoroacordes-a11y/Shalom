@@ -173,6 +173,9 @@ jobs:
       - name: Test explicit donations lifecycle
         run: node tests/admin-donations-lifecycle.cjs
 
+      - name: Test explicit messages lifecycle
+        run: node tests/admin-messages-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
