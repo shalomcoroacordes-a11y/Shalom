@@ -26,6 +26,7 @@ const LocalNotice=require("./src/local-notice");
 const PersonalBackupScreen=require("./src/personal-backup-ui");
 const ProfileOptionsMenu=require("./src/profile-options-menu");
 const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./src/personal-backup-io");
+const {createPersonalBackupController}=require("./src/personal-backup-controller");
 const {addToPersonal}=require("./src/song-actions-core");
 const {songPermalink,createSongReaderActions}=require("./src/song-reader-actions");
 const {capoSelection}=require("./src/song-capo-core");
@@ -76,6 +77,8 @@ function AppScreen() {
  const [tab,setTab]=useState("Inicio");
  const [detail,setDetail]=useState(null);
  const [lastRead,setLastRead]=useState(null);
+ const lastReadRef=useRef(lastRead);
+ lastReadRef.current=lastRead;
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [immersive,setImmersive]=useState(false);
  const isReader=detail?.type==="song"||detail?.type==="medley"||detail?.type==="repertoire";
@@ -163,7 +166,7 @@ function AppScreen() {
   setPersonalFilter(options.personalKind||null);
  }else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setSongLibraryOpen(next==="Canciones"&&Boolean(options.search||options.liked||options.openLibrary));setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
  function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
- function rememberRead(next){setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
+ function rememberRead(next){lastReadRef.current=next;setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  function personalTotals(value){
   const groups=value?.collections||[];
   return {folders:groups.length,entries:groups.reduce((n,c)=>n+c.entries.length,0)};
@@ -217,36 +220,21 @@ function AppScreen() {
   showLocalNotice(next.includes(String(songId))?"Agregado a Mis me gusta":"Quitado de Mis me gusta",
    ()=>setFavoritesLocal(prev));
  }
- async function exportMyPersonalBackup(){
-  await Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]);
-  return exportPersonalBackup({
-   profile:profileRef.current,personal:personalRef.current,
-   likedIds:likedRef.current,lastRead
-  });
- }
- async function restoreMyPersonalBackup(parsed){
-  await Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]);
-  const staged=await stageRestoredPhotos(parsed);
-  const next=staged.data;
-  try{
-   await setMetadataBatch({
-    [PERSONAL_KEY]:JSON.stringify(next.personal),
-    [PROFILE_KEY]:JSON.stringify(next.profile),
-    [FAVORITES_KEY]:JSON.stringify(next.likedIds),
-    last_read:next.lastRead?JSON.stringify(next.lastRead):""
-   });
-  }catch(err){
-   // Both backends rejected the batch. Preserve staged photos conservatively:
-   // an I/O verification failure might still have left a recoverable reference.
-   throw new Error("No se pudo confirmar la restauración. Conserva tu respaldo y vuelve a intentarlo: "+err.message);
+ const backupControllerRef=useRef(null);
+ if(!backupControllerRef.current)backupControllerRef.current=createPersonalBackupController({
+  waitForWrites:()=>Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]),
+  readCurrent:()=>({profile:profileRef.current,personal:personalRef.current,likedIds:likedRef.current,lastRead:lastReadRef.current}),
+  exportFile:exportPersonalBackup,stagePhotos:stageRestoredPhotos,commitMetadata:setMetadataBatch,
+  applyRestored:next=>{
+   clearLocalNotice();
+   personalRef.current=next.personal;profileRef.current=next.profile;
+   likedRef.current=next.likedIds;
+   setPersonal(next.personal);setProfile(next.profile);setLikedIds(next.likedIds);
+   lastReadRef.current=next.lastRead;setLastRead(next.lastRead);
+   showLocalNotice("Respaldo personal restaurado");
   }
-  clearLocalNotice();
-  personalRef.current=next.personal;profileRef.current=next.profile;
-  likedRef.current=next.likedIds;
-  setPersonal(next.personal);setProfile(next.profile);setLikedIds(next.likedIds);
-  setLastRead(next.lastRead);
-  showLocalNotice("Respaldo personal restaurado");
- }
+ });
+ const {exportBackup:exportMyPersonalBackup,restoreBackup:restoreMyPersonalBackup}=backupControllerRef.current;
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
  function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
  function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}

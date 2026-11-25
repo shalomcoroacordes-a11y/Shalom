@@ -24,7 +24,8 @@ const shared=fs.readFileSync("src/app-components.js","utf8");
 const profile=fs.readFileSync("src/profile-ui.js","utf8");
 const cover=fs.readFileSync("src/collection-covers.js","utf8");
 assert.match(app,/h\(ProfileScreen,/,"Perfil como quinta sección");
-assert.match(app,/getMetadata\(PROFILE_KEY,""\)/,"Leer perfil local al iniciar");
+assert.match(app,/getMetadataBatch\(\{[^\n]*\[PROFILE_KEY\]:""/,"Leer perfil local al iniciar");
+assert.match(app,/profileRaw=prefs\[PROFILE_KEY\]/);
 assert.match(app,/setMetadata\(PROFILE_KEY,JSON\.stringify\(clean\)\)/,"Guardar perfil privado");
 assert.match(app,/onPress:\(\)=>tab==="Perfil"\?openProfileMenu\(\)/,"Opciones de perfil en tres puntos");
 assert.match(app,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,
