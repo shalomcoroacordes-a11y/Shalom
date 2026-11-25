@@ -197,6 +197,9 @@ jobs:
       - name: Test song feedback rendering
         run: node tests/song-feedback-rendering.cjs
 
+      - name: Test direct song overview rendering
+        run: node tests/song-overview-rendering.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
