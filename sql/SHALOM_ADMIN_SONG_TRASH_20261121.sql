@@ -1,7 +1,7 @@
 -- Papelera restaurable de cantos, transacciones completas y control del propietario.
 -- Requiere supabase-studio-arrangements.sql. Validar en una base aislada antes de desplegar.
 begin;
-create or replace function public.admin_delete_song(p_song_id uuid)
+create or replace function public.admin_delete_song_complete(p_song_id uuid)
 returns boolean language plpgsql security definer set search_path=''
 as $$
 declare backup jsonb;
@@ -37,6 +37,12 @@ begin
  return true;
 end;
 $$;
+-- Existing Android versions retain their RPC contract; new web clients require
+-- the complete endpoint explicitly and never fall back to the old deployment.
+create or replace function public.admin_delete_song(p_song_id uuid)
+returns boolean language sql security invoker set search_path=''
+as $ select public.admin_delete_song_complete(p_song_id); $;
+
 create or replace function public.admin_restore_song(p_trash_id uuid)
 returns boolean language plpgsql security definer set search_path=''
 as $$
@@ -81,8 +87,10 @@ begin
  return true;
 end;
 $$;
+revoke all on function public.admin_delete_song_complete(uuid) from public,anon;
 revoke all on function public.admin_delete_song(uuid) from public,anon;
 revoke all on function public.admin_restore_song(uuid) from public,anon;
+grant execute on function public.admin_delete_song_complete(uuid) to authenticated;
 grant execute on function public.admin_delete_song(uuid) to authenticated;
 grant execute on function public.admin_restore_song(uuid) to authenticated;
 
