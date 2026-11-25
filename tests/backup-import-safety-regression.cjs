@@ -34,3 +34,33 @@ context.renderBackupView(view);
 assert.equal(view.innerHTML,"<p>Backup</p>");
 assert.deepEqual(actions,["jhdDownloadBackup:click","jhdRefreshTrash:click","import","trash"]);
 console.log("Backup view: explicit importer mount, controls and trash loading verified without database writes.");
+
+const coreWindow={};
+const downloads=[];
+const anchor={click(){downloads.push("click")},remove(){downloads.push("remove")}};
+vm.runInNewContext(fs.readFileSync("admin-backup-core.js","utf8"),{window:coreWindow,Blob:class {constructor(parts,options){downloads.push({parts,options})}},URL:{createObjectURL(){return "blob:test"},revokeObjectURL(url){downloads.push(url)}},document:{createElement(){return anchor},body:{append(a){assert.equal(a,anchor)}}}});
+const core=coreWindow.ShalomAdminBackupCore;
+const html=fs.readFileSync("admin.html","utf8");
+for(const name of ["admin-backup.js","admin-backup-import.js"])assert.ok(html.indexOf('src="admin-backup-core.js')<html.indexOf('src="'+name));
+const row=Object.freeze({id:42,created_at:"old",updated_at:"old",artists:[],artist:{},album:{},albums:[],category:{},categories:[],_private:true,title:"Canto",lyrics:"Letra",sort_order:0,optional:null});
+const expected={id:42,title:"Canto",lyrics:"Letra",sort_order:0,optional:null};
+assert.equal(JSON.stringify(core.cleanRow(row)),JSON.stringify(expected));
+const {id,...relation}=expected;
+assert.equal(JSON.stringify(core.cleanRow(row,false)),JSON.stringify(relation));
+assert.equal(JSON.stringify(core.cleanRow(null)),"{}");
+assert.match(source,/const cleanRow = \(row\) => sanitizeRow\(row, true\)/);
+assert.match(source,/rows\.map\(cleanRow\)/);
+core.downloadJson({format:"SHALOM backup",version:1},"backup.json");
+assert.equal(anchor.download,"backup.json");assert.equal(anchor.href,"blob:test");assert.equal(downloads[0].parts[0],JSON.stringify({format:"SHALOM backup",version:1},null,2));assert.equal(downloads[0].options.type,"application/json;charset=utf-8");assert.equal(downloads.slice(1).join(","),"click,remove,blob:test");
+async function sharedPagination(){
+ const calls=[],records=Array.from({length:1000},(_,id)=>({id}));
+ const db={from(table){assert.equal(table,"songs");return {select(fields){assert.equal(fields,"*");return {async range(first,last){calls.push([first,last]);return {data:records.slice(first,last+1)}}}}}}};
+ assert.equal(JSON.stringify(await core.selectAll(db,"songs")),JSON.stringify(records));
+ assert.deepEqual(calls,[[0,499],[500,999],[1000,1499]]);
+ const denied={message:"Sin permiso"};
+ const failed={from(){return {select(){return {async range(){return {error:denied}}}}}}};
+ await assert.rejects(core.selectAll(failed,"songs"),error=>error===denied);
+ await assert.rejects(core.selectAll(failed,"songs",(error,table)=>new Error(table+": "+error.message)),/songs: Sin permiso/);
+ console.log("Backup core: row sanitation, download format, pagination and legacy errors verified.");
+}
+sharedPagination().catch(error=>{console.error(error);process.exitCode=1});
