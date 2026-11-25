@@ -32,11 +32,14 @@ function createEditorController({store,createId,apply,alert,onSaved,onBusy,notic
    }
    reset();
    apply({form:null,editing:null,section:"Datos",tab:"Pendientes"});
-   await onSaved(snapshot.owner,queue);
+   // A failed refresh cannot turn a durable local write into a failed save.
+   const completed=sequence;
+   try{await onSaved(snapshot.owner,queue);}catch(error){
+    if(sequence===completed)notice("Borrador guardado. No se pudo actualizar la lista: "+error.message);
+   }
    return true;
   }catch(error){
    if(current?.token===snapshot.token)alert("No se pudo guardar",error.message);
-   else notice("No se pudo completar la actualización de borradores: "+error.message);
    return false;
   }finally{saving=false;onBusy(false);}
  }
