@@ -27,16 +27,50 @@ async function status(owner,id,value,error){
  const db=await database();
  await db.runAsync("UPDATE drafts SET status=?,error=?,touched=? WHERE owner=? AND id=?",value,error||null,now(),owner,id);
 }
-async function cacheList(owner,type,items){
+// Keep the existing database and owner namespaces; derive the real identity
+// of junction rows instead of serializing undefined as their shared ID.
+function catalogIdentity(type,row){
+ const values=type==="artist_featured_songs"?[row?.artist_id,row?.song_id]:[row?.id||row?.content_key];
+ if(values.some(x=>typeof x!=="string"||!x))throw Error("Registro sin identificador en "+type);
+ return values.length===1?values[0]:JSON.stringify(values);
+}
+function prepareCatalog(owner,type,items){
+ if(!owner||!type||!Array.isArray(items))throw Error("Catálogo local inválido");
+ const ids=new Set(),fetched=now();
+ return items.map(row=>{
+  const id=catalogIdentity(type,row);
+  if(ids.has(id))throw Error("Registro duplicado en "+type);
+  ids.add(id);
+  return [owner,type,id,JSON.stringify(row),fetched];
+ });
+}
+async function writeCatalog(owner,entries){
+ const prepared=entries.map(([type,items])=>[type,prepareCatalog(owner,type,items)]);
  const db=await database();
  await db.withExclusiveTransactionAsync(async tx=>{
-  await tx.runAsync("DELETE FROM catalog WHERE owner=? AND type=?",owner,type);
-  for(const x of items)await tx.runAsync("INSERT INTO catalog(owner,type,id,body,fetched) VALUES(?,?,?,?,?)",owner,type,String(x.id||x.content_key),JSON.stringify(x),now());
+  for(const [type,rows] of prepared){
+   await tx.runAsync("DELETE FROM catalog WHERE owner=? AND type=?",owner,type);
+   for(const row of rows)await tx.runAsync("INSERT INTO catalog(owner,type,id,body,fetched) VALUES(?,?,?,?,?)",...row);
+  }
  });
+}
+async function cacheList(owner,type,items){
+ return writeCatalog(owner,[[type,items]]);
+}
+async function cacheCatalog(owner,data,types){
+ return writeCatalog(owner,types.map(type=>[type,data[type]]));
+}
+async function readCatalog(owner,types){
+ const result=Object.fromEntries(types.map(type=>[type,[]]));
+ if(!types.length)return result;
+ const db=await database();
+ const rows=await db.getAllAsync("SELECT type,body FROM catalog WHERE owner=? AND type IN ("+types.map(()=>"?").join(",")+")",owner,...types);
+ for(const row of rows)result[row.type].push(JSON.parse(row.body));
+ return result;
 }
 async function cachedList(owner,type){
  const db=await database();
  const rows=await db.getAllAsync("SELECT body FROM catalog WHERE owner=? AND type=?",owner,type);
  return rows.map(x=>JSON.parse(x.body));
 }
-module.exports={upsertDraft,listDrafts,dropDraft,status,cacheList,cachedList};
+module.exports={upsertDraft,listDrafts,dropDraft,status,cacheList,cachedList,cacheCatalog,readCatalog};

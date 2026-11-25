@@ -65,7 +65,7 @@ function Main(){
   setSession(s);setBoot(false);
   if(!s)return;
   const d=await store.listDrafts(s.user_id);setDrafts(d);
-  const cached={};for(const t of TABLES)cached[t]=await store.cachedList(s.user_id,t);setLists(cached);
+  const cached=await sync.snapshot(s.user_id);setLists(cached);
   if(await network()){
    try{const a=await api.myAccess();if(!a?.authorized)throw Error("Sin permisos de administración");
     setAccess(a);setOffline(false);
@@ -91,7 +91,7 @@ function Main(){
   if(!id)return;
   const r=await sync.pull(id);
   if(r?.offline){setOffline(true);return;}
-  const o={};for(const t of TABLES)o[t]=await sync.catalog(id,t);
+  const o=await sync.snapshot(id);
   setLists(o);setOffline(false);
  }
  async function loadUsers(a=access){
