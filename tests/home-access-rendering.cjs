@@ -4,13 +4,13 @@ assert.doesNotMatch(src,/MutationObserver/);assert.doesNotMatch(html,/home-acces
 for(const path of ["home-access-control.js","admin-artist-links.js","category-counts.js"])assert.equal(fs.existsSync(path),false);
 assert.match(fs.readFileSync("admin-artist-profile-storage.js","utf8"),/artist_featured_songs/);
 assert.match(fs.readFileSync("categorias.js","utf8"),/Number\(item\.song_count \|\| 0\)/);
-const a=src.indexOf("  const contentType ="),z=src.indexOf("  function renderArtistCard(",a);
+const a=src.indexOf("  const { sectionFor } ="),z=src.indexOf("  function renderArtistCard(",a);
 assert.ok(a>=0&&z>a);
 let section=null,insertions=0;
 const hero={insertAdjacentElement(position,value){assert.equal(position,"afterend");section=value;insertions++}};
 const document={querySelector:q=>q===".hero"?hero:null,getElementById:id=>id==="homeFaithAccess"?section:null,createElement(){return {dataset:{},remove(){section=null}}}};
 const esc=s=>String(s||"").replaceAll("&","&amp;").replaceAll("<","&lt;"),normalize=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-const context={document,esc,normalize};vm.createContext(context);vm.runInContext(src.slice(a,z),context);
+const context={document,esc,normalize,window:{ShalomHomeRecommendations:require("../home-recommendation-core.js")}};vm.createContext(context);vm.runInContext(src.slice(a,z),context);
 const categories=[{id:"root",name:"Católica",song_type:"catolico"},{id:"a",name:"Misa",slug:"misa",song_type:"catolico",parent_id:"root"},{id:"b",name:"Comunión",song_type:"catolico",parent_id:"a"},{id:"c",name:"Alabanza",song_type:"cristiano"}];
 const links=[{category_id:"a",song_id:"s"},{category_id:"b",song_id:"s"},{category_id:"b",song_id:"t"}];
 context.renderFaithAccess(categories,links);assert.equal(section.dataset.homeAccessConfigured,"automatic");assert.match(section.innerHTML,/Misa<\/strong><small>2 cantos/);assert.match(section.innerHTML,/categoria=misa/);assert.doesNotMatch(section.innerHTML,/>Católica<\/strong>/);

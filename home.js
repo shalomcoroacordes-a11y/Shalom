@@ -168,13 +168,7 @@
     });
   }
 
-  const contentType = (value) => {
-    const type = normalize(value);
-    if (type.includes("catolic")) return "catolico";
-    if (type.includes("cristian")) return "cristiano";
-    if (type.includes("mixto")) return "mixto";
-    return "general";
-  };
+  const { sectionFor } = window.ShalomHomeRecommendations;
 
   function rootsForType(categories, type) {
     const typed = (categories || []).filter((category) => normalize(category.song_type) === type);
@@ -236,10 +230,6 @@
       artistNamesBySong.get(id).push(row.artists.name);
     });
     const resolve = entry => entry.target_type === "song" ? songById.get(String(entry.target_id)) : categoryById.get(String(entry.target_id));
-    const sectionFor = (entry, item) => {
-      const type = contentType(item?.song_type);
-      return type === "catolico" || type === "cristiano" ? type : (entry.section_type === "cristiano" ? "cristiano" : "catolico");
-    };
     const cardsFor = targetSection => {
       if (!recommendations.length) return rootsForType(categories, targetSection).slice(0, 8).map(category => categoryCard(category, categories, links)).join("");
       const seen = new Set();
