@@ -219,6 +219,10 @@ function apRenderView() {
     else view.innerHTML = '<p class="admin-empty">No se pudo cargar el módulo de respaldo.</p>';
     return;
   }
+  if (AP.tab === "donations" && window.ShalomAdminDonations) {
+    window.ShalomAdminDonations.mount(view);
+    return;
+  }
   if (AP.tab === "artists") view.innerHTML = apArtistsHTML();
   if (AP.tab === "categories") view.innerHTML = apCategoriesHTML();
   if (AP.tab === "albums") view.innerHTML = apAlbumsHTML();

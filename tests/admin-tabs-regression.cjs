@@ -70,3 +70,11 @@ assert.match(picker,/window\.ShalomAdminSongCategories = \{ mount: attach \}/);
 console.log("SHALOM admin: tabs, form lifecycle, category mount and search cursor respond.");
 
 assert.deepEqual(artistSearchMounts,["songs","songs"],"Artist search mounts only after rendering the song view");
+
+const donationsMounts=[];
+scope.window.ShalomAdminDonations={mount(target){assert.equal(target,view);donationsMounts.push(state.tab);target.innerHTML="<p>DONATIONS PLUS</p>";}};
+const basicBindsBefore=bound.filter(x=>x==="donations").length;
+tabs[ids.indexOf("donations")].click();
+assert.equal(view.innerHTML,"<p>DONATIONS PLUS</p>");
+assert.deepEqual(donationsMounts,["donations"]);
+assert.equal(bound.filter(x=>x==="donations").length,basicBindsBefore,"No basic donation form binding when the advanced module owns the view");
