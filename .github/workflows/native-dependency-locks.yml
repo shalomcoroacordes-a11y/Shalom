@@ -1,0 +1,66 @@
+name: SHALOM native dependency lock verification
+on:
+  pull_request:
+    paths:
+      - 'mobile/package.json'
+      - 'mobile/package-lock.json'
+      - 'admin-mobile/package.json'
+      - 'admin-mobile/package-lock.json'
+      - '.github/workflows/native-dependency-locks.yml'
+      - 'scripts/verify-native-lock.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shalom-native-locks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [mobile, admin-mobile]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Verify tracked dependency lock
+        run: |
+          set -euo pipefail
+          test -f package-lock.json
+          node ../scripts/verify-native-lock.cjs .
+          sha256sum package-lock.json > "$RUNNER_TEMP/lock.sha256"
+      - name: Install exactly the locked dependency tree
+        run: npm ci --no-audit --no-fund
+      - name: Verify Expo and existing native tests
+        run: |
+          npx --no-install expo install --check
+          npm run test:syntax
+          npm test
+          sha256sum -c "$RUNNER_TEMP/lock.sha256"
+      - name: Record dependency resolution provenance
+        run: |
+          {
+            printf 'source_commit=%s\n' "$GITHUB_SHA"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            sha256sum package.json package-lock.json
+          } > "$RUNNER_TEMP/lock-provenance.txt"
+      - name: Preserve verified lock candidate (no commit or release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM-lock-${{ matrix.app }}-${{ github.sha }}
+          path: |
+            ${{ matrix.app }}/package-lock.json
+            ${{ runner.temp }}/lock-provenance.txt
+          if-no-files-found: error
+          retention-days: 14
