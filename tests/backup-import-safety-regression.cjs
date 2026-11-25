@@ -9,7 +9,8 @@ assert.ok(start>=0&&end>start);
 const body=source.slice(start,end);
 assert.match(body,/let restorationStarted = false/);
 assert.ok(body.indexOf("await createSafetyBackup()")<body.indexOf("restorationStarted = true"));
-assert.ok(body.indexOf("restorationStarted = true")<body.indexOf("await restoreTable(table, rows)"));
+const writeIndex=body.indexOf("await restoreTable(table, rows, revisions)");
+assert.ok(writeIndex>=0&&body.indexOf("restorationStarted = true")<writeIndex);
 assert.match(body,/No se inició la restauración:/);
 assert.match(body,/No se modificó ningún registro durante este intento/);
 assert.match(body,/Algunos registros pueden haberse restaurado/);
@@ -215,3 +216,25 @@ async function studioBackupWrite(){
  console.log("Backup v2: legacy format, exact revision precision, stale exclusion and returned-revision restoration verified.");
 }
 studioBackupWrite().catch(error=>{console.error(error);process.exitCode=1});
+
+// Exercise the actual import controller: safety backup before writes, exact order,
+// no Studio publication if an intermediate operation fails, and honest notices.
+async function importControllerFlow(){
+ const catalog=backupCatalog;
+ for(const mode of ["success","cancel","backup-failure","write-failure","legacy"]){
+  const calls=[],notices=[],controls=[];
+  const payload=mode==="legacy"?{version:1,catalog:{songs:[{id:"legacy"}]}}:{version:2,catalog};
+  const selected={file:{name:"synthetic.json"},payload,total:3,studioPlan:mode==="legacy"?{current:[],stale:0}:plan};
+  const ctx={selectedBackup:selected,importBusy:false,db:{},TABLES:core.TABLES,LABELS:{},getRows:(c,t)=>c[t]||[],bindStudioRevisions:core.bindStudioRevisions,confirm:()=>mode!=="cancel",setStatus:(message,type)=>notices.push({message,type}),setControlsDisabled:x=>controls.push(x),createSafetyBackup:async()=>{calls.push("backup");if(mode==="backup-failure")throw Error("Disk failure");},restoreTable:async(table,rows,revisions)=>{calls.push(table);if(mode==="write-failure"&&table==="song_versions")throw Error("Write failure");if(table==="songs"&&revisions)for(const row of rows)revisions.set(row.id,revNew);if(table==="song_studio_arrangements"){assert.equal(rows.length,1);assert.equal(rows[0].song_revision,revNew);}return rows.length;},renderSelection(){},window:{async apRefresh(){calls.push("refresh")}}};
+  vm.createContext(ctx);vm.runInContext(source.slice(tableEnd,source.indexOf("  function bindCard(",tableEnd)),ctx);
+  await ctx.importBackup();assert.equal(ctx.importBusy,false);
+  if(mode==="cancel"){assert.equal(calls.length,0);continue;}
+  assert.deepEqual(controls,[true,false]);assert.equal(calls[0],"backup");
+  if(mode==="backup-failure"){assert.deepEqual(calls,["backup"]);assert.match(notices.at(-1).message,/No se modificó ningún registro/);}
+  else if(mode==="write-failure"){assert.deepEqual(calls,["backup","songs","song_versions"]);assert.match(notices.at(-1).message,/Algunos registros pueden haberse restaurado/);assert.equal(ctx.selectedBackup,selected);}
+  else if(mode==="legacy"){assert.deepEqual(calls,["backup","songs","refresh"]);assert.equal(ctx.selectedBackup,null);}
+  else{assert.deepEqual(calls,["backup","songs","song_versions","song_studio_arrangements","refresh"]);assert.match(notices.at(-1).message,/1 arreglos antiguos/);assert.equal(ctx.selectedBackup,null);}
+ }
+ console.log("Backup controller: full sequence, preflight failure, intermediate failure, cancellation and legacy compatibility verified.");
+}
+importControllerFlow().catch(error=>{console.error(error);process.exitCode=1});
