@@ -188,6 +188,9 @@ jobs:
       - name: Test explicit public pages lifecycle
         run: node tests/admin-public-pages-lifecycle.cjs
 
+      - name: Test explicit song versions lifecycle
+        run: node tests/admin-song-versions-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

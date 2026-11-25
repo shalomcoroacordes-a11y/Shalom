@@ -13,12 +13,23 @@
   let versions = [];
   let searchText = "";
   let targetSongId = "";
+  let mountedForm = null;
+  let generation = 0;
+  let requestSequence = 0;
+  let loading = false;
+  let loaded = false;
+  let loadError = "";
 
   function isEditingSong() {
     return Boolean($("#songAdminForm") && $("[data-cancel-song]"));
   }
 
   function clearState() {
+    generation++;
+    requestSequence++;
+    loading = false;
+    loaded = false;
+    loadError = "";
     editingSongId = "";
     songs = [];
     versions = [];
@@ -88,7 +99,7 @@
   }
 
   function insertBox(html) {
-    const form = $("#songAdminForm");
+    const form = mountedForm;
     if (!form) return;
     const target = form.querySelector(".admin-resource-grid");
     if (!target) return;
@@ -99,11 +110,10 @@
   }
 
   function inject() {
-    const form = $("#songAdminForm");
-    if (!form) return;
+    const form = mountedForm;
+    if (!form || form !== $("#songAdminForm")) return;
     const existing = $("#songVersionsAdmin");
-    if (!isEditingSong()) {
-      clearState();
+    if (!editingSongId || !isEditingSong()) {
       if (existing?.dataset.mode === "new") return;
       existing?.remove();
       insertBox(`<div class="admin-resource-draft" id="songVersionsAdmin" data-mode="new"><h4>Otras versiones de la canción</h4><p class="admin-note">Primero guarda la canción. Después podrás relacionarla con versiones de otros artistas o arreglos.</p></div>`);
@@ -113,24 +123,46 @@
     if (existing?.dataset.editingSong === String(editingSongId)) return;
     existing?.remove();
     insertBox(panelHTML());
+    if (loadError) status(loadError, true);
+    else if (loading) status("Cargando versiones…");
+  }
+
+  function isCurrent(id, owner) {
+    return Boolean(id && owner === generation && id === editingSongId && mountedForm && mountedForm === $("#songAdminForm") && isEditingSong());
   }
 
   async function loadPanel() {
-    if (!editingSongId || !db || !isEditingSong()) return;
-    const [songsRes, parentRes, versionRes] = await Promise.all([
-      db.from("songs").select("id,title,slug,song_type,tone").order("title", { ascending: true }),
-      db.from("song_versions").select("*").eq("parent_song_id", editingSongId).order("sort_order", { ascending: true }),
-      db.from("song_versions").select("*").eq("version_song_id", editingSongId).order("sort_order", { ascending: true })
-    ]);
-    if (parentRes.error || versionRes.error) {
+    const id = editingSongId, owner = generation;
+    if (!db || !isCurrent(id, owner)) return false;
+    const sequence = ++requestSequence;
+    const current = () => isCurrent(id, owner) && sequence === requestSequence;
+    loading = true;
+    loadError = "";
+    status("Cargando versiones…");
+    try {
+      const [songsRes, parentRes, versionRes] = await Promise.all([
+        db.from("songs").select("id,title,slug,song_type,tone").order("title", { ascending: true }),
+        db.from("song_versions").select("*").eq("parent_song_id", id).order("sort_order", { ascending: true }),
+        db.from("song_versions").select("*").eq("version_song_id", id).order("sort_order", { ascending: true })
+      ]);
+      if (!current()) return false;
+      const error = parentRes.error || versionRes.error || songsRes.error;
+      if (error) throw error;
+      songs = songsRes.data || [];
+      versions = [...(parentRes.data || []), ...(versionRes.data || [])];
+      loaded = true;
+      loading = false;
+      $("#songVersionsAdmin")?.remove();
       inject();
-      status(missingTable(parentRes.error || versionRes.error) ? "Falta ejecutar supabase-song-versions.sql en Supabase." : "No se pudieron cargar las versiones.", true);
-      return;
+      return true;
+    } catch (error) {
+      if (!current()) return false;
+      loading = false;
+      loaded = false;
+      loadError = missingTable(error) ? "Falta ejecutar supabase-song-versions.sql en Supabase." : "No se pudieron cargar las versiones.";
+      status(loadError, true);
+      return false;
     }
-    songs = songsRes.data || [];
-    versions = [...(parentRes.data || []), ...(versionRes.data || [])];
-    $("#songVersionsAdmin")?.remove();
-    inject();
   }
 
   function bindPickerButtons() {
@@ -169,54 +201,51 @@
 
   async function addVersion() {
     if (!isEditingSong() || !editingSongId || !targetSongId) return;
+    const id = editingSongId, owner = generation;
+    if (!isCurrent(id, owner)) return;
     status("Guardando relación…");
     const label = $("#songVersionLabel")?.value?.trim() || "Versión alternativa";
     const notes = $("#songVersionNotes")?.value?.trim() || null;
-    const { error } = await db.from("song_versions").insert([{ parent_song_id: editingSongId, version_song_id: targetSongId, label, notes, sort_order: versions.length }]);
+    const { error } = await db.from("song_versions").insert([{ parent_song_id: id, version_song_id: targetSongId, label, notes, sort_order: versions.length }]);
+    if (!isCurrent(id, owner)) return;
     if (error) {
       status(missingTable(error) ? "Falta ejecutar supabase-song-versions.sql en Supabase." : `No se pudo agregar: ${error.message}`, true);
       return;
     }
     targetSongId = "";
     searchText = "";
-    await loadPanel();
-    status("Versión agregada.");
+    if (await loadPanel() && isCurrent(id, owner)) status("Versión agregada.");
   }
 
   async function removeVersion(id) {
     if (!isEditingSong() || !editingSongId || !id || !confirm("¿Quitar esta relación de versión?")) return;
+    const songId = editingSongId, owner = generation;
+    if (!isCurrent(songId, owner)) return;
     const { error } = await db.from("song_versions").delete().eq("id", id);
+    if (!isCurrent(songId, owner)) return;
     if (error) {
       status(`No se pudo quitar: ${error.message}`, true);
       return;
     }
-    await loadPanel();
-    status("Versión quitada.");
+    if (await loadPanel() && isCurrent(songId, owner)) status("Versión quitada.");
   }
 
-  function scheduleLoad() {
-    setTimeout(() => { inject(); loadPanel(); }, 80);
+  function unmount() {
+    if (mountedForm || editingSongId) clearState();
+    mountedForm = null;
   }
 
-  document.addEventListener("click", (event) => {
-    const edit = event.target.closest?.("[data-edit-song]");
-    if (edit) {
-      editingSongId = edit.dataset.editSong || "";
-      searchText = "";
-      targetSongId = "";
-      scheduleLoad();
-      return;
-    }
-    if (event.target.closest?.("#newSongDraft,[data-cancel-song]")) {
+  function mount(form, songId) {
+    if (!form) { unmount(); return; }
+    const id = songId == null ? "" : String(songId);
+    if (id !== editingSongId) {
       clearState();
-      scheduleLoad();
+      editingSongId = id;
     }
-  }, true);
-
-  new MutationObserver(() => {
-    if (!isEditingSong()) clearState();
+    mountedForm = form;
     inject();
-  }).observe(document.documentElement, { childList: true, subtree: true });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", inject, { once: true });
-  else inject();
+    if (id && !loaded && !loading) return loadPanel();
+  }
+
+  window.ShalomAdminSongVersions = { mount, unmount };
 })();

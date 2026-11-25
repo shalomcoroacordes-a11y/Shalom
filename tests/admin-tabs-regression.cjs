@@ -21,6 +21,7 @@ const lifecycle=[];
 const focusCalls=[];
 const categoryMounts=[];
 const artistSearchMounts=[];
+const versionsMounts=[];
 const document={activeElement:null,getElementById(id){return id==="artistFilter"?{focus(options){focusCalls.push(options.preventScroll)},setSelectionRange(start,end){focusCalls.push(start,end)}}:null}};
 const scope={
  document,
@@ -41,7 +42,7 @@ const scope={
  apBindAlbums:()=>bound.push("albums"),
  apBindSongs:()=>bound.push("songs"),
  apBindDonations:()=>bound.push("donations"),
- window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminPublicPages:{mount:target=>{target.innerHTML="<p>PUBLIC PAGES</p>";bound.push("publicPages")}},ShalomAdminHome:{mount:target=>{target.innerHTML="<p>HOME</p>";bound.push("home")}},ShalomAdminMaintenance:{mount:target=>{target.innerHTML="<p>MAINTENANCE</p>";bound.push("maintenance")}},ShalomAdminRequestPage:{mount:target=>{target.innerHTML="<p>REQUEST</p>";bound.push("requestPage")}},ShalomAdminMessages:{mount:target=>{target.innerHTML="<p>MESSAGES</p>";bound.push("messages")}},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminSongVersions:{mount:()=>versionsMounts.push(state.tab),unmount(){}},ShalomAdminPublicPages:{mount:target=>{target.innerHTML="<p>PUBLIC PAGES</p>";bound.push("publicPages")}},ShalomAdminHome:{mount:target=>{target.innerHTML="<p>HOME</p>";bound.push("home")}},ShalomAdminMaintenance:{mount:target=>{target.innerHTML="<p>MAINTENANCE</p>";bound.push("maintenance")}},ShalomAdminRequestPage:{mount:target=>{target.innerHTML="<p>REQUEST</p>";bound.push("requestPage")}},ShalomAdminMessages:{mount:target=>{target.innerHTML="<p>MESSAGES</p>";bound.push("messages")}},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
 };
 vm.createContext(scope);
 vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
@@ -88,3 +89,5 @@ assert.match(workspace.innerHTML,/data-jhd-audit-tab="true" data-admin-tab="main
 assert.match(workspace.innerHTML,/data-jhd-home-section-tab="true" data-admin-tab="home">Inicio<\/button>/);
 
 assert.match(workspace.innerHTML,/id="adminPublicPagesTab" data-admin-tab="publicPages">Página pública<\/button>/);
+
+assert.deepEqual(versionsMounts,["songs","songs"],"Versions mount only in song view");
