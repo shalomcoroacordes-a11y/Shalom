@@ -20,6 +20,7 @@ const scope = {
   apId: String,
   apNote: (...args) => notices.push(args),
   apRefresh: async message => refreshes.push(message),
+  window: { ShalomAdminBackup: { deleteSong: async id => calls.push({ table: "protected-song", id }) } },
   confirm: () => confirmed
 };
 vm.createContext(scope);
@@ -37,7 +38,13 @@ vm.runInContext(source.slice(start, end), scope);
   await scope.apDeleteAlbum("album-1");
   assert.equal(calls.at(-1).table, "albums");
   await scope.apDeleteSong("song-1");
-  assert.equal(calls.at(-1).table, "songs");
+  assert.equal(calls.at(-1).table, "protected-song");
+  assert.equal(calls.at(-1).id,"song-1");
+  scope.window.ShalomAdminBackup = null;
+  const beforeMissing=calls.length;
+  await scope.apDeleteSong("song-2");
+  assert.equal(calls.length,beforeMissing);
+  assert.match(notices.at(-1)[0],/protección de papelera/);
   const count = refreshes.length;
   related = true;
   await scope.apDeleteArtist("artist-2");

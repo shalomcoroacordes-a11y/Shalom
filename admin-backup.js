@@ -39,18 +39,6 @@
   }
 
   async function buildSnapshot(kind, id) {
-    if (kind === "song") {
-      const [record, songArtists, songCategories, albumSongs, links, capoVersions, featured] = await Promise.all([
-        one("songs", id),
-        rows("song_artists", "song_id", id),
-        rows("song_categories", "song_id", id),
-        rows("album_songs", "song_id", id),
-        rows("song_links", "song_id", id),
-        rows("song_capo_versions", "song_id", id),
-        rows("artist_featured_songs", "song_id", id)
-      ]);
-      return { version: 1, record: cleanRow(record, true), relations: { song_artists: songArtists.map((row) => cleanRow(row, false)), song_categories: songCategories.map((row) => cleanRow(row, false)), album_songs: albumSongs.map((row) => cleanRow(row, false)), song_links: links.map((row) => cleanRow(row, false)), song_capo_versions: capoVersions.map((row) => cleanRow(row, false)), artist_featured_songs: featured.map((row) => cleanRow(row, false)) } };
-    }
     if (kind === "album") {
       const [record, albumSongs] = await Promise.all([one("albums", id), rows("album_songs", "album_id", id)]);
       return { version: 1, record: cleanRow(record, true), relations: { album_songs: albumSongs.map((row) => cleanRow(row, false)) } };
@@ -113,25 +101,22 @@
     if (!confirm(`¿Enviar “${label}” a la papelera? Podrás restaurarlo desde Respaldo.`)) return;
 
     busy = true;
-    let archiveId = null;
+    let archiveId = null, songConfirmed = false;
     try {
+      if (kind === "song") {
+        say("Enviando canto y acompañamiento a la papelera...");
+        const { data, error } = await db.rpc("admin_delete_song_complete", { p_song_id: id });
+        if (error) throw error;
+        if (data !== true) throw new Error("No se confirmó la eliminación del canto.");
+        songConfirmed = true;
+        await window.apRefresh?.("Canto enviado a la papelera.");
+        return;
+      }
       say("Creando respaldo antes de eliminar...");
       archiveId = await archive(kind, id);
       if (!archiveId) throw new Error("No se confirmó el identificador del respaldo.");
 
       let error = null;
-      if (kind === "song") {
-        const results = await Promise.all([
-          db.from("song_artists").delete().eq("song_id", id),
-          db.from("song_categories").delete().eq("song_id", id),
-          db.from("album_songs").delete().eq("song_id", id),
-          db.from("song_links").delete().eq("song_id", id),
-          db.from("song_capo_versions").delete().eq("song_id", id),
-          db.from("artist_featured_songs").delete().eq("song_id", id)
-        ]);
-        error = results.find((result) => result.error)?.error || null;
-        if (!error) error = (await db.from("songs").delete().eq("id", id)).error;
-      }
       if (kind === "artist") error = (await db.from("artists").delete().eq("id", id)).error;
       if (kind === "category") error = (await db.from("categories").delete().eq("id", id)).error;
       if (kind === "album") {
@@ -143,6 +128,12 @@
       await window.apRefresh?.("Elemento enviado a la papelera.");
     } catch (error) {
       const detail = error?.message || "Error desconocido.";
+      if (kind === "song") {
+        say(songConfirmed
+          ? `El canto está en la papelera, pero no se pudo actualizar el catálogo: ${detail}.`
+          : `No se confirmó la eliminación segura: ${detail}. Verifica la papelera y que la protección completa esté instalada. No se intentó una eliminación alternativa.`, true);
+        return;
+      }
       say(archiveId
         ? `No se pudo completar la operación: ${detail}. El respaldo se conserva en la papelera; algunas relaciones pueden haberse eliminado. Revisa el registro antes de reintentar o restaurar.`
         : `No se inició la eliminación: ${detail}. No se confirmó el respaldo; revisa la papelera y la configuración.`, true);
@@ -168,6 +159,41 @@
       if (status) status.textContent = "Respaldo descargado. Guárdalo en Drive o en otra ubicación segura.";
     } catch (error) {
       if (status) status.textContent = `No se pudo crear el respaldo: ${error?.message || "Error desconocido."}`;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function verifyStudioHistoryAccess(owner) {
+    if (!owner || app()?.user?.id !== owner) throw Error("Inicia sesión como administrador.");
+    const { data: identity, error: identityError } = await db.auth.getUser();
+    if (identityError || identity?.user?.id !== owner) throw Error("La sesión cambió durante el respaldo.");
+    const { data: allowed, error } = await db.rpc("admin_has_permission", { p_permission: "songs.publish" });
+    if (error) throw error;
+    if (allowed !== true || app()?.user?.id !== owner) throw Error("No tienes permiso para descargar el historial Studio.");
+  }
+
+  async function downloadStudioHistory() {
+    const status = document.getElementById("jhdStudioHistoryStatus");
+    const button = document.getElementById("jhdDownloadStudioHistory");
+    if (button?.disabled) return;
+    if (button) button.disabled = true;
+    if (status) status.textContent = "Consultando historial Studio...";
+    const owner = app()?.user?.id;
+    try {
+      await verifyStudioHistoryAccess(owner);
+      const history = await selectAll("song_studio_history");
+      const arrangements = await selectAll("song_studio_arrangements");
+      await verifyStudioHistoryAccess(owner);
+      // Separate recovery-only format: the catalog importer must not republish history.
+      const payload = {
+        format: "SHALOM Studio history", version: 1, created_at: new Date().toISOString(),
+        history, arrangements
+      };
+      downloadJson(payload, "shalom-studio-historial-" + filenameDate() + ".json");
+      if (status) status.textContent = "Historial descargado. " + history.length + " registros históricos y " + arrangements.length + " arreglos de servidor. Guarda el archivo de forma privada.";
+    } catch (error) {
+      if (status) status.textContent = "No se pudo descargar el historial: " + (error?.message || "Error desconocido.") + ". No se modificó ningún registro.";
     } finally {
       if (button) button.disabled = false;
     }
@@ -270,27 +296,27 @@
 
   function backupViewHTML() {
     const state = app();
-    return `<section class="admin-section" id="jhdBackupView"><div class="admin-section-heading"><div><p class="hero-kicker">Protección del catálogo</p><h2>Respaldo y recuperación</h2></div><p class="admin-count">${esc((state?.songs || []).length + (state?.artists || []).length + (state?.categories || []).length)} elementos</p></div><div class="admin-backup-summary"><span>${esc((state?.songs || []).length)} canciones</span><span>${esc((state?.artists || []).length)} artistas</span><span>${esc((state?.categories || []).length)} categorías</span><span>${esc((state?.albums || []).length)} álbumes</span></div><div class="admin-backup-grid"><article class="admin-backup-card"><h3>Descargar respaldo</h3><p>Guarda una copia completa del cancionero en un archivo JSON. Incluye canciones, artistas, categorías, álbumes, enlaces, versiones con capo, versiones alternativas, donaciones, destacadas y arreglos Studio publicados accesibles para tu cuenta.</p><div class="admin-backup-actions"><button class="song-btn" type="button" id="jhdDownloadBackup">Descargar respaldo</button></div><p class="admin-backup-status" id="jhdBackupStatus"></p></article><article class="admin-backup-card"><h3>Papelera segura</h3><p>Antes de eliminar una canción, artista, categoría o álbum, el panel guarda una copia para poder restaurarla después.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdRefreshTrash">Actualizar papelera</button></div></article></div><p class="admin-backup-warning"><strong>Recomendación:</strong> descarga un respaldo antes de hacer cambios grandes. La papelera protege eliminaciones hechas desde este panel; no sustituye una copia guardada fuera del sitio.</p><section class="artist-profile-section"><div class="admin-section-heading"><div><p class="hero-kicker">Recuperación</p><h2>Papelera</h2></div></div><div class="admin-trash-list" id="jhdTrashList"><div class="admin-empty">Cargando papelera...</div></div></section></section>`;
+    return `<section class="admin-section" id="jhdBackupView"><div class="admin-section-heading"><div><p class="hero-kicker">Protección del catálogo</p><h2>Respaldo y recuperación</h2></div><p class="admin-count">${esc((state?.songs || []).length + (state?.artists || []).length + (state?.categories || []).length)} elementos</p></div><div class="admin-backup-summary"><span>${esc((state?.songs || []).length)} canciones</span><span>${esc((state?.artists || []).length)} artistas</span><span>${esc((state?.categories || []).length)} categorías</span><span>${esc((state?.albums || []).length)} álbumes</span></div><div class="admin-backup-grid"><article class="admin-backup-card"><h3>Descargar respaldo</h3><p>Guarda una copia completa del cancionero en un archivo JSON. Incluye canciones, artistas, categorías, álbumes, enlaces, versiones con capo, versiones alternativas, donaciones, destacadas y arreglos Studio publicados accesibles para tu cuenta.</p><div class="admin-backup-actions"><button class="song-btn" type="button" id="jhdDownloadBackup">Descargar respaldo</button></div><p class="admin-backup-status" id="jhdBackupStatus"></p></article><article class="admin-backup-card"><h3>Historial Studio</h3><p>Descarga las revisiones de acompañamientos conservadas en el servidor para revisar o recuperar cambios musicales. Este archivo es privado y no se importa como respaldo del catálogo.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdDownloadStudioHistory">Descargar historial Studio</button></div><p class="admin-backup-status" id="jhdStudioHistoryStatus" role="status" aria-live="polite"></p></article><article class="admin-backup-card"><h3>Papelera segura</h3><p>Antes de eliminar una canción, artista, categoría o álbum, el panel guarda una copia para poder restaurarla después.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdRefreshTrash">Actualizar papelera</button></div></article></div><p class="admin-backup-warning"><strong>Recomendación:</strong> descarga un respaldo antes de hacer cambios grandes. La papelera protege eliminaciones hechas desde este panel; no sustituye una copia guardada fuera del sitio.</p><section class="artist-profile-section"><div class="admin-section-heading"><div><p class="hero-kicker">Recuperación</p><h2>Papelera</h2></div></div><div class="admin-trash-list" id="jhdTrashList"><div class="admin-empty">Cargando papelera...</div></div></section></section>`;
   }
 
   function renderBackupView(view) {
     if (!view) return;
     view.innerHTML = backupViewHTML();
     document.getElementById("jhdDownloadBackup")?.addEventListener("click", downloadBackup);
+    document.getElementById("jhdDownloadStudioHistory")?.addEventListener("click", downloadStudioHistory);
     document.getElementById("jhdRefreshTrash")?.addEventListener("click", loadTrash);
     window.ShalomAdminBackupImport?.mount();
     loadTrash();
   }
 
   // The main admin renderer owns tab selection and invokes this view.
-  window.ShalomAdminBackup = { mount: renderBackupView };
+  window.ShalomAdminBackup = { mount: renderBackupView, deleteSong: (id) => deleteSavedItem("song", id) };
 
   function installDeleteInterception() {
     document.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-delete-song],[data-delete-artist],[data-delete-category],[data-delete-album],[data-cat2-delete]");
+      const button = event.target.closest("[data-delete-artist],[data-delete-category],[data-delete-album],[data-cat2-delete]");
       if (!button) return;
       let kind = "", id = "";
-      if (button.dataset.deleteSong) { kind = "song"; id = button.dataset.deleteSong; }
       if (button.dataset.deleteArtist) { kind = "artist"; id = button.dataset.deleteArtist; }
       if (button.dataset.deleteCategory) { kind = "category"; id = button.dataset.deleteCategory; }
       if (button.dataset.deleteAlbum) { kind = "album"; id = button.dataset.deleteAlbum; }

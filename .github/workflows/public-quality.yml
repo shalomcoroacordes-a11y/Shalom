@@ -97,6 +97,8 @@ jobs:
 
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
+      - name: Test Studio historical recovery contracts
+        run: node tests/studio-history-admin.cjs
 
       - name: Verify canonical Studio sources for both native apps
         run: |
