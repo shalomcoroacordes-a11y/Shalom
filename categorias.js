@@ -31,16 +31,7 @@ const categoryPath = (item) => {
   return result;
 };
 
-function jsonList(value) {
-  if (Array.isArray(value)) return value;
-  if (!value || typeof value !== "string") return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
-    return [];
-  }
-}
+
 
 function setStatus(message) {
   if (categoryStatus) categoryStatus.textContent = message || "";
@@ -211,7 +202,7 @@ async function fetchCategorySongs(append = false) {
     if (error) throw error;
     if (token !== categorySongRequestVersion) return;
 
-    const rows = (data || []).map((row) => ({ ...row, _artists: jsonList(row.artists), _categories: jsonList(row.categories), _albums: jsonList(row.albums) }));
+    const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
     const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
     categorySongPage = currentPage;
     categorySongTotal = append ? (rows.length ? serverTotal : categorySongRows.length) : serverTotal;

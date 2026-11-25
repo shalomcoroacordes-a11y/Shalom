@@ -26,16 +26,7 @@ function countLabel(count) {
   return `${count} ${count === 1 ? "canto" : "cantos"}`;
 }
 
-function jsonList(value) {
-  if (Array.isArray(value)) return value;
-  if (!value || typeof value !== "string") return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
-    return [];
-  }
-}
+
 
 function names(items) {
   return (items || []).map((item) => item?.name || item?.title || "").filter(Boolean).join(" · ");
@@ -202,7 +193,7 @@ async function fetchAlbumSongs(append = false) {
     if (error) throw error;
     if (token !== songRequestVersion) return;
 
-    const rows = (data || []).map((row) => ({ ...row, _artists: jsonList(row.artists), _categories: jsonList(row.categories), _albums: jsonList(row.albums) }));
+    const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
     const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
     songPage = currentPage;
     songTotal = append ? (rows.length ? serverTotal : visibleSongs.length) : serverTotal;
