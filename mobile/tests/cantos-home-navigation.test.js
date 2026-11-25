@@ -10,7 +10,7 @@ assert.deepEqual(tabs.map(x=>x[0]),["Inicio","Cantos","Repertorios","Mis creacio
 assert.equal(routeForTab("Cantos"),"Canciones");
 assert.equal(tabs.find(x=>x[0]==="Repertorios")[1],"calendar");
 assert.equal(tabs.find(x=>x[0]==="Mis creaciones")[1],"repertoires");
-assert.match(catalogScreens,/const \[songLibraryOpen,setSongLibraryOpen\]=useState\(false\)/);
+assert.match(app,/const \[songLibraryOpen,setSongLibraryOpen\]=useState\(false\)/);
 assert.match(catalogScreens,/placeholder:"Buscar letras, acordes y títulos"/);
 for(const x of ['["all","Todos"]','["catolico","Católicos"]',
  ['"cristiano","Cristianos"'].join(""),'["liked","Mis me gusta"]'])
