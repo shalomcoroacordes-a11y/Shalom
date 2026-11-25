@@ -70,3 +70,5 @@ Este documento es el **punto de partida**: no afirma que la reorganización ya e
 El perfil público se carga únicamente mediante `artist-page.js`; biografía, enlaces sociales (incluido el respaldo histórico), destacados y catálogo paginado pertenecen a ese módulo. Los antiguos complementos de perfil ya no forman parte del repositorio.
 
 Motor musical nativo: `native-chords.js` es la fuente; `scripts/build-native-chords.js` genera `mobile/src/chords.js` y `admin-mobile/src/chords.js`. Cada APK conserva su módulo local. La verificación compara ambas salidas byte por byte con la fuente y el encabezado generado.
+
+Studio comparte `studio-native-screen.js` (fábrica de pantalla nativa), `studio-collections.js` (planificación de colecciones) y las fuentes web de Studio. `scripts/build-studio-native.js` genera las cinco salidas que usan las apps; la pantalla Admin recibe su mensaje de publicación específico y la pública su cola opcional desde el lector.
