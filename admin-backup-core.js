@@ -13,11 +13,44 @@
     "album_songs",
     "song_links",
     "song_capo_versions",
-    "artist_featured_songs"
+    "artist_featured_songs",
+    "song_versions",
+    "song_studio_arrangements"
   ]);
   const FORMAT = "SHALOM backup";
-  const VERSION = 1;
-  const conflictKey = (table) => table === "artist_featured_songs" ? "artist_id,song_id" : "id";
+  const VERSION = 2;
+  const conflictKey = (table) => table === "artist_featured_songs" ? "artist_id,song_id" : table === "song_studio_arrangements" ? "song_id" : "id";
+  const object = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  const revision = (value) => typeof value === "string" && Number.isFinite(Date.parse(value));
+  // Exact timestamp strings are intentional: JS Date truncates PostgreSQL microseconds.
+  // A different representation is conservatively treated as stale, never republished.
+  function planStudioRestore(catalog) {
+    const songs = new Map();
+    for (const song of catalog.songs || []) {
+      if (!song.id || songs.has(song.id)) throw new Error("El respaldo contiene identificadores de canto inválidos o repetidos.");
+      songs.set(song.id, song);
+    }
+    const seen = new Set(), current = [];
+    let stale = 0;
+    for (const row of catalog.song_studio_arrangements || []) {
+      const song = songs.get(row.song_id);
+      if (!song || seen.has(row.song_id) || !revision(row.song_revision) || !revision(song.updated_at) ||
+          !object(row.arrangement) || String(row.arrangement.v) !== "1") {
+        throw new Error("El respaldo contiene un arreglo Studio inválido o sin su canto original.");
+      }
+      seen.add(row.song_id);
+      if (row.song_revision !== song.updated_at) { stale++; continue; }
+      current.push({ song_id: row.song_id, arrangement: row.arrangement });
+    }
+    return { current, stale };
+  }
+  function bindStudioRevisions(plan, revisions) {
+    return plan.current.map((row) => {
+      const actual = revisions.get(row.song_id);
+      if (!revision(actual)) throw new Error("No se confirmó la nueva revisión de un canto. No se publicaron sus arreglos Studio.");
+      return { ...row, song_revision: actual };
+    });
+  }
   const filenameDate = () => new Date().toISOString().replace(/[:.]/g, "-");
   function cleanRow(row, keepId = true) {
     const out = {};
@@ -59,7 +92,9 @@
     const all = [];
     let start = 0;
     while (true) {
-      const result = await db.from(table).select("*").range(start, start + PAGE_SIZE - 1);
+      let query = db.from(table).select("*");
+      for (const key of conflictKey(table).split(",")) query = query.order(key, { ascending: true });
+      const result = await query.range(start, start + PAGE_SIZE - 1);
       if (result.error) throw mapError(result.error, table);
       const batch = result.data || [];
       all.push(...batch);
@@ -80,5 +115,5 @@
     URL.revokeObjectURL(url);
   }
 
-  window.ShalomAdminBackupCore = Object.freeze({ TABLES, FORMAT, VERSION, conflictKey, cleanRow, missingRelations, selectAll, downloadJson, filenameDate });
+  window.ShalomAdminBackupCore = Object.freeze({ TABLES, FORMAT, VERSION, conflictKey, planStudioRestore, bindStudioRevisions, cleanRow, missingRelations, selectAll, downloadJson, filenameDate });
 })();
