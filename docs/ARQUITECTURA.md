@@ -122,3 +122,7 @@ El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interf
 ## Planificación de reproducción de Studio
 
 `studio-core.js` centraliza `playbackRange`, `liveSectionEvent` y `sequenceTrackTimeline`. Conserva prioridad de rangos, cálculo del reloj, límites de tono/capo, exigencia de fragmentos oficiales y aislamiento del rasgueo en escucha de sección, incluido el comportamiento de dejar sonar. El editor mantiene los temporizadores, audio, lectura, y validación de digitaciones. Se sincronizan las dos copias nativas y se renueva la caché Offline v23. Las pruebas comparan con la lógica anterior; no se cambia el formato de arreglos ni se modifica contenido persistido.
+
+## Controles musicales de Studio
+
+`studio-core.js` contiene las reglas puras de tempo, pausas, reconocimiento de patrones y cambios de golpe/acento. `studio-lab.js` conserva controles, confirmaciones, deshacer y actualización de cada sección. Los golpes se copian sin modificar el patrón anterior. Se preserva el orden abajo, arriba, apagado, silencio y la disponibilidad del patrón de alabanza en 4/4 con dos posiciones por pulso. Se actualizan las dos salidas nativas y caché Offline v24; pruebas de equivalencia e independencia de arrays.

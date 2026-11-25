@@ -107,6 +107,9 @@ jobs:
       - name: Test Studio playback planning and live section isolation
         run: node tests/studio-playback-planning.cjs
 
+      - name: Test Studio rhythm and timing editing controls
+        run: node tests/studio-editing-controls.cjs
+
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
       - name: Test Studio historical recovery contracts

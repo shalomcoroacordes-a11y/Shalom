@@ -316,5 +316,21 @@
     if(!Number.isInteger(track.shift)||Math.abs(track.shift)>12||!Number.isInteger(track.capo)||track.capo<0||track.capo>12)throw Error("Tono o capo inválido.");
     return compile(anchors,config,chord=>transpose(chord,track.shift));
   }
-  return Object.freeze({playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Pure editing rules for web and native Studio.
+  function clampTempo(value){return Math.max(40,Math.min(240,Math.round(value)));}
+  function pauseMilliseconds(seconds){return Math.max(0,Math.min(10000,Math.round(Number(seconds)*1000)||0));}
+  function identifyPreset(config,sectionHits,hits){
+    if(!sectionHits)return "base";
+    return ["basic","all","worship","ring","empty"]
+      .filter(name=>name!=="worship"||config.meter==="4/4"&&config.division===2)
+      .find(name=>JSON.stringify(presetHits(config,name))===JSON.stringify(hits))||"custom";
+  }
+  function editHit(hits,index,value,toggleAccent){
+    return hits.map((h,i)=>i===index?{...h,...(value?{hit:value}:{}),...(toggleAccent?{accent:!h.accent}:{})}:{...h});
+  }
+  function cycleHit(hits,index){
+    const types=["down","up","mute","rest"];
+    return hits.map((h,i)=>i===index?{...h,hit:types[(types.indexOf(h.hit)+1)%types.length]}:{...h});
+  }
+  return Object.freeze({clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
