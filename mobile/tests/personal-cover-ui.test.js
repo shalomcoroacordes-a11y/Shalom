@@ -15,7 +15,12 @@ assert.match(ui,/function receiveView\(/,"WhatsApp code import remains available
 assert.match(ui,/action\("Revisar composición",examineImport/);
 assert.match(ui,/action\("Guardar en mi teléfono",completeImport/);
 assert.match(ui,/if\(view==="import"\)return receiveView\(\)/);
-assert.match(ui,/shareEntry\(item\)/,"WhatsApp code share remains available");
+assert.match(ui,/function showShare\(/,"WhatsApp code share remains available");
+assert.match(ui,/if\(view==="share"\)return shareView\(\)/);
+assert.match(ui,/action\("↗  Enviar por WhatsApp u otra app",shareNative/);
+assert.match(ui,/action\("▣  Copiar mensaje",copyCode/);
+assert.match(ui,/await Share\.share\(\{title:"SHALOM · "\+entry\.title,message:shareMessage\}\)/);
+assert.match(ui,/await Clipboard\.setStringAsync\(shareMessage\)/);
 assert.match(picker,/COVER_PRESETS/,"Native cover presets must be present");
 assert.match(picker,/h\(CoverArt,/,"Show actual collection cover previews");
 assert.match(picker,/photoUri\(photo\)/,"Use local photo paths");

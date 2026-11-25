@@ -185,15 +185,6 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    }}
   ]);
  }
- async function shareEntry(item){
-  try{
-   const code=exportCode(item);
-   await Share.share({title:"SHALOM · "+item.title,
-    message:"🕊️ SHALOM · "+(item.kind==="misa"?"Misa":item.kind==="repertorio"?"Repertorio":"Popurrí")+
-     "\n"+item.title+"\n\n"+code+
-     "\n\nPara usarlo: abre SHALOM > Mis colecciones > Importar código, pega este mensaje y guarda. No necesitas descargar archivos."});
-  }catch(e){Alert.alert("No se pudo compartir",e.message||"Inténtalo de nuevo.");}
- }
  function openFolder(c,custom=false){
   setFolderId(c.id);setView("folder");setCustomize(custom);
  }
