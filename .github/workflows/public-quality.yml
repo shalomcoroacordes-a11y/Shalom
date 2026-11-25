@@ -216,6 +216,9 @@ jobs:
       - name: Verify web and native chord interpretation parity
         run: node tests/chord-engine-parity.cjs
 
+      - name: Verify canonical chord parser ownership and exact markup
+        run: node tests/canonical-chord-parser.cjs
+
       - name: Verify song detail CSS bundle against original files
         run: node tests/song-detail-bundle-regression.cjs
 

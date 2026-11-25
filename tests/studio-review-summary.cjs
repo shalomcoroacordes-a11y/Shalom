@@ -19,5 +19,5 @@ assert.equal(core.reviewSummary(anchors,sectionTempo,groups)[0][1],"Por sección
 const lab=fs.readFileSync("studio-lab.js","utf8"),html=fs.readFileSync("studio-lab.html","utf8"),sw=fs.readFileSync("offline-sw.js","utf8");
 assert.match(lab,/const summary=core\.reviewSummary\(anchors,config,groups\)/);
 for(const match of html.matchAll(/<script defer src="([^"]+)"/g))assert.ok(sw.includes('"./'+match[1]+'"'),"Offline missing "+match[1]);
-assert.match(sw,/shalom-offline-shell-v30-studio-anchor-index/);
+assert.match(sw,/shalom-offline-shell-v31-canonical-chords/);
 console.log("Studio review: exact summary, section tempos, compound meter, unchanged config and all offline dependencies.");
