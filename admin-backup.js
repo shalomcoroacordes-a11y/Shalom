@@ -12,7 +12,8 @@
   const say = (message, bad = false) => {
     if (typeof window.apNote === "function") window.apNote(message, bad);
   };
-  const app = () => window.AP || null;
+  // AP is the state owned by admin-pro.js (a classic-script lexical binding).
+  const app = () => AP;
   const idOf = (value) => String(value || "");
   const safeDate = (value) => {
     const date = new Date(value || "");
@@ -286,58 +287,18 @@
     return `<section class="admin-section" id="jhdBackupView"><div class="admin-section-heading"><div><p class="hero-kicker">Protección del catálogo</p><h2>Respaldo y recuperación</h2></div><p class="admin-count">${esc((state?.songs || []).length + (state?.artists || []).length + (state?.categories || []).length)} elementos</p></div><div class="admin-backup-summary"><span>${esc((state?.songs || []).length)} canciones</span><span>${esc((state?.artists || []).length)} artistas</span><span>${esc((state?.categories || []).length)} categorías</span><span>${esc((state?.albums || []).length)} álbumes</span></div><div class="admin-backup-grid"><article class="admin-backup-card"><h3>Descargar respaldo</h3><p>Guarda una copia completa del cancionero en un archivo JSON. Incluye canciones, artistas, categorías, álbumes, enlaces, versiones con capo, donaciones y destacadas.</p><div class="admin-backup-actions"><button class="song-btn" type="button" id="jhdDownloadBackup">Descargar respaldo</button></div><p class="admin-backup-status" id="jhdBackupStatus"></p></article><article class="admin-backup-card"><h3>Papelera segura</h3><p>Antes de eliminar una canción, artista, categoría o álbum, el panel guarda una copia para poder restaurarla después.</p><div class="admin-backup-actions"><button class="song-btn secondary" type="button" id="jhdRefreshTrash">Actualizar papelera</button></div></article></div><p class="admin-backup-warning"><strong>Recomendación:</strong> descarga un respaldo antes de hacer cambios grandes. La papelera protege eliminaciones hechas desde este panel; no sustituye una copia guardada fuera del sitio.</p><section class="artist-profile-section"><div class="admin-section-heading"><div><p class="hero-kicker">Recuperación</p><h2>Papelera</h2></div></div><div class="admin-trash-list" id="jhdTrashList"><div class="admin-empty">Cargando papelera...</div></div></section></section>`;
   }
 
-  function renderBackupView() {
+  function renderBackupView(view) {
     addStyle();
-    const view = document.getElementById("adminView");
     if (!view) return;
     view.innerHTML = backupViewHTML();
     document.getElementById("jhdDownloadBackup")?.addEventListener("click", downloadBackup);
     document.getElementById("jhdRefreshTrash")?.addEventListener("click", loadTrash);
+    window.ShalomAdminBackupImport?.mount();
     loadTrash();
   }
 
-  function updateTabState() {
-    document.querySelectorAll("[data-admin-tab], [data-jhd-backup-tab]").forEach((button) => {
-      const isBackup = button.dataset.jhdBackupTab === "true";
-      button.classList.toggle("active", isBackup ? app()?.tab === "backup" : button.dataset.adminTab === app()?.tab);
-    });
-  }
-
-  function ensureBackupTab() {
-    const tabs = document.querySelector(".admin-tabs");
-    if (!tabs || tabs.querySelector("[data-jhd-backup-tab]")) return;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "admin-tab";
-    button.dataset.jhdBackupTab = "true";
-    button.textContent = "Respaldo";
-    button.addEventListener("click", () => {
-      if (app()?.tab === "songs") window.apCaptureSongDraft?.();
-      if (app()) app().tab = "backup";
-      renderBackupView();
-      updateTabState();
-    });
-    tabs.append(button);
-    updateTabState();
-  }
-
-  function patchViewRenderer() {
-    if (window.__jhdBackupRenderPatched || typeof window.apRenderView !== "function") return;
-    const original = window.apRenderView;
-    const patched = function(...args) {
-      if (app()?.tab === "backup") {
-        renderBackupView();
-        ensureBackupTab();
-        updateTabState();
-        return;
-      }
-      const value = original.apply(this, args);
-      queueMicrotask(() => { ensureBackupTab(); updateTabState(); });
-      return value;
-    };
-    window.apRenderView = patched;
-    window.__jhdBackupRenderPatched = true;
-  }
+  // The main admin renderer owns tab selection and invokes this view.
+  window.ShalomAdminBackup = { mount: renderBackupView };
 
   function installDeleteInterception() {
     document.addEventListener("click", (event) => {
@@ -358,14 +319,7 @@
 
   function boot() {
     addStyle();
-    patchViewRenderer();
     installDeleteInterception();
-    const observer = new MutationObserver(() => {
-      ensureBackupTab();
-      if (app()?.tab === "backup" && !document.getElementById("jhdBackupView")) renderBackupView();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    ensureBackupTab();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
