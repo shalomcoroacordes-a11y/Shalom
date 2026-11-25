@@ -17,7 +17,8 @@ for(const x of ['["all","Todos"]','["catolico","Católicos"]',
 assert.match(app,/label\("Biblioteca de cantos",S.cantosLibraryTitle\)/);
 assert.match(app,/Listado de canciones disponibles con su artista y opciones/);
 assert.match(app,/label\("Explorar también por",S.cantosExploreHeading\)/);
-for(const x of ["Artistas","Categorías","Álbumes","Popurrís oficiales"])assert.ok(app.includes(x));
+const exploration=fs.readFileSync("src/exploration-screens-ui.js","utf8");
+for(const x of ["Artistas","Categorías","Álbumes","Popurrís oficiales"])assert.ok(exploration.includes(x));
 assert.match(app,/onPress:\(\)=>setSongLibraryOpen\(true\)/);
 assert.match(app,/eligible\.slice\(0,countLimit\)\.map\(song=>h\(LibrarySongRow/);
 assert.match(app,/onOptions:\(\)=>setActionSongId\(String\(song.id\)\)/);

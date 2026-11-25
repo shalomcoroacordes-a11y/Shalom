@@ -16,10 +16,12 @@ assert.match(components,/h\(Pressable,\{style:S\.repCard/,"Shared cards must use
 const songs=section("renderSongs","renderArtists");
 const artists=section("renderArtists","renderCategories");
 const categories=section("renderCategories","renderMore");
-const more=section("renderMore","renderExplore");
-const explore=section("renderExplore","renderRepertoires");
+const exploration=fs.readFileSync("mobile/src/exploration-screens-ui.js","utf8");
+const more=exploration.slice(exploration.indexOf("function MoreScreen("),exploration.indexOf("function ExploreScreen("));
+const explore=exploration.slice(exploration.indexOf("function ExploreScreen("),exploration.indexOf("function AlbumsScreen("));
+for(const name of ["MoreScreen","ExploreScreen","AlbumsScreen"])assert.ok(app.includes("h("+name+",{"),"App renders "+name);
 const medleys=section("renderMedleys","renderMedleyDetail");
-const albums=section("renderAlbums","renderArtistDetail");
+const albums=exploration.slice(exploration.indexOf("function AlbumsScreen("));
 for(const [name,part] of Object.entries({categories,more,explore,medleys,albums})){
  assert.match(part,/h\(SectionHero,/,"Hero missing on "+name);
  assert.match(part,/h\(SectionListCard,/,"Library cards missing on "+name);

@@ -10,6 +10,7 @@ assert.equal(routeForTab("Cantos"),"Canciones");
 assert.equal(isSelectedTab("Mis colecciones","Mis creaciones"),true);
 assert.match(app,/onPress:\(\)=>goTab\(routeForTab\(name\)\)/,"La barra abre creaciones locales");
 assert.match(app,/function renderExplore\(\)/,"Existe exploración musical secundaria");
+assert.match(app,/h\(ExploreScreen,\{/,"La ruta usa la pantalla independiente");
 assert.match(app,/tab==="Explorar"\?renderExplore\(\)/);
 const today=app.indexOf("h(View,{style:S.shalomToday},");
 const search=app.indexOf("h(View,{style:S.homeSearchWrap},");

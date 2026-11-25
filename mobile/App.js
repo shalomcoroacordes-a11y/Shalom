@@ -15,6 +15,7 @@ const {buildCatalog,normalize,names,typeLabel,safeWebUrl}=require("./src/catalog
 const {sendRequest}=require("./src/requests");
 const RequestScreen=require("./src/request-screen-ui");
 const SettingsScreen=require("./src/settings-screen-ui");
+const {MoreScreen,ExploreScreen,AlbumsScreen}=require("./src/exploration-screens-ui");
 const {FAVORITES_KEY,parseFavorites,hasFavorite,toggleFavorite}=require("./src/favorites");
 const {repertoireType,filterRepertoires}=require("./src/repertoire-ui");
 const {personalCounts,officialHighlights}=require("./src/home-spotlight");
@@ -640,37 +641,13 @@ function AppScreen() {
   );
  }
  function renderMore(){
-  const cards=[
-   ["Explorar música","Artistas, álbumes, categorías y popurrís","categories",()=>goTab("Explorar")],
-   ["Solicitar canto o corrección","Envía una solicitud al administrador","song",()=>requestForm("song")],
-   ["Configuración","Sincronización, respaldo e información","more",()=>setSettingsOpen(true)],
-   ["Mis me gusta","Tus cantos guardados en este teléfono","song",()=>goTab("Canciones",{liked:true})],
-   ["Acerca de SHALOM","Conoce el proyecto y su propósito","more",
-    ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")],
-   ["Contacto","Envía comentarios o consultas","more",
-    ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/contacto.html")],
-   ["Donaciones","Apoya el crecimiento del cancionero","more",
-    ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")]
-  ];
-  return h(View,{style:S.repPage},
-   h(SectionHero,{title:"Más opciones",subtitle:"Ayuda, preferencias y accesos",icon:"more"}),
-   h(View,{style:S.repCards},
-    ...cards.map(([name,subtitle,icon,action])=>h(SectionListCard,{key:name,title:name,
-     subtitle,icon,onPress:action}))));
+  return h(MoreScreen,{S,SectionHero,SectionListCard,goTab,requestForm,setSettingsOpen,openWeb});
  }
+
  function renderExplore(){
-  const cards=[
-   ["Artistas","Busca coros, cantores y ministerios","artists",()=>goTab("Artistas")],
-   ["Categorías","Encuentra cantos por tema o celebración","categories",()=>goTab("Categorías")],
-   ["Álbumes","Colecciones musicales oficiales","albums",()=>goTab("Álbumes")],
-   ["Popurrís oficiales","Varios cantos unidos por SHALOM","medleys",()=>goTab("Popurrís")]
-  ];
-  return h(View,{style:S.repPage},
-   h(SectionHero,{title:"Explorar",subtitle:"Descubre música por artista, tema o colección",icon:"categories"}),
-   h(View,{style:S.repCards},
-    ...cards.map(([name,subtitle,icon,action])=>h(SectionListCard,{key:name,title:name,
-     subtitle,icon,onPress:action}))));
+  return h(ExploreScreen,{S,SectionHero,SectionListCard,goTab});
  }
+
  function renderRepertoires(){
   const sections=[
    ["todos","Todos",null],
@@ -913,21 +890,9 @@ function AppScreen() {
   );
  }
  function renderAlbums(){
-  const filtered=model.albums.filter(a=>
-   matchesSearch([a.title,a.description,model.artistMap.get(a.artist_id)?.name],query));
-  return h(View,{style:S.repPage},
-   h(SectionHero,{title:"Álbumes",subtitle:"Colecciones de canciones y artistas",icon:"albums"}),
-   sectionSearchOpen?h(SectionSearch,{value:query,onChangeText:setQuery,
-    placeholder:"Buscar álbum o artista…"}):null,
-   label(filtered.length+" "+(filtered.length===1?"álbum":"álbumes"),S.sectionResults),
-   h(View,{style:S.repCards},
-    ...filtered.map(a=>h(SectionListCard,{key:a.id,title:a.title,
-     subtitle:model.songsForAlbum(a.id).length+" cantos",
-     meta:model.artistMap.get(a.artist_id)?.name||a.description,
-     icon:"albums",onPress:()=>openDetail({type:"album",id:a.id})})),
-    !filtered.length?h(SectionEmpty,{message:"No hay álbumes que coincidan con tu búsqueda."}):null)
-  );
+  return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }
+
  function renderArtistDetail(a){
   const songs=model.songsForArtist(a.id);
   const urls=[["YouTube",a.youtube_url],["Spotify",a.spotify_url],
