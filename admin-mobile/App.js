@@ -21,6 +21,7 @@ const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
 const {createSync}=require("./src/sync");
 const {createStudioPersistence}=require("./src/studio-persistence");
+const {createStudioHistory}=require("./src/studio-history");
 const {createUserManagement}=require("./src/user-management");
 const store=require("./src/store");
 const h=React.createElement;
@@ -29,6 +30,7 @@ const api=createApi(fetch,auth);
 const network=async()=>{const n=await NetInfo.fetch();return !!(n.isConnected&&n.isInternetReachable!==false);};
 const sync=createSync(api,auth,network);
 const studio=createStudioPersistence({api,store,network});
+const studioHistory=createStudioHistory({api,network});
 const tabs=[["Inicio","⌂"],["Cantos","♫"],["Catálogo","▤"],["Pendientes","⇧"],["Usuarios","♙"]];
 const catalogTabs=["artists","albums","categories","repertoires","medleys","contact_messages","home_recommendations","site_content","donation_settings"];
 function localId(){return Crypto.randomUUID();}
@@ -191,6 +193,27 @@ function Main(){
    setStudioPayload({type:"shalom-studio-init",mode:"admin",song:studioSong(saved),arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
   }catch(e){Alert.alert("SHALOM Studio",e.message);}
  }
+ function sameStudioContext(context){
+  const now=studioContext.current;
+  return !!now&&!!context&&["owner","tab","selectedType","id","lyrics","revision"].every(key=>now[key]===context[key]);
+ }
+ async function listStudioHistory(){
+  const context=studioContext.current;
+  const rows=await studioHistory.list(context?.owner,context?.id);
+  if(!sameStudioContext(context))throw Error("El editor cambió. Vuelve a abrir el historial.");
+  return rows;
+ }
+ async function chooseStudioHistory(id,recover){
+  const context=studioContext.current;
+  const selected=await studioHistory.select(context?.owner,context?.id,id,recover);
+  if(!sameStudioContext(context))return;
+  if(recover){
+   if(selected.song.revision!==context.revision||selected.song.lyrics!==String(context.lyrics||""))throw Error("Publica o revisa primero la letra vigente.");
+   const state=await studio.read(context.owner,selected.song,false);
+   if(!sameStudioContext(context))return;
+   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:selected.song,arrangement:state.arrangement,draft:state.draft,recoveryDraft:selected.arrangement,shift:0,capo:0});
+  }else setStudioPayload({type:"shalom-studio-init",mode:"public",song:{...selected.song,title:selected.song.title+" · Historial"},arrangement:selected.arrangement,shift:0,capo:0});
+ }
  async function studioDraft(arrangement){
   if(!owner||!studioPayload)throw Error("Sesión no disponible.");
   return studio.saveDraft(owner,studioPayload.song,arrangement);
@@ -210,7 +233,7 @@ function Main(){
   return false;
  }
  useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType]);
- function editorPanel(){return h(EditorScreen,{form,selectedType,section,update:editor.update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio,editorSaving,saveDraft,access,offline});}
+ function editorPanel(){return h(EditorScreen,{form,selectedType,section,update:editor.update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio,listStudioHistory,chooseStudioHistory,historyOwner:owner,editorSaving,saveDraft,access,offline});}
  function catalogPanel(type){return h(CatalogScreen,{type,lists,search,setSearch,begin,access,offline,confirmRemove});}
  async function transitionPending(d){try{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(!changed)setMessage("El borrador cambió. Revisa la versión actual.");}catch(e){Alert.alert("No se pudo actualizar",e.message);}}
  async function deletePending(d){try{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}catch(e){Alert.alert("No se pudo borrar",e.message);}}
