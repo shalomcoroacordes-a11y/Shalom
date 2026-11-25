@@ -2,6 +2,7 @@
 // Dos copias alternas: una descarga interrumpida no reemplaza la última copia válida.
 const { File, Paths } = require("expo-file-system");
 const { TABLES, SUPABASE_URL } = require("./config");
+const { validRevisions, updatePreferences } = require("./preference-core");
 // Hermes puede no implementar new URL(...) sin un polyfill.
 // Nunca interpretar la URL en la carga inicial de la app: un error aquí
 // cerraría SHALOM antes de montar la pantalla y abrir las colecciones.
@@ -124,53 +125,64 @@ function validPreferences(data) {
   return data && typeof data === "object" && !Array.isArray(data) &&
     Object.values(data).every(value => typeof value === "string");
 }
-async function readPreferences(slot) {
+async function readPreferenceSlot(slot) {
   try {
     const file = prefsFile(slot);
     if (!file.exists) return null;
     const record = JSON.parse(await file.text());
     if (!validPreferences(record.data) || !Number.isSafeInteger(record.revision) ||
-        record.revision < 1 || record.checksum !== snapshotChecksum(record.data)) return null;
-    return { ...record, slot };
+        record.revision < 1) return null;
+    const revisions = record.revisions ?? {};
+    if (!validRevisions(record.data,revisions) || record.checksum !== snapshotChecksum(record.revisions == null ? record.data : {data:record.data,revisions})) return null;
+    return { ...record, revisions, slot };
   } catch (_) { return null; }
 }
 async function latestPreferences() {
-  const [a,b] = await Promise.all([readPreferences("A"),readPreferences("B")]);
+  const [a,b] = await Promise.all([readPreferenceSlot("A"),readPreferenceSlot("B")]);
   if (a || b) return !a ? b : !b ? a : a.revision >= b.revision ? a : b;
   try {
     const legacy = prefsFile();
     if (legacy.exists) {
       const data = JSON.parse(await legacy.text());
-      if (validPreferences(data)) return { data, revision: 0 };
+      if (validPreferences(data)) return { data, revisions: {}, revision: 0 };
     }
   } catch (_) {}
-  return { data: {}, revision: 0 };
+  return { data: {}, revisions: {}, revision: 0 };
 }
 async function getPreference(key, fallback = null) {
   const {data} = await latestPreferences();
   return Object.hasOwn(data,key) ? data[key] : fallback;
 }
 let preferenceWrites = Promise.resolve();
-function setPreference(key, value) {
-  const task = preferenceWrites.then(() => writePreference(key,value));
+function enqueuePreferences(work) {
+  const task = preferenceWrites.then(work);
   preferenceWrites = task.catch(() => {});
   return task;
 }
-async function writePreference(key,value) {
-  const previous = await latestPreferences();
-  const data = { ...previous.data, [key]: String(value) };
+function setPreference(key,value) {
+  return enqueuePreferences(async()=>{
+    const previous=await latestPreferences();
+    return writePreferences(updatePreferences(previous,{[key]:value}),previous);
+  });
+}
+function savePreferences(next) {
+  return enqueuePreferences(async()=>writePreferences(next,await latestPreferences()));
+}
+async function writePreferences(next,previous) {
+  const {data,revisions}=next;
+  if(!validPreferences(data)||!validRevisions(data,revisions))throw Error("Preferencias incorrectas");
   const slot = previous.slot === "A" ? "B" : "A";
   const file = prefsFile(slot);
-  const record = { data, revision: previous.revision + 1, checksum: snapshotChecksum(data) };
+  const record = { data, revisions, revision: previous.revision + 1, checksum: snapshotChecksum({data,revisions}) };
   try {
     file.create({ overwrite: true });
     await file.write(JSON.stringify(record));
-    const verified = await readPreferences(slot);
+    const verified = await readPreferenceSlot(slot);
     if (!verified || verified.revision !== record.revision ||
-        JSON.stringify(verified.data) !== JSON.stringify(data)) throw Error("No se pudo verificar la preferencia guardada.");
+        JSON.stringify(verified.data) !== JSON.stringify(data) || JSON.stringify(verified.revisions) !== JSON.stringify(revisions)) throw Error("No se pudo verificar la preferencia guardada.");
   } catch (error) {
     try { if (file.exists) file.delete(); } catch (_) {}
     throw error;
   }
 }
-module.exports = { readSnapshot, saveSnapshot, getPreference, setPreference, validSnapshot };
+module.exports = { readSnapshot, saveSnapshot, getPreference, setPreference, readPreferences: latestPreferences, savePreferences, validSnapshot };

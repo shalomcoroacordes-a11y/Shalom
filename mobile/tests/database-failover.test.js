@@ -4,7 +4,7 @@ const fs=require("node:fs");
 const vm=require("node:vm");
 const {TABLES}=require("../src/config");
 const source=fs.readFileSync(require("node:path").resolve(__dirname,"../src/database.js"),"utf8");
-let records=new Map(),meta=new Map(),savedFile=null,failFile=false,failSql=false,failSqlRead=false;
+let records=new Map(),meta=new Map(),savedFile=null,failFile=false,failSql=false,failSqlRead=false,failPrefSql=false,failPrefFile=false,filePrefs={data:{},revisions:{}};
 const flags={fileWrites:0,sqlCommits:0};
 const id=(table,key)=>table+":"+key;
 const fakeDb={
@@ -16,6 +16,7 @@ const fakeDb={
  },
  async getAllAsync(sql,table){
   if(failSqlRead)throw Error("SQLite no disponible");
+  if(sql.startsWith("SELECT meta_key,meta_value"))return [...meta].filter(([k])=>k!=="last_sync").map(([meta_key,meta_value])=>({meta_key,meta_value}));
   assert.match(sql,/UNION ALL/);
   return [...(meta.has("last_sync")?[{kind:"last_sync",payload:meta.get("last_sync")}]:[]),
    ...[...records.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([key,payload])=>{
@@ -24,10 +25,10 @@ const fakeDb={
    })];
  },
  async withExclusiveTransactionAsync(callback){
-  const nextRecords=new Map(records),nextMeta=new Map(meta);
+  const nextRecords=new Map(records),nextMeta=new Map(meta);let catalog=false;
   const trx={async runAsync(sql,...values){
    if(sql.startsWith("DELETE FROM catalog_records")){
-    nextRecords.clear();return;
+    catalog=true;nextRecords.clear();return;
    }
    if(sql.startsWith("INSERT INTO catalog_records")){
     const [table,key,payload]=values;
@@ -36,12 +37,14 @@ const fakeDb={
     return;
    }
    if(sql.startsWith("INSERT INTO metadata")){
-    nextMeta.set("last_sync",values[0]);return;
+    if(catalog)nextMeta.set("last_sync",values[0]);
+    else{if(failPrefSql&&values[0]==="favorites")throw Error("Preference disk failure");nextMeta.set(values[0],values[1]);}
+    return;
    }
    throw Error("SQL inesperado "+sql);
   }};
   await callback(trx);
-  records=nextRecords;meta=nextMeta;flags.sqlCommits++;
+  records=nextRecords;meta=nextMeta;if(catalog)flags.sqlCommits++;
  },
  async runAsync(sql,key,value){
   assert.match(sql,/INSERT INTO metadata/);
@@ -63,8 +66,8 @@ const backup={
   savedFile={data:structuredClone(data),syncedAt,storage:"archivo-local"};
   return syncedAt;
  },
- async getPreference(key,fallback){return fallback},
- async setPreference(){}
+ async readPreferences(){return structuredClone(filePrefs)},
+ async savePreferences(next){if(failPrefFile)throw Error("Preference file failure");filePrefs=structuredClone(next)}
 };
 const mod={exports:{}};
 vm.runInNewContext(source,{
@@ -72,6 +75,7 @@ vm.runInNewContext(source,{
  require(name){
   if(name==="./config")return {TABLES};
   if(name==="./file-storage")return backup;
+  if(name==="./preference-core")return require("../src/preference-core");
   if(name==="expo-sqlite")return {openDatabaseAsync:async filename=>{
    assert.equal(filename,"shalom-cancionero.db");return fakeDb;
   }};
@@ -163,5 +167,17 @@ function sample(songId){
  records.set(id("songs","s8"),original);
  await Promise.all([api.setMetadata("profile","one"),api.setMetadata("favorites","two")]);
  assert.equal(await api.getMetadata("profile"),"one");assert.equal(await api.getMetadata("favorites"),"two");
- console.log("SHALOM: SQLite, copia local, fallo doble, transacción, lectura coherente y escrituras serializadas verificadas.");
+ // Simulate a batch that succeeds only on files, then a later SQLite-only write.
+ failPrefSql=true;await api.setMetadataBatch({profile:"file-new",favorites:"file-new",collections:"file-new"});
+ assert.equal(await api.getMetadata("profile"),"file-new");assert.equal(meta.get("profile"),"one");
+ failPrefSql=false;failPrefFile=true;await api.setMetadata("profile","sql-new");
+ assert.equal(await api.getMetadata("profile"),"sql-new");assert.equal(await api.getMetadata("favorites"),"file-new");
+ failPrefSql=true;const before=JSON.stringify(await api.getMetadataBatch({profile:"",favorites:"",collections:""}));
+ await assert.rejects(api.setMetadataBatch({profile:"bad",favorites:"bad",collections:"bad"}));
+ assert.equal(JSON.stringify(await api.getMetadataBatch({profile:"",favorites:"",collections:""})),before);
+ failPrefSql=false;failPrefFile=false;
+ await api.setMetadataBatch({profile:"restored",favorites:"restored",collections:"restored",last_read:""});
+ assert.equal(await api.getMetadata("profile"),"restored");assert.equal(filePrefs.data.favorites,"restored");
+ assert.equal(filePrefs.revisions.profile,filePrefs.revisions.collections);
+ console.log("SHALOM: catalog and preference transactions, dual-backend reconciliation and partial failure recovery verified.");
 })().catch(error=>{console.error(error);process.exitCode=1});

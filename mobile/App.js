@@ -6,7 +6,7 @@ const {
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
-const {getCatalog,getMetadata,setMetadata}=require("./src/database");
+const {getCatalog,setMetadata,getMetadataBatch,setMetadataBatch}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
 const {parseSong,transposeOne}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
@@ -226,33 +226,19 @@ function AppScreen() {
  }
  async function restoreMyPersonalBackup(parsed){
   await Promise.all([likedWriteRef.current,personalWriteRef.current,profileWriteRef.current]);
-  const old={profile:profileRef.current,personal:personalRef.current,
-   likedIds:likedRef.current,lastRead};
   const staged=await stageRestoredPhotos(parsed);
   const next=staged.data;
   try{
-   await setMetadata(PERSONAL_KEY,JSON.stringify(next.personal));
-   await setMetadata(PROFILE_KEY,JSON.stringify(next.profile));
-   await setMetadata(FAVORITES_KEY,JSON.stringify(next.likedIds));
-   await setMetadata("last_read",next.lastRead?JSON.stringify(next.lastRead):"");
+   await setMetadataBatch({
+    [PERSONAL_KEY]:JSON.stringify(next.personal),
+    [PROFILE_KEY]:JSON.stringify(next.profile),
+    [FAVORITES_KEY]:JSON.stringify(next.likedIds),
+    last_read:next.lastRead?JSON.stringify(next.lastRead):""
+   });
   }catch(err){
-   const rolled=[];
-   for(const [key,value] of [
-    [PERSONAL_KEY,JSON.stringify(old.personal)],
-    [PROFILE_KEY,JSON.stringify(old.profile)],
-    [FAVORITES_KEY,JSON.stringify(old.likedIds)],
-    ["last_read",old.lastRead?JSON.stringify(old.lastRead):""]
-   ]){
-    try{await setMetadata(key,value);rolled.push(true);}
-    catch(_){rolled.push(false);}
-   }
-   const rollbackFailed=rolled.some(result=>!result);
-   // Mantener las fotos importadas si la recuperación de metadatos fue parcial:
-   // las preferencias quizá las sigan referenciando. Nunca perder una foto a ciegas.
-   if(!rollbackFailed)staged.cleanup();
-   if(rollbackFailed)
-    throw new Error("La restauración falló y no fue posible recuperar completamente las preferencias anteriores. Conserva tu archivo y vuelve a importarlo: "+err.message);
-   throw err;
+   // Both backends rejected the batch. Preserve staged photos conservatively:
+   // an I/O verification failure might still have left a recoverable reference.
+   throw new Error("No se pudo confirmar la restauración. Conserva tu respaldo y vuelve a intentarlo: "+err.message);
   }
   clearLocalNotice();
   personalRef.current=next.personal;profileRef.current=next.profile;
@@ -339,10 +325,10 @@ function AppScreen() {
   let enabled=true;
   (async()=>{
    try{
-    const [snapshot,pref,n,last,likedRaw,personalRaw,profileRaw]=await Promise.all([
-     getCatalog(),getMetadata("wifi_only","true"),networkState(),getMetadata("last_read",""),
-     getMetadata(FAVORITES_KEY,"[]"),getMetadata(PERSONAL_KEY,""),getMetadata(PROFILE_KEY,"")
+    const [snapshot,n,prefs]=await Promise.all([
+     getCatalog(),networkState(),getMetadataBatch({wifi_only:"true",last_read:"",[FAVORITES_KEY]:"[]",[PERSONAL_KEY]:"",[PROFILE_KEY]:""})
     ]);
+    const pref=prefs.wifi_only,last=prefs.last_read,likedRaw=prefs[FAVORITES_KEY],personalRaw=prefs[PERSONAL_KEY],profileRaw=prefs[PROFILE_KEY];
     if(!enabled)return;
     lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);
