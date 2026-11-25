@@ -200,6 +200,9 @@ jobs:
       - name: Test direct song overview rendering
         run: node tests/song-overview-rendering.cjs
 
+      - name: Test single public artist profile owner
+        run: node tests/artist-public-profile-owner.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
