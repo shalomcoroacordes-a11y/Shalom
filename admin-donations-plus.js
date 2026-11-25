@@ -41,8 +41,7 @@
   }
 
   function render() {
-    const original = $("#donationAdminForm");
-    const section = $("#donationPlusAdmin") || original?.closest("section.admin-section");
+    const section = $("#donationPlusAdmin");
     if (!section) return;
     const item = currentItem();
     section.id = "donationPlusAdmin";
@@ -122,22 +121,18 @@
     $$('[data-toggle-donation]').forEach((button) => button.addEventListener("click", () => toggle(button.dataset.toggleDonation)));
   }
 
-  async function boot() {
-    const oldForm = $("#donationAdminForm");
-    if (!oldForm || $("#donationPlusAdmin")) return;
-    const section = oldForm.closest("section.admin-section");
-    if (!section) return;
-    section.id = "donationPlusAdmin";
-    section.innerHTML = `<div class="admin-card"><p class="admin-note">Cargando opciones de donación…</p></div>`;
+  async function mount(view) {
+    if (!view) return;
+    view.innerHTML = '<section class="admin-section" id="donationPlusAdmin"><div class="admin-card"><p class="admin-note">Cargando opciones de donación…</p></div></section>';
+    const section = view.querySelector("#donationPlusAdmin");
     try {
       await loadItems();
-      render();
+      if ($("#donationPlusAdmin") === section) render();
     } catch (error) {
+      if ($("#donationPlusAdmin") !== section) return;
       section.innerHTML = `<div class="admin-card"><h3>No se pudieron cargar las donaciones</h3><p class="admin-note">${esc(error.message || "Error desconocido")}</p><p class="admin-note">Ejecuta supabase-donations-multiple.sql si aún no lo hiciste.</p></div>`;
     }
   }
 
-  const observer = new MutationObserver(boot);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  boot();
+  window.ShalomAdminDonations = { mount };
 })();
