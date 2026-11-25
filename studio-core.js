@@ -362,5 +362,13 @@
     if(matches.length!==1)throw Error("Sección repetida o sin acordes. Ajusta el rango manualmente.");
     return groupRange(config,matches[0]);
   }
-  return Object.freeze({durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Undo snapshots may restore a full arrangement only if no subsequent edit
+  // changed its canonical fingerprint. Invalid fingerprints never authorize undo.
+  function undoSnapshot(config,selection={}){
+    return {...selection,config:JSON.parse(JSON.stringify(config)),after:null};
+  }
+  function canUndo(snapshot,fingerprint){
+    return !!snapshot&&typeof fingerprint==="string"&&fingerprint.length>0&&snapshot.after===fingerprint;
+  }
+  return Object.freeze({undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
