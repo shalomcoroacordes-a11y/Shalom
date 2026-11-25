@@ -4,7 +4,7 @@ const src=fs.readFileSync("admin-pro.js","utf8");
 const start=src.indexOf("function apRenderShell() {");
 const end=src.indexOf("function apSectionHead(",start);
 assert.ok(start>=0 && end>start,"Panel de pestañas presente");
-const ids=["artists","categories","albums","songs","medleys","donations","backup","messages","requestPage","maintenance","home"];
+const ids=["artists","categories","albums","songs","medleys","donations","backup","messages","requestPage","maintenance","home","publicPages"];
 const tabs=ids.map(id=>{
   const listeners={};let active=id==="songs";
   return {dataset:{adminTab:id},
@@ -41,13 +41,13 @@ const scope={
  apBindAlbums:()=>bound.push("albums"),
  apBindSongs:()=>bound.push("songs"),
  apBindDonations:()=>bound.push("donations"),
- window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminHome:{mount:target=>{target.innerHTML="<p>HOME</p>";bound.push("home")}},ShalomAdminMaintenance:{mount:target=>{target.innerHTML="<p>MAINTENANCE</p>";bound.push("maintenance")}},ShalomAdminRequestPage:{mount:target=>{target.innerHTML="<p>REQUEST</p>";bound.push("requestPage")}},ShalomAdminMessages:{mount:target=>{target.innerHTML="<p>MESSAGES</p>";bound.push("messages")}},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminPublicPages:{mount:target=>{target.innerHTML="<p>PUBLIC PAGES</p>";bound.push("publicPages")}},ShalomAdminHome:{mount:target=>{target.innerHTML="<p>HOME</p>";bound.push("home")}},ShalomAdminMaintenance:{mount:target=>{target.innerHTML="<p>MAINTENANCE</p>";bound.push("maintenance")}},ShalomAdminRequestPage:{mount:target=>{target.innerHTML="<p>REQUEST</p>";bound.push("requestPage")}},ShalomAdminMessages:{mount:target=>{target.innerHTML="<p>MESSAGES</p>";bound.push("messages")}},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
 };
 vm.createContext(scope);
 vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
 assert.ok(workspace.innerHTML.includes("Popurrís"),"Falta nueva pestaña");
 assert.match(workspace.innerHTML,/data-admin-tab="backup">Respaldo<\/button>/,"Backup belongs to the native tab list");
-const displays=["ARTISTS","CATEGORIES","ALBUMS","SONGS","","DONATIONS","BACKUP","MESSAGES","REQUEST","MAINTENANCE","HOME"];
+const displays=["ARTISTS","CATEGORIES","ALBUMS","SONGS","","DONATIONS","BACKUP","MESSAGES","REQUEST","MAINTENANCE","HOME","PUBLIC PAGES"];
 ids.forEach((id,i)=>{
  tabs[i].click();
  assert.equal(state.tab,id,"No cambió a "+id);
@@ -55,7 +55,7 @@ ids.forEach((id,i)=>{
  else assert.equal(bound.at(-1),"medleys","No abrió editor de popurrís");
  for(let k=0;k<tabs.length;k++)assert.equal(tabs[k].classList.contains("active"),k===i,"Activo incorrecto al pulsar "+id);
 });
-assert.ok(["artists","categories","albums","songs","donations","medleys","backup","messages","requestPage","maintenance","home"].every(id=>bound.includes(id)),"No todas las pestañas abrieron");
+assert.ok(["artists","categories","albums","songs","donations","medleys","backup","messages","requestPage","maintenance","home","publicPages"].every(id=>bound.includes(id)),"No todas las pestañas abrieron");
 document.activeElement={id:"artistFilter",selectionStart:1,selectionEnd:3};
 tabs[0].click();
 assert.deepEqual(focusCalls,[true,1,3],"Search focus and selection restored by the owner");
@@ -86,3 +86,5 @@ assert.match(workspace.innerHTML,/id="adminRequestPageTab" data-admin-tab="reque
 assert.match(workspace.innerHTML,/data-jhd-audit-tab="true" data-admin-tab="maintenance">Mantenimiento<\/button>/);
 
 assert.match(workspace.innerHTML,/data-jhd-home-section-tab="true" data-admin-tab="home">Inicio<\/button>/);
+
+assert.match(workspace.innerHTML,/id="adminPublicPagesTab" data-admin-tab="publicPages">Página pública<\/button>/);

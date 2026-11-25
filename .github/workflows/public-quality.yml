@@ -185,6 +185,9 @@ jobs:
       - name: Test explicit home lifecycle
         run: node tests/admin-home-lifecycle.cjs
 
+      - name: Test explicit public pages lifecycle
+        run: node tests/admin-public-pages-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

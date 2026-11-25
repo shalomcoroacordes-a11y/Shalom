@@ -192,8 +192,8 @@ async function apLoadData() {
 function apRenderShell() {
   const workspace = ap$("#adminWorkspace");
   if (!workspace) return;
-  const tabs = [["home", "Inicio"], ["artists", "Artistas"], ["categories", "Categorías"], ["albums", "Álbumes"], ["songs", "Canciones"], ["medleys", "Popurrís"], ["repertoires", "Repertorios"], ["donations", "Donaciones"], ["backup", "Respaldo"], ["messages", "Mensajes"], ["requestPage", "Solicitar canto"], ["maintenance", "Mantenimiento"]];
-  workspace.innerHTML = `<div class="admin-shell"><div class="admin-topbar"><p class="muted-text">Sesión activa: <strong>${apEsc(AP.user?.email || "Administrador")}</strong></p><button class="song-btn small-btn secondary" id="adminLogout" type="button">Cerrar sesión</button></div><div class="admin-tabs">${tabs.map(([id, label]) => `<button class="admin-tab ${AP.tab === id ? "active" : ""}" type="button"${id === "messages" ? ' id="adminMessagesTab"' : id === "requestPage" ? ' id="adminRequestPageTab"' : id === "maintenance" ? ' data-jhd-audit-tab="true"' : id === "home" ? ' data-jhd-home-section-tab="true"' : ""} data-admin-tab="${id}">${label}</button>`).join("")}</div><div id="adminView"></div><p class="admin-message" id="adminMessage"></p></div>`;
+  const tabs = [["home", "Inicio"], ["artists", "Artistas"], ["categories", "Categorías"], ["albums", "Álbumes"], ["songs", "Canciones"], ["medleys", "Popurrís"], ["repertoires", "Repertorios"], ["donations", "Donaciones"], ["backup", "Respaldo"], ["messages", "Mensajes"], ["requestPage", "Solicitar canto"], ["maintenance", "Mantenimiento"], ["publicPages", "Página pública"]];
+  workspace.innerHTML = `<div class="admin-shell"><div class="admin-topbar"><p class="muted-text">Sesión activa: <strong>${apEsc(AP.user?.email || "Administrador")}</strong></p><button class="song-btn small-btn secondary" id="adminLogout" type="button">Cerrar sesión</button></div><div class="admin-tabs">${tabs.map(([id, label]) => `<button class="admin-tab ${AP.tab === id ? "active" : ""}" type="button"${id === "messages" ? ' id="adminMessagesTab"' : id === "requestPage" ? ' id="adminRequestPageTab"' : id === "maintenance" ? ' data-jhd-audit-tab="true"' : id === "home" ? ' data-jhd-home-section-tab="true"' : id === "publicPages" ? ' id="adminPublicPagesTab"' : ""} data-admin-tab="${id}">${label}</button>`).join("")}</div><div id="adminView"></div><p class="admin-message" id="adminMessage"></p></div>`;
   ap$$("[data-admin-tab]", workspace).forEach((button) => button.addEventListener("click", () => {
     if (AP.tab === "songs") apCaptureSongDraft();
     AP.tab = button.dataset.adminTab;
@@ -237,6 +237,11 @@ function apRenderView() {
   if (AP.tab === "home") {
     if (window.ShalomAdminHome) window.ShalomAdminHome.mount(view);
     else view.innerHTML = '<p class="admin-empty">No se pudo cargar el módulo de Inicio.</p>';
+    return;
+  }
+  if (AP.tab === "publicPages") {
+    if (window.ShalomAdminPublicPages) window.ShalomAdminPublicPages.mount(view);
+    else view.innerHTML = '<p class="admin-empty">No se pudo cargar el editor de Página pública.</p>';
     return;
   }
   if (AP.tab === "donations" && window.ShalomAdminDonations) {
