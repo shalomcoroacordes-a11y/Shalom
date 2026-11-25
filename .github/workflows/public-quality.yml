@@ -177,6 +177,9 @@ jobs:
       - name: Test canonical public chord rendering and degraded mode
         run: node tests/song-reader-chords.cjs
 
+      - name: Verify web and native chord interpretation parity
+        run: node tests/chord-engine-parity.cjs
+
       - name: Verify song detail CSS bundle against original files
         run: node tests/song-detail-bundle-regression.cjs
 
