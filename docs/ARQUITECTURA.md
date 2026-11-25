@@ -78,3 +78,7 @@ El núcleo `admin-backup-core.js` define el formato, las 13 tablas, el orden de 
 
 
 Studio comparte `studio-native-screen.js` (fábrica de pantalla nativa), `studio-collections.js` (planificación de colecciones) y las fuentes web de Studio. `scripts/build-studio-native.js` genera las cinco salidas que usan las apps; la pantalla Admin recibe su mensaje de publicación específico y la pública su cola opcional desde el lector.
+
+## Presentación compartida de artistas y álbumes
+
+`catalog-list-view.js` es propietario de las tarjetas y el botón de paginación; `artistas.js` y `albumes.js` conservan sus consultas y filtros. Ambas páginas cargan `catalog-list-bundle.css` (copia concatenada y verificada de `catalog-cards.css` y `detalles.css`). Álbumes carga después `catalogo.css`, que también utiliza Categorías. No se modifica el orden de reglas ni los selectores. Si cambian los estilos fuente, actualizar el paquete y ejecutar `node tests/catalog-css-bundles-regression.cjs`. El bundle de detalle de canto conserva su propio contrato. Se elimina un paquete redundante a cambio de una hoja adicional en Álbumes, que puede aprovechar caché compartida; medir antes de afirmar una mejora de velocidad.
