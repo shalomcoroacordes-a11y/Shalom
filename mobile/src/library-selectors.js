@@ -29,9 +29,17 @@ function filterArtists(model,{query="",type=""}={}){
 function searchHomeSongs(model,query="",limit=6){
  const term=normalize(String(query??"").trim());
  if(!term)return [];
- return model.songs.filter(song=>matchesSearch([
-  song.title,song.lyrics,names(song._artists),names(song._categories)
- ],term)).slice(0,limit);
+ const matches=song=>matchesSearch([song.title,song.lyrics,names(song._artists),names(song._categories)],term);
+ // Home shows only a small preview; stop once it is complete.
+ // Preserve Array.slice semantics for nonstandard limits used by callers.
+ if(!Number.isInteger(limit)||limit<0)return model.songs.filter(matches).slice(0,limit);
+ const found=[];
+ if(!limit)return found;
+ for(const song of model.songs){
+  if(matches(song))found.push(song);
+  if(found.length===limit)break;
+ }
+ return found;
 }
 
 // Keep the original distinction between a closed detail (null) and a missing record (undefined).

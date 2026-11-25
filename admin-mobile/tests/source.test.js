@@ -7,7 +7,9 @@ assert.equal(pkg.expo.android.package,"com.shalomcoroacordes.admin");
 assert.notEqual(pkg.expo.android.package,"com.shalomcoroacordes.cancionero");
 for(const section of ["Inicio","Cantos","Catálogo","Pendientes","Usuarios"])assert.ok(app.includes(section));
 for(const section of ["Capos","Enlaces","Vista previa"])assert.ok(app.includes(section));
-assert.match(app,/api\.assignUserRoles/);
+const users=fs.readFileSync("src/user-management.js","utf8");
+assert.match(app,/users\.toggleRole/);
+assert.match(users,/api\.assignUserRoles/);
 assert.match(sql,/admin_has_permission/);
 assert.match(sql,/admin_access_blocks/);
 assert.match(sql,/admin_redeem_invite/);
@@ -16,8 +18,9 @@ assert.match(sql,/for update/);
 assert.doesNotMatch(fs.readFileSync("src/config.js","utf8"),/service_role|sb_secret_/);
 console.log("Identidad APK y protección del servidor verificadas.");
 
-assert.match(app,/admin_permission_overrides/);
-assert.match(app,/setPermissionOverride/);
+assert.match(users,/admin_permission_overrides/);
+assert.match(users,/setPermissionOverride/);
+assert.match(app,/users\.toggleOverride/);
 assert.match(app,/donation_settings/);
 
 const model=fs.readFileSync("src/model.js","utf8");
