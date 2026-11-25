@@ -1,0 +1,15 @@
+id: review-render-reassignment
+language: JavaScript
+severity: warning
+message: "Revisar reasignación de un renderizador: modificar su implementación propietaria en lugar de envolverla."
+rule:
+  any:
+    - pattern: apRenderView = $VALUE
+    - all:
+        - pattern: window.$NAME = $VALUE
+        - has:
+            field: left
+            kind: member_expression
+            has:
+              field: property
+              regex: '^(apRender|render)[A-Za-z0-9_$]*$'

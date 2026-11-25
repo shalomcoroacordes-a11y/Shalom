@@ -1,0 +1,51 @@
+name: SHALOM structural code audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structural:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test structural report
+        run: node tests/structural-findings.test.cjs
+      - name: Test positive and negative structural rule examples
+        run: npm exec --yes --package=@ast-grep/cli@0.39.7 -- ast-grep test --skip-snapshot-tests
+      - name: Audit source code patterns
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/shalom-structural"
+          mkdir -p "$report"
+          mapfile -d '' source < <(git ls-files -z -- '*.js' | while IFS= read -r -d '' file; do
+            case "$file" in
+              */studio-bundle.js|*.min.js) continue ;;
+              mobile/App.js|admin-mobile/App.js|mobile/src/*|admin-mobile/src/*) printf '%s\0' "$file" ;;
+              */*) continue ;;
+              *) printf '%s\0' "$file" ;;
+            esac
+          done)
+          test "${#source[@]}" -gt 0
+          npm exec --yes --package=@ast-grep/cli@0.39.7 -- ast-grep scan --json=compact "${source[@]}" > "$report/findings.json"
+          node scripts/summarize_structural_findings.cjs "$report/findings.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Retain structural audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shalom-structural-findings
+          path: ${{ runner.temp }}/shalom-structural/
+          retention-days: 14
+          if-no-files-found: warn

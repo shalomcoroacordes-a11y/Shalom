@@ -1,0 +1,6 @@
+id: review-dom-observer
+language: JavaScript
+severity: warning
+message: "Revisar observador DOM: no corregir mediante observación una salida que controla SHALOM."
+rule:
+  pattern: new MutationObserver($$$ARGS)

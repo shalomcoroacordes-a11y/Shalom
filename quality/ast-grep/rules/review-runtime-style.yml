@@ -1,0 +1,8 @@
+id: review-runtime-style
+language: JavaScript
+severity: warning
+message: "Revisar CSS creado en ejecución: mantener los estilos estáticos en el componente o CSS propietario."
+rule:
+  any:
+    - pattern: document.createElement("style")
+    - pattern: document.createElement('style')
