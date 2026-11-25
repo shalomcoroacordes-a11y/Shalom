@@ -11,12 +11,13 @@ let openSection=0,inlineSection=null,rhythmIndex=0,rhythmUndo=null;
 let publishedFingerprint=null,draftFingerprint=null,saveError="",pendingKind=null;
 const fingerprint=()=>{try{return config?JSON.stringify(window.ShalomStudioCodec.encode(anchors,config)):null}catch{return null}};
 let anchors=[],config=null,ctx=null,engine=null,timer=null,frame=null,playing=false,epoch=0;
-const note=s=>{$("status").textContent=s;$("editorStatus").textContent=s;renderSaveState();renderUndoState()};
-function renderUndoState(){const fp=fingerprint();$("undoTiming").disabled=!core.canUndo(timingUndo,fp);$("undoRhythm").disabled=!core.canUndo(rhythmUndo,fp)}
+const note=s=>{$("status").textContent=s;$("editorStatus").textContent=s;renderEditingState()};
+function renderEditingState(fp=fingerprint()){renderSaveState(fp);renderUndoState(fp)}
+function renderUndoState(fp=fingerprint()){$("undoTiming").disabled=!core.canUndo(timingUndo,fp);$("undoRhythm").disabled=!core.canUndo(rhythmUndo,fp)}
 function rememberTiming(next){const previous=core.undoSnapshot(config);config=next;previous.after=fingerprint();timingUndo=previous;}
-function renderSaveState(){
+function renderSaveState(fp=fingerprint()){
  const {state,title,detail,disabled}=window.ShalomStudioSaveState.describe({
-  fingerprint:fingerprint(),publishedFingerprint,draftFingerprint,pendingSave,pendingKind,saveError
+  fingerprint:fp,publishedFingerprint,draftFingerprint,pendingSave,pendingKind,saveError
  });
  $("saveState").dataset.state=state;
  $("saveStateTitle").textContent=title;
@@ -73,9 +74,9 @@ function renderEditor(){
  const counter=elem("div");counter.className="duration-counter";const minus=elem("button","−"),plus=elem("button","+");minus.disabled=duration<=1;minus.onclick=safe(()=>setSteps(Math.max(1,duration-Math.max(1,Math.floor(m.division/2)))));plus.onclick=safe(()=>setSteps(duration+Math.max(1,Math.floor(m.division/2))));counter.append(minus,elem("strong",durationText(duration)),plus);wrap.append(counter,quick);
  const detail=elem("details");detail.className="advanced";detail.append(elem("summary","Duración personalizada"));const input=elem("input");input.type="number";input.step="any";input.min=1/m.division;input.value=Number((duration/m.division).toFixed(6));input.onchange=safe(()=>{setSteps(core.pulsesToSteps(config,input.value))});const custom=elem("label","Pulsos exactos");custom.append(input);detail.append(custom);wrap.append(detail);
  const behavior=elem("fieldset");behavior.className="anchor-hold";behavior.append(elem("legend","Comportamiento del acorde"));for(const [value,label] of [["strum","Seguir rasgueando"],["ring","Tocar y dejar sonar"],["mute","Apagar al finalizar"]]){const row=elem("label"),radio=elem("input");radio.type="radio";radio.name="anchorHold";radio.value=value;radio.checked=(config.changes[anchorIndex].hold||"strum")===value;radio.onchange=()=>{if(!radio.checked)return;config=core.setAnchorHold(config,anchorIndex,value);note("Comportamiento actualizado.")};row.append(radio,document.createTextNode(label));behavior.append(row);}wrap.append(behavior);$("anchors").replaceChildren(wrap);
- $("anchorStart").value=pos;$("anchorStart").disabled=anchorIndex===g.indices[0];$("anchorStart").min=(config.changes[anchorIndex-1]?.step??-1)+1;$("anchorStart").max=(config.changes[anchorIndex+1]?.step??config.endStep??config.totalSteps)-1;$("prevAnchor").disabled=anchorIndex===0;$("nextAnchor").disabled=anchorIndex===anchors.length-1;$("undoTiming").disabled=!core.canUndo(timingUndo,fingerprint());$("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();$("tempoSlider").value=$("bpm").value;renderPattern();renderFragments();renderReview();renderSections();renderSaveState();
+ $("anchorStart").value=pos;$("anchorStart").disabled=anchorIndex===g.indices[0];$("anchorStart").min=(config.changes[anchorIndex-1]?.step??-1)+1;$("anchorStart").max=(config.changes[anchorIndex+1]?.step??config.endStep??config.totalSteps)-1;$("prevAnchor").disabled=anchorIndex===0;$("nextAnchor").disabled=anchorIndex===anchors.length-1;$("total").value=config.totalSteps/size();$("barEdit").max=config.totalSteps/size();$("tempoSlider").value=$("bpm").value;const fp=fingerprint();renderPattern(fp);renderFragments(fp);renderReview(fp);renderSections();
 }
-function renderReview(){if(!config)return;renderSaveState();renderUndoState();const summary=core.reviewSummary(anchors,config,groups);$("reviewSummary").replaceChildren(...summary.map(([k,v])=>{const d=elem("div");d.append(elem("small",k),elem("strong",String(v)));return d}))}
+function renderReview(fp=fingerprint()){if(!config)return;renderEditingState(fp);const summary=core.reviewSummary(anchors,config,groups);$("reviewSummary").replaceChildren(...summary.map(([k,v])=>{const d=elem("div");d.append(elem("small",k),elem("strong",String(v)));return d}))}
 function sectionUpdate(g,patch,refresh=true){
  const live=inlineSection===groups.indexOf(g)&&Object.keys(patch).every(k=>k==="hits");if(!live)stop();
  // Explicitly initialize every section to preserve the independent base and avoid a section leaking into the next.
@@ -120,20 +121,20 @@ function setTempo(value){const n=core.clampTempo(value);if(!Number.isFinite(n))r
 $("bpm").onchange=()=>setTempo(Number($("bpm").value));$("tempoSlider").oninput=()=>setTempo(Number($("tempoSlider").value));$("tempoMinus").onclick=()=>setTempo(Number($("bpm").value)-5);$("tempoPlus").onclick=()=>setTempo(Number($("bpm").value)+5);
 $("tapTempo").onclick=()=>{const now=performance.now();if(taps.length&&now-taps.at(-1)>2000)taps=[];taps.push(now);if(taps.length>6)taps.shift();if(taps.length>=2){setTempo(60000*(taps.length-1)/(now-taps[0]));$("tempoHelp").textContent="Velocidad detectada: "+$("bpm").value+" BPM."}else $("tempoHelp").textContent="Sigue marcando pulsos."};
 $("hearTempo").onclick=safe(async()=>{stop();if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error("Audio no disponible.");ctx=new Audio();engine=guitar.createEngine(ctx)}const generation=epoch;await ctx.resume();if(epoch!==generation)return;const beat=60/Number($("bpm").value),m=core.meters[$("meter").value],start=ctx.currentTime+.05;engine.volume(.7);for(let i=0;i<m.beats*2;i++)engine.click(start+i*beat,i%m.beats===0);note("Escuchando dos compases de referencia.")});
-function renderFragments(){
+function renderFragments(fp=fingerprint()){
  const sections=window.ShalomStudioCollections.sections($("source").value),select=$("fragmentSelect"),prev=select.value;
  select.replaceChildren(...sections.map(s=>new Option((s.index+1)+". "+s.title,String(s.index))));
  if(sections.some(s=>String(s.index)===prev))select.value=prev;
- $("fragmentEditor").hidden=sections.length<2;showFragment();
+ $("fragmentEditor").hidden=sections.length<2;showFragment(fp);
 }
-function showFragment(){
- renderUndoState();
+function showFragment(fp=fingerprint()){
+ renderEditingState(fp);
  const range=(config?.fragments||[]).find(r=>r.index===Number($("fragmentSelect").value));
  $("fragmentStart").max=config.totalSteps-1;$("fragmentEnd").max=config.totalSteps;
  $("fragmentStart").value=range?.start??0;$("fragmentEnd").value=range?.end??config.totalSteps;
  $("fragmentStatus").textContent=range?"Rango asignado: "+range.start+"–"+range.end+" (fin exclusivo).":"Sin sincronización publicada para esta sección.";
 }
-$("fragmentSelect").onchange=showFragment;
+$("fragmentSelect").onchange=()=>showFragment();
 $("autoFragment").onclick=safe(()=>{const sections=window.ShalomStudioCollections.sections($("source").value),section=sections[Number($("fragmentSelect").value)];const range=core.suggestFragmentRange(config,groups,section);$("fragmentStart").value=range.start;$("fragmentEnd").value=range.end;$("fragmentStatus").textContent="Rango sugerido. Confirma con Asignar rango."});
 $("fragmentSave").onclick=safe(()=>{const range={index:Number($("fragmentSelect").value),start:Number($("fragmentStart").value),end:Number($("fragmentEnd").value)};if(!window.ShalomStudioCollections.validRange(range,config.totalSteps))throw Error("Rango de fragmento inválido.");config.fragments=[...(config.fragments||[]).filter(r=>r.index!==range.index),range];showFragment();});
 $("fragmentRemove").onclick=safe(()=>{config.fragments=(config.fragments||[]).filter(r=>r.index!==Number($("fragmentSelect").value));showFragment()});
@@ -161,10 +162,10 @@ function renderBarContext(position=selectedHit){
  }));
  if(!ctx.lines.length)$("barLyrics").append(elem("div","Sin letra asociada en este compás."));
 }
-function renderPattern(){
+function renderPattern(fp=fingerprint()){
  if(!config||!groups.length)return;rhythmIndex=Math.max(0,Math.min(groups.length-1,rhythmIndex));$("rhythmSection").replaceChildren(...groups.map((g,i)=>new Option((i+1)+". "+g.title,String(i))));$("rhythmSection").value=String(rhythmIndex);$("barEdit").max=core.sectionBarCount(config,rhythmGroup());
  const p=currentPattern(),m=core.resolution(config.meter,config.division),bar=Number($("barEdit").value);selectedHit=Math.max(0,Math.min(p.hits.length-1,selectedHit));$("prevBar").disabled=bar<=1;$("nextBar").disabled=bar>=core.sectionBarCount(config,rhythmGroup());
- const g=rhythmGroup();$("rhythmMeterTempo").textContent=config.meter+" · "+core.sectionConfig(config,g.indices[0]).bpm+" BPM";$("undoRhythm").disabled=!core.canUndo(rhythmUndo,fingerprint());$("rhythmDivision").replaceChildren(...core.divisions[config.meter].map(d=>new Option(d+" posiciones por pulso · "+d*m.beats+" por compás",String(d))));$("rhythmDivision").value=String(config.division);$("grid").dataset.dense=String(m.division>4);$("grid").style.setProperty("--pulse-count",String(m.division));renderBarContext();
+ const g=rhythmGroup();$("rhythmMeterTempo").textContent=config.meter+" · "+core.sectionConfig(config,g.indices[0]).bpm+" BPM";$("undoRhythm").disabled=!core.canUndo(rhythmUndo,fp);$("rhythmDivision").replaceChildren(...core.divisions[config.meter].map(d=>new Option(d+" posiciones por pulso · "+d*m.beats+" por compás",String(d))));$("rhythmDivision").value=String(config.division);$("grid").dataset.dense=String(m.division>4);$("grid").style.setProperty("--pulse-count",String(m.division));renderBarContext();
  $("preset").querySelector('option[value="worship"]').disabled=config.meter!=="4/4"||m.division!==2;
  $("grid").replaceChildren(...Array.from({length:m.beats},(_,beat)=>{const g=elem("div");g.className="beat-group";g.append(elem("small","Pulso "+(beat+1)));const cells=elem("div");cells.className="beat-cells";for(let j=0;j<m.division;j++){const i=beat*m.division+j,h=p.hits[i],b=elem("button",arrows[h.hit]+(h.accent?"′":""));b.dataset.pulse=String(i);b.setAttribute("aria-pressed",String(selectedHit===i));b.setAttribute("aria-label","Pulso "+(beat+1)+", posición "+(j+1)+": "+h.hit);b.onclick=()=>{selectedHit=i;renderPattern();const panel=$("hitEditor");const r=panel.getBoundingClientRect(),dock=$("editorDock").getBoundingClientRect();if(r.bottom>dock.top)window.scrollBy({top:r.bottom-dock.top+8,behavior:"smooth"});};cells.append(b)}g.append(cells);return g}));
  auditionPattern=p.hits.map(h=>({...h}));

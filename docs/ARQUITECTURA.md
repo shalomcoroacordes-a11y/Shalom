@@ -134,3 +134,7 @@ El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interf
 ## Seguridad al deshacer cambios en Studio
 
 Los snapshots de tiempo y rasgueo usan `undoSnapshot` y `canUndo` del núcleo musical. Antes, deshacer tiempo restauraba todo el arreglo aun tras cambios posteriores. Ahora ambas operaciones requieren coincidencia con la huella canónica de la revisión que produjo el cambio; una huella inválida no permite restaurar. Se reinician ambas memorias al generar otro arreglo y se actualizan los controles al editar fragmentos, resonancia, ritmo y tempo. No es un historial multinivel: se conserva un snapshot por tipo y solo se habilita si es seguro. El cambio detiene la reproducción al restaurar tiempo. No se modifican los arreglos persistidos. Caché v26 y copias nativas sincronizadas; pendiente verificación integral.
+
+## Huella compartida por refresco de Studio
+
+El refresco completo del editor calcula la huella canónica una vez y la pasa a las vistas de rasgueo, fragmentos y resumen. Los controles de guardar y deshacer comparten esa misma huella; las llamadas individuales la calculan de nuevo. No hay caché persistente ni invalidación manual. La asignación/eliminación de rangos también actualiza el estado de guardado. Se conserva la comprobación de huella al ejecutar deshacer; el resumen musical mantiene su compilación separada. La prueba mide llamadas de huella, no latencia real de dispositivos. Ambas salidas nativas y caché Offline v27 actualizadas.

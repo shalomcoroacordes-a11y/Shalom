@@ -2,7 +2,7 @@
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const js=fs.readFileSync("studio-lab.js","utf8"),html=fs.readFileSync("studio-lab.html","utf8");
 const model=require("../studio-save-state");
-const state=js.slice(js.indexOf("function renderSaveState()"),js.indexOf("function finishSave("));
+const state=js.slice(js.indexOf("function renderSaveState("),js.indexOf("function finishSave("));
 const els=Object.fromEntries(["saveState","saveStateTitle","saveStateDetail","save","publish"].map(id=>[id,{dataset:{}}]));
 const run=new Function("window","$","fingerprint","publishedFingerprint","draftFingerprint","baseline","pendingSave","pendingKind","saveError",state+"renderSaveState()");
 function check(f,p,d,b,pending,kind,error,expected){const result=model.describe({fingerprint:f,publishedFingerprint:p,draftFingerprint:d,pendingSave:pending,pendingKind:kind,saveError:error});run({ShalomStudioSaveState:model},id=>els[id],()=>f,p,d,b,pending,kind,error);assert.equal(result.state,expected);assert.equal(els.saveState.dataset.state,result.state);assert.equal(els.saveStateTitle.textContent,result.title);assert.equal(els.saveStateDetail.textContent,result.detail);assert.equal(els.save.disabled,result.disabled);assert.equal(els.publish.disabled,result.disabled);}
