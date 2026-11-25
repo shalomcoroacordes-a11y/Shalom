@@ -24,3 +24,10 @@ Estas reglas se aplican a todo el repositorio, web pública, Admin, Studio, mobi
 
 ## Herramientas
 Revisar las herramientas de auditoría existentes en scripts/ y las pruebas de .github/workflows/. Incorporar analizadores externos de manera gradual con versiones fijadas y configuración adecuada a JavaScript clásico y Expo. Nunca borrar automáticamente candidatos de código no utilizado.
+
+## Trabajo por bloques integrales
+- Agrupa cambios relacionados por responsabilidad y contrato de datos. Planifica el bloque y sus pruebas antes de editar; no crear una rama por cada ajuste menor.
+- Ejecuta primero las pruebas específicas y de sintaxis; las validaciones completas de web, Admin, Android y actualización siguen siendo obligatorias según los archivos afectados antes de integrar.
+- No modifiques una rama que está compilando salvo que exista un fallo reproducido. Mientras tanto, revisa módulos independientes sin duplicar el trabajo ni abrir ramas superpuestas. Un resultado de CI pertenece al commit probado, no a futuras modificaciones.
+- Las cachés solo aceleran descargas; nunca sustituyen instalación, pruebas, verificación de firma, arranque o actualización. No almacenar APK, secretos ni datos de usuarios en cachés.
+- Antes de fusionar, verifica el estado de main, conflictos y las consecuencias de los workflows de publicación automática. No iniciar publicación oficial como parte de una prueba. Ver docs/DESARROLLO.md.

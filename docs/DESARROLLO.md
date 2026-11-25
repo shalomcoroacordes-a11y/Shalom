@@ -6,8 +6,8 @@ Esta guía describe **cómo trabajar con el repositorio actual**. No exige mover
 
 1. Clonar `shalomcoroacordes-a11y/Shalom` y abrirlo en VS Code.
 2. Leer `docs/ARQUITECTURA.md` para localizar las piezas.
-3. Crear una rama para cada cambio. No editar directamente la versión pública para experimentar.
-4. Cambiar una sola funcionalidad y probarla antes de mezclar otras.
+3. Crear una rama por bloque cohesivo de trabajo. No editar directamente la versión pública para experimentar.
+4. Agrupar cambios relacionados, probar cada responsabilidad y ejecutar controles integrales al terminar el bloque.
 
 ## Sitio web
 
@@ -95,3 +95,17 @@ Para la verificación completa de HTML y rutas, usar el workflow de GitHub Actio
 3. Comparar con la última versión funcional.
 4. Revertir solo el cambio problemático o restaurar una versión verificada.
 5. Documentar la causa y agregar una prueba cuando sea posible.
+
+## Flujo de entrega por bloques
+
+1. Inventario de responsabilidades, dependencias y pruebas; definir qué se conserva y qué se retira.
+2. Desarrollo en rama: una revisión coherente puede incluir varios archivos y pruebas, sin mezclar migraciones de producción ni cambios de identidad de APK.
+3. Pruebas rápidas durante el desarrollo; al cerrar el bloque ejecutar los workflows aplicables y revisar el commit exacto. Los informes no se trasladan a commits posteriores sin validación.
+4. Consolidación con comparación contra main. No reenviar una fusión que agotó el tiempo de respuesta sin verificar primero el historial. Cerrar solicitudes redundantes solo si su historial está integrado.
+5. Las APK de preview y de ensayo son artefactos temporales. Revisar los workflows de publicación antes de fusionar cambios: actualmente Admin tiene una ruta de publicación en push a main; no confundir validación con lanzamiento. El ensayo de actualización exige certificado, paquete y versionCode compatibles y prueba en emulador.
+
+### Caché de dependencias
+
+Los workflows de pruebas nativas, preview público, ensayo de actualización y Admin recuperan descargas de npm (Node 22) y Gradle (Java 17, solo módulos y distribuciones) con claves separadas por aplicación y manifiestos. No se almacenan node_modules, APK, claves, datos de usuarios ni resultados de pruebas. Se mantiene npm install y Gradle completos; no se usa modo offline forzado. El primer build puede no mejorar y la caché puede faltar o quedar invalidada. Medir tiempos reales antes de atribuir mejoras.
+
+Actualmente no hay package-lock.json versionado para las dos aplicaciones. La caché de descargas no garantiza reproducibilidad: incorporar lockfiles requiere generar y verificar ambos árboles de dependencias y compatibilidad Expo en otro bloque, antes de migrar a npm ci. No introducir lockfiles ficticios ni cambiar las versiones para sortear problemas de red.
