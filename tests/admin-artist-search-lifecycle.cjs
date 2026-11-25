@@ -22,7 +22,7 @@ function form(){
 const document={readyState:"complete",getElementById:id=>id==="songMainArtist"?select:null,createElement:node,head:{append:n=>scripts.push(n)}};
 const window={};
 vm.runInNewContext(source,{document,window,Event:class {constructor(type,options){this.type=type;this.bubbles=options.bubbles}}});
-assert.equal(scripts.length,1,"Song versions loader remains independent of form availability");
+assert.equal(scripts.length,0,"Artist search must not load unrelated scripts");
 const mount=window.ShalomAdminMainArtistSearch.mount;
 select=form();mount();mount();
 assert.equal(boxes.length,1,"Same form must not mount twice");
@@ -37,5 +37,5 @@ assert.equal(prevented,true);assert.equal(select.value,"b");assert.equal(input.v
 select.value="a";select.dispatchEvent({type:"change",bubbles:true});assert.equal(input.value,"Ángeles");
 input.value="unmatched";input.dispatchEvent({type:"input"});assert.equal(list.children[0].textContent,"No se encontraron artistas.");
 select=form();mount();assert.equal(boxes.length,2,"Replacement form remounts");
-assert.equal(scripts.length,1,"No duplicate versions script");
+assert.equal(scripts.length,0,"No dynamic scripts on remount");
 console.log("Artist search lifecycle, accent filtering, keyboard, change event and remount verified.");

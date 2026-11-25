@@ -4,15 +4,6 @@
 
   const clean = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  function loadVersionsHelper() {
-    if (window.__jhdSongVersionsLoader) return;
-    window.__jhdSongVersionsLoader = true;
-    const script = document.createElement("script");
-    script.src = "admin-song-versions.js?v=3";
-    script.defer = true;
-    document.head.append(script);
-  }
-
   function selectedLabel(select) {
     const option = select.options[select.selectedIndex];
     return option && option.value ? option.textContent.trim() : "";
@@ -82,7 +73,6 @@
   }
 
   function run() {
-    loadVersionsHelper();
     enhance(document.getElementById("songMainArtist"));
   }
 

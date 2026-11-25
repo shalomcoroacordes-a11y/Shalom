@@ -214,6 +214,7 @@ function apRenderView() {
   const start = preserveSearch && typeof active.selectionStart === "number" ? active.selectionStart : null;
   const end = preserveSearch && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
   apRememberEditorPosition();
+  if (AP.tab !== "songs") window.ShalomAdminSongVersions?.unmount();
   if (AP.tab === "backup") {
     if (window.ShalomAdminBackup) window.ShalomAdminBackup.mount(view);
     else view.innerHTML = '<p class="admin-empty">No se pudo cargar el módulo de respaldo.</p>';
@@ -276,6 +277,7 @@ function apRenderView() {
   if (AP.tab === "songs") {
     window.ShalomAdminMainArtistSearch?.mount();
     window.ShalomAdminSongCategories?.mount();
+    window.ShalomAdminSongVersions?.mount(ap$("#songAdminForm"), AP.edits?.song);
   }
 }
 function apSectionHead(kicker, title, count) { return `<div class="admin-section-heading"><div><p class="hero-kicker">${apEsc(kicker)}</p><h2>${apEsc(title)}</h2></div><p class="admin-count">${apEsc(count)}</p></div>`; }
