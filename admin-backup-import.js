@@ -3,7 +3,7 @@
   window.__jhdAdminBackupImport = true;
 
   const db = window.supabaseClient || window.AdminPro;
-  const PAGE_SIZE = 500;
+  const { cleanRow: sanitizeRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   const BATCH_SIZE = 200;
   const FORMAT = "SHALOM backup";
   const VERSION = 1;
@@ -39,16 +39,8 @@
 
   const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const isObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
-  const filenameDate = () => new Date().toISOString().replace(/[:.]/g, "-");
-  const cleanRow = (row) => {
-    const output = {};
-    const blocked = new Set(["created_at", "updated_at", "artist", "artists", "album", "albums", "category", "categories"]);
-    Object.entries(row || {}).forEach(([key, value]) => {
-      if (key.startsWith("_") || blocked.has(key)) return;
-      output[key] = value;
-    });
-    return output;
-  };
+
+  const cleanRow = (row) => sanitizeRow(row, true);
 
   function getCard() {
     return document.getElementById("jhdImportBackupCard");
@@ -152,30 +144,9 @@
     }
   }
 
-  async function selectAll(table) {
-    const all = [];
-    let start = 0;
-    while (true) {
-      const result = await db.from(table).select("*").range(start, start + PAGE_SIZE - 1);
-      if (result.error) throw new Error(`${table}: ${result.error.message}`);
-      const batch = result.data || [];
-      all.push(...batch);
-      if (batch.length < PAGE_SIZE) return all;
-      start += PAGE_SIZE;
-    }
-  }
+  const selectAll = (table) => readAll(db, table, (error, name) => new Error(`${name}: ${error.message}`));
 
-  function downloadJson(payload, filename) {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
+
 
   async function createSafetyBackup() {
     const catalog = {};

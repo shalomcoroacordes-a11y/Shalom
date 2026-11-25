@@ -4,7 +4,7 @@
 
   const db = window.supabaseClient || window.AdminPro;
   const TRASH_TABLE = "admin_trash";
-  const PAGE_SIZE = 500;
+  const { cleanRow, missingRelations, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   let trashRows = [];
   let busy = false;
 
@@ -19,31 +19,11 @@
     const date = new Date(value || "");
     return Number.isNaN(date.getTime()) ? "Sin fecha" : date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
   };
-  const filenameDate = () => new Date().toISOString().replace(/[:.]/g, "-");
 
-  function cleanRow(row, keepId = true) {
-    const out = {};
-    const blocked = new Set(["created_at", "updated_at", "artist", "artists", "album", "albums", "category", "categories"]);
-    Object.entries(row || {}).forEach(([key, value]) => {
-      if (key.startsWith("_") || blocked.has(key)) return;
-      if (!keepId && key === "id") return;
-      out[key] = value;
-    });
-    return out;
-  }
 
-  async function selectAll(table) {
-    const all = [];
-    let start = 0;
-    while (true) {
-      const result = await db.from(table).select("*").range(start, start + PAGE_SIZE - 1);
-      if (result.error) throw result.error;
-      const batch = result.data || [];
-      all.push(...batch);
-      if (batch.length < PAGE_SIZE) return all;
-      start += PAGE_SIZE;
-    }
-  }
+
+
+  const selectAll = (table) => readAll(db, table);
 
   async function one(table, id) {
     const result = await db.from(table).select("*").eq("id", id).maybeSingle();
@@ -107,11 +87,6 @@
     return result.data?.id || null;
   }
 
-  async function removeArchive(id) {
-    if (!id) return;
-    await db.from(TRASH_TABLE).delete().eq("id", id);
-  }
-
   function checkDelete(kind, id) {
     const state = app();
     if (kind === "artist") {
@@ -142,6 +117,7 @@
     try {
       say("Creando respaldo antes de eliminar...");
       archiveId = await archive(kind, id);
+      if (!archiveId) throw new Error("No se confirmó el identificador del respaldo.");
 
       let error = null;
       if (kind === "song") {
@@ -163,13 +139,13 @@
         error = links.error || (await db.from("albums").delete().eq("id", id)).error;
       }
 
-      if (error) {
-        await removeArchive(archiveId);
-        throw error;
-      }
+      if (error) throw error;
       await window.apRefresh?.("Elemento enviado a la papelera.");
     } catch (error) {
-      say(`No se pudo eliminar con respaldo: ${error?.message || "Error desconocido."}. Ejecuta ADMIN_RESPALDO_PAPELERA.sql si aún no lo has hecho.`, true);
+      const detail = error?.message || "Error desconocido.";
+      say(archiveId
+        ? `No se pudo completar la operación: ${detail}. El respaldo se conserva en la papelera; algunas relaciones pueden haberse eliminado. Revisa el registro antes de reintentar o restaurar.`
+        : `No se inició la eliminación: ${detail}. No se confirmó el respaldo; revisa la papelera y la configuración.`, true);
     } finally {
       busy = false;
     }
@@ -188,15 +164,7 @@
         catalog[table] = await selectAll(table);
       }
       const payload = { format: "SHALOM backup", version: 1, created_at: new Date().toISOString(), catalog };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `juntos-hacia-dios-respaldo-${filenameDate()}.json`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      downloadJson(payload, `juntos-hacia-dios-respaldo-${filenameDate()}.json`);
       if (status) status.textContent = "Respaldo descargado. Guárdalo en Drive o en otra ubicación segura.";
     } catch (error) {
       if (status) status.textContent = `No se pudo crear el respaldo: ${error?.message || "Error desconocido."}`;
@@ -224,11 +192,26 @@
     bindTrashActions();
   }
 
-  async function restoreRelations(relations) {
-    const tables = ["song_artists", "song_categories", "album_songs", "song_links", "song_capo_versions", "artist_featured_songs"];
-    for (const table of tables) {
-      const values = (relations?.[table] || []).map((row) => cleanRow(row, false));
-      if (!values.length) continue;
+  async function restoreRelations(kind, id, relations) {
+    const scopes = {
+      song: { song_artists: "song_id", song_categories: "song_id", album_songs: "song_id", song_links: "song_id", song_capo_versions: "song_id", artist_featured_songs: "song_id" },
+      album: { album_songs: "album_id" },
+      artist: { artist_featured_songs: "artist_id" },
+      category: {}
+    }[kind];
+    // Preserve the established insertion order, and reject unrelated snapshot rows.
+    const plan = [];
+    for (const [table, key] of Object.entries(scopes || {})) {
+      const saved = relations?.[table] || [];
+      if (!Array.isArray(saved) || saved.some((row) => !row || String(row[key]) !== String(id))) {
+        throw new Error(`${table}: el respaldo contiene relaciones no válidas.`);
+      }
+      if (!saved.length) continue;
+      const existing = await rows(table, key, id);
+      const values = missingRelations(saved, existing);
+      if (values.length) plan.push({ table, values });
+    }
+    for (const { table, values } of plan) {
       const result = await db.from(table).insert(values);
       if (result.error) throw new Error(`${table}: ${result.error.message}`);
     }
@@ -241,17 +224,28 @@
     busy = true;
     try {
       const snapshot = row.snapshot || {};
-      const table = { song: "songs", artist: "artists", category: "categories", album: "albums" }[row.item_type];
-      if (!table || !snapshot.record) throw new Error("El respaldo no tiene datos suficientes.");
-      const exists = await db.from(table).select("id").eq("id", snapshot.record.id).maybeSingle();
-      if (exists.error) throw exists.error;
-      if (!exists.data) {
-        const created = await db.from(table).insert([cleanRow(snapshot.record, true)]);
-        if (created.error) throw created.error;
+      // Native snapshots include full database rows and song_versions. Use the same
+      // transactional owner-only endpoint as native Admin; never fall back on errors.
+      if (row.item_type === "song" && Object.hasOwn(snapshot, "song")) {
+        if (!snapshot.song?.id || idOf(snapshot.song.id) !== idOf(row.original_id) || Object.hasOwn(snapshot, "record")) {
+          throw new Error("El respaldo nativo no coincide con el canto original.");
+        }
+        const { data, error } = await db.rpc("admin_restore_song", { p_trash_id: row.id });
+        if (error) throw error;
+        if (data !== true) throw new Error("No se confirmó la restauración del canto.");
+      } else {
+        const table = { song: "songs", artist: "artists", category: "categories", album: "albums" }[row.item_type];
+        if (!table || !snapshot.record) throw new Error("El respaldo no tiene datos suficientes.");
+        const exists = await db.from(table).select("id").eq("id", snapshot.record.id).maybeSingle();
+        if (exists.error) throw exists.error;
+        if (!exists.data) {
+          const created = await db.from(table).insert([cleanRow(snapshot.record, true)]);
+          if (created.error) throw created.error;
+        }
+        await restoreRelations(row.item_type, snapshot.record.id, snapshot.relations || {});
+        const removed = await db.from(TRASH_TABLE).delete().eq("id", row.id);
+        if (removed.error) throw removed.error;
       }
-      await restoreRelations(snapshot.relations || {});
-      const removed = await db.from(TRASH_TABLE).delete().eq("id", row.id);
-      if (removed.error) throw removed.error;
       await window.apRefresh?.("Elemento restaurado correctamente.");
     } catch (error) {
       say(`No se pudo restaurar: ${error?.message || "Error desconocido."}`, true);

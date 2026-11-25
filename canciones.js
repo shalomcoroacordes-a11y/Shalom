@@ -22,16 +22,7 @@ const escapeHTML = (value) => String(value || "").replaceAll("&", "&amp;").repla
 const normalize = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const names = (items) => (Array.isArray(items) ? items : []).map((item) => item?.name || item?.title || "").filter(Boolean).join(" · ");
 
-function jsonList(value) {
-  if (Array.isArray(value)) return value;
-  if (!value || typeof value !== "string") return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
-    return [];
-  }
-}
+
 
 
 
@@ -177,14 +168,7 @@ function beginFreshLoad() {
   }
 }
 
-function rowToSong(row) {
-  return {
-    ...row,
-    _artists: jsonList(row.artists),
-    _categories: jsonList(row.categories),
-    _albums: jsonList(row.albums)
-  };
-}
+
 
 function rpcErrorMessage(error) {
   const detail = String(error?.message || "");
@@ -225,7 +209,7 @@ async function fetchSongs(append = false) {
     if (error) throw error;
     if (token !== requestVersion) return;
 
-    const rows = (data || []).map(rowToSong);
+    const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
     const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
     page = currentPage;
     totalResults = append ? (rows.length ? serverTotal : visibleSongs.length) : serverTotal;

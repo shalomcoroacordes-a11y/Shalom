@@ -12,9 +12,40 @@ const tab={classList:{contains:()=>active}};
 const document={querySelector:q=>q==="#adminRequestPageContent"?current:q==="#adminRequestPageTab"?tab:q==="#requestPageForm"?current?.form:q==="#requestPageStatus"?current?.status:q==="#restoreRequestDefaults"?current?.restore:null};
 const db={from(table){assert.equal(table,"site_content");return {select(){return this},eq(key,value){assert.equal(key,"content_key");assert.equal(value,"request_song");return this},maybeSingle(){return new Promise((resolve,reject)=>pending.push({resolve,reject}))}}}};
 const window={supabaseClient:db};
+const defaultsSource=fs.readFileSync("request-defaults.js","utf8");
+vm.runInNewContext(defaultsSource,{window});
+const defaults=window.ShalomRequestDefaults;
+assert.equal(Object.keys(defaults).length,12);
+assert.ok(Object.isFrozen(defaults));
+for(const [page,script] of [["admin.html","admin-request-page.js"],["solicitar-canto.html","solicitar-canto.js"]]){
+ const markup=fs.readFileSync(page,"utf8");
+ assert.equal((markup.match(/src="request-defaults\.js\?v=1"/g)||[]).length,1);
+ assert.ok(markup.indexOf('src="request-defaults.js')<markup.indexOf('src="'+script));
+ assert.doesNotMatch(fs.readFileSync(script,"utf8"),/eyebrow:\s*"Solicitudes"/);
+}
+const publicSource=fs.readFileSync("solicitar-canto.js","utf8");
+function publicFixture(db){
+ const nodes=Object.keys(defaults).map(key=>({dataset:{requestContent:key},textContent:"HTML inicial"}));
+ const meta={setAttribute(key,value){this[key]=value}};
+ const publicDocument={title:"",querySelectorAll:()=>nodes,querySelector:q=>q==='meta[name="description"]'?meta:null};
+ const publicWindow={supabaseClient:db};
+ vm.runInNewContext(defaultsSource,{window:publicWindow});
+ vm.runInNewContext(publicSource,{window:publicWindow,document:publicDocument});
+ return {nodes,meta,publicDocument};
+}
 vm.runInNewContext(source,{window,document,setTimeout:()=>0});
 const mount=window.ShalomAdminRequestPage.mount;
 async function test(){
+ const offline=publicFixture(null);
+ for(const element of offline.nodes)assert.equal(element.textContent,defaults[element.dataset.requestContent]);
+ assert.equal(offline.publicDocument.title,defaults.title+" | SHALOM");
+ assert.equal(offline.meta.content,defaults.intro);
+ const online=publicFixture({from(table){assert.equal(table,"site_content");return {select(){return this},eq(key,value){assert.equal(key,"content_key");assert.equal(value,"request_song");return this},async maybeSingle(){return {data:{content:{title:"Título público guardado",tip1_text:""}}}}}}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(online.nodes.find(n=>n.dataset.requestContent==="title").textContent,"Título público guardado");
+ assert.equal(online.nodes.find(n=>n.dataset.requestContent==="tip1_text").textContent,"");
+ assert.equal(online.publicDocument.title,"Título público guardado | SHALOM");
+ assert.equal(defaults.title,"Solicita un canto para el cancionero");
  const first=mount(view),target=current;
  assert.match(target.innerHTML,/Solicita un canto/);
  pending[0].resolve({data:{content:{title:"Título guardado"}}});await first;

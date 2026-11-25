@@ -53,9 +53,8 @@
     bind();
   }
 
-  async function updateMessage(id, patch, message) {
-    const section = mounted;
-    const { error } = await db.from("contact_messages").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+  async function applyMessageMutation(section, operation, message) {
+    const { error } = await operation;
     if (!isCurrent(section)) return;
     if (error) {
       note(`Error: ${error.message}`, true);
@@ -65,23 +64,22 @@
     if (!isCurrent(section)) return;
     messages = rows;
     render();
-    note(message || "Mensaje actualizado.");
+    note(message);
+  }
+
+  async function updateMessage(id, patch, message) {
+    const section = mounted;
+    await applyMessageMutation(section,
+      db.from("contact_messages").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id),
+      message || "Mensaje actualizado.");
   }
 
   async function removeMessage(id) {
     if (!confirm("¿Eliminar este mensaje?")) return;
     const section = mounted;
-    const { error } = await db.from("contact_messages").delete().eq("id", id);
-    if (!isCurrent(section)) return;
-    if (error) {
-      note(`Error: ${error.message}`, true);
-      return;
-    }
-    const rows = await load();
-    if (!isCurrent(section)) return;
-    messages = rows;
-    render();
-    note("Mensaje eliminado.");
+    await applyMessageMutation(section,
+      db.from("contact_messages").delete().eq("id", id),
+      "Mensaje eliminado.");
   }
 
   function bind() {
