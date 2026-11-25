@@ -14,8 +14,16 @@ on:
       - "sql/SHALOM_ADMIN_HARDENING_20261121.sql"
       - ".github/workflows/admin-apk.yml"
   workflow_dispatch:
+    inputs:
+      publish_official:
+        description: Confirmar publicación oficial de APK desde main
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
+env:
+  OFFICIAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true }}
 concurrency:
   group: shalom-admin-preview-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -92,7 +100,7 @@ jobs:
           cp ../mobile/assets/adaptive-foreground.png assets/adaptive-foreground.png
           test -s assets/icon.png
       - name: Isolate non-production Admin package
-        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+        if: env.OFFICIAL_RELEASE != 'true'
         run: |
           node -e 'const fs=require("fs"),p="app.json",c=JSON.parse(fs.readFileSync(p));c.expo.android.package="com.shalomcoroacordes.admin.preview";c.expo.name="SHALOM Admin Preview";c.expo.scheme="shalomadminpreview";fs.writeFileSync(p,JSON.stringify(c,null,2)+"\n");'
       - name: Generate native Android project
@@ -109,11 +117,11 @@ jobs:
           test -s android/app/build/outputs/apk/release/app-release.apk
           sha256sum android/app/build/outputs/apk/release/app-release.apk
           EXPECTED=com.shalomcoroacordes.admin.preview
-          if [ "${{ github.event_name }}" = push ] && [ "${{ github.ref }}" = refs/heads/main ]; then EXPECTED=com.shalomcoroacordes.admin; fi
+          if [ "$OFFICIAL_RELEASE" = true ]; then EXPECTED=com.shalomcoroacordes.admin; fi
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           "$AAPT" dump badging android/app/build/outputs/apk/release/app-release.apk | grep -F "package: name='$EXPECTED'"
       - name: Verify official Admin upgrade identity
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -162,7 +170,7 @@ jobs:
           profile: pixel_4
           disable-linux-hw-accel: false
           script: >-
-            bash -lc 'set -e; PKG=com.shalomcoroacordes.admin.preview; if [ "${{ github.event_name }}" = push ] && [ "${{ github.ref }}" = refs/heads/main ]; then PKG=com.shalomcoroacordes.admin; fi; adb install apk/app-release.apk; adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1;
+            bash -lc 'set -e; PKG=com.shalomcoroacordes.admin.preview; if [ "$OFFICIAL_RELEASE" = true ]; then PKG=com.shalomcoroacordes.admin; fi; adb install apk/app-release.apk; adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1;
             sleep 18; adb shell pidof "$PKG" || { echo "La app se cerró tras abrir";
             adb logcat -d -v brief -s AndroidRuntime:E ReactNativeJS:E ReactNative:E | tail -n 140; exit 1; };
             adb exec-out screencap -p > /tmp/shalom-admin-login.png; test -s /tmp/shalom-admin-login.png'
@@ -175,7 +183,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   publish-official:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true
     needs: [test, apk, smoke]
     runs-on: ubuntu-latest
     permissions:

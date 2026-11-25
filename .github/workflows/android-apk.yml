@@ -1,13 +1,14 @@
 name: SHALOM Android APK
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "mobile/**"
-      - ".github/workflows/android-apk.yml"
+    inputs:
+      publish_official:
+        description: Confirmar publicación oficial de APK desde main
+        type: boolean
+        required: true
+        default: false
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: shalom-android-apk
   cancel-in-progress: true
@@ -17,6 +18,9 @@ env:
   CANDIDATE_CODE: "47"
 jobs:
   build-apk:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 50
     defaults:

@@ -26,6 +26,9 @@ jobs:
       - name: Test clean architecture guard
         run: python3 tests/clean-changes-regression.py
 
+      - name: Verify explicit Android release authorization
+        run: node tests/android-release-authorization.cjs
+
       - name: Test home search source rendering
         run: node tests/home-search-render-regression.cjs
 
