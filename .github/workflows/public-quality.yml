@@ -191,6 +191,9 @@ jobs:
       - name: Test explicit song versions lifecycle
         run: node tests/admin-song-versions-lifecycle.cjs
 
+      - name: Test category descriptions at render source
+        run: node tests/category-description-rendering.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
