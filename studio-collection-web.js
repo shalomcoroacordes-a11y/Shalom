@@ -43,10 +43,10 @@ function mount({client,container,articles,parts,songs,kind,title:collectionTitle
   const ready=plan.ready;
   const dialog=document.createElement("dialog"),heading=document.createElement("h3"),status=document.createElement("p"),list=document.createElement("div");
   heading.textContent=title;status.textContent=ready.length+" de "+plan.total+" preparados. Cada canto se inicia manualmente.";
-  Object.assign(dialog.style,{maxWidth:"min(92vw,520px)",background:"#131c18",color:"#edf3ee",border:"1px solid #46594a",borderRadius:"12px",padding:"18px"});
+  dialog.className="studio-collection-dialog";
   const close=button("Regresar",()=>dialog.close());
   for(const item of plan.entries){
-   const row=document.createElement("div");row.style.padding="6px 0";
+   const row=document.createElement("div");row.className="studio-collection-row";
    if(item.ready){row.append(button((item.index+1)+". "+item.title,()=>{dialog.close();runQueue(ready.indexOf(item))}))}
    else{const label=document.createElement("span");label.textContent=(item.index+1)+". "+item.title+" · "+item.reason;row.append(label)}
    list.append(row);
@@ -55,6 +55,5 @@ function mount({client,container,articles,parts,songs,kind,title:collectionTitle
   function runQueue(i){play(client,ready[i],()=>{if(i+1<ready.length){const next=document.createElement("dialog"),p=document.createElement("p");p.textContent="Siguiente preparado: "+ready[i+1].title;next.append(p,button("Abrir siguiente",()=>{next.close();runQueue(i+1)}),button("Volver a la lista",()=>{next.close();choose(i)}),button("Terminar ensayo",()=>next.close()));document.body.append(next);next.addEventListener("close",()=>next.remove(),{once:true});next.showModal()}}).catch(e=>window.alert(e.message))}
  }
 }
-const style=document.createElement("style");style.textContent="@media print{.studio-collection-action{display:none!important}}";document.head.append(style);
 window.ShalomStudioCollectionWeb=Object.freeze({load,mount});
 })();

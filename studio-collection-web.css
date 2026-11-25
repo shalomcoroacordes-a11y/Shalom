@@ -1,0 +1,13 @@
+/* Shared practice controls for public medleys and repertoires. */
+dialog.studio-collection-dialog {
+  max-width: min(92vw,520px);
+  background: #131c18;
+  color: #edf3ee;
+  border: 1px solid #46594a;
+  border-radius: 12px;
+  padding: 18px;
+}
+.studio-collection-dialog .studio-collection-row {
+  padding: 6px 0;
+}
+@media print{.studio-collection-action{display:none!important}}

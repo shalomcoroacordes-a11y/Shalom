@@ -1,6 +1,6 @@
 /* El trabajador solamente guarda archivos públicos de SHALOM Offline.
    No intercepta el administrador ni almacena respuestas privadas de Supabase. */
-const VERSION = "shalom-offline-shell-v20-compact-sections";
+const VERSION = "shalom-offline-shell-v21-collection-styles";
 const ASSETS = [
   "./offline.html",
   "./offline.css",
@@ -14,6 +14,7 @@ const ASSETS = [
   "./studio-codec.js",
   "./studio-collections.js",
   "./studio-collection-web.js",
+  "./studio-collection-web.css",
   "./studio-entry.js",
   "./studio-lab.js",
   "./favicon.svg",
