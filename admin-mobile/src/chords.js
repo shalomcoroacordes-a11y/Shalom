@@ -1,3 +1,4 @@
+// Generated from native-chords.js. Run node scripts/build-native-chords.js. Do not edit this copy.
 // Render de acordes nativo: algoritmo equivalente a song-chords.js (web y admin).
 // Los índices de columna dependen del texto original, nunca de píxeles ni de anchura de pantalla.
 const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];

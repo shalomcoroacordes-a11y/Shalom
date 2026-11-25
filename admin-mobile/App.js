@@ -16,6 +16,7 @@ const {txt,heading,button,input,wrapChips,itemRow}=require("./src/components/Con
 const {Field}=require("./src/components/EditorFields");
 const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
+const {recoveryFormat}=require("./src/trash-format");
 const {createSync}=require("./src/sync");
 const store=require("./src/store");
 const h=React.createElement;
@@ -205,11 +206,14 @@ function Main(){
    ),
    heading("Papelera de cantos"),
    txt("Conserva el canto eliminado con sus enlaces, capos y relaciones para poder restaurarlo.",S.note),
-   trash.filter(t=>t.item_type==="song").map(t=>h(View,{key:t.id,style:S.card},
-    txt(t.item_name||"Canto eliminado",S.itemTitle),txt("Eliminado el "+String(t.deleted_at||"").slice(0,10),S.itemSub),
-    button("Restaurar canto",()=>Alert.alert("Restaurar canto","Se recuperará el canto con sus relaciones guardadas si los artistas y categorías todavía existen.",[
-     {text:"Cancelar"},{text:"Restaurar",onPress:async()=>{try{await api.restoreSong(t.id);await loadUsers();await reloadCatalog();setMessage("Canto restaurado de la papelera.");}catch(e){Alert.alert("No se pudo restaurar",e.message);}}}
-    ]),"secondary"))),
+   trash.filter(t=>t.item_type==="song").map(t=>{
+    const format=recoveryFormat(t);
+    return h(View,{key:t.id,style:S.card},
+     txt(t.item_name||"Canto eliminado",S.itemTitle),txt("Eliminado el "+String(t.deleted_at||"").slice(0,10),S.itemSub),
+     format==="native"?button("Restaurar canto",()=>Alert.alert("Restaurar canto","Se recuperará el canto con sus relaciones guardadas si los artistas y categorías todavía existen.",[
+      {text:"Cancelar"},{text:"Restaurar",onPress:async()=>{try{const restored=await api.restoreSong(t.id);if(restored!==true)throw Error("No se confirmó la restauración del canto.");await loadUsers();await reloadCatalog();setMessage("Canto restaurado de la papelera.");}catch(e){Alert.alert("No se pudo restaurar",e.message);}}}
+     ]),"secondary"):txt(format==="web"?"Respaldo del administrador web. Restáuralo desde Respaldo en SHALOM Admin web.":"Formato de respaldo no reconocido. Conserva esta copia y revisa su contenido antes de restaurar.",S.note));
+   }),
    !trash.some(t=>t.item_type==="song")&&txt("No hay cantos en la papelera.",S.note)
   );
  }
