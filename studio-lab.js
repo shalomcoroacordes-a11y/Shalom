@@ -305,9 +305,7 @@ function stop(){const wasInline=inlineSection;inlineSection=null;playing=false;a
 function prepareSequence(){
  const tracks=sequence.map(p=>{
   $("source").value=p.song.lyrics;const a=core.anchorsFromRows(readRows()),cfg=window.ShalomStudioCodec.decode(a,p.arrangement);
-  if(p.range&&!(cfg.fragments||[]).some(r=>r.start===p.range.start&&r.end===p.range.end))throw Error("Hay un fragmento sin rango oficial.");
-  if(!Number.isInteger(p.shift)||Math.abs(p.shift)>12||!Number.isInteger(p.capo)||p.capo<0||p.capo>12)throw Error("Tono o capo inválido.");
-  const timeline=core.compile(a,cfg,chord=>shifted(chord,p.shift));
+  const timeline=core.sequenceTrackTimeline(a,cfg,p,shifted);
   for(const chord of new Set(timeline.map(e=>e.chord).filter(Boolean)))guitar.voicing(chord);
   return {...p,anchors:a,config:cfg,timeline};
  });
@@ -360,13 +358,13 @@ async function play(range=null,inline=null){
  const speed=core.playbackSpeed($("speed").value),capo=Number($("capo").value);if(!Number.isInteger(capo)||capo<0||capo>12)throw Error("Capo inválido");
  if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error("Audio no disponible en este dispositivo.");ctx=new Audio();engine=guitar.createEngine(ctx)}
  const generation=epoch;await ctx.resume();if(epoch!==generation)return;playing=true;inlineSection=inline;engine.volume(Number($("volume").value)/100);
- const first=range?.start??practiceRange?.start??0,end=range?.end??practiceRange?.end??config.endStep??timeline.length,clock=core.clockRange(timeline,first,end,speed);
+ const {first,end,clock}=core.playbackRange(timeline,config,range,practiceRange,speed);
  const count=end-first,start=ctx.currentTime+.16;let next=0,last=-1;
  const loop=()=>inline===null&&$("loop").checked;
  if(inline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="■ Detener";}
  const tick=()=>{if(!playing)return;try{while(true){if(!loop()&&next>=count)break;const {event:e,time:t,gap}=core.playbackEvent(timeline,first,end,clock,speed,start,next);
    if(gap&&t-gap<ctx.currentTime+.12&&t>=ctx.currentTime-.03&&next!==lastGap){engine.releaseAt(Math.max(t-gap,ctx.currentTime));lastGap=next;}
-   if(t>=ctx.currentTime+.12)break;next++;if(t<ctx.currentTime-.03)continue;let sound=e;if(inline!==null){const g=groups[inline],r=core.groupRange(config,g);core.sectionConfig(config,g.indices[0]);if(e.step>=r.start&&e.step<r.end&&e.chord){const anchor=anchors.findIndex(a=>a.id===e.anchorId);if(config.changes[anchor]?.hold!=="ring")sound={...e,...core.sectionHit(config,g,e.step-r.start)};}}engine.strum({...sound,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo});if(e.release)engine.releaseAt(Math.max(t+e.duration/speed,ctx.currentTime));if($("metro").checked&&e.step%config.division===0)engine.click(Math.max(t,ctx.currentTime),e.beat===0);
+   if(t>=ctx.currentTime+.12)break;next++;if(t<ctx.currentTime-.03)continue;const sound=inline===null?e:core.liveSectionEvent(e,anchors,config,groups[inline]);engine.strum({...sound,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo});if(e.release)engine.releaseAt(Math.max(t+e.duration/speed,ctx.currentTime));if($("metro").checked&&e.step%config.division===0)engine.click(Math.max(t,ctx.currentTime),e.beat===0);
  }}catch(e){stop();note(e.message)}};
  let lastGap=-1;
  function animate(){if(!playing)return;const elapsed=Math.max(0,ctx.currentTime-start),position=core.playbackFrame(timeline,first,end,clock,speed,elapsed,loop());if(position.finished){stop();note("Práctica finalizada.");return}const {index:i,paused}=position;if(paused){if(inline===null){$("where").textContent="Pausa entre secciones";$("transportWhere").textContent="Pausa entre secciones";}else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Pausa entre secciones";}last=-1;}else if(i!==last){if(inline===null)showStep(timeline,i);else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent=(timeline[i].chord||"Silencio")+" · "+Math.round(timeline[i].tempo)+" BPM";}last=i}frame=requestAnimationFrame(animate)}

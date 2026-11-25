@@ -118,3 +118,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Resumen musical de Studio
 
 El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interfaz `studio-lab.js` solamente presenta las filas. Se conserva duración, compás, número de acordes, secciones y patrones, incluidos tempos independientes. Las dos salidas nativas se mantienen idénticas y CI verifica su regeneración canónica. La caché Offline pasa a v22 para actualizar conjuntamente núcleo e interfaz y añadir `studio-save-state.js` y `studio-reading-geometry.js`, dependencias presentes en el HTML pero ausentes del inventario previo. No se modifican arreglos persistidos ni el protocolo de publicación.
+
+## Planificación de reproducción de Studio
+
+`studio-core.js` centraliza `playbackRange`, `liveSectionEvent` y `sequenceTrackTimeline`. Conserva prioridad de rangos, cálculo del reloj, límites de tono/capo, exigencia de fragmentos oficiales y aislamiento del rasgueo en escucha de sección, incluido el comportamiento de dejar sonar. El editor mantiene los temporizadores, audio, lectura, y validación de digitaciones. Se sincronizan las dos copias nativas y se renueva la caché Offline v23. Las pruebas comparan con la lógica anterior; no se cambia el formato de arreglos ni se modifica contenido persistido.
