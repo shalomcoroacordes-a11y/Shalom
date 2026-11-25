@@ -52,6 +52,8 @@ const guarded=(url,opts)=>{
  await assert.rejects(a.assignUserRoles("target",["role"],owner),/sesión cambió/);
  await assert.rejects(a.setPermissionOverride("target","songs.edit",true,owner),/sesión cambió/);
  await assert.rejects(a.roles(owner),/sesión cambió/);
+ await assert.rejects(a.remove("songs","s",owner),/sesión cambió/);
+ await assert.rejects(a.remove("albums","a",owner),/sesión cambió/);
  assert.equal(requests.length,2);
  let calls=0;
  const switched=createApi(async()=>{calls++;current="admin-b";return{ok:true,status:200,text:async()=>JSON.stringify(records.slice(0,250))}},{requireFresh:async()=>({user_id:current,access_token:"token-"+current})});
