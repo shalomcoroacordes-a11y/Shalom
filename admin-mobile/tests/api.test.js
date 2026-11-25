@@ -49,6 +49,10 @@ const guarded=(url,opts)=>{
  current="admin-b";await assert.rejects(a.list("artist_featured_songs",owner),/sesión cambió/);assert.equal(requests.length,2);
  await assert.rejects(a.publish("songs",{id:"s"},null,owner),/sesión cambió/);
  await assert.rejects(a.myAccess(owner),/sesión cambió/);
+ await assert.rejects(a.assignUserRoles("target",["role"],owner),/sesión cambió/);
+ await assert.rejects(a.setPermissionOverride("target","songs.edit",true,owner),/sesión cambió/);
+ await assert.rejects(a.roles(owner),/sesión cambió/);
+ assert.equal(requests.length,2);
  let calls=0;
  const switched=createApi(async()=>{calls++;current="admin-b";return{ok:true,status:200,text:async()=>JSON.stringify(records.slice(0,250))}},{requireFresh:async()=>({user_id:current,access_token:"token-"+current})});
  current=owner;await assert.rejects(switched.list("artist_featured_songs",owner),/sesión cambió/);assert.equal(calls,1);

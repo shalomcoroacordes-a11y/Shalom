@@ -29,7 +29,7 @@ function createUserManagement({api,auth,apply}){
  }
  function load(id){
   return enqueue(id,async()=>{
-   const [roles,profiles,assignments,blocks,exceptions,trash]=await Promise.all([api.roles(),api.list("admin_profiles"),api.list("admin_user_roles"),api.list("admin_access_blocks"),api.list("admin_permission_overrides"),api.list("admin_trash")]);
+   const [roles,profiles,assignments,blocks,exceptions,trash]=await Promise.all([api.roles(id),api.list("admin_profiles",id),api.list("admin_user_roles",id),api.list("admin_access_blocks",id),api.list("admin_permission_overrides",id),api.list("admin_trash",id)]);
    return assemble(roles,profiles,assignments,blocks,exceptions,trash);
   });
  }
@@ -37,7 +37,7 @@ function createUserManagement({api,auth,apply}){
   return enqueue(id,async current=>{
    const old=current.assigned[userId]||[];
    const next=old.includes(roleId)?old.filter(x=>x!==roleId):[...old,roleId];
-   await api.assignUserRoles(userId,next);
+   await api.assignUserRoles(userId,next,id);
    return {...current,assigned:{...current.assigned,[userId]:next}};
   });
  }
@@ -45,7 +45,7 @@ function createUserManagement({api,auth,apply}){
   return enqueue(id,async current=>{
    const values={...(current.overrides[userId]||{})};
    const next=!Object.hasOwn(values,permission)?true:values[permission]===true?false:null;
-   await api.setPermissionOverride(userId,permission,next);
+   await api.setPermissionOverride(userId,permission,next,id);
    if(next===null)delete values[permission];else values[permission]=next;
    return {...current,overrides:{...current.overrides,[userId]:values}};
   });

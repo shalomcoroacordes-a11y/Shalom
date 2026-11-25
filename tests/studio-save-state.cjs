@@ -18,5 +18,5 @@ check("new","new","new","new",null,null,"","published");
 const scripts=[...html.matchAll(/<script defer src="([^"]+)"><\/script>/g)].map(m=>m[1]);
 assert.ok(scripts.includes("studio-save-state.js")&&scripts.includes("studio-lab.js")&&scripts.indexOf("studio-save-state.js")<scripts.indexOf("studio-lab.js"),"Save state must load before the editor, not necessarily immediately before it");
 assert.match(html,/<div class="button-row studio-save-actions"><button id="save">Guardar borrador<\/button><button id="publish" hidden>Publicar<\/button>/);
-const admin=fs.readFileSync("admin-mobile/App.js","utf8");assert.match(admin,/La versión guardada difiere de la enviada/);
+const admin=fs.readFileSync("admin-mobile/App.js","utf8");const persistence=fs.readFileSync("admin-mobile/src/studio-persistence.js","utf8");assert.match(admin,/studio\.publish\(owner,studioPayload\.song,arrangement\)/);assert.match(persistence,/La versión guardada difiere de la enviada/);
 console.log("Studio: estado de guardado y publicación verificado.");

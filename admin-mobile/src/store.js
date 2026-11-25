@@ -11,10 +11,13 @@ async function database(){
  return promise;
 }
 const now=()=>new Date().toISOString();
+// Keep the existing SQLite schema; touched is a monotonic local revision timestamp.
+let lastDraftTime=0;
+function draftRevision(){lastDraftTime=Math.max(Date.now(),lastDraftTime+1);return new Date(lastDraftTime).toISOString();}
 async function upsertDraft(owner,item){
  if(!owner||!item.id||!item.type)throw Error("Borrador sin propietario o identificador");
  const db=await database();
- await db.runAsync("INSERT INTO drafts(owner,id,type,body,status,expected_updated,error,touched) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(owner,id) DO UPDATE SET type=excluded.type,body=excluded.body,status=excluded.status,expected_updated=excluded.expected_updated,error=excluded.error,touched=excluded.touched",owner,item.id,item.type,JSON.stringify(item.body),item.status||"draft",item.expected_updated||null,item.error||null,now());
+ await db.runAsync("INSERT INTO drafts(owner,id,type,body,status,expected_updated,error,touched) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(owner,id) DO UPDATE SET type=excluded.type,body=excluded.body,status=excluded.status,expected_updated=excluded.expected_updated,error=excluded.error,touched=excluded.touched",owner,item.id,item.type,JSON.stringify(item.body),item.status||"draft",item.expected_updated||null,item.error||null,draftRevision());
  return item;
 }
 async function listDrafts(owner){
@@ -25,7 +28,28 @@ async function listDrafts(owner){
 async function dropDraft(owner,id){const db=await database();await db.runAsync("DELETE FROM drafts WHERE owner=? AND id=?",owner,id);}
 async function status(owner,id,value,error){
  const db=await database();
- await db.runAsync("UPDATE drafts SET status=?,error=?,touched=? WHERE owner=? AND id=?",value,error||null,now(),owner,id);
+ await db.runAsync("UPDATE drafts SET status=?,error=?,touched=? WHERE owner=? AND id=?",value,error||null,draftRevision(),owner,id);
+}
+// Compare the complete persisted snapshot, including the revision and nullable fields.
+// An older publish response must never mutate a newer local edit.
+const draftMatch="owner=? AND id=? AND touched=? AND type=? AND status=? AND body=? AND expected_updated IS ? AND error IS ?";
+function draftArgs(owner,item){
+ if(!owner||!item?.id||!item.touched)throw Error("Falta revisión del borrador");
+ return [owner,item.id,item.touched,item.type,item.status,JSON.stringify(item.body),item.expected_updated??null,item.error??null];
+}
+async function isCurrentDraft(owner,item){
+ const db=await database();
+ return !!(await db.getFirstAsync("SELECT 1 FROM drafts WHERE "+draftMatch,...draftArgs(owner,item)));
+}
+async function completeDraft(owner,item){
+ const db=await database();
+ const result=await db.runAsync("DELETE FROM drafts WHERE "+draftMatch,...draftArgs(owner,item));
+ return result.changes===1;
+}
+async function transitionDraft(owner,item,value,error){
+ const db=await database();
+ const result=await db.runAsync("UPDATE drafts SET status=?,error=?,touched=? WHERE "+draftMatch,value,error||null,draftRevision(),...draftArgs(owner,item));
+ return result.changes===1;
 }
 // Keep the existing database and owner namespaces; derive the real identity
 // of junction rows instead of serializing undefined as their shared ID.
@@ -73,4 +97,4 @@ async function cachedList(owner,type){
  const rows=await db.getAllAsync("SELECT body FROM catalog WHERE owner=? AND type=?",owner,type);
  return rows.map(x=>JSON.parse(x.body));
 }
-module.exports={upsertDraft,listDrafts,dropDraft,status,cacheList,cachedList,cacheCatalog,readCatalog};
+module.exports={upsertDraft,listDrafts,dropDraft,status,isCurrentDraft,completeDraft,transitionDraft,cacheList,cachedList,cacheCatalog,readCatalog};
