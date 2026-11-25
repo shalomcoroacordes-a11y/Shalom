@@ -13,14 +13,6 @@
   const url = (v) => { try { const u = new URL(String(v || "").trim()); return /^https?:$/.test(u.protocol) ? u.href : null; } catch (_) { return null; } };
   const state = () => typeof AP === "undefined" ? null : AP;
 
-  function addStyle() {
-    if (document.querySelector("#artistProfileStorageStyle")) return;
-    const style = document.createElement("style");
-    style.id = "artistProfileStorageStyle";
-    style.textContent = ".admin-artist-store-note{padding:11px 13px;border:1px solid rgba(47,199,131,.35);border-radius:14px;background:var(--card-soft);color:var(--gold);font-size:.9rem;margin:0 0 14px}.admin-artist-socials,.admin-artist-featured{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px;border:1px solid var(--border);border-radius:16px;background:var(--card-soft);margin-top:12px}.admin-artist-socials h4,.admin-artist-featured h4,.admin-artist-socials p,.admin-artist-featured p{grid-column:1/-1;margin:0}.admin-artist-socials p,.admin-artist-featured p{color:var(--muted);font-size:.9rem}.admin-artist-socials label{margin:0}.admin-artist-featured-list{grid-column:1/-1;display:grid;gap:8px;max-height:240px;overflow:auto}.admin-artist-featured-item{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card)}.admin-artist-featured-item input{width:18px;height:18px;accent-color:var(--gold)}.admin-artist-featured-item small{display:block;color:var(--muted);margin-top:2px}@media(max-width:620px){.admin-artist-socials{grid-template-columns:1fr}}";
-    document.head.append(style);
-  }
-
   function currentArtist() {
     const app = state();
     return app?.artists?.find((artist) => String(artist.id) === String(app.edits.artist)) || null;
@@ -91,7 +83,6 @@
     if (!form || form.dataset.profileStorage === "on") return;
     const bio = form.querySelector('textarea[name="description"]');
     if (!bio) return;
-    addStyle();
     const artist = currentArtist();
     const label = bio.closest("label");
     [...(label?.childNodes || [])].forEach((node) => { if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) node.textContent = "Biografía pública"; });

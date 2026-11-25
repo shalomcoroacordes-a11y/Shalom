@@ -13,14 +13,6 @@
     document.head.append(script);
   }
 
-  function styles() {
-    if (document.getElementById("mainArtistSearchStyle")) return;
-    const style = document.createElement("style");
-    style.id = "mainArtistSearchStyle";
-    style.textContent = ".main-artist-search{display:grid;gap:8px;margin:7px 0}.main-artist-search input{width:100%;border:1px solid var(--border);border-radius:15px;background:rgba(255,255,255,.045);color:var(--text);padding:13px 14px;font:inherit}.main-artist-results{display:grid;gap:6px;max-height:230px;overflow:auto;padding:7px;border:1px solid var(--border);border-radius:15px;background:var(--card)}.main-artist-results[hidden]{display:none!important}.main-artist-results button{width:100%;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.035);color:var(--text);padding:10px 12px;text-align:left;font:inherit;font-weight:800}.main-artist-results button.active{color:var(--gold);border-color:rgba(47,199,131,.5)}.main-artist-empty{padding:10px 12px;color:var(--muted);font-size:.9rem}";
-    document.head.append(style);
-  }
-
   function selectedLabel(select) {
     const option = select.options[select.selectedIndex];
     return option && option.value ? option.textContent.trim() : "";
@@ -49,7 +41,6 @@
   function enhance(select) {
     if (!select || select.dataset.mainArtistSearch === "1") return;
     select.dataset.mainArtistSearch = "1";
-    styles();
     const box = document.createElement("div");
     box.className = "main-artist-search";
     const input = document.createElement("input");

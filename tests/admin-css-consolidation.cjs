@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const html = fs.readFileSync("admin.html", "utf8");
 const css = fs.readFileSync("admin-pro.css", "utf8");
 const sections = ["admin-search-fix.css", "admin-catalog-check.css", "admin-home-section.css", "admin-mobile-polish.css"];
-assert.match(html, /href="admin-pro\.css\?v=4"/);
+assert.match(html, /href="admin-pro\.css\?v=5"/);
 assert.equal((html.match(/href="admin-pro\.css/g) || []).length, 1);
 let previous = -1;
 for (const name of sections) {
@@ -40,9 +40,41 @@ const picker = fs.readFileSync("admin-song-category-picker.js","utf8");
 assert.doesNotMatch(picker,/createElement\(["']style["']\)|css\.textContent/);
 const pickerMarker = "/* ===== Admin song category picker ===== */";
 assert.ok(css.indexOf(pickerMarker)>previous,"Category picker CSS follows existing consolidated rules");
-const pickerCss=css.split(pickerMarker+"\n")[1].trimEnd();
+const readSection = (marker) => css.split(marker+"\n")[1].split(/\n\s*\/\* ===== /)[0].trimEnd();
+const pickerCss=readSection(pickerMarker);
 let hash=2166136261;
 for(const c of pickerCss)hash=Math.imul(hash^c.charCodeAt(0),16777619)>>>0;
 assert.equal(hash,1309125158,"Category picker styles retain the exact original declarations and order");
 assert.match(html,/admin-song-category-picker\.js\?v=7/);
 console.log("Category picker static CSS preserves original declarations.");
+
+const extractedStyles=[
+  {
+    "file": "admin-category-browser-v2.js",
+    "marker": "/* ===== Admin category browser ===== */",
+    "hash": 2263716550,
+    "version": 2
+  },
+  {
+    "file": "admin-main-artist-search.js",
+    "marker": "/* ===== Admin main artist search ===== */",
+    "hash": 1903675381,
+    "version": 4
+  },
+  {
+    "file": "admin-artist-profile-storage.js",
+    "marker": "/* ===== Admin artist profile storage ===== */",
+    "hash": 2092721125,
+    "version": 2
+  }
+];
+for(const item of extractedStyles){
+ const source=fs.readFileSync(item.file,"utf8");
+ assert.doesNotMatch(source,/createElement\(["']style["']\)|style\.textContent/);
+ assert.ok(html.includes(item.file+"?v="+item.version));
+ let checksum=2166136261;
+ for(const c of readSection(item.marker))checksum=Math.imul(checksum^c.charCodeAt(0),16777619)>>>0;
+ assert.equal(checksum,item.hash,item.file+" retains the original CSS");
+}
+assert.ok(css.indexOf(extractedStyles[0].marker)<css.indexOf(pickerMarker));
+console.log("Three additional Admin components use their exact original static CSS.");
