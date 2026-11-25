@@ -70,3 +70,58 @@ commit;
 La tabla continúa con RLS habilitado. Las políticas existentes de escritura siguen exigiendo `jhd_is_admin()`; los visitantes solo pueden leer registros publicados. El asesor de seguridad de Supabase sigue señalando únicamente la advertencia de protección de contraseñas filtradas deshabilitada.
 
 **Alcance:** se modificaron únicamente privilegios SQL de `public.medleys`; no se modificaron ni borraron registros, no se alteraron políticas RLS ni otras tablas. No se ejecutaron pruebas completas de la interfaz web/Android ni pruebas con cuentas reales, que permanecen pendientes.
+
+
+## Reauditoría de producción — 25 de noviembre de 2026
+
+Alcance: consultas de catálogos de PostgreSQL, conteos agregados y asesores de Supabase. Sin escrituras, cambios de configuración ni lectura de letras, correos o identificadores de usuarios.
+
+### Controles verificados
+- 28/28 tablas públicas con RLS habilitado; cero vistas públicas.
+- Ninguna tabla pública concede UPDATE o DELETE a anon; INSERT anónimo solo en contact_messages, sujeto a sus políticas de solicitud.
+- 15 funciones SECURITY DEFINER con EXECUTE revocado a anon y search_path vacío. Las 15 siguen disponibles para authenticated: revisar autorización interna por operación, no revocar indiscriminadamente.
+- Medleys: no aparece en el inventario de privilegios efectivos TRUNCATE, TRIGGER y REFERENCES para anon/authenticated; se conserva la corrección del 17 de noviembre.
+- Las claves primarias de las tablas de permisos coinciden con las claves compuestas configuradas en admin-mobile/src/api.js.
+- Inventario agregado: 36 cantos, 2 acompañamientos Studio, ninguno con revisión desactualizada al consultar; papelera de cantos vacía. Esto no es un respaldo.
+
+### Hallazgos y prioridades
+1. **Alta — privilegios efectivos excesivos de authenticated:** TRUNCATE, TRIGGER y REFERENCES en admin_access_blocks, admin_audit_log, admin_invites, admin_permission_overrides, admin_profiles, admin_role_permissions, admin_roles y admin_user_roles. No se observan esos permisos en anon. RLS no protege TRUNCATE; no se afirma que exista un endpoint REST para invocarlo. Preparar revocación de privilegios mínimos, verificar herencia y probar roles autorizados/denegados en base aislada. No ejecutar directamente en producción.
+2. **Alta — autorización heredada:** jhd_is_admin() comprueba pertenencia a jhd_admin_users sin consultar admin_access_blocks; hay una membresía heredada. admin_is_owner() usa esa misma tabla y admin_has_permission() sí comprueba bloqueos. Existen políticas de escritura heredadas en canciones y relaciones, políticas adicionales en mensajes, versiones y papelera, además de políticas RBAC. Las políticas permisivas se combinan mediante OR; revisar la posibilidad de que una ruta heredada ignore restricciones nuevas. No borrar membresías ni políticas sin comprobar clientes web y nativos y preservar acceso del propietario legítimo. Probar cuenta anónima, autenticada no autorizada, rol limitado, permiso denegado, propietario y bloqueo.
+3. **Alta — recuperación Studio:** admin_delete_song y admin_restore_song desplegadas conservan song_versions, pero no incluyen song_studio_arrangements. La FK en cascada puede eliminar el acompañamiento al borrar el canto. La solución transaccional en sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql ya tiene pruebas aisladas; verificar diferencias con producción, respaldo y restauración antes de desplegar. No intentar borrar un canto real para probar.
+4. **Media — revisiones de cantos:** admin_publish_song comprueba p_expected bajo bloqueo FOR UPDATE. Studio exige coincidencia de song_revision con updated_at en RLS. Revisar la conservación del acompañamiento al modificar una canción y restaurar revisiones; no asumir que todas las rutas de Admin usan el mismo RPC.
+5. **Media — asesor de seguridad:** 15 advertencias de RPC SECURITY DEFINER ejecutables por authenticated; revisar autorización de cada función. Protección contra contraseñas filtradas deshabilitada; confirmar disponibilidad en plan y activar solo mediante cambio autorizado.
+6. **Rendimiento:** 6 FK sin índice de cobertura, 5 políticas con reevaluación de auth por fila, 23 índices sin uso observado y 64 avisos de políticas permisivas múltiples. Priorizar equivalencia de permisos y planes de consulta. No eliminar índices basándose en un contador aislado, ni simplificar políticas sin pruebas por rol.
+
+### Consultas reproducibles de solo lectura
+
+```sql
+select c.relname, c.relrowsecurity,
+       has_table_privilege('anon',c.oid,'UPDATE') as anon_update,
+       has_table_privilege('anon',c.oid,'DELETE') as anon_delete
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+where n.nspname='public' and c.relkind in ('r','p')
+order by c.relname;
+
+select c.relname, r.role_name,
+       has_table_privilege(r.role_name,c.oid,'TRUNCATE') as can_truncate,
+       has_table_privilege(r.role_name,c.oid,'TRIGGER') as can_trigger,
+       has_table_privilege(r.role_name,c.oid,'REFERENCES') as can_reference
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+cross join (values ('anon'),('authenticated')) r(role_name)
+where n.nspname='public' and c.relkind in ('r','p')
+order by c.relname,r.role_name;
+
+select p.proname,p.prosecdef,p.proconfig,
+       has_function_privilege('anon',p.oid,'EXECUTE') as anon_exec,
+       has_function_privilege('authenticated',p.oid,'EXECUTE') as auth_exec
+from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+where n.nspname='public' and p.prosecdef
+order by p.proname;
+
+select tablename,policyname,cmd,roles,qual,with_check
+from pg_policies where schemaname='public'
+order by tablename,policyname;
+```
+
+### Criterio de cierre
+Inventario reproducible, plan de migración revisado, respaldo restaurable, matriz de permisos probada en PostgreSQL aislado y comprobaciones posteriores de web y Android. La aprobación de una auditoría no equivale a haber desplegado una corrección. No modificar producción hasta autorización y verificación de precondiciones. Consultar los asesores en el panel de Supabase y la documentación oficial de RLS y seguridad de contraseñas.
