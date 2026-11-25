@@ -95,6 +95,9 @@ jobs:
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
 
+      - name: Verify identical Studio bundles for both native apps
+        run: node mobile/tests/studio-offline.test.js
+
       - name: Test Android catalog download timeout
         run: node tests/mobile-sync-timeout.cjs
 

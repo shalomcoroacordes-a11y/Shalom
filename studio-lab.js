@@ -12,15 +12,14 @@ const fingerprint=()=>{try{return config?JSON.stringify(window.ShalomStudioCodec
 let anchors=[],config=null,ctx=null,engine=null,timer=null,frame=null,playing=false,epoch=0;
 const note=s=>{$("status").textContent=s;$("editorStatus").textContent=s;renderSaveState()};
 function renderSaveState(){
- const f=fingerprint(),isPublished=!!publishedFingerprint,dirty=!f||f!==baseline;
- let state="dirty",title="Sin guardar",detail="Guarda un borrador privado o publica para los músicos.";
- if(pendingSave!==null){state="busy";title=pendingKind==="publish"?"Publicando…":"Guardando borrador…";detail="Esperando confirmación del guardado."}
- else if(saveError){state="error";title="No se confirmó el guardado";detail=saveError+(isPublished?" · La publicación anterior puede seguir disponible.":"")}
- else if(f&&f===publishedFingerprint){state="published";title="✓ Acompañamiento publicado";detail="Guardado en el servidor para este canto. Disponible en SHALOM pública al actualizar el catálogo."}
- else if(f&&f===draftFingerprint){state="draft";title="✓ Borrador guardado en este dispositivo";detail=isPublished?"La versión anterior sigue publicada. Publica para actualizarla.":"Aún no está disponible para los músicos."}
- else if(isPublished){title="Cambios sin publicar";detail="La versión anterior sigue publicada. Guarda o publica los cambios."}
- $("saveState").dataset.state=state;$("saveStateTitle").textContent=title;$("saveStateDetail").textContent=detail;
- $("save").disabled=pendingSave!==null;$("publish").disabled=pendingSave!==null;
+ const {state,title,detail,disabled}=window.ShalomStudioSaveState.describe({
+  fingerprint:fingerprint(),publishedFingerprint,draftFingerprint,pendingSave,pendingKind,saveError
+ });
+ $("saveState").dataset.state=state;
+ $("saveStateTitle").textContent=title;
+ $("saveStateDetail").textContent=detail;
+ $("save").disabled=disabled;
+ $("publish").disabled=disabled;
 }
 function finishSave(ok,message){
  const kind=pendingKind,fp=pendingSave;
