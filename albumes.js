@@ -20,19 +20,7 @@ let visibleSongs = [];
 let songLoading = false;
 let songRequestVersion = 0;
 
-function nav() {
-  const button = $("#menuToggle");
-  const menu = $("#navMenu");
-  button?.setAttribute("aria-expanded", "false");
-  button?.addEventListener("click", () => {
-    const open = Boolean(menu?.classList.toggle("open"));
-    button.setAttribute("aria-expanded", String(open));
-  });
-  document.querySelectorAll("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    button?.setAttribute("aria-expanded", "false");
-  }));
-}
+
 
 function countLabel(count) {
   return `${count} ${count === 1 ? "canto" : "cantos"}`;
@@ -256,7 +244,7 @@ async function openDetail() {
 }
 
 function start() {
-  nav();
+  window.ShalomWebMenu.mount();
   if (!db) {
     const grid = $("#albumsGrid");
     if (grid) grid.innerHTML = "<article class='artist-card'><h3>Sin conexión</h3><p>No se pudo iniciar Supabase.</p></article>";

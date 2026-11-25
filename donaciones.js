@@ -4,19 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 let donationText = "Gracias por apoyar el proyecto SHALOM.";
 let donationMethods = [];
 
-function initNavigation() {
-  const button = $("#menuToggle");
-  const menu = $("#navMenu");
-  button?.setAttribute("aria-expanded", "false");
-  button?.addEventListener("click", () => {
-    const open = Boolean(menu?.classList.toggle("open"));
-    button.setAttribute("aria-expanded", String(open));
-  });
-  document.querySelectorAll("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    button?.setAttribute("aria-expanded", "false");
-  }));
-}
+
 
 function esc(value) {
   return String(value ?? "")
@@ -136,6 +124,6 @@ async function loadSettings() {
   renderMethods(result.data || []);
 }
 
-initNavigation();
+window.ShalomWebMenu.mount();
 initCopy();
 loadSettings();
