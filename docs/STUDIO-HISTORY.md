@@ -26,3 +26,7 @@ Estado: propuesta guardada en repositorio, sin aplicar a producción.
 ## Consulta y edición desde Admin web
 
 En el editor de un canto, Historial Studio muestra las últimas 30 revisiones. La escucha histórica usa el reproductor sin permisos de escritura y exige la letra exacta conservada. Cargar para editar solo se habilita cuando la revisión corresponde al canto vigente y vuelve a comprobarse contra el servidor. El codec valida los acordes y el patrón; la edición se carga sin publicar ni sustituir el borrador guardado hasta que el usuario lo guarde expresamente. Publicar conserva la confirmación habitual y la verificación de identidad. Para revisiones de letra distintas, descargar el historial privado y reconstruir manualmente; no se reetiquetan revisiones. El historial completo se conserva en la exportación y la interfaz Android específica sigue pendiente.
+
+## Android Admin
+
+La rama de recuperación nativa añade consulta autorizada de las últimas 30 revisiones y apertura en el reproductor compartido sin escritura. Solo permite cargar para editar si coincide la revisión y la letra vigente. Usa el borrador y la publicación existentes; no escribe desde el historial ni cambia la app pública. Requiere conexión y el despliegue previo del SQL. Pendiente CI y prueba en emulador.
