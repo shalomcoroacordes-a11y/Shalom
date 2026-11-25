@@ -1,7 +1,7 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const source=fs.readFileSync("web-menu.js","utf8");
-const pages=[["canciones.js","canciones.html"],["cancion.js","cancion.html"],["artistas.js","artistas.html"],["albumes.js","albumes.html"],["donaciones.js","donaciones.html"],["public-core.js","index.html"],["public-core.js","categorias.html"]];
+const pages=[["canciones.js","canciones.html"],["cancion.js","cancion.html"],["artistas.js","artistas.html"],["albumes.js","albumes.html"],["donaciones.js","donaciones.html"],["public-core.js","index.html"],["public-core.js","categorias.html"],["artist-page.js","artista.html"]];
 for(const [js,html] of pages){
  const page=fs.readFileSync(html,"utf8"),owner=fs.readFileSync(js,"utf8");
  assert.equal((page.match(/src="web-menu\.js\?v=1"/g)||[]).length,1);
@@ -30,4 +30,4 @@ const added=element();links.push(added);nav.mount();button.click();added.click()
 fixture(null,null,[]).mount();
 const lone=element();fixture(lone,null,[]).mount();lone.click();assert.equal(lone.attrs["aria-expanded"],"false");
 const onlyMenu=element(),onlyLink=element();fixture(null,onlyMenu,[onlyLink]).mount();onlyMenu.classes.add("open");onlyLink.click();assert.equal(onlyMenu.classes.has("open"),false);
-console.log("Shared web menu: seven page references, ARIA state, opening/closing, duplicate listeners and missing elements verified.");
+console.log("Shared web menu: eight page references, ARIA state, opening/closing, duplicate listeners and missing elements verified.");

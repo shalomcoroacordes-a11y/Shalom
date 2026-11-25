@@ -141,10 +141,10 @@ async function fetchArtists(append = false) {
     if (token !== requestVersion) return;
 
     const rows = data || [];
-    const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+    const merged = window.ShalomCatalogSongRow.mergePage(visibleArtists, rows, append);
     page = currentPage;
-    totalResults = append ? (rows.length ? serverTotal : visibleArtists.length) : serverTotal;
-    visibleArtists = append ? [...visibleArtists, ...rows] : rows;
+    totalResults = merged.total;
+    visibleArtists = merged.rows;
     loading = false;
     renderArtists();
   } catch (error) {

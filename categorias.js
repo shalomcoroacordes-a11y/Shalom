@@ -203,10 +203,10 @@ async function fetchCategorySongs(append = false) {
     if (token !== categorySongRequestVersion) return;
 
     const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
-    const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+    const merged = window.ShalomCatalogSongRow.mergePage(categorySongRows, rows, append);
     categorySongPage = currentPage;
-    categorySongTotal = append ? (rows.length ? serverTotal : categorySongRows.length) : serverTotal;
-    categorySongRows = append ? [...categorySongRows, ...rows] : rows;
+    categorySongTotal = merged.total;
+    categorySongRows = merged.rows;
     categorySongLoading = false;
     renderCategorySongs(category);
   } catch (error) {

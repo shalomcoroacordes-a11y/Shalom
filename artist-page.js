@@ -21,16 +21,6 @@
   const initials = (value) => String(value || "JHD").trim().split(/\s+/).slice(0, 2).map((item) => item[0] || "").join("").toUpperCase();
   const songMeta = (song) => [type(song.song_type), song.tone ? `Tono ${song.tone}` : "", song.difficulty || ""].filter(Boolean).join(" · ") || "Canto disponible";
 
-  const jsonList = (value) => {
-    if (Array.isArray(value)) return value;
-    if (!value || typeof value !== "string") return [];
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
-      return [];
-    }
-  };
 
   const legacy = (value) => {
     const raw = String(value || "");
@@ -40,19 +30,6 @@
     return { bio: raw.replace(/<!--JHD_ARTIST_META:[\s\S]*?-->\s*$/, "").trim(), links: meta.links || {} };
   };
 
-  function initNavigation() {
-    const button = $("#menuToggle");
-    const menu = $("#navMenu");
-    button?.setAttribute("aria-expanded", "false");
-    button?.addEventListener("click", () => {
-      const open = Boolean(menu?.classList.toggle("open"));
-      button.setAttribute("aria-expanded", String(open));
-    });
-    document.querySelectorAll("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-      menu?.classList.remove("open");
-      button?.setAttribute("aria-expanded", "false");
-    }));
-  }
 
   function empty(message) {
     return `<div class="artist-empty">${esc(message)}</div>`;
@@ -198,11 +175,11 @@
       }
       if (token !== requestVersion) return;
 
-      const rows = (data || []).map((row) => ({ ...row, _artists: jsonList(row.artists), _categories: jsonList(row.categories), _albums: jsonList(row.albums) }));
-      const serverTotal = rows.length ? Number(rows[0].total_count || 0) : 0;
+      const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
+      const merged = window.ShalomCatalogSongRow.mergePage(visibleSongs, rows, append);
       page = currentPage;
-      totalSongs = append ? (rows.length ? serverTotal : visibleSongs.length) : serverTotal;
-      visibleSongs = append ? [...visibleSongs, ...rows] : rows;
+      totalSongs = merged.total;
+      visibleSongs = merged.rows;
       loading = false;
       renderSongs();
     } catch (error) {
@@ -330,13 +307,13 @@
     }
 
     summary = summaryRes.data?.[0] || summary;
-    summary.categories = jsonList(summary.categories);
+    summary.categories = window.ShalomCatalogSongRow.jsonList(summary.categories);
     renderProfile(featuredSongs, albumsRes.data || []);
     fetchSongs(false);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    initNavigation();
+    window.ShalomWebMenu.mount();
     load();
     const year = $("#year");
     if (year) year.textContent = new Date().getFullYear();
