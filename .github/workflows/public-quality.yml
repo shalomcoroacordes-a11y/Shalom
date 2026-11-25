@@ -155,6 +155,9 @@ jobs:
       - name: Verify catalog CSS bundles and import ordering
         run: node tests/catalog-css-bundles-regression.cjs
 
+      - name: Test shared catalog RPC row normalization
+        run: node tests/catalog-song-row.cjs
+
       - name: Verify song detail CSS bundle against original files
         run: node tests/song-detail-bundle-regression.cjs
 
