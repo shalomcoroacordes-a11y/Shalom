@@ -106,3 +106,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Posición del editor de cantos (Admin web)
 
 `admin-editor-position.js` administra exclusivamente el cursor y desplazamiento horizontal/vertical por canto durante la sesión. Conserva la clave `shalom-admin-editor-positions-v1` y la estructura anterior; no guarda letras ni escribe en Supabase. `admin-pro.js` mantiene la propiedad de los eventos y del ciclo de montaje, y limpia únicamente la posición del borrador nuevo al reiniciarlo. El servicio tolera almacenamiento bloqueado o corrupto y conserva el estado en memoria. La prueba `tests/admin-editor-position.cjs` verifica restauración, límites del cursor y compatibilidad con registros anteriores.
+
+## Preparación de borradores de cantos (Admin web)
+
+`admin-song-draft.js` contiene las funciones puras `fromSong` y `capture`, que preparan el borrador, revisión original, relaciones, enlaces y capos, y fusionan valores del formulario sin cambiar la selección múltiple de categorías. `admin-pro.js` conserva los eventos, el estado AP y la publicación transaccional. No hay escritura de datos en el módulo nuevo. `tests/admin-song-draft.cjs` y la regresión de publicación verifican el contrato y la preservación de los cambios.

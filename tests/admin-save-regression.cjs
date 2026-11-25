@@ -16,6 +16,7 @@ class FakeFormData {
   entries() { return Object.entries(values)[Symbol.iterator](); }
 }
 const scope = {
+  window: {},
   AP: state,
   FormData: FakeFormData,
   ap$: selector => selector === "#songAdminForm" ? form : null,
@@ -25,6 +26,7 @@ const scope = {
   }
 };
 vm.createContext(scope);
+vm.runInContext(fs.readFileSync("admin-song-draft.js", "utf8"), scope);
 vm.runInContext(source.slice(begin, end) + "\napCaptureSongDraft();", scope);
 assert.deepEqual(Array.from(state.draft.collaborators), ["a2", "a3"]);
 assert.deepEqual(Array.from(state.draft.category_ids), ["c1", "c2"]);
