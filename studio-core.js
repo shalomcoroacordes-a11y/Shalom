@@ -241,6 +241,27 @@
     return {offsets,releases,duration};
   }
   function clockIndex(offsets,elapsed){let lo=0,hi=offsets.length;while(lo+1<hi){const mid=(lo+hi)>>1;if(offsets[mid]<=elapsed)lo=mid;else hi=mid;}return lo;}
+  // Pure playback clock: the UI owns timers, audio scheduling and rendering.
+  function playbackSpeed(value){
+    return Math.max(25,Math.min(200,Number(value)||100))/100;
+  }
+  function playbackEvent(timeline,first,end,clock,speed,start,next){
+    const count=end-first,cycle=Math.floor(next/count),i=next%count,e=timeline[first+i];
+    return {event:e,time:start+cycle*clock.duration+clock.offsets[i],gap:i===0?0:(e.gapBefore||0)/speed};
+  }
+  function playbackFrame(timeline,first,end,clock,speed,elapsed,loop){
+    if(elapsed>=clock.duration&&!loop)return {finished:true};
+    const local=elapsed%clock.duration,index=first+clockIndex(clock.offsets,local),e=timeline[index];
+    return {finished:false,index,paused:local>=clock.offsets[index-first]+e.duration/speed&&index+1<end};
+  }
+  function sequenceFrame(schedule,elapsed){
+    if(elapsed>=schedule.duration)return {finished:true};
+    let index=schedule.windows.findIndex(w=>elapsed<w.next);
+    if(index<0)index=schedule.windows.length-1;
+    const w=schedule.windows[index];
+    if(elapsed>=w.end)return {finished:false,track:index,transition:true,remaining:Math.max(0,w.next-elapsed)};
+    return {finished:false,track:index,transition:false,step:Math.min(w.last,w.first+clockIndex(w.offsets,Math.max(0,elapsed-w.start)))};
+  }
   function groupAnchors(anchors,rows){
     const groups=[];let heading=-1,title="Inicio",cursor=0;
     for(let i=0;i<rows.length;i++){
@@ -262,5 +283,5 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });

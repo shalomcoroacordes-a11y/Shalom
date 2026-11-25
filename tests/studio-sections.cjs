@@ -14,3 +14,19 @@ cfg=C.setDuration(cfg,0,4);t=C.compile(a,cfg);assert.equal(t[cfg.changes[2].step
 assert.throws(()=>C.setSection(cfg,2,{bpm:400}),/Tempo/);
 
 const original=JSON.stringify(cfg.changes),copy=C.setSection(cfg,2,{...C.sectionConfig(cfg,0),index:2});assert.equal(JSON.stringify(copy.changes),original);assert.equal(copy.sections[1].bpm,60);assert.deepEqual(copy.sections[1].hits,copy.sections[0].hits);assert.ok(copy.sections[1].hits!==copy.sections[0].hits);
+
+const playbackTimeline=[{duration:.5,gapBefore:0},{duration:.25,gapBefore:1},{duration:.25,gapBefore:0}];
+const playbackClock=C.clockRange(playbackTimeline,0,3);
+assert.equal(C.playbackSpeed("200"),2);assert.equal(C.playbackSpeed("0"),1);assert.equal(C.playbackSpeed(-1),.25);
+assert.deepEqual(C.playbackEvent(playbackTimeline,0,3,playbackClock,1,10,1),{event:playbackTimeline[1],time:11.5,gap:1});
+assert.deepEqual(C.playbackEvent(playbackTimeline,0,3,playbackClock,1,10,3),{event:playbackTimeline[0],time:12,gap:0});
+assert.deepEqual(C.playbackFrame(playbackTimeline,0,3,playbackClock,1,.75,false),{finished:false,index:0,paused:true});
+assert.deepEqual(C.playbackFrame(playbackTimeline,0,3,playbackClock,1,1.5,false),{finished:false,index:1,paused:false});
+assert.deepEqual(C.playbackFrame(playbackTimeline,0,3,playbackClock,1,2,false),{finished:true});
+assert.deepEqual(C.playbackFrame(playbackTimeline,0,3,playbackClock,1,2,true),{finished:false,index:0,paused:false});
+assert.deepEqual(C.sequenceFrame(sequence,4.25),{finished:false,track:0,transition:true,remaining:.25});
+assert.deepEqual(C.sequenceFrame(sequence,4.5),{finished:false,track:1,transition:false,step:0});
+assert.deepEqual(C.sequenceFrame(sequence,8.5),{finished:true});
+const playbackSource=require("node:fs").readFileSync("studio-lab.js","utf8");
+for(const name of ["playbackSpeed","playbackEvent","playbackFrame","sequenceFrame"])assert.ok(playbackSource.includes("core."+name+"("));
+console.log("Playback clock: speed, loop, pauses and medley transitions verified.");
