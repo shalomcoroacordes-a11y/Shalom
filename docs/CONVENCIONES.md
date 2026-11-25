@@ -71,3 +71,7 @@ Los patrones predefinidos y la interpretación de códigos de rasgueo pertenecen
 Los límites de secciones, selección de compases y rango de escucha de transición se calculan exclusivamente en `studio-core.js` (`groupRange`, `sectionBarCount`, `sectionBarSelection`, `sectionTransitionRange`). El editor conserva el estado y los controles de navegación. No duplicar el cálculo de límites en la interfaz ni en las apps.
 
 El reloj de reproducción de Studio pertenece a `studio-core.js`: `playbackSpeed`, `playbackEvent`, `playbackFrame` y `sequenceFrame` calculan velocidad, tiempos de eventos, posición visual, pausas y transiciones. `studio-lab.js` conserva temporizadores, Web Audio, cancelación, interacción y presentación; no duplicar allí los cálculos del reloj. La escucha de un compás mantiene su transporte independiente para aceptar cambios en vivo.
+
+### Aplicación pública
+
+`mobile/src/library-selectors.js` es responsable de resolver filtros, búsqueda y registros abiertos del catálogo; `mobile/src/studio-queue.js` decide la posición de la cola de práctica sin modificar el estado anterior. `mobile/App.js` conserva los hooks, navegación y presentación. Los selectores deben conservar la diferencia existente entre identificadores estrictos de detalles y equivalencia textual en acciones de canto. No cambiar el modelo de almacenamiento ni rutas al extraer estas funciones.
