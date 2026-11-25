@@ -4,7 +4,7 @@
 
   const db = window.supabaseClient || window.AdminPro;
   const TRASH_TABLE = "admin_trash";
-  const PAGE_SIZE = 500;
+  const { cleanRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   let trashRows = [];
   let busy = false;
 
@@ -19,31 +19,11 @@
     const date = new Date(value || "");
     return Number.isNaN(date.getTime()) ? "Sin fecha" : date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
   };
-  const filenameDate = () => new Date().toISOString().replace(/[:.]/g, "-");
 
-  function cleanRow(row, keepId = true) {
-    const out = {};
-    const blocked = new Set(["created_at", "updated_at", "artist", "artists", "album", "albums", "category", "categories"]);
-    Object.entries(row || {}).forEach(([key, value]) => {
-      if (key.startsWith("_") || blocked.has(key)) return;
-      if (!keepId && key === "id") return;
-      out[key] = value;
-    });
-    return out;
-  }
 
-  async function selectAll(table) {
-    const all = [];
-    let start = 0;
-    while (true) {
-      const result = await db.from(table).select("*").range(start, start + PAGE_SIZE - 1);
-      if (result.error) throw result.error;
-      const batch = result.data || [];
-      all.push(...batch);
-      if (batch.length < PAGE_SIZE) return all;
-      start += PAGE_SIZE;
-    }
-  }
+
+
+  const selectAll = (table) => readAll(db, table);
 
   async function one(table, id) {
     const result = await db.from(table).select("*").eq("id", id).maybeSingle();
@@ -188,15 +168,7 @@
         catalog[table] = await selectAll(table);
       }
       const payload = { format: "SHALOM backup", version: 1, created_at: new Date().toISOString(), catalog };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `juntos-hacia-dios-respaldo-${filenameDate()}.json`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      downloadJson(payload, `juntos-hacia-dios-respaldo-${filenameDate()}.json`);
       if (status) status.textContent = "Respaldo descargado. Guárdalo en Drive o en otra ubicación segura.";
     } catch (error) {
       if (status) status.textContent = `No se pudo crear el respaldo: ${error?.message || "Error desconocido."}`;
