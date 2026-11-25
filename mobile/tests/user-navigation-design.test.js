@@ -1,5 +1,6 @@
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const app=fs.readFileSync("App.js","utf8");
+const catalogScreens=fs.readFileSync("src/catalog-screens-ui.js","utf8");
 const personal=fs.readFileSync("src/personal-ui.js","utf8");
 const styles=fs.readFileSync("src/app-styles.js","utf8");
 const personalStyles=fs.readFileSync("src/personal-styles.js","utf8");
@@ -41,9 +42,9 @@ assert.ok(today>=0&&search>today&&recent>search&&access>recent&&banner>access,
  "Prioritize liturgy, search and recent reading before the personalized banner");
 assert.match(app,/h\(View,\{style:S.todayTitleWrap\}/,"Unified Today panel");
 assert.match(app,/style:\[S.shalomTodayCard,index>0&&S.todayEntryDivider\]/,"Published items inside single Today card");
-assert.match(app,/style:S.cantosExploreGrid/,"Secondary music exploration is grouped in the Cantos overview");
-assert.match(app,/style:S.cantosLibraryCard/,"Cantos begins with a tappable song library card");
-assert.match(app,/style:S.repSuggest/,"Suggestion is a compact working repertoire row");
+assert.match(catalogScreens,/style:S.cantosExploreGrid/,"Secondary music exploration is grouped in the Cantos overview");
+assert.match(catalogScreens,/style:S.cantosLibraryCard/,"Cantos begins with a tappable song library card");
+assert.match(catalogScreens,/style:S.repSuggest/,"Suggestion is a compact working repertoire row");
 assert.match(app,/style:S.homeRecentCard/,"Native Resume card");
 assert.doesNotMatch(app,/style:S.spotifyShortcutBackground/,"Personal shortcuts do not use oversized green gradients");
 assert.match(styles,/spotifyShortcut:\{width:"48\.6%",minHeight:78/,"Compact neutral Home access cards");

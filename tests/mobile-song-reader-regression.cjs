@@ -1,6 +1,7 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const catalogScreens=fs.readFileSync("mobile/src/catalog-screens-ui.js","utf8");
 const database=fs.readFileSync("mobile/src/database.js","utf8");
 const favorites=fs.readFileSync("mobile/src/favorites.js","utf8");
 
@@ -17,8 +18,8 @@ assert.match(app,/write:setMetadata/,"Likes must be written to local metadata");
 assert.match(fs.readFileSync("mobile/src/personal-edit-controller.js","utf8"),/key:FAVORITES_KEY/);
 assert.match(app,/getMetadataBatch\(\{[^\n]*\[FAVORITES_KEY\]:"\[\]"/,"Likes must be restored locally on startup");
 assert.match(app,/likedRaw=prefs\[FAVORITES_KEY\]/);
-assert.match(app,/setOnlyLiked\(value==="liked"\)/,"Users need to filter their liked songs");
-assert.match(app,/\["liked","Mis me gusta"\]/,"The favorites chip must remain visible in Cantos");
+assert.match(catalogScreens,/setOnlyLiked\(value==="liked"\)/,"Users need to filter their liked songs");
+assert.match(catalogScreens,/\["liked","Mis me gusta"\]/,"The favorites chip must remain visible in Cantos");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View/,"Native bottom navigation is hidden for all readers");
 const songActions=fs.readFileSync("mobile/src/song-actions-ui.js","utf8");
 assert.match(app,/onPress:\(\)=>active\?setActionSongId\(String\(active\.id\)\)/,
