@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict");
+const {compare}=require("../scripts/compare_duplication_reports.cjs");
+const row=(a,b,lines)=>({firstFile:{name:a},secondFile:{name:b},lines});
+const base={duplicates:[row("/base/mobile/a.js","/base/mobile/b.js",12),row("/base/c.css","/base/d.css",8)]};
+const unchanged={duplicates:[row("/head/mobile/b.js","/head/mobile/a.js",12),row("/head/c.css","/head/d.css",8)]};
+assert.deepEqual(compare(base,unchanged,"/base","/head"),{baseBlocks:2,headBlocks:2,growth:[]});
+const changed={duplicates:[row("mobile/a.js","mobile/b.js",20),row("new.js","mobile/a.js",9)]};
+const result=compare(base,changed,"/base","/head");
+assert.equal(result.growth.length,2);
+assert.equal(result.growth[0].previousLines,0);
+assert.equal(result.growth[1].previousLines,12);
+assert.equal(compare(base,{duplicates:[]},"/base","/head").growth.length,0);
+assert.throws(()=>compare({},changed,"/base","/head"),/Missing JSCPD/);
+assert.throws(()=>compare(base,{duplicates:[row("/other/a.js","x.js",1)]},"/base","/head"),/outside/);
+console.log("Duplicate report comparison verified.");

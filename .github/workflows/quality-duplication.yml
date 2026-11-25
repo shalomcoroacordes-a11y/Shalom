@@ -1,0 +1,56 @@
+name: SHALOM duplication audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  duplication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test duplicate report comparison
+        run: node tests/duplication-report.test.cjs
+      - name: Analyze production code with pinned JSCPD
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/shalom-duplication-reports"
+          mkdir -p "$report/head" "$report/base"
+          config="$GITHUB_WORKSPACE/.jscpd.json"
+          analyze() {
+            (cd "$1" && npm exec --yes --package=jscpd@4.0.5 -- jscpd . --config "$config" --absolute --output "$2")
+            test -s "$2/jscpd-report.json"
+          }
+          analyze "$GITHUB_WORKSPACE" "$report/head"
+          if [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] && [[ ! "$BASE_SHA" =~ ^0+$ ]]; then
+            base_dir="$(mktemp -d "$RUNNER_TEMP/shalom-base.XXXXXX")"
+            trap 'git worktree remove --force "$base_dir" >/dev/null 2>&1 || true' EXIT
+            git worktree add --detach "$base_dir" "$BASE_SHA"
+            analyze "$base_dir" "$report/base"
+            node scripts/compare_duplication_reports.cjs "$report/base/jscpd-report.json" "$report/head/jscpd-report.json" "$base_dir" "$GITHUB_WORKSPACE" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No comparable base; initial snapshot available in artifact." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shalom-duplication-reports
+          path: ${{ runner.temp }}/shalom-duplication-reports/
+          retention-days: 14
+          if-no-files-found: warn
