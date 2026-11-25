@@ -55,3 +55,5 @@ Consultar `AGENTS.md` antes de cada tarea. Los nombres históricos no prueban qu
 ### Ciclo de renderizado de Admin
 
 `admin-pro.js` es el propietario de `apRenderView`. Los módulos de formularios y categorías exponen `ShalomAdminFormLayout.enhance()` y `ShalomAdminSongCategories.mount()` respectivamente; el propietario los invoca de forma explícita. No reemplazar `apRenderView` para añadir nuevas funciones. El selector de categorías se monta solo en la vista de cantos y conserva su estado y selección mediante su módulo existente. Otros envoltorios históricos requieren revisión separada.
+
+`Respaldo` pertenece a las pestañas de `apRenderShell`; `apRenderView` llama `ShalomAdminBackup.mount(view)`, y la vista de respaldo llama `ShalomAdminBackupImport.mount()` después de crear su contenido. No se necesitan observadores de página ni reemplazar el renderizador para estas vistas. La protección de eliminación existente sigue separada; no modificar su lógica sin pruebas específicas de recuperación.

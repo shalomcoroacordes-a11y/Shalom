@@ -192,7 +192,7 @@ async function apLoadData() {
 function apRenderShell() {
   const workspace = ap$("#adminWorkspace");
   if (!workspace) return;
-  const tabs = [["artists", "Artistas"], ["categories", "Categorías"], ["albums", "Álbumes"], ["songs", "Canciones"], ["medleys", "Popurrís"], ["repertoires", "Repertorios"], ["donations", "Donaciones"]];
+  const tabs = [["artists", "Artistas"], ["categories", "Categorías"], ["albums", "Álbumes"], ["songs", "Canciones"], ["medleys", "Popurrís"], ["repertoires", "Repertorios"], ["donations", "Donaciones"], ["backup", "Respaldo"]];
   workspace.innerHTML = `<div class="admin-shell"><div class="admin-topbar"><p class="muted-text">Sesión activa: <strong>${apEsc(AP.user?.email || "Administrador")}</strong></p><button class="song-btn small-btn secondary" id="adminLogout" type="button">Cerrar sesión</button></div><div class="admin-tabs">${tabs.map(([id, label]) => `<button class="admin-tab ${AP.tab === id ? "active" : ""}" type="button" data-admin-tab="${id}">${label}</button>`).join("")}</div><div id="adminView"></div><p class="admin-message" id="adminMessage"></p></div>`;
   ap$$("[data-admin-tab]", workspace).forEach((button) => button.addEventListener("click", () => {
     if (AP.tab === "songs") apCaptureSongDraft();
@@ -214,6 +214,11 @@ function apRenderView() {
   const start = preserveSearch && typeof active.selectionStart === "number" ? active.selectionStart : null;
   const end = preserveSearch && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
   apRememberEditorPosition();
+  if (AP.tab === "backup") {
+    if (window.ShalomAdminBackup) window.ShalomAdminBackup.mount(view);
+    else view.innerHTML = '<p class="admin-empty">No se pudo cargar el módulo de respaldo.</p>';
+    return;
+  }
   if (AP.tab === "artists") view.innerHTML = apArtistsHTML();
   if (AP.tab === "categories") view.innerHTML = apCategoriesHTML();
   if (AP.tab === "albums") view.innerHTML = apAlbumsHTML();

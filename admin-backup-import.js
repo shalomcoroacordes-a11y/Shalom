@@ -286,11 +286,11 @@
     renderSelection();
   }
 
+  window.ShalomAdminBackupImport = { mount: mountImporter };
+
   function boot() {
     addStyle();
     mountImporter();
-    const observer = new MutationObserver(() => mountImporter());
-    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
