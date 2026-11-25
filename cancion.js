@@ -247,6 +247,7 @@ function renderControls(relations) {
   $("#transposeBox").querySelectorAll("[data-tone]").forEach((button) => button.addEventListener("click", () => {
     const value = Number(button.dataset.tone);
     transpose = value === 0 ? 0 : transpose + value;
+    window.ShalomSongPreferences?.saveTranspose(transpose);
     renderChordLyrics();
   }));
 
@@ -409,6 +410,7 @@ function renderSongFeedback(title, subtitle) {
 }
 
 function renderSong(song, relations) {
+  if (!currentSong || currentSong.id !== song.id) transpose = window.ShalomSongPreferences?.readTranspose() ?? 0;
   currentSong = song;
   const title = song.title || song.name || "Canción sin título";
   const type = song.song_type || song.type || "Canción";
@@ -422,6 +424,8 @@ function renderSong(song, relations) {
   renderControls(relations);
   renderReaderOverview(type, title, artistText ? `Por ${artistText}` : "Canción del cancionero.");
   renderChordLyrics();
+  window.ShalomSongPreferences?.mount();
+  window.ShalomSongReadingMode?.mount();
   renderLinks(relations);
   renderSongFeedback(title, artistText ? `Por ${artistText}` : "Canción del cancionero.");
   renderRelatedSongs(song, relations);

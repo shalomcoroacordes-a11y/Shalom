@@ -203,6 +203,9 @@ jobs:
       - name: Test single public artist profile owner
         run: node tests/artist-public-profile-owner.cjs
 
+      - name: Test explicit reading mode and preferences lifecycle
+        run: node tests/song-reading-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
