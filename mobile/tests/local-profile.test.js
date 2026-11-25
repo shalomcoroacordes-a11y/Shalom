@@ -49,7 +49,7 @@ assert.match(profile,/if\(editNonce<=0\)return;/,
  "Perfil abre en modo lectura salvo acción explícita de edición");
 assert.match(app,/onEditRequestConsumed:\(\)=>setProfileEditNonce\(0\)/,
  "El contenedor limpia el evento después de abrir el editor");
-assert.match(app,/if\(next!=="Perfil"\)setProfileEditNonce\(0\)/,
+assert.match(fs.readFileSync("src/navigation-core.js","utf8"),/if\(next!=="Perfil"\)setProfileEditNonce\(0\)/,
  "Salir de Perfil también elimina el evento de edición anterior");
 assert.match(app,/onEdit:\(\)=>setProfileEditNonce\(n=>n\+1\)/,
  "Editar solo se inicia al pulsar la opción en los tres puntos");

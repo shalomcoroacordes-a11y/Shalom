@@ -54,7 +54,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const {tabs,isSelectedTab,routeForTab,matchesSearch,handleBack}=require("./src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,matchesSearch,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
 const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
@@ -157,12 +157,14 @@ function AppScreen() {
  const filteredArtists=useMemo(()=>filterArtists(model,{query,type:artistTypeFilter}),
   [model,query,artistTypeFilter]);
  const homeMatches=useMemo(()=>searchHomeSongs(model,homeSearch,6),[model,homeSearch]);
- function goTab(next,options={}){setProfileMenuOpen(false);if(next!=="Perfil")setProfileEditNonce(0);if(next==="Inicio")tabHistoryRef.current=[];else if(next!==tab&&!options.replace)tabHistoryRef.current.push(tab);if(next==="Mis colecciones"&&tab!=="Mis colecciones"){
-  personalNavRef.current=options.personalNav||(
-   options.personalAction?{view:options.personalAction,kind:options.personalKind||"misa"}:null);
-  setPersonalFilter(options.personalKind||null);
- }else if(next!=="Mis colecciones")setPersonalFilter(null);setActionSongId(null);setSettingsOpen(false);setImmersive(false);detailHistoryRef.current=[];setTab(next);setDetail(null);setSongLibraryOpen(next==="Canciones"&&Boolean(options.search||options.liked||options.openLibrary));setCountLimit(80);setFolderType("");setFolderId("");setQuery(options.search||"");setTypeFilter("");setArtistTypeFilter("");setMedleyTypeFilter("");setCategoryId("");setSectionSearchOpen(Boolean(options.search));setOnlyLiked(Boolean(options.liked));}
- function openDetail(next){if(detail)detailHistoryRef.current.push(detail);setDetail(next);}
+ function goTab(next,options={}){
+  navigateTab(next,options,{tab,tabHistoryRef,detailHistoryRef,personalNavRef},{
+   setProfileMenuOpen,setProfileEditNonce,setPersonalFilter,setActionSongId,setSettingsOpen,setImmersive,setTab,setDetail,
+   setSongLibraryOpen,setCountLimit,setFolderType,setFolderId,setQuery,setTypeFilter,setArtistTypeFilter,setMedleyTypeFilter,
+   setCategoryId,setSectionSearchOpen,setOnlyLiked
+  });
+ }
+ function openDetail(next){navigateDetail(next,{detail,detailHistoryRef},{setDetail});}
  function rememberRead(next){lastReadRef.current=next;setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  const personalEditsRef=useRef(null);
  if(!personalEditsRef.current)personalEditsRef.current=createPersonalEditController({
@@ -211,11 +213,7 @@ function AppScreen() {
   setRequestArtist(names(song?._artists)||"");
   setRequestLink("");
   setRequestDetails("");
-  previousTabRef.current=tab;
-  setImmersive(false);
-  detailHistoryRef.current=[];
-  setTab("Solicitar");
-  setDetail(null);
+  navigateRequest({tab,previousTabRef,detailHistoryRef},{setImmersive,setTab,setDetail});
  }
  const syncControllerRef=useRef(null);
  if(!syncControllerRef.current)syncControllerRef.current=createSyncController({
@@ -793,7 +791,7 @@ function AppScreen() {
    model.albums.some(al=>al.artist_id===a.id)?title("Álbumes"):null,
    ...model.albums.filter(al=>al.artist_id===a.id).map(al=>h(EntityRow,{key:al.id,item:al,kind:"album",
     description:model.songsForAlbum(al.id).length+" cantos",
-    onPress:()=>setDetail({type:"album",id:al.id})}))
+    onPress:()=>openDetail({type:"album",id:al.id})}))
   );
  }
  function renderAlbumDetail(a){
