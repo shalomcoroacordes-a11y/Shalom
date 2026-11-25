@@ -119,3 +119,7 @@ Después de validar CI, las migraciones necesarias, el respaldo y la versión, i
 El workflow `native-dependency-locks.yml` resuelve por separado los manifiestos de Pública y Admin en Node 22. Exige los lockfiles versionados y verifica su correspondencia con cada manifiesto. Después valida identidad del manifiesto, origen e integridad de paquetes, ejecuta `npm ci`, compatibilidad Expo, sintaxis y pruebas, y comprueba que el lock no cambió. Los candidatos y su procedencia se conservan como artefactos temporales, sin permisos de escritura en GitHub ni publicaciones.
 
 Los dos archivos exactos quedaron incorporados en la rama candidata. Falta validar la compilación y actualización completas con `npm ci` antes de integrar. Para cambiar dependencias, actualizar manifiesto y lockfile conjuntamente con npm bajo Node 22. No cambiar los manifiestos para lograr una validación verde sin investigar la causa.
+
+### Publicadores históricos retirados
+
+Los workflows `publish-android-apk.yml`, `publish-shalom-icon.yml` y `publish-shalom-v2.yml` apuntaban a ejecuciones fijas de las versiones 0.1.0, 0.1.1 y 0.2.0. Se retiran de Actions porque son procesos de un solo uso, no rutas de mantenimiento. Se conserva su historial Git y no se modifica ninguna release, etiqueta, APK publicada ni enlace. Las dos rutas oficiales son `android-apk.yml` y `admin-apk.yml`; los demás workflows de compilación generan artefactos de prueba. El control de autorización rechaza reintroducir los publicadores históricos o comandos de publicación en otros workflows.

@@ -20,4 +20,13 @@ assert.ok(admin.includes("com.shalomcoroacordes.admin.preview"));
 for(const name of ["android-preview.yml","android-upgrade-rehearsal.yml"]){
  const source=read(name);assert.ok(!source.includes("gh release create"));assert.ok(!source.includes("contents: write"));
 }
+// Every active release creator must belong to the explicitly gated workflows.
+const workflows=path.join(__dirname,"../.github/workflows");
+for(const name of fs.readdirSync(workflows).filter(n=>/\.ya?ml$/.test(n))){
+ const source=read(name);
+ if(/\bgh\s+release\s+(create|upload|edit|delete)\b|\bsoftprops\/action-gh-release@|\bactions\/create-release@|\bncipollo\/release-action@/.test(source)){
+  assert.ok(["android-apk.yml","admin-apk.yml"].includes(name),"Unexpected release writer: "+name);
+ }
+}
+for(const name of ["publish-android-apk.yml","publish-shalom-v2.yml","publish-shalom-icon.yml"])assert.ok(!fs.existsSync(path.join(workflows,name)),"Retired workflow must not return: "+name);
 console.log("Android release authorization contracts: manual main confirmation, preview isolation, no automatic release.");
