@@ -1,5 +1,5 @@
 const assert=require("node:assert/strict");
-const {tabs,isSelectedTab,routeForTab,matchesSearch,handleBack}=require("../src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,matchesSearch,navigateTab,navigateDetail,navigateRequest,handleBack}=require("../src/navigation-core");
 assert.deepEqual(tabs.map(([name])=>name),
  ["Inicio","Cantos","Repertorios","Mis creaciones","Perfil"],
  "Conservar las cinco rutas principales organizadas por tareas");
@@ -58,3 +58,27 @@ const source=require("node:fs").readFileSync("App.js","utf8");
 assert.match(source,/return handleBack\(\{/);
 assert.match(source,/BackHandler.addEventListener\("hardwareBackPress",back\)/);
 console.log("SHALOM: hardware back priority, nested screens and history verified.");
+
+function fixture(tab="Artistas"){
+ const values={},calls=[];
+ const controls=Object.fromEntries(["setProfileMenuOpen","setProfileEditNonce","setPersonalFilter","setActionSongId","setSettingsOpen","setImmersive","setTab","setDetail","setSongLibraryOpen","setCountLimit","setFolderType","setFolderId","setQuery","setTypeFilter","setArtistTypeFilter","setMedleyTypeFilter","setCategoryId","setSectionSearchOpen","setOnlyLiked"].map(key=>[key,value=>{values[key]=value;calls.push([key,value])}]));
+ return {state:{tab,tabHistoryRef:{current:["Inicio"]},detailHistoryRef:{current:[{type:"song",id:"s"}]},personalNavRef:{current:null},previousTabRef:{current:"Perfil"}},controls,values,calls};
+}
+for(const [options,library,query,liked] of [[{},false,"",false],[{search:"Gloria"},true,"Gloria",false],[{liked:true},true,"",true],[{openLibrary:true},true,"",false]]){
+ const f=fixture();navigateTab("Canciones",options,f.state,f.controls);
+ assert.deepEqual(f.state.tabHistoryRef.current,["Inicio","Artistas"]);assert.deepEqual(f.state.detailHistoryRef.current,[]);
+ assert.equal(f.values.setSongLibraryOpen,library);assert.equal(f.values.setQuery,query);assert.equal(f.values.setOnlyLiked,liked);
+ assert.equal(f.values.setProfileEditNonce,0);assert.equal(f.values.setDetail,null);assert.equal(f.values.setCountLimit,80);
+}
+const personal=fixture("Perfil");navigateTab("Mis colecciones",{personalAction:"create",personalKind:"popurri"},personal.state,personal.controls);
+assert.deepEqual(personal.state.personalNavRef.current,{view:"create",kind:"popurri"});
+assert.equal(personal.values.setPersonalFilter,"popurri");
+const deep=fixture();const route={view:"reading",entryId:"entry",folderId:"folder"};navigateTab("Mis colecciones",{personalNav:route},deep.state,deep.controls);assert.equal(deep.state.personalNavRef.current,route);
+const same=fixture("Mis colecciones");same.state.personalNavRef.current=route;navigateTab("Mis colecciones",{},same.state,same.controls);assert.equal(same.state.personalNavRef.current,route);assert.deepEqual(same.state.tabHistoryRef.current,["Inicio"]);
+const back=fixture();navigateTab("Perfil",{replace:true},back.state,back.controls);assert.deepEqual(back.state.tabHistoryRef.current,["Inicio"]);assert.equal(back.values.setProfileEditNonce,undefined);
+navigateTab("Inicio",{},back.state,back.controls);assert.deepEqual(back.state.tabHistoryRef.current,[]);
+const artist={type:"artist",id:"a"},album={type:"album",id:"b"};const f=fixture();f.state.detail=artist;navigateDetail(album,f.state,f.controls);assert.equal(f.values.setDetail,album);assert.equal(f.state.detailHistoryRef.current.at(-1),artist);
+navigateRequest(f.state,f.controls);assert.equal(f.state.previousTabRef.current,"Artistas");assert.equal(f.values.setTab,"Solicitar");assert.deepEqual(f.state.detailHistoryRef.current,[]);
+f.state.tab="Solicitar";navigateRequest(f.state,f.controls);assert.equal(f.state.previousTabRef.current,"Artistas");
+assert.match(source,/onPress:\(\)=>openDetail\(\{type:"album",id:al.id\}\)/);
+console.log("Navigation forward transitions, deep links, filters, album history and repeated request verified.");
