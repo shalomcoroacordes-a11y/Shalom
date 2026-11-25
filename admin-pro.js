@@ -68,47 +68,20 @@ function apEmpty(text) { return `<div class="admin-empty">${apEsc(text)}</div>`;
 function apSortRows(rows, label) { return [...(rows || [])].sort((a, b) => String(label(a)).localeCompare(String(label(b)), "es")); }
 
 function apResetDraft(song) {
-  const source = song || {};
-  const links = source._links || [];
-  const capos = source._capos || [];
-  const artistLinks = [...(source._artistLinks || [])].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
-  const principal = artistLinks.find((row) => apNorm(row.role) === "principal") || artistLinks[0];
-  AP.edits.song = song?.id || null;
-  AP.songEdit = { id: song?.id || null, expected: song?.updated_at || null };
-  AP.draft = {
-    title: source.title || "",
-    song_type: source.song_type || "catolico",
-    main_artist_id: principal?.artist_id || "",
-    collaborators: artistLinks.filter((row) => apId(row.artist_id) !== apId(principal?.artist_id)).map((row) => apId(row.artist_id)),
-    category_id: source._categories?.[0]?.id || "",
-    category_ids: [...new Set((source._categories || []).map((row) => apId(row.id)).filter(Boolean))],
-    album_id: source._albums?.[0]?.id || "",
-    tone: source.tone || "",
-    difficulty: source.difficulty || "",
-    capo_position: String(source.capo_position || 0),
-    capo_key: source.capo_key || "",
-    lyrics: source.lyrics || "",
-    collaborator_query: "",
-    new_link_title: "",
-    new_link_type: "Tutorial",
-    new_link_platform: "YouTube",
-    new_link_url: "",
-    new_capo_label: "",
-    new_capo_position: "0",
-    new_capo_key: ""
-  };
-  AP.links = links.map((row, index) => ({ title: row.title || "", link_type: row.link_type || "Tutorial", platform: row.platform || "", url: row.url || "", sort_order: index }));
-  AP.capos = capos.map((row, index) => ({ label: row.label || "", capo_position: Number(row.capo_position || 0), capo_key: row.capo_key || "", sort_order: index }));
+  const prepared = window.ShalomAdminSongDraft.fromSong(song);
+  AP.edits.song = prepared.songEdit.id;
+  AP.songEdit = prepared.songEdit;
+  AP.draft = prepared.draft;
+  AP.links = prepared.links;
+  AP.capos = prepared.capos;
   if (!song) apEditorPosition.clear("__new__");
 }
 function apCaptureSongDraft() {
   const form = ap$("#songAdminForm");
   if (!form || !AP.draft) return;
   const data = Object.fromEntries(new FormData(form).entries());
-  AP.draft = Object.assign({}, AP.draft, data, {
-    collaborators: ap$$("input[name='collaborator']:checked", form).map((input) => input.value),
-    category_ids: Array.isArray(AP.draft.category_ids) ? AP.draft.category_ids : [AP.draft.category_id].filter(Boolean)
-  });
+  const collaborators = ap$$("input[name='collaborator']:checked", form).map((input) => input.value);
+  AP.draft = window.ShalomAdminSongDraft.capture(AP.draft, data, collaborators);
 }
 function apDraftValue(key) { return AP.draft?.[key] ?? ""; }
 function apCategoryPath(item) {
