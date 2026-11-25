@@ -1,12 +1,15 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const js=fs.readFileSync("studio-lab.js","utf8"),html=fs.readFileSync("studio-lab.html","utf8"),css=fs.readFileSync("studio.css","utf8");
-const fn=js.slice(js.indexOf("function followTarget("),js.indexOf("function syncTransportSpace("));
-const target=new Function(fn+"return followTarget")();
+const {followTarget:target}=require("../studio-reading-geometry");
 assert.equal(target({top:200,bottom:230},500),0);
 assert.equal(target({top:450,bottom:480},500),310);
 assert.equal(target({top:20,bottom:50},500),-120);
 assert.equal(target({top:200,bottom:230},280),122);
+assert.equal(target({top:56,bottom:360},500),0);
+assert.equal(target({top:56,bottom:361},500),-84);
+assert.doesNotMatch(js,/function followTarget\(/);
+assert.match(js,/const delta=followTarget\(/);
 const player=html.slice(html.indexOf('<section id="player"'));
 assert.ok(player.indexOf('id="score"')<player.indexOf('id="transport"'));
 assert.ok(player.indexOf('id="transport"')<player.indexOf('id="diagram"'));

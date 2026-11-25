@@ -63,3 +63,7 @@ Los estilos de formularios, navegación, respaldo, papelera e importación de Ad
 ### SHALOM Studio
 
 `studio-save-state.js` decide el estado visual de guardado y publicación mediante una función pura. `studio-lab.js` renderiza el resultado y conserva la coordinación de persistencia, confirmaciones y transporte. `studio-core.js` conserva la lógica musical, y `studio-codec.js` la serialización. Los bundles de `mobile/` y `admin-mobile/` se generan desde las fuentes web con `node scripts/build-studio-native.js`; nunca editarlos a mano. Public quality comprueba que ambos sean idénticos y reproducibles, sin necesidad de red durante el uso de Studio.
+
+`studio-reading-geometry.js` concentra los cálculos puros de escala de letra, distancia y centro del gesto de dos dedos, y desplazamiento para seguimiento de letra. `studio-lab.js` conserva los eventos del DOM, el estado de gestos y la aplicación del desplazamiento. Las pruebas de zoom y seguimiento importan el módulo original en lugar de extraer funciones del texto de la interfaz.
+
+Los patrones predefinidos y la interpretación de códigos de rasgueo pertenecen a `studio-core.js` (`presetHits`, `decodeRhythmCode`). La interfaz conserva confirmaciones, alcance de aplicación, edición y mensajes. Las pruebas de carga de dependencias verifican precedencia, no adyacencia innecesaria entre scripts independientes.
