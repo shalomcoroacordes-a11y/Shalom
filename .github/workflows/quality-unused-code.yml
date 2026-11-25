@@ -1,0 +1,47 @@
+name: SHALOM unused code audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unused-code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [mobile, admin-mobile]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate native audit scope
+        run: node tests/knip-scope.test.cjs
+      - name: Install application dependencies for graph resolution
+        working-directory: ${{ matrix.app }}
+        run: npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+      - name: Inventory potentially unused files and dependencies
+        working-directory: ${{ matrix.app }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/shalom-knip"
+          npm exec --yes --package=knip@5.70.2 --package=typescript@5.9.3 -- knip --config knip.json --include files --include dependencies --include unlisted --include unresolved --reporter json --no-exit-code > "$RUNNER_TEMP/shalom-knip/report.json"
+          node ../scripts/summarize_knip_report.cjs "$RUNNER_TEMP/shalom-knip/report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Retain findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shalom-knip-${{ matrix.app }}
+          path: ${{ runner.temp }}/shalom-knip/
+          retention-days: 14
+          if-no-files-found: warn
