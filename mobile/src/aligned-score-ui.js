@@ -15,6 +15,8 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
  const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
  const html=useMemo(()=>scoreHtml(rows,safeFont),[serialized,safeFont]);
+ // Native height events must not construct a new document source.
+ const source=useMemo(()=>({html}),[html]);
  const [height,setHeight]=useState(()=>estimateScoreHeight(rows,safeFont));
  const [failed,setFailed]=useState(false);
  useEffect(()=>{
@@ -44,7 +46,7 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
   h(WebView,{
    // El contenido está generado localmente y la política CSP impide enlaces,
    // peticiones remotas o scripts externos. No carga el sitio de SHALOM.
-   source:{html},
+   source,
    originWhitelist:["*"],
    javaScriptEnabled:true,
    domStorageEnabled:false,
