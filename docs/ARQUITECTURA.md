@@ -86,3 +86,7 @@ Studio comparte `studio-native-screen.js` (fábrica de pantalla nativa), `studio
 ## Estilos de lectores de colecciones
 
 Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación exacta de `site-shell.css`, `public-accessibility.css` y `song-chords.css`). Cada página carga a continuación su hoja específica (`repertoires.css` o `medleys.css`) y después `studio-collection-web.css`. El orden de cascada y la importación inicial de `mobile-experience.css` se conservan. Admin sigue utilizando las hojas originales. Los controles `public-page-bundles-regression.cjs` y `studio-collection-styles.cjs` verifican el contrato. Se añade una solicitud CSS por página a cambio de reutilizar un paquete común en caché; el rendimiento debe medirse.
+
+## Base compartida del lector y páginas informativas
+
+`public-content-base-bundle.css` conserva, en este orden, `site-shell.css`, `public-cards.css` y `public-accessibility.css`. Canción carga a continuación `song-reader-bundle.css` con sus nueve fuentes específicas en orden original; Acerca de, Contacto y Solicitar canto cargan `public-info-pages.css`. Los dos paquetes anteriores se retiran. Las pruebas de equivalencia exacta y orden de hojas permanecen en `tests/song-detail-bundle-regression.cjs` y `tests/public-info-bundle-regression.cjs`. El lector conserva impresión, capo y preferencias. No se altera la caché de Offline. La separación agrega una petición CSS por página y permite reutilizar la base; se requiere medición y revisión visual antes de afirmar una mejora de rendimiento.
