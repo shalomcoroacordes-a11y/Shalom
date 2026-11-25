@@ -1,6 +1,7 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const readers=fs.readFileSync("mobile/src/music-readers-ui.js","utf8");
 const styles=fs.readFileSync("mobile/src/app-styles.js","utf8");
 function section(name,next){
  const i=app.indexOf(" function "+name+"(");
@@ -8,8 +9,10 @@ function section(name,next){
  assert.ok(i>=0&&j>i,"Reader region not found: "+name);
  return app.slice(i,j);
 }
-const rep=section("renderRepertoireDetail","renderMedleys");
-const medley=section("renderMedleyDetail","renderAlbums");
+const rep=readers.slice(readers.indexOf("function RepertoireReader("),readers.indexOf("function MedleyReader("));
+const medley=readers.slice(readers.indexOf("function MedleyReader("),readers.indexOf("function SongReader("));
+assert.match(app,/h\(RepertoireReader,\{/);
+assert.match(app,/h\(MedleyReader,\{/);
 const score=section("renderMultiReadingScore","renderRepertoireDetail");
 const aligned=section("renderAlignedScoreRows","renderMultiReadingScore");
 const grid=fs.readFileSync("mobile/src/aligned-score-ui.js","utf8");

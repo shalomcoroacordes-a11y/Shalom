@@ -1,6 +1,7 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const readers=fs.readFileSync("mobile/src/music-readers-ui.js","utf8");
 const styles=fs.readFileSync("mobile/src/app-styles.js","utf8");
 const generator=fs.readFileSync("mobile/scripts/generate_icons.py","utf8");
 const dove=fs.readFileSync("mobile/assets/dove-path.txt","utf8").trim();
@@ -27,18 +28,18 @@ assert.match(app,/accessibilityLabel:"Bajar un semitono"/);
 assert.match(app,/accessibilityLabel:"Subir un semitono"/);
 assert.match(app,/disabled:transpose<=-11/);
 assert.match(app,/disabled:transpose>=11/);
-assert.match(app,/renderToneStepper\(toned,true\)/,"Cantos must have direct semitone controls");
+assert.match(readers,/renderToneStepper\(toned,true\)/,"Cantos must have direct semitone controls");
 assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,
  "Popurris and Repertorios must use the same tone controls");
-assert.match(app,/renderToneStepper\(toned,true\)/,"Song reader provides direct tone buttons");
+assert.match(readers,/renderToneStepper\(toned,true\)/,"Song reader provides direct tone buttons");
 assert.match(app,/renderToneStepper\(transpose===0\?"Original"/,"Multi-song reader provides direct tone buttons");
 assert.match(styles,/songCompactControls:/,"Read tone, font and capo in a compact row");
 assert.match(styles,/songToneStepperCompact:/,"Compact reader tone controls are provided");
-assert.match(app,/label\("CAPO",S.songControlCaption\)/);
+assert.match(readers,/label\("CAPO",S.songControlCaption\)/);
 assert.doesNotMatch(app,/style:S\.songActionBar/,"No duplicate toolbar obscures lyrics");
 assert.doesNotMatch(app,/showSongToneMenu/);
-assert.match(app,/setReaderFont\(v=>clampReaderFont\(v-1\)\)/);
-assert.match(app,/setReaderFont\(v=>clampReaderFont\(v\+1\)\)/);
+assert.match(readers,/setReaderFont\(v=>clampReaderFont\(v-1\)\)/);
+assert.match(readers,/setReaderFont\(v=>clampReaderFont\(v\+1\)\)/);
 
 // Size controls share the broader 10–46pt range with the two-finger reader.\n// Sizing checks: denser than the old 104dp cards without losing tap targets.
 assert.match(styles,/repCard:\{minHeight:78/);

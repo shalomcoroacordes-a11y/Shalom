@@ -1,5 +1,6 @@
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const app=fs.readFileSync("App.js","utf8");
+const readers=fs.readFileSync("src/music-readers-ui.js","utf8");
 const home=fs.readFileSync("src/home-screen-ui.js","utf8");
 assert.match(app,/h\(HomeScreen,\{/);
 const catalogScreens=fs.readFileSync("src/catalog-screens-ui.js","utf8");
@@ -12,9 +13,9 @@ assert.deepEqual(nav.tabs.map(t=>t[0]),["Inicio","Cantos","Repertorios","Mis cre
 assert.equal(nav.routeForTab("Cantos"),"Canciones");
 assert.equal(nav.isSelectedTab("Canciones","Cantos"),true);
 assert.equal(nav.isSelectedTab("Popurrís","Cantos"),true);
-assert.match(app,/renderToneStepper\(toned,true\)/);
-assert.match(app,/label\("LETRA",S.songControlCaption\)/);
-assert.match(app,/label\("CAPO",S.songControlCaption\)/);
+assert.match(readers,/renderToneStepper\(toned,true\)/);
+assert.match(readers,/label\("LETRA",S.songControlCaption\)/);
+assert.match(readers,/label\("CAPO",S.songControlCaption\)/);
 assert.match(app,/onResetTone:resetTone/,"Tone can be reset in the actions sheet");
 assert.match(styles,/songCompactControls:/);
 assert.match(personalStyles,/quickTile:\{width:"31%"/);
