@@ -20,6 +20,7 @@ const bound=[];
 const lifecycle=[];
 const focusCalls=[];
 const categoryMounts=[];
+const artistSearchMounts=[];
 const document={activeElement:null,getElementById(id){return id==="artistFilter"?{focus(options){focusCalls.push(options.preventScroll)},setSelectionRange(start,end){focusCalls.push(start,end)}}:null}};
 const scope={
  document,
@@ -40,7 +41,7 @@ const scope={
  apBindAlbums:()=>bound.push("albums"),
  apBindSongs:()=>bound.push("songs"),
  apBindDonations:()=>bound.push("donations"),
- window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
 };
 vm.createContext(scope);
 vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
@@ -67,3 +68,5 @@ const picker=fs.readFileSync("admin-song-category-picker.js","utf8");
 assert.doesNotMatch(picker,/apRenderView\s*=/,"Category picker must not replace the owner renderer");
 assert.match(picker,/window\.ShalomAdminSongCategories = \{ mount: attach \}/);
 console.log("SHALOM admin: tabs, form lifecycle, category mount and search cursor respond.");
+
+assert.deepEqual(artistSearchMounts,["songs","songs"],"Artist search mounts only after rendering the song view");
