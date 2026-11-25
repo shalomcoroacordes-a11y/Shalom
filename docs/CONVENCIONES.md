@@ -67,3 +67,5 @@ Los estilos de formularios, navegación, respaldo, papelera e importación de Ad
 `studio-reading-geometry.js` concentra los cálculos puros de escala de letra, distancia y centro del gesto de dos dedos, y desplazamiento para seguimiento de letra. `studio-lab.js` conserva los eventos del DOM, el estado de gestos y la aplicación del desplazamiento. Las pruebas de zoom y seguimiento importan el módulo original en lugar de extraer funciones del texto de la interfaz.
 
 Los patrones predefinidos y la interpretación de códigos de rasgueo pertenecen a `studio-core.js` (`presetHits`, `decodeRhythmCode`). La interfaz conserva confirmaciones, alcance de aplicación, edición y mensajes. Las pruebas de carga de dependencias verifican precedencia, no adyacencia innecesaria entre scripts independientes.
+
+Los límites de secciones, selección de compases y rango de escucha de transición se calculan exclusivamente en `studio-core.js` (`groupRange`, `sectionBarCount`, `sectionBarSelection`, `sectionTransitionRange`). El editor conserva el estado y los controles de navegación. No duplicar el cálculo de límites en la interfaz ni en las apps.

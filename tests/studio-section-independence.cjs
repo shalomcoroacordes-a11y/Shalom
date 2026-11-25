@@ -40,3 +40,22 @@ assert.throws(()=>C.copySection(mixed,groupList,g[0],shortGroup,true),/diferente
 const beforeCopy=C.compile(a,changed),laterStart=changed.changes[6].step;
 const afterCopy=C.compile(a,copied),newLaterStart=copied.changes[6].step;
 assert.deepEqual(beforeCopy.slice(laterStart,changed.endStep).map(e=>[e.chord,e.hit,e.tempo,e.duration]),afterCopy.slice(newLaterStart,copied.endStep).map(e=>[e.chord,e.hit,e.tempo,e.duration]));
+
+for(const arrangement of [mixed,changed,copied,restored]){
+ for(const group of g){
+  const range=C.groupRange(arrangement,group),bounds=C.groupBounds(arrangement,group);
+  assert.deepEqual(range,{start:bounds.start,end:bounds.end,title:group.title});
+  const m=C.resolution(arrangement.meter,arrangement.division),n=m.beats*m.division;
+  const total=Math.max(1,Math.ceil((range.end-range.start)/n));
+  assert.equal(C.sectionBarCount(arrangement,group),total);
+  for(const input of ["",0,1,1.6,999,"abc"]){
+   const selection=C.sectionBarSelection(arrangement,group,input);
+   assert.equal(selection.bar,Math.max(1,Math.min(total,Math.round(Number(input)||1))));
+   assert.equal(selection.start,range.start+(selection.bar-1)*n);
+   assert.deepEqual(selection.hits,C.sectionBarHits(arrangement,group,selection.bar));
+  }
+ }
+ const p=C.groupRange(arrangement,g[0]),c=C.groupRange(arrangement,g[1]);
+ assert.deepEqual(C.sectionTransitionRange(arrangement,g[0],g[1]),{start:Math.max(p.start,p.end-8),end:Math.min(c.end,c.start+8)});
+}
+console.log("Section ranges, local bar selection and transitions use the canonical musical boundaries.");
