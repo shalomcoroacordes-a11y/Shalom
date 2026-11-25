@@ -1,6 +1,6 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const source=fs.readFileSync("artist-page.js","utf8"),html=fs.readFileSync("artista.html","utf8");
-assert.deepEqual([...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m=>m[1]).filter(src=>!src.startsWith("https://")).map(src=>src.split("?")[0]),["Supabase.js","seo.js","artist-page.js"]);
+assert.deepEqual([...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m=>m[1]).filter(src=>!src.startsWith("https://")).map(src=>src.split("?")[0]),["Supabase.js","seo.js","web-menu.js","catalog-song-row.js","artist-page.js"]);
 for(const name of ["artist-profile-data.js","artist-profile-fields.js"])assert.equal(fs.existsSync(name),false);
 const end=source.lastIndexOf('  document.addEventListener("DOMContentLoaded"');
 assert.ok(end>0);
@@ -17,7 +17,10 @@ async function run(artist,search,featured){
   rpc(name,args){queries.push({rpc:name,args});return Promise.resolve({data:name==="get_artist_profile_summary"?[{song_count:2,album_count:0,collaboration_count:0,categories:[]}]:[]})}
  };
  const window={supabaseClient:db};
- vm.runInNewContext(exposed,{window,document,location:{search},URLSearchParams,URL});
+ const context={window,document,location:{search},URLSearchParams,URL};
+ vm.createContext(context);
+ vm.runInContext(fs.readFileSync("catalog-song-row.js","utf8"),context);
+ vm.runInContext(exposed,context);
  await window.testLoad();
  return {queries,markup:profile.innerHTML,title:document.title};
 }
