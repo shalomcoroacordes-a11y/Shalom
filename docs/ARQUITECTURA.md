@@ -146,3 +146,7 @@ El refresco completo del editor calcula la huella canónica una vez y la pasa a 
 ## Índice del próximo acorde durante reproducción
 
 `upcomingChordIndices` construye en una pasada inversa un índice de próximos acordes sonoros con identificador de ancla distinto. Preserva exactamente la búsqueda anterior, incluidos silencios y acordes repetidos. Studio conserva un índice para la línea temporal compilada activa y lo libera al detener reproducción; reconstruye si cambia la línea temporal. La búsqueda del próximo acorde pasa de un recorrido por cuadro a acceso por índice, con coste inicial lineal y memoria proporcional a los pasos. No se cambia el reloj, audio ni formato de arreglos. Pruebas de equivalencia y conteo; no se ha medido latencia real. Copias nativas y caché Offline v29 actualizadas.
+
+## Índice de anclas activas de Studio
+
+`indexAnchors` construye un mapa por identificador con posición de ancla y ordinal exacto dentro de la línea de letra. El reproductor reutiliza el mapa mientras se conserva la misma colección de anclas; cambia al cargar otra colección y libera referencias al detener. Sustituye las búsquedas repetidas para el acorde activo y su columna, conserva la primera coincidencia y el número de columnas estrictamente anteriores. No modifica el reloj musical, seguimiento ni orden visual. Pruebas de equivalencia y conteo; sin medición de latencia en dispositivo. Copias nativas y caché Offline v30 actualizadas.
