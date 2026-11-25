@@ -332,5 +332,35 @@
     const types=["down","up","mute","rest"];
     return hits.map((h,i)=>i===index?{...h,hit:types[(types.indexOf(h.hit)+1)%types.length]}:{...h});
   }
-  return Object.freeze({clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Duration and synchronization rules. The UI owns confirmation and undo.
+  function durationLabel(config,n){
+    const m=resolution(config.meter,config.division),p=n/m.division;
+    return Number(p.toFixed(3))+" "+(p===1?"pulso":"pulsos")+(p===m.beats?" · 1 compás":p>m.beats&&p%m.beats===0?" · "+p/m.beats+" compases":"");
+  }
+  function durationChoices(config){
+    const m=resolution(config.meter,config.division),size=m.beats*m.division;
+    return [["Medio pulso",m.division/2],["1 pulso",m.division],["2 pulsos",m.division*2],["1 compás",size],["2 compases",size*2],["4 compases",size*4]];
+  }
+  function pulsesToSteps(config,input){
+    const m=resolution(config.meter,config.division),value=Number(input),n=Math.round(value*m.division);
+    if(!Number.isFinite(value)||Math.abs(value*m.division-n)>.0001)throw Error("Usa una duración compatible con el ritmo.");
+    return n;
+  }
+  function setAnchorHold(config,index,value){
+    return {...config,changes:config.changes.map((c,i)=>i===index?{...c,hold:value}:c)};
+  }
+  function moveAnchor(config,groups,index,step){
+    const group=groups.find(g=>g.indices.includes(index));
+    if(index===group.indices[0])throw Error("La entrada de la sección se ajusta con la transición o duración anterior.");
+    return {...isolateSections(config,groups),changes:config.changes.map((x,i)=>i===index?{...x,step}:x),fragments:[]};
+  }
+  function anchorRange(anchors,config,index){
+    return {start:config.changes[index].step,end:config.changes[index+1]?.step??config.endStep??config.totalSteps,title:anchors[index].chord};
+  }
+  function suggestFragmentRange(config,groups,section){
+    const matches=groups.filter(g=>g.title===section?.title);
+    if(matches.length!==1)throw Error("Sección repetida o sin acordes. Ajusta el rango manualmente.");
+    return groupRange(config,matches[0]);
+  }
+  return Object.freeze({durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });

@@ -126,3 +126,7 @@ El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interf
 ## Controles musicales de Studio
 
 `studio-core.js` contiene las reglas puras de tempo, pausas, reconocimiento de patrones y cambios de golpe/acento. `studio-lab.js` conserva controles, confirmaciones, deshacer y actualización de cada sección. Los golpes se copian sin modificar el patrón anterior. Se preserva el orden abajo, arriba, apagado, silencio y la disponibilidad del patrón de alabanza en 4/4 con dos posiciones por pulso. Se actualizan las dos salidas nativas y caché Offline v24; pruebas de equivalencia e independencia de arrays.
+
+## Duración y sincronización de Studio
+
+`studio-core.js` centraliza las opciones de duración, conversión exacta de pulsos, cambios de resonancia, desplazamiento de acordes, rangos de escucha y sugerencias de fragmentos. Se conserva la protección de la entrada de sección, confirmación previa a cambios de tiempo, invalidación de fragmentos al desplazar acordes y validación por compilación antes de sustituir el arreglo. El guardado manual de rangos conserva su implementación previa. Ambas salidas nativas se sincronizan y la caché Offline pasa a v25. Pruebas de equivalencia y roundtrip del formato existente.
