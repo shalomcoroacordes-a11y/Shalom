@@ -46,7 +46,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-node22-admin-mobile-
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Verify Expo compatibility
         run: npx expo install --check
       - name: Check JavaScript syntax
@@ -89,7 +89,7 @@ jobs:
         with:
           packages: platform-tools
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Generate original SHALOM dove icon
         run: |
           python3 -m venv /tmp/shalom-admin-icons

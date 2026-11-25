@@ -31,3 +31,5 @@ Revisar las herramientas de auditoría existentes en scripts/ y las pruebas de .
 - No modifiques una rama que está compilando salvo que exista un fallo reproducido. Mientras tanto, revisa módulos independientes sin duplicar el trabajo ni abrir ramas superpuestas. Un resultado de CI pertenece al commit probado, no a futuras modificaciones.
 - Las cachés solo aceleran descargas; nunca sustituyen instalación, pruebas, verificación de firma, arranque o actualización. No almacenar APK, secretos ni datos de usuarios en cachés.
 - Antes de fusionar, verifica el estado de main, conflictos y las consecuencias de los workflows de publicación automática. No iniciar publicación oficial como parte de una prueba. La APK oficial requiere ejecución manual desde main y confirmación explícita; un push no debe publicar APK. Ver docs/DESARROLLO.md.
+
+- Los lockfiles de Pública y Admin deben permanecer versionados. Para instalar, usar npm ci; para cambiar dependencias, actualizar manifiesto y lockfile juntos y verificar Expo y todas las pruebas aplicables.

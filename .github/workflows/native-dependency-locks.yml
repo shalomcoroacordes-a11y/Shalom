@@ -33,12 +33,10 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-      - name: Resolve a candidate lock only if no tracked lock exists
+      - name: Verify tracked dependency lock
         run: |
           set -euo pipefail
-          if [ ! -f package-lock.json ]; then
-            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          fi
+          test -f package-lock.json
           node ../scripts/verify-native-lock.cjs .
           sha256sum package-lock.json > "$RUNNER_TEMP/lock.sha256"
       - name: Install exactly the locked dependency tree

@@ -39,7 +39,7 @@ jobs:
         with:
           packages: platform-tools
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Verify Expo dependencies
         run: npx expo install --check
       - name: Create dove launcher icons from original SHALOM logo

@@ -28,7 +28,7 @@ Requiere Node.js 22 o compatible con el SDK Expo configurado.
 
 ```bash
 cd mobile
-npm install
+npm ci
 npx expo install --check
 node tests/chords.test.js
 node tests/catalog.test.js
@@ -106,9 +106,9 @@ Para la verificación completa de HTML y rutas, usar el workflow de GitHub Actio
 
 ### Caché de dependencias
 
-Los workflows de pruebas nativas, preview público, ensayo de actualización y Admin recuperan descargas de npm (Node 22) y Gradle (Java 17, solo módulos y distribuciones) con claves separadas por aplicación y manifiestos. No se almacenan node_modules, APK, claves, datos de usuarios ni resultados de pruebas. Se mantiene npm install y Gradle completos; no se usa modo offline forzado. El primer build puede no mejorar y la caché puede faltar o quedar invalidada. Medir tiempos reales antes de atribuir mejoras.
+Los workflows de pruebas nativas, preview público, ensayo de actualización y Admin recuperan descargas de npm (Node 22) y Gradle (Java 17, solo módulos y distribuciones) con claves separadas por aplicación y manifiestos. No se almacenan node_modules, APK, claves, datos de usuarios ni resultados de pruebas. Se mantiene npm ci y Gradle completos; no se usa modo offline forzado. El primer build puede no mejorar y la caché puede faltar o quedar invalidada. Medir tiempos reales antes de atribuir mejoras.
 
-Actualmente no hay package-lock.json versionado para las dos aplicaciones. La caché de descargas no garantiza reproducibilidad: incorporar lockfiles requiere generar y verificar ambos árboles de dependencias y compatibilidad Expo en otro bloque, antes de migrar a npm ci. No introducir lockfiles ficticios ni cambiar las versiones para sortear problemas de red.
+Ambas aplicaciones incluyen sus lockfiles generados por npm y verificados con Node 22 en la ejecución 45678838254. Los workflows nativos instalan con npm ci. La caché de descargas no sustituye la resolución fijada ni verifica por sí sola el APK.
 
 ### Autorización de APK oficiales
 
@@ -116,6 +116,6 @@ Después de validar CI, las migraciones necesarias, el respaldo y la versión, i
 
 ### Generación y verificación de lockfiles nativos
 
-El workflow `native-dependency-locks.yml` resuelve por separado los manifiestos de Pública y Admin en Node 22. Si existe un lockfile, lo conserva y lo verifica. Si no existe, genera un candidato auténtico desde npm sin ejecutar scripts de instalación durante la resolución. Después valida identidad del manifiesto, origen e integridad de paquetes, ejecuta `npm ci`, compatibilidad Expo, sintaxis y pruebas, y comprueba que el lock no cambió. Los candidatos y su procedencia se conservan como artefactos temporales, sin permisos de escritura en GitHub ni publicaciones.
+El workflow `native-dependency-locks.yml` resuelve por separado los manifiestos de Pública y Admin en Node 22. Exige los lockfiles versionados y verifica su correspondencia con cada manifiesto. Después valida identidad del manifiesto, origen e integridad de paquetes, ejecuta `npm ci`, compatibilidad Expo, sintaxis y pruebas, y comprueba que el lock no cambió. Los candidatos y su procedencia se conservan como artefactos temporales, sin permisos de escritura en GitHub ni publicaciones.
 
-No se considera completada la transición hasta recuperar ambos artefactos verificados, revisarlos, versionar los dos lockfiles y repetir las pruebas de compilación y actualización con `npm ci` en todos los workflows relevantes. No cambiar los manifiestos para lograr una validación verde sin investigar la causa.
+Los dos archivos exactos quedaron incorporados en la rama candidata. Falta validar la compilación y actualización completas con `npm ci` antes de integrar. Para cambiar dependencias, actualizar manifiesto y lockfile conjuntamente con npm bajo Node 22. No cambiar los manifiestos para lograr una validación verde sin investigar la causa.
