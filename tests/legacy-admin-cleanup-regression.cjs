@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const removed = ["admin-category-tree.js", "admin-extra.js", "admin.js", "admin-visual-polish.js", "admin-manage.js", "admin-tools.js"];
+const removed = ["admin-category-tree.js", "admin-extra.js", "admin.js", "admin-visual-polish.js", "admin-manage.js", "admin-tools.js", "admin-search-fix.js"];
 const pages = fs.readdirSync(".").filter(name => name.endsWith(".html"));
 for (const name of removed) {
   assert.equal(fs.existsSync(name), false, name + " should not be shipped");
@@ -12,7 +12,7 @@ for (const name of removed) {
   }
 }
 const admin = fs.readFileSync("admin.html", "utf8");
-for (const name of ["admin-pro.js", "admin-category-browser-v2.js", "admin-song-category-picker.js"]) {
+for (const name of ["admin-pro.js", "admin-form-layout.js", "admin-category-browser-v2.js", "admin-song-category-picker.js"]) {
   assert.ok(admin.includes('src="' + name + '?'), "active admin dependency " + name + " must remain");
 }
-console.log("Legacy admin cleanup: six retired modules absent; active admin chain intact.");
+console.log("Legacy admin cleanup: retired modules absent; active admin chain intact.");
