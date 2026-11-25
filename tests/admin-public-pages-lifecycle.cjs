@@ -29,7 +29,11 @@ let publicLoad;
 const publicDocument={readyState:"loading",querySelectorAll:()=>publicNodes,addEventListener(name,fn){assert.equal(name,"DOMContentLoaded");publicLoad=fn}};
 vm.runInNewContext(defaultsSource,{window:publicWindow});
 vm.runInNewContext(fs.readFileSync("about-content.js","utf8"),{window:publicWindow,document:publicDocument});
-vm.runInNewContext(source,{window,document,setTimeout:()=>0});
+const adminContext={window,document,setTimeout:()=>0};
+vm.createContext(adminContext);
+vm.runInContext(fs.readFileSync("admin-content-editor.js","utf8"),adminContext);
+vm.runInContext(source,adminContext);
+assert.ok(html.indexOf('src="admin-content-editor.js')<moduleIndex);
 const mount=window.ShalomAdminPublicPages.mount;
 async function test(){
  await publicLoad();
@@ -59,3 +63,22 @@ async function test(){
  console.log("Public page lifecycle: saved content, user edits, reset, navigation and errors verified.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});
+
+// Verify save and reset protection against detached forms using the shared controller.
+async function sharedSaveLifecycle(){
+ const writes=[],notes=[],forms=[];
+ let section,active=true;
+ const node=()=>{const listeners={};return {style:{},textContent:"",addEventListener(event,fn){(listeners[event]??=[]).push(fn)},async fire(event,arg){for(const fn of listeners[event]||[])await fn(arg)}}};
+ const document={querySelector:id=>({"#section":section,"#tab":{classList:{contains:()=>active}},"#form":section?.form,"#status":section?.status,"#reset":section?.reset}[id])};
+ const view={set innerHTML(value){section={set innerHTML(v){this.markup=v;this.form=node();this.status=node();this.reset=node();forms.push(this.form)}}},querySelector:()=>section};
+ const db={from(){return {select(){return this},eq(){return this},async maybeSingle(){return {data:{content:{title:"Stored"}}}},upsert(body,opts){writes.push({body,opts});return Promise.resolve({error:null})}}}};
+ const window={};const ctx={window,document,setTimeout:()=>0,FormData:class{entries(){return [["title","  Edited  "]]}}};
+ vm.runInNewContext(fs.readFileSync("admin-content-editor.js","utf8"),ctx);
+ const editor=window.ShalomAdminContentEditor.create({db,defaults:{title:"Default"},key:"about",sectionId:"section",tabId:"tab",formId:"form",statusId:"status",resetId:"reset",render:current=>current.title,messages:{saved:"Saved",loadTimeout:"timeout",saveTimeout:"timeout"}});
+ await editor.mount(view);assert.equal(section.markup,"Stored");
+ await section.form.fire("submit",{preventDefault(){}});assert.equal(writes.length,1);assert.equal(writes[0].body.content.title,"Edited");assert.equal(writes[0].opts.onConflict,"content_key");assert.equal(section.status.textContent,"Saved");
+ await forms[0].fire("submit",{preventDefault(){}});assert.equal(writes.length,1);
+ active=false;await section.form.fire("submit",{preventDefault(){}});assert.equal(writes.length,1);
+ console.log("Shared content editor: correct save payload, status, detached-form and navigation protection verified.");
+}
+sharedSaveLifecycle().catch(error=>{console.error(error);process.exitCode=1});
