@@ -218,6 +218,12 @@ jobs:
       - name: Test shared home recommendation rules
         run: node tests/home-recommendation-core.cjs
 
+      - name: Verify canonical native chord engine and generated copies
+        run: |
+          node scripts/build-native-chords.js --check
+          node tests/native-chords-source.cjs
+          node mobile/tests/chords.test.js
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 
