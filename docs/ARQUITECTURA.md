@@ -150,3 +150,7 @@ El refresco completo del editor calcula la huella canónica una vez y la pasa a 
 ## Índice de anclas activas de Studio
 
 `indexAnchors` construye un mapa por identificador con posición de ancla y ordinal exacto dentro de la línea de letra. El reproductor reutiliza el mapa mientras se conserva la misma colección de anclas; cambia al cargar otra colección y libera referencias al detener. Sustituye las búsquedas repetidas para el acorde activo y su columna, conserva la primera coincidencia y el número de columnas estrictamente anteriores. No modifica el reloj musical, seguimiento ni orden visual. Pruebas de equivalencia y conteo; sin medición de latencia en dispositivo. Copias nativas y caché Offline v30 actualizadas.
+
+## Intérprete único de acordes
+
+`song-chords.js` es la única fuente del reconocimiento y combinación de filas, posiciones, espacios y etiquetas. `parseRows` conserva el tipo de presentación apilado/en línea para el renderizador web; `native-chords.js` adapta las filas sin ese campo, conserva transposición nativa y mediciones. El generador inserta la fábrica canónica en las dos copias Android autónomas; Studio incorpora el mismo script web mediante su generador existente. No hay dependencia de red ni cambio de formato de letra o arreglo. El HTML, clases CSS, normalización en Android y tono original web se conservan; se evita transponer anticipadamente una fila que no se consume. Se renueva la caché Offline v31 y se añaden pruebas de propiedad de fuente y markup exacto. Pendiente CI y revisión visual.

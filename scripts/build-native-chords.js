@@ -4,7 +4,14 @@ const root=path.resolve(__dirname,"..");
 const source="native-chords.js";
 const outputs=["mobile/src/chords.js","admin-mobile/src/chords.js"];
 const header="// Generated from native-chords.js. Run node scripts/build-native-chords.js. Do not edit this copy.\n";
-function generate(read){return header+read(source)}
+function generate(read){
+ const web=read("song-chords.js"),begin="// BEGIN CANONICAL CHORD PARSER\n",end="// END CANONICAL CHORD PARSER";
+ if(web.split(begin).length!==2||web.split(end).length!==2)throw Error("Canonical chord parser boundaries changed.");
+ const parser=web.slice(web.indexOf(begin)+begin.length,web.indexOf(end));
+ const adapter='const shared=require("./song-chords.js");',native=read(source);
+ if(!parser.startsWith("function createChordParser()")||native.split(adapter).length!==2)throw Error("Canonical chord parser adapter changed.");
+ return header+native.replace(adapter,parser+"const shared=createChordParser();");
+}
 function sync({read,write,check=false}){
  const expected=generate(read);
  for(const name of outputs){
