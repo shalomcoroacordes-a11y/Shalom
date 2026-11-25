@@ -19,10 +19,11 @@ for (const artists of cases) for (const categories of cases) for (const albums o
 }
 for (const [name,owner] of [["canciones","canciones"],["categorias","categorias"],["albumes","albumes"],["artista","artist-page"],["artistas","artistas"]]) {
  const html=fs.readFileSync(name+".html","utf8"), js=fs.readFileSync(owner+".js","utf8");
- assert.equal((html.match(/src="catalog-song-row\.js\?v=2"/g)||[]).length,1);
+ assert.equal((html.match(/src="catalog-song-row\.js\?v=[23]"/g)||[]).length,1);
  assert.ok(html.indexOf('src="catalog-song-row.js')<html.indexOf('src="'+owner+'.js'));
  if(name!=="artistas") assert.match(js,/\.map\(window\.ShalomCatalogSongRow\.rowToSong\)/);
- assert.match(js,/window\.ShalomCatalogSongRow\.mergePage\(/);
+ if(["artistas","albumes","canciones"].includes(name))assert.match(js,/window\.ShalomCatalogSongRow\.createPager\(/);
+ else assert.match(js,/window\.ShalomCatalogSongRow\.mergePage\(/);
  assert.doesNotMatch(js,/const serverTotal = rows\.length/);
  assert.doesNotMatch(js,/function jsonList\(/);
 }
@@ -38,3 +39,15 @@ for(const previous of [[],[{id:"a"}],[{id:"a"},{id:"b"}]])for(const rows of [[],
 }
 for(const value of cases)assert.equal(JSON.stringify(jsonList(value)),JSON.stringify(legacy(value)));
 console.log("Catalog pagination: 30 legacy-equivalence cases, six call sites and shared artist profile parser.");
+
+async function testPager(){
+ const calls=[],events=[],pending=[];
+ const pager=window.ShalomCatalogSongRow.createPager({pageSize:2,fetchPage:args=>{calls.push(args);return new Promise((resolve,reject)=>pending.push({resolve,reject}));},onStart:append=>events.push(append?"append":"fresh"),onRender:()=>events.push("render"),onError:error=>events.push(error.message)});
+ const first=pager.load();const newer=pager.load();
+ assert.equal(calls[0].isCurrent(),false);pending[1].resolve([{id:"new",total_count:3}]);await newer;pending[0].reject(Error("stale"));await first;
+ assert.equal(pager.state.rows[0].id,"new");assert.equal(pager.state.total,3);assert.equal(pager.state.loading,false);assert.equal(events.includes("stale"),false);
+ const next=pager.load(true);await pager.load(true);assert.equal(calls.length,3);assert.equal(calls[2].offset,2);pending[2].resolve([{id:"next",total_count:3}]);await next;assert.equal(pager.state.rows.length,2);assert.equal(pager.state.page,1);
+ const failed=pager.load();pending[3].reject(Error("network"));await failed;assert.equal(pager.state.rows.length,0);assert.equal(pager.state.loading,false);assert.equal(events.at(-1),"network");
+ console.log("Shared catalog lifecycle: stale responses, pagination, duplicate load prevention and errors verified.");
+}
+testPager().catch(error=>{console.error(error);process.exitCode=1});

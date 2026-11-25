@@ -6,11 +6,6 @@ const selectedKey = params.get("slug") || params.get("id") || "";
 const PAGE_SIZE = 24;
 
 let activeType = "";
-let page = 0;
-let totalResults = 0;
-let visibleArtists = [];
-let loading = false;
-let requestVersion = 0;
 let searchTimer = 0;
 
 const norm = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -58,10 +53,10 @@ function ensureLoadMore() {
 function updateLoadMore() {
   const button = ensureLoadMore();
   if (!button) return;
-  const hasMore = visibleArtists.length < totalResults;
+  const hasMore = catalog.state.rows.length < catalog.state.total;
   button.hidden = !hasMore;
-  button.disabled = loading;
-  button.textContent = loading ? "Cargando…" : "Cargar más artistas";
+  button.disabled = catalog.state.loading;
+  button.textContent = catalog.state.loading ? "Cargando…" : "Cargar más artistas";
 }
 
 function mountFilters() {
@@ -92,18 +87,15 @@ function setStatus(message) {
 
 function renderArtists() {
   if (!grid) return;
-  setStatus(`${totalResults} ${totalResults === 1 ? "artista encontrado" : "artistas encontrados"}`);
+  setStatus(`${catalog.state.total} ${catalog.state.total === 1 ? "artista encontrado" : "artistas encontrados"}`);
   grid.className = "artists-grid";
-  grid.innerHTML = visibleArtists.length
-    ? visibleArtists.map(card).join("")
+  grid.innerHTML = catalog.state.rows.length
+    ? catalog.state.rows.map(card).join("")
     : '<article class="artist-card"><h3>Sin resultados</h3><p>Prueba con otro nombre o tipo de artista.</p></article>';
   updateLoadMore();
 }
 
 function beginFreshLoad() {
-  page = 0;
-  totalResults = 0;
-  visibleArtists = [];
   if (grid) grid.innerHTML = '<article class="artist-card shimmer-card"><h3>Buscando artistas…</h3><p>Un momento por favor.</p></article>';
   setStatus("Buscando artistas…");
   const button = ensureLoadMore();
@@ -122,48 +114,26 @@ function rpcErrorMessage(error) {
   return detail || "Revisa la conexión e inténtalo de nuevo.";
 }
 
-async function fetchArtists(append = false) {
-  if (!db || (append && loading)) return;
-  const token = ++requestVersion;
-  const currentPage = append ? page + 1 : 0;
-  loading = true;
-  if (!append) beginFreshLoad();
-  else updateLoadMore();
-
-  try {
-    const { data, error } = await db.rpc("search_artists_catalog", {
-      p_query: String(input?.value || "").trim() || null,
-      p_artist_type: activeType || null,
-      p_limit: PAGE_SIZE,
-      p_offset: currentPage * PAGE_SIZE
-    });
+const catalog = window.ShalomCatalogSongRow.createPager({
+  pageSize: PAGE_SIZE,
+  fetchPage: async ({ limit, offset }) => {
+    const { data, error } = await db.rpc("search_artists_catalog", { p_query: String(input?.value || "").trim() || null, p_artist_type: activeType || null, p_limit: limit, p_offset: offset });
     if (error) throw error;
-    if (token !== requestVersion) return;
-
-    const rows = data || [];
-    const merged = window.ShalomCatalogSongRow.mergePage(visibleArtists, rows, append);
-    page = currentPage;
-    totalResults = merged.total;
-    visibleArtists = merged.rows;
-    loading = false;
-    renderArtists();
-  } catch (error) {
-    if (token !== requestVersion) return;
-    totalResults = 0;
-    visibleArtists = [];
-    loading = false;
+    return data || [];
+  },
+  onStart: append => append ? updateLoadMore() : beginFreshLoad(),
+  onRender: renderArtists,
+  onError: error => {
     if (grid) grid.innerHTML = `<article class="artist-card"><h3>Error al cargar</h3><p>${esc(rpcErrorMessage(error))}</p></article>`;
     setStatus("No se pudieron cargar los artistas.");
     const button = ensureLoadMore();
     if (button) button.hidden = true;
-  } finally {
-    if (token === requestVersion && loading) {
-      loading = false;
-      renderArtists();
-    }
   }
+});
+function fetchArtists(append = false) {
+  if (!db) return;
+  return catalog.load(append);
 }
-
 function start() {
   if (!db || !grid) return;
   if (selectedKey) {

@@ -9,14 +9,9 @@ const PAGE_SIZE = 24;
 let categoryParam = "";
 let albumParam = "";
 let activeType = "";
-let page = 0;
-let totalResults = 0;
-let visibleSongs = [];
 let categoriesCache = null;
 let albumsCache = null;
 let searchTimer = 0;
-let requestVersion = 0;
-let loading = false;
 
 const escapeHTML = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const normalize = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -98,17 +93,17 @@ function setStatus(message) {
 
 function updateLoadMore() {
   if (!loadMoreButton) return;
-  const hasMore = visibleSongs.length < totalResults;
+  const hasMore = catalog.state.rows.length < catalog.state.total;
   loadMoreButton.hidden = !hasMore;
-  loadMoreButton.disabled = loading;
-  loadMoreButton.textContent = loading ? "Cargando…" : "Cargar más canciones";
+  loadMoreButton.disabled = catalog.state.loading;
+  loadMoreButton.textContent = catalog.state.loading ? "Cargando…" : "Cargar más canciones";
 }
 
 function renderSongs() {
   if (!songsGrid) return;
-  setStatus(`${totalResults} ${totalResults === 1 ? "canción encontrada" : "canciones encontradas"}`);
+  setStatus(`${catalog.state.total} ${catalog.state.total === 1 ? "canción encontrada" : "canciones encontradas"}`);
 
-  if (!visibleSongs.length) {
+  if (!catalog.state.rows.length) {
     songsGrid.innerHTML = "<article class='song-card'><h3>Sin resultados</h3><p>Prueba otro nombre, artista, tono o filtro.</p></article>";
     if (loadMoreButton) {
       loadMoreButton.hidden = true;
@@ -118,7 +113,7 @@ function renderSongs() {
     return;
   }
 
-  songsGrid.innerHTML = visibleSongs.map((song) => {
+  songsGrid.innerHTML = catalog.state.rows.map((song) => {
     const title = escapeHTML(song.title || "Canción sin título");
     const type = escapeHTML(song.song_type || "Canción");
     const artistText = escapeHTML(names(song._artists) || "Sin artista");
@@ -156,9 +151,6 @@ async function shareSong(title, url, button) {
 }
 
 function beginFreshLoad() {
-  visibleSongs = [];
-  totalResults = 0;
-  page = 0;
   if (songsGrid) songsGrid.innerHTML = "<article class='song-card shimmer-card'><h3>Buscando canciones…</h3><p>Un momento por favor.</p></article>";
   setStatus("Buscando canciones…");
   if (loadMoreButton) {
@@ -178,49 +170,18 @@ function rpcErrorMessage(error) {
   return detail || "Revisa la conexión e inténtalo de nuevo.";
 }
 
-async function fetchSongs(append = false) {
-  if (!client || (append && loading)) return;
-  const token = ++requestVersion;
-  const currentPage = append ? page + 1 : 0;
-  loading = true;
-  if (!append) beginFreshLoad();
-  else updateLoadMore();
-
-  try {
+const catalog = window.ShalomCatalogSongRow.createPager({
+  pageSize: PAGE_SIZE,
+  fetchPage: async ({ limit, offset, isCurrent }) => {
     const filters = await resolveRouteFilters();
-    if (token !== requestVersion) return;
-    if (filters.empty) {
-      page = 0;
-      totalResults = 0;
-      visibleSongs = [];
-      loading = false;
-      renderSongs();
-      return;
-    }
-
-    const { data, error } = await client.rpc("search_songs_catalog", {
-      p_query: String(searchInput?.value || "").trim() || null,
-      p_song_type: activeType || null,
-      p_category_id: filters.categoryId,
-      p_album_id: filters.albumId,
-      p_limit: PAGE_SIZE,
-      p_offset: currentPage * PAGE_SIZE
-    });
+    if (!isCurrent() || filters.empty) return [];
+    const { data, error } = await client.rpc("search_songs_catalog", { p_query: String(searchInput?.value || "").trim() || null, p_song_type: activeType || null, p_category_id: filters.categoryId, p_album_id: filters.albumId, p_limit: limit, p_offset: offset });
     if (error) throw error;
-    if (token !== requestVersion) return;
-
-    const rows = (data || []).map(window.ShalomCatalogSongRow.rowToSong);
-    const merged = window.ShalomCatalogSongRow.mergePage(visibleSongs, rows, append);
-    page = currentPage;
-    totalResults = merged.total;
-    visibleSongs = merged.rows;
-    loading = false;
-    renderSongs();
-  } catch (error) {
-    if (token !== requestVersion) return;
-    totalResults = 0;
-    visibleSongs = [];
-    loading = false;
+    return (data || []).map(window.ShalomCatalogSongRow.rowToSong);
+  },
+  onStart: append => append ? updateLoadMore() : beginFreshLoad(),
+  onRender: renderSongs,
+  onError: error => {
     if (songsGrid) songsGrid.innerHTML = `<article class='song-card'><h3>Error al cargar</h3><p>${escapeHTML(rpcErrorMessage(error))}</p></article>`;
     setStatus("No se pudieron cargar las canciones.");
     if (loadMoreButton) {
@@ -228,14 +189,12 @@ async function fetchSongs(append = false) {
       loadMoreButton.disabled = false;
       loadMoreButton.textContent = "Cargar más canciones";
     }
-  } finally {
-    if (token === requestVersion && loading) {
-      loading = false;
-      renderSongs();
-    }
   }
+});
+function fetchSongs(append = false) {
+  if (!client) return;
+  return catalog.load(append);
 }
-
 function resetAndFetch(mode = "replace") {
   saveRoute(mode);
   fetchSongs(false);
