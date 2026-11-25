@@ -260,7 +260,7 @@ function Main(){
  async function transitionPending(d){if(!isActive())return;try{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(isActive()&&!changed)setMessage("El borrador cambió. Revisa la versión actual.");}catch(e){if(isActive())Alert.alert("No se pudo actualizar",e.message);}}
  async function deletePending(d){if(!isActive())return;try{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(isActive()&&!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}catch(e){if(isActive())Alert.alert("No se pudo borrar",e.message);}}
  function openRepertoires(){setSelectedType("repertoires");setTab("Catálogo");}
- function pendingPanel(){return h(PendingScreen,{busy,offline,sendQueue,drafts,begin,onTransition:transitionPending,onDelete:deletePending});}
+ function pendingPanel(){return h(PendingScreen,{busy,offline,sendQueue:()=>sendQueue(),drafts,begin,onTransition:transitionPending,onDelete:deletePending});}
  function homePanel(){return h(HomeScreen,{lists,drafts,begin,onRepertoires:openRepertoires,busy,refresh,offline,session,access,logout});}
  if(boot)return h(View,{style:{flex:1,backgroundColor:C.bg,justifyContent:"center",alignItems:"center"}},h(ActivityIndicator,{color:C.green}),txt("Preparando SHALOM Admin...",S.subtitle));
  if(!session)return h(SafeAreaView,{style:S.screen,edges:["top","bottom"]},h(Login,{onSuccess:hydrate}));
