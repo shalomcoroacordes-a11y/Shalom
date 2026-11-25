@@ -9,7 +9,9 @@
   let recommendations = [];
   let recommendationsReady = false;
   let setupError = null;
-  let opening = false;
+  let mounted = null;
+  let loadSequence = 0;
+  const isCurrent = (section) => Boolean(section && mounted === section && document.getElementById("adminHomeSectionContent") === section && document.querySelector("[data-jhd-home-section-tab]")?.classList.contains("active"));
   const draft = { targetType: "category", typeFilter: "all", query: "", targetId: "", sectionType: "catolico" };
 
   const esc = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -23,11 +25,6 @@
   };
   const typeLabel = (type) => ({ catolico: "Católico", cristiano: "Cristiano", mixto: "Mixto", general: "General" }[type] || "General");
   const sectionLabel = (section) => section === "cristiano" ? "Cristiana" : "Católica";
-
-  function setTabActive(button) {
-    const tabs = button?.closest(".admin-tabs");
-    tabs?.querySelectorAll(".admin-tab").forEach((tab) => tab.classList.toggle("active", tab === button));
-  }
 
   function targetFor(type, id) {
     return (type === "song" ? songs : categories).find((item) => String(item.id) === String(id)) || null;
@@ -144,10 +141,10 @@
   }
 
   function renderSetup() {
-    const view = document.getElementById("adminView");
-    if (!view) return;
-    view.innerHTML = `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Página principal</p><h2>Recomendaciones de Inicio</h2></div><p class="admin-count">Configuración requerida</p></div><div class="jhd-home-section-setup"><h3>Activa las recomendaciones personalizadas</h3><p>El selector ya está preparado, pero primero necesitas crear la tabla que guarda tus recomendaciones. En Supabase abre <strong>SQL Editor</strong>, ejecuta el archivo <strong>supabase-home-recommendations.sql</strong> del proyecto y vuelve a abrir esta pestaña.</p><button class="song-btn" id="jhdRetryHomeRecommendations" type="button">Ya ejecuté el SQL, volver a intentar</button><p class="jhd-home-section-status" id="jhdHomeSectionStatus" aria-live="polite">${esc(setupError || "")}</p></div></section>`;
-    document.getElementById("jhdRetryHomeRecommendations")?.addEventListener("click", open);
+    const view = mounted;
+    if (!isCurrent(view)) return;
+    view.innerHTML = `<div class="admin-section-heading"><div><p class="hero-kicker">Página principal</p><h2>Recomendaciones de Inicio</h2></div><p class="admin-count">Configuración requerida</p></div><div class="jhd-home-section-setup"><h3>Activa las recomendaciones personalizadas</h3><p>El selector ya está preparado, pero primero necesitas crear la tabla que guarda tus recomendaciones. En Supabase abre <strong>SQL Editor</strong>, ejecuta el archivo <strong>supabase-home-recommendations.sql</strong> del proyecto y vuelve a abrir esta pestaña.</p><button class="song-btn" id="jhdRetryHomeRecommendations" type="button">Ya ejecuté el SQL, volver a intentar</button><p class="jhd-home-section-status" id="jhdHomeSectionStatus" aria-live="polite">${esc(setupError || "")}</p></div>`;
+    document.getElementById("jhdRetryHomeRecommendations")?.addEventListener("click", () => mount(document.getElementById("adminView")));
   }
 
   function recommendationColumn(section, title, copy) {
@@ -157,9 +154,9 @@
 
   function render() {
     if (!recommendationsReady) return renderSetup();
-    const view = document.getElementById("adminView");
-    if (!view) return;
-    view.innerHTML = `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Página principal</p><h2>Recomendaciones de Inicio</h2></div><p class="admin-count">Hasta 8 visibles por columna</p></div><p class="jhd-home-section-note">Los elementos <strong>Católicos</strong> y <strong>Cristianos</strong> se colocan automáticamente en su columna. Solo el contenido mixto o general puede elegir dónde aparecer.</p><div class="jhd-recommendation-builder"><div class="jhd-builder-heading"><span class="jhd-builder-step">1</span><div><strong>Agregar recomendación</strong><small>Busca cualquier carpeta o canto. El tipo real siempre se muestra antes de agregarlo.</small></div></div><div class="jhd-builder-fields"><label>Contenido<select id="jhdRecommendationType"><option value="category" ${draft.targetType === "category" ? "selected" : ""}>Carpeta o categoría</option><option value="song" ${draft.targetType === "song" ? "selected" : ""}>Canto</option></select></label><label>Tipo real<select id="jhdRecommendationTypeFilter"><option value="all" ${draft.typeFilter === "all" ? "selected" : ""}>Todos los tipos</option><option value="catolico" ${draft.typeFilter === "catolico" ? "selected" : ""}>Católicos</option><option value="cristiano" ${draft.typeFilter === "cristiano" ? "selected" : ""}>Cristianos</option><option value="mixto-general" ${draft.typeFilter === "mixto-general" ? "selected" : ""}>Mixtos y generales</option></select></label><label>Buscar<input id="jhdRecommendationSearch" type="search" placeholder="Nombre, artista o tono..." value="${esc(draft.query)}" autocomplete="off"></label><label>Columna de Inicio<select id="jhdRecommendationSection"><option value="catolico">Católica</option><option value="cristiano">Cristiana</option></select></label></div><div class="jhd-recommendation-targets" id="jhdRecommendationTargets"></div><div class="jhd-builder-footer"><p class="jhd-builder-selection" id="jhdSelectedRecommendation"></p><button class="song-btn" id="jhdAddRecommendation" type="button">Agregar a Inicio</button></div></div><div class="jhd-home-section-groups">${recommendationColumn("catolico", "Columna Católica", "Misa, tiempos litúrgicos y devociones.")}${recommendationColumn("cristiano", "Columna Cristiana", "Alabanza, oración y ministerios.")}</div><div class="jhd-home-section-actions"><button class="song-btn" id="jhdSaveHomeRecommendations" type="button">Guardar cambios</button><button class="song-btn small-btn secondary" id="jhdReloadHomeRecommendations" type="button">Actualizar lista</button><p class="jhd-home-section-status" id="jhdHomeSectionStatus" aria-live="polite"></p></div></section>`;
+    const view = mounted;
+    if (!isCurrent(view)) return;
+    view.innerHTML = `<div class="admin-section-heading"><div><p class="hero-kicker">Página principal</p><h2>Recomendaciones de Inicio</h2></div><p class="admin-count">Hasta 8 visibles por columna</p></div><p class="jhd-home-section-note">Los elementos <strong>Católicos</strong> y <strong>Cristianos</strong> se colocan automáticamente en su columna. Solo el contenido mixto o general puede elegir dónde aparecer.</p><div class="jhd-recommendation-builder"><div class="jhd-builder-heading"><span class="jhd-builder-step">1</span><div><strong>Agregar recomendación</strong><small>Busca cualquier carpeta o canto. El tipo real siempre se muestra antes de agregarlo.</small></div></div><div class="jhd-builder-fields"><label>Contenido<select id="jhdRecommendationType"><option value="category" ${draft.targetType === "category" ? "selected" : ""}>Carpeta o categoría</option><option value="song" ${draft.targetType === "song" ? "selected" : ""}>Canto</option></select></label><label>Tipo real<select id="jhdRecommendationTypeFilter"><option value="all" ${draft.typeFilter === "all" ? "selected" : ""}>Todos los tipos</option><option value="catolico" ${draft.typeFilter === "catolico" ? "selected" : ""}>Católicos</option><option value="cristiano" ${draft.typeFilter === "cristiano" ? "selected" : ""}>Cristianos</option><option value="mixto-general" ${draft.typeFilter === "mixto-general" ? "selected" : ""}>Mixtos y generales</option></select></label><label>Buscar<input id="jhdRecommendationSearch" type="search" placeholder="Nombre, artista o tono..." value="${esc(draft.query)}" autocomplete="off"></label><label>Columna de Inicio<select id="jhdRecommendationSection"><option value="catolico">Católica</option><option value="cristiano">Cristiana</option></select></label></div><div class="jhd-recommendation-targets" id="jhdRecommendationTargets"></div><div class="jhd-builder-footer"><p class="jhd-builder-selection" id="jhdSelectedRecommendation"></p><button class="song-btn" id="jhdAddRecommendation" type="button">Agregar a Inicio</button></div></div><div class="jhd-home-section-groups">${recommendationColumn("catolico", "Columna Católica", "Misa, tiempos litúrgicos y devociones.")}${recommendationColumn("cristiano", "Columna Cristiana", "Alabanza, oración y ministerios.")}</div><div class="jhd-home-section-actions"><button class="song-btn" id="jhdSaveHomeRecommendations" type="button">Guardar cambios</button><button class="song-btn small-btn secondary" id="jhdReloadHomeRecommendations" type="button">Actualizar lista</button><p class="jhd-home-section-status" id="jhdHomeSectionStatus" aria-live="polite"></p></div>`;
 
     renderTargetList();
     document.getElementById("jhdRecommendationType")?.addEventListener("change", (event) => {
@@ -181,7 +178,7 @@
     document.getElementById("jhdRecommendationSection")?.addEventListener("change", (event) => { draft.sectionType = event.target.value || "catolico"; });
     document.getElementById("jhdAddRecommendation")?.addEventListener("click", addRecommendation);
     document.getElementById("jhdSaveHomeRecommendations")?.addEventListener("click", saveRecommendations);
-    document.getElementById("jhdReloadHomeRecommendations")?.addEventListener("click", open);
+    document.getElementById("jhdReloadHomeRecommendations")?.addEventListener("click", () => mount(document.getElementById("adminView")));
     document.querySelectorAll("[data-delete-rec]").forEach((button) => button.addEventListener("click", () => deleteRecommendation(button.dataset.deleteRec)));
   }
 
@@ -192,7 +189,8 @@
     status.style.color = isError ? "#ffb4b4" : "";
   }
 
-  async function load() {
+  async function load(section) {
+    const sequence = ++loadSequence;
     if (!db) throw new Error("No se pudo iniciar la conexión con Supabase.");
     const [categoriesRes, songsRes, artistLinksRes, recommendationsRes] = await Promise.all([
       db.from("categories").select("id,name,description,parent_id,song_type,sort_order").order("name", { ascending: true }),
@@ -200,6 +198,7 @@
       db.from("song_artists").select("song_id,artists(name)"),
       db.from("home_recommendations").select("id,target_type,target_id,section_type,sort_order,is_visible").order("sort_order", { ascending: true })
     ]);
+    if (!isCurrent(section) || sequence !== loadSequence) return false;
     const coreError = [categoriesRes, songsRes, artistLinksRes].find((result) => result.error)?.error;
     if (coreError) throw coreError;
     categories = categoriesRes.data || [];
@@ -214,21 +213,21 @@
     recommendationsReady = !recommendationsRes.error;
     setupError = recommendationsRes.error?.message || null;
     recommendations = recommendationsRes.data || [];
+    return true;
   }
 
-  async function open(event) {
-    if (opening) return;
-    opening = true;
-    const button = event?.currentTarget || document.querySelector("[data-jhd-home-section-tab]");
-    setTabActive(button);
-    const view = document.getElementById("adminView");
-    if (view) view.innerHTML = '<section class="admin-section"><div class="admin-empty">Cargando recomendaciones…</div></section>';
-    try { await load(); render(); }
-    catch (error) { if (view) view.innerHTML = `<section class="admin-section"><div class="admin-empty">No se pudo cargar este control: ${esc(error?.message || "Error desconocido.")}</div></section>`; }
-    finally { opening = false; }
+  async function mount(view) {
+    if (!view) return;
+    view.innerHTML = '<section class="admin-section" id="adminHomeSectionContent"><div class="admin-empty">Cargando recomendaciones…</div></section>';
+    const section = view.querySelector("#adminHomeSectionContent");
+    mounted = section;
+    try { if (await load(section)) render(); }
+    catch (error) { if (isCurrent(section)) section.innerHTML = `<div class="admin-empty">No se pudo cargar este control: ${esc(error?.message || "Error desconocido.")}</div>`; }
   }
 
   async function addRecommendation() {
+    const owner = mounted;
+    if (!isCurrent(owner)) return;
     const item = targetFor(draft.targetType, draft.targetId);
     if (!item) return setStatus("Primero selecciona una carpeta o un canto de la lista.", true);
     const duplicate = recommendations.some((row) => row.target_type === draft.targetType && String(row.target_id) === String(item.id));
@@ -242,16 +241,19 @@
     try {
       const { error } = await db.from("home_recommendations").insert([{ target_type: draft.targetType, target_id: item.id, section_type: section, sort_order: nextOrder, is_visible: true }]);
       if (error) throw error;
+      if (!isCurrent(owner)) return;
       draft.query = "";
       draft.targetId = "";
-      await load();
+      if (!await load(owner)) return;
       render();
       setStatus("Recomendación agregada correctamente.");
-    } catch (error) { setStatus(`No se pudo agregar: ${error?.message || "Error desconocido."}`, true); }
+    } catch (error) { if (isCurrent(owner)) setStatus(`No se pudo agregar: ${error?.message || "Error desconocido."}`, true); }
     finally { if (button) button.disabled = false; }
   }
 
   async function saveRecommendations() {
+    const owner = mounted;
+    if (!isCurrent(owner)) return;
     const cards = [...document.querySelectorAll("[data-rec-id]")];
     const button = document.getElementById("jhdSaveHomeRecommendations");
     if (button) button.disabled = true;
@@ -271,41 +273,26 @@
       const results = await Promise.all(writes);
       const error = results.find((result) => result.error)?.error;
       if (error) throw error;
-      await load();
+      if (!isCurrent(owner) || !await load(owner)) return;
       render();
       setStatus("Cambios guardados. Inicio ya separará los tipos correctamente.");
-    } catch (error) { setStatus(`No se pudieron guardar: ${error?.message || "Error desconocido."}`, true); }
+    } catch (error) { if (isCurrent(owner)) setStatus(`No se pudieron guardar: ${error?.message || "Error desconocido."}`, true); }
     finally { if (button) button.disabled = false; }
   }
 
   async function deleteRecommendation(id) {
+    const owner = mounted;
+    if (!isCurrent(owner)) return;
     if (!id || !confirm("¿Quitar esta recomendación de Inicio?")) return;
     setStatus("Quitando recomendación…");
     try {
       const { error } = await db.from("home_recommendations").delete().eq("id", id);
       if (error) throw error;
-      await load();
+      if (!isCurrent(owner) || !await load(owner)) return;
       render();
       setStatus("Recomendación quitada.");
-    } catch (error) { setStatus(`No se pudo quitar: ${error?.message || "Error desconocido."}`, true); }
+    } catch (error) { if (isCurrent(owner)) setStatus(`No se pudo quitar: ${error?.message || "Error desconocido."}`, true); }
   }
 
-  function install() {
-    const tabs = document.querySelector("#adminWorkspace .admin-tabs");
-    if (!tabs || tabs.querySelector("[data-jhd-home-section-tab]")) return false;
-    const button = document.createElement("button");
-    button.className = "admin-tab";
-    button.type = "button";
-    button.dataset.jhdHomeSectionTab = "true";
-    button.textContent = "Inicio";
-    button.addEventListener("click", open);
-    tabs.insertBefore(button, tabs.firstElementChild);
-    tabs.querySelectorAll(".admin-tab:not([data-jhd-home-section-tab])").forEach((tab) => tab.addEventListener("click", () => button.classList.remove("active")));
-    return true;
-  }
-
-  const observer = new MutationObserver(install);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true });
-  else install();
+  window.ShalomAdminHome = { mount };
 })();
