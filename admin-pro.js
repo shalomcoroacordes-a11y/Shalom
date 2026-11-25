@@ -9,6 +9,7 @@ const apType = (value) => ({ catolico: "Católico", cristiano: "Cristiano", mixt
 
 const AP = {
   tab: "songs",
+  visualForms: {},
   user: null,
   artists: [],
   categories: [],
@@ -205,6 +206,13 @@ function apRenderShell() {
 function apRenderView() {
   const view = ap$("#adminView");
   if (!view) return;
+  // Replacing the view must preserve an active search field and its selection.
+  const active = document.activeElement;
+  const id = active?.id || "";
+  const searchIds = ["artistFilter", "categoryFilter", "albumFilter", "songFilter", "collaboratorSearch"];
+  const preserveSearch = searchIds.includes(id);
+  const start = preserveSearch && typeof active.selectionStart === "number" ? active.selectionStart : null;
+  const end = preserveSearch && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
   apRememberEditorPosition();
   if (AP.tab === "artists") view.innerHTML = apArtistsHTML();
   if (AP.tab === "categories") view.innerHTML = apCategoriesHTML();
@@ -220,6 +228,17 @@ function apRenderView() {
   if (AP.tab === "donations") apBindDonations();
   if (AP.tab === "medleys") window.ShalomMedleyAdmin?.mount(view, AP.songs);
   if (AP.tab === "repertoires") window.ShalomRepertoireAdmin?.mount(view, AP.songs);
+  // Explicit lifecycle call; the layout module must not replace this renderer.
+  window.ShalomAdminFormLayout?.enhance();
+  if (preserveSearch) {
+    const field = document.getElementById(id);
+    if (field) {
+      field.focus({ preventScroll: true });
+      if (start !== null && end !== null && typeof field.setSelectionRange === "function") {
+        field.setSelectionRange(start, end);
+      }
+    }
+  }
 }
 function apSectionHead(kicker, title, count) { return `<div class="admin-section-heading"><div><p class="hero-kicker">${apEsc(kicker)}</p><h2>${apEsc(title)}</h2></div><p class="admin-count">${apEsc(count)}</p></div>`; }
 function apShowMore(kind, total, shown) { return total > shown ? `<button class="song-btn secondary" type="button" data-show-more="${kind}">Ver más</button>` : ""; }

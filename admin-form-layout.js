@@ -26,7 +26,6 @@
   `;
   if (!document.getElementById(style.id)) document.head.append(style);
 
-  const searchIds = new Set(["artistFilter", "categoryFilter", "albumFilter", "songFilter", "collaboratorSearch"]);
   const formInfo = {
     artists: { form: "#artistAdminForm", copy: "Agregar artista o ministerio" },
     categories: { form: "#categoryAdminForm", copy: "Agregar categoría o carpeta" },
@@ -35,9 +34,6 @@
     donations: { form: "#donationAdminForm", copy: "Actualizar datos de apoyo" }
   };
   const editKey = { artists: "artist", categories: "category", albums: "album", songs: "song", donations: "donation" };
-  const originalRenderView = apRenderView;
-
-  AP.visualForms = AP.visualForms || {};
 
   function enhanceForm() {
     const tab = AP.tab;
@@ -81,21 +77,7 @@
     details.append(summary, form);
   }
 
-  apRenderView = function (...args) {
-    const active = document.activeElement;
-    const id = active?.id || "";
-    const start = typeof active?.selectionStart === "number" ? active.selectionStart : null;
-    const end = typeof active?.selectionEnd === "number" ? active.selectionEnd : null;
-
-    originalRenderView.apply(this, args);
-    enhanceForm();
-
-    if (!searchIds.has(id)) return;
-    const field = document.getElementById(id);
-    if (!field) return;
-    field.focus({ preventScroll: true });
-    if (start !== null && end !== null) field.setSelectionRange(start, end);
-  };
+  window.ShalomAdminFormLayout = { enhance: enhanceForm };
 
   const boot = () => enhanceForm();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();

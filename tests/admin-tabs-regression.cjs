@@ -17,7 +17,11 @@ const workspace={innerHTML:"",contains:true};
 const view={innerHTML:""};
 const state={tab:"songs",user:{email:"admin@example.test"},songs:[]};
 const bound=[];
+const lifecycle=[];
+const focusCalls=[];
+const document={activeElement:null,getElementById(id){return id==="artistFilter"?{focus(options){focusCalls.push(options.preventScroll)},setSelectionRange(start,end){focusCalls.push(start,end)}}:null}};
 const scope={
+ document,
  AP:state,
  ap$:selector=>selector==="#adminWorkspace"?workspace:selector==="#adminView"?view:selector==="#adminLogout"?{addEventListener(){}}:null,
  ap$$:selector=>{
@@ -35,7 +39,7 @@ const scope={
  apBindAlbums:()=>bound.push("albums"),
  apBindSongs:()=>bound.push("songs"),
  apBindDonations:()=>bound.push("donations"),
- window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")}}
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)}}
 };
 vm.createContext(scope);
 vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
@@ -49,4 +53,11 @@ ids.forEach((id,i)=>{
  for(let k=0;k<tabs.length;k++)assert.equal(tabs[k].classList.contains("active"),k===i,"Activo incorrecto al pulsar "+id);
 });
 assert.ok(["artists","categories","albums","songs","donations","medleys"].every(id=>bound.includes(id)),"No todas las pestañas abrieron");
-console.log("SHALOM admin: Artistas, Categorías, Álbumes, Canciones, Popurrís y Donaciones responden.");
+document.activeElement={id:"artistFilter",selectionStart:1,selectionEnd:3};
+tabs[0].click();
+assert.deepEqual(focusCalls,[true,1,3],"Search focus and selection restored by the owner");
+assert.equal(lifecycle.at(-1),"artists","Form layout mounted through explicit lifecycle");
+const layout=fs.readFileSync("admin-form-layout.js","utf8");
+assert.doesNotMatch(layout,/apRenderView\s*=/,"Form module must not replace renderer");
+assert.match(layout,/window\.ShalomAdminFormLayout = \{ enhance: enhanceForm \}/);
+console.log("SHALOM admin: tabs, form lifecycle and search cursor respond.");
