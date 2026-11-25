@@ -85,18 +85,18 @@ function createApi(fetcher,auth){
   const [roles,grants]=await Promise.all([list("admin_roles",owner),list("admin_role_permissions",owner)]);
   return roles.map(role=>({...role,permissions:grants.filter(p=>p.role_id===role.id).map(p=>p.permission)}));
  }
- async function createRole(role){return raw("/rest/v1/rpc/admin_create_role","POST",{p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
- async function changeRole(role){return raw("/rest/v1/rpc/admin_update_role","POST",{p_id:role.id,p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
+ async function createRole(role,owner){return raw("/rest/v1/rpc/admin_create_role","POST",{p_name:role.name,p_description:role.description||"",p_permissions:role.permissions},undefined,owner);}
+ async function changeRole(role,owner){return raw("/rest/v1/rpc/admin_update_role","POST",{p_id:role.id,p_name:role.name,p_description:role.description||"",p_permissions:role.permissions},undefined,owner);}
  async function assignUserRoles(userId,roleIds,owner){return raw("/rest/v1/rpc/admin_assign_user_roles","POST",{p_user_id:userId,p_role_ids:roleIds},undefined,owner);}
  async function setPermissionOverride(userId,permission,allowed,owner){
   return raw("/rest/v1/rpc/admin_set_permission_override","POST",{p_user_id:userId,p_permission:permission,p_allowed:allowed},undefined,owner);
  }
- async function invite(email,roles){
-  return raw("/rest/v1/rpc/admin_invite_user","POST",{p_email:email,p_role_ids:roles});
+ async function invite(email,roles,owner){
+  return raw("/rest/v1/rpc/admin_invite_user","POST",{p_email:email,p_role_ids:roles},undefined,owner);
  }
- async function restoreSong(trashId){return raw("/rest/v1/rpc/admin_restore_song","POST",{p_trash_id:trashId});}
- async function blockUser(id,reason){return raw("/rest/v1/rpc/admin_block_user","POST",{p_user_id:id,p_reason:reason||""});}
- async function unblockUser(id){return raw("/rest/v1/rpc/admin_unblock_user","POST",{p_user_id:id});}
+ async function restoreSong(trashId,owner){return raw("/rest/v1/rpc/admin_restore_song","POST",{p_trash_id:trashId},undefined,owner);}
+ async function blockUser(id,reason,owner){return raw("/rest/v1/rpc/admin_block_user","POST",{p_user_id:id,p_reason:reason||""},undefined,owner);}
+ async function unblockUser(id,owner){return raw("/rest/v1/rpc/admin_unblock_user","POST",{p_user_id:id},undefined,owner);}
  return{raw,list,find,publish,remove,myAccess,redeem,roles,createRole,changeRole,assignUserRoles,setPermissionOverride,invite,restoreSong,blockUser,unblockUser};
 }
 module.exports={createApi};
