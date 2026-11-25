@@ -1,6 +1,7 @@
 (() => {
 "use strict";
 const $=id=>document.getElementById(id), core=window.ShalomStudio, guitar=window.ShalomGuitar;
+const {clampScoreFont,touchDistance,touchCenter,pinchFont,followTarget}=window.ShalomStudioReadingGeometry;
 const arrows={down:"↓",up:"↑",mute:"×",rest:"·"},types=Object.keys(arrows), labKey="shalom.studio.lab.v1";
 let storageKey=labKey,embedded=window.parent!==window,mode="lab",baseRevision=null,initialized=!embedded;
 let practiceRange=null,sequence=null,sequenceTitle="";
@@ -212,13 +213,9 @@ function diagram(chord){
 }
 // Keep the active line within the unobstructed reading area; manual reading remains available.
 let lastFollowedLine=null,followTouchY=null,scoreFont=16,scorePinch=null,pinchConsumed=false;
-function clampScoreFont(value){return Number.isFinite(value)?Math.min(46,Math.max(10,Math.round(value*10)/10)):16;}
-function touchDistance(touches){return Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);}
-function touchCenter(touches){return {x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2};}
 function setScoreFont(value){
  scoreFont=clampScoreFont(value);$("score").style.setProperty("--studio-score-font",scoreFont+"px");$("scoreSize").value=String(Math.round(scoreFont));$("scoreSmaller").disabled=scoreFont<=10;$("scoreLarger").disabled=scoreFont>=46;
 }
-function pinchFont(initial,initialDistance,distance){return initialDistance>0?clampScoreFont(initial*distance/initialDistance):clampScoreFont(initial);}
 function startScorePinch(e){
  const distance=touchDistance(e.touches);if(distance<1)return;
  const center=touchCenter(e.touches),score=$("score"),row=Array.from(score.children).find(r=>{const box=r.getBoundingClientRect();return center.y>=box.top&&center.y<=box.bottom});
@@ -244,11 +241,6 @@ $("scoreLarger").onclick=()=>setScoreFont(scoreFont+1);
 $("scoreReset").onclick=()=>setScoreFont(16);
 setScoreFont(16);
 
-function followTarget(row,viewportBottom){
- const height=Math.max(1,viewportBottom),topLimit=Math.min(56,height*.15),bottomLimit=height*.72;
- if(row.top<topLimit||row.bottom>bottomLimit)return Math.round(row.top-height*.28);
- return 0;
-}
 function syncTransportSpace(){
  if($("player").hidden)return;
  const h=$("transport").getBoundingClientRect().height;
