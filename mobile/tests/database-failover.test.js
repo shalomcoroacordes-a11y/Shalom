@@ -16,8 +16,12 @@ const fakeDb={
  },
  async getAllAsync(sql,table){
   if(failSqlRead)throw Error("SQLite no disponible");
-  return [...records.entries()].filter(([key])=>key.startsWith(table+":"))
-   .sort(([a],[b])=>a.localeCompare(b)).map(([,payload])=>({payload}));
+  assert.match(sql,/UNION ALL/);
+  return [...(meta.has("last_sync")?[{kind:"last_sync",payload:meta.get("last_sync")}]:[]),
+   ...[...records.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([key,payload])=>{
+    const separator=key.indexOf(":");
+    return {kind:"record",table_name:key.slice(0,separator),record_id:key.slice(separator+1),payload};
+   })];
  },
  async withExclusiveTransactionAsync(callback){
   const nextRecords=new Map(records),nextMeta=new Map(meta);
@@ -150,5 +154,14 @@ function sample(songId){
  assert.ok(Date.parse(saved)>Date.parse(next));
  assert.equal((await api.getCatalog()).data.songs[0].id,"s6");
  failFile=false;
- console.log("SHALOM: SQLite, copia local, fallo doble, transacción y preferencias verificados.");
+ // Concurrent commits must finish in call order across both backends.
+ const [a,b]=await Promise.all([api.commitCatalog(sample("s7")),api.commitCatalog(sample("s8"))]);
+ assert.ok(Date.parse(b)>Date.parse(a));assert.equal((await api.getCatalog()).data.songs[0].id,"s8");
+ assert.equal(savedFile.data.songs[0].id,"s8");assert.equal(meta.get("last_sync"),b);
+ const original=records.get(id("songs","s8"));records.set(id("songs","s8"),JSON.stringify({id:"wrong"}));
+ assert.equal((await api.getCatalog()).storage,"archivo-local");
+ records.set(id("songs","s8"),original);
+ await Promise.all([api.setMetadata("profile","one"),api.setMetadata("favorites","two")]);
+ assert.equal(await api.getMetadata("profile"),"one");assert.equal(await api.getMetadata("favorites"),"two");
+ console.log("SHALOM: SQLite, copia local, fallo doble, transacción, lectura coherente y escrituras serializadas verificadas.");
 })().catch(error=>{console.error(error);process.exitCode=1});
