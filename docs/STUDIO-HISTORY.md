@@ -12,7 +12,7 @@ RLS y SELECT explícito para authenticated: se exige songs.publish a través de 
 
 ## Recuperación
 
-Consultar las filas por song_id desde una sesión administrativa autorizada y exportar JSON junto al respaldo externo. La revisión original y el contexto permiten revisar letra y acordes antes de reconstruir un arreglo. No volver a publicar un arreglo antiguo como vigente cambiando simplemente song_revision. Falta integrar la selección y recuperación manual en la interfaz y el respaldo integral versionado; esta fase conserva los datos en el servidor, no es una copia externa completa.
+En Admin web > Respaldo, la opción Descargar historial Studio exporta el historial y los arreglos de servidor visibles para una sesión autorizada con songs.publish, comprobando identidad y permiso antes y después de la lectura. El archivo privado usa el formato SHALOM Studio history v1, separado del importador de catálogo: no publica ni altera datos. La exportación lee tablas por páginas y no constituye una instantánea transaccional; realizarla en una ventana sin publicaciones para obtener una copia consistente. La revisión original y el contexto permiten revisar letra y acordes antes de reconstruir un arreglo. No volver a publicar un arreglo antiguo como vigente cambiando simplemente song_revision. Falta integrar la selección y recuperación manual en Studio y en Android; esta fase conserva y exporta las revisiones sin reactivarlas.
 
 ## Despliegue
 

@@ -27,13 +27,13 @@ const mountStart=backup.indexOf("  function renderBackupView(view)");
 const mountEnd=backup.indexOf("  // The main admin renderer",mountStart);
 assert.ok(mountStart>=0&&mountEnd>mountStart);
 const actions=[];
-const context={backupViewHTML:()=>"<p>Backup</p>",downloadBackup(){},loadTrash(){actions.push("trash")},window:{ShalomAdminBackupImport:{mount(){actions.push("import")}}},document:{getElementById(id){return {addEventListener(event,handler){actions.push(id+":"+event)}}}}};
+const context={backupViewHTML:()=>"<p>Backup</p>",downloadBackup(){},downloadStudioHistory(){},loadTrash(){actions.push("trash")},window:{ShalomAdminBackupImport:{mount(){actions.push("import")}}},document:{getElementById(id){return {addEventListener(event,handler){actions.push(id+":"+event)}}}}};
 vm.createContext(context);
 vm.runInContext(backup.slice(mountStart,mountEnd),context);
 const view={innerHTML:""};
 context.renderBackupView(view);
 assert.equal(view.innerHTML,"<p>Backup</p>");
-assert.deepEqual(actions,["jhdDownloadBackup:click","jhdRefreshTrash:click","import","trash"]);
+assert.deepEqual(actions,["jhdDownloadBackup:click","jhdDownloadStudioHistory:click","jhdRefreshTrash:click","import","trash"]);
 console.log("Backup view: explicit importer mount, controls and trash loading verified without database writes.");
 
 const coreWindow={};
@@ -242,3 +242,28 @@ async function importControllerFlow(){
  console.log("Backup controller: full sequence, preflight failure, intermediate failure, cancellation and legacy compatibility verified.");
 }
 importControllerFlow().catch(error=>{console.error(error);process.exitCode=1});
+
+const historyStart=backup.indexOf("  async function verifyStudioHistoryAccess("),historyEnd=backup.indexOf("  function trashHTML()",historyStart);
+assert.ok(historyStart>=0&&historyEnd>historyStart);
+function historyFixture({denied=false,missing=false,changed=false}={}){
+ const button={disabled:false},status={},downloads=[],calls=[];
+ const user={id:"admin-a"};
+ const ctx={app:()=>({user}),document:{getElementById:id=>id==="jhdDownloadStudioHistory"?button:status},
+  db:{auth:{getUser:async()=>({data:{user:{id:user.id}}})},async rpc(name,args){calls.push(name);assert.equal(args.p_permission,"songs.publish");return {data:!denied}}},
+  selectAll:async table=>{calls.push(table);if(missing)throw Error("Historial no instalado");if(changed)user.id="admin-b";return [{id:table}]},
+  downloadJson:(payload,name)=>downloads.push({payload,name}),filenameDate:()=>"date"};
+ vm.createContext(ctx);vm.runInContext(backup.slice(historyStart,historyEnd),ctx);
+ return{button,status,downloads,calls,run:()=>ctx.downloadStudioHistory()};
+}
+(async()=>{
+ const ok=historyFixture();await ok.run();
+ assert.deepEqual(ok.calls,["admin_has_permission","song_studio_history","song_studio_arrangements","admin_has_permission"]);
+ assert.equal(ok.downloads.length,1);assert.equal(ok.downloads[0].payload.format,"SHALOM Studio history");
+ assert.equal(ok.downloads[0].payload.history.length,1);assert.equal(ok.downloads[0].payload.arrangements.length,1);
+ assert.equal(ok.downloads[0].name,"shalom-studio-historial-date.json");
+ assert.equal(ok.button.disabled,false);
+ for(const options of [{denied:true},{missing:true},{changed:true}]){
+  const f=historyFixture(options);await f.run();assert.equal(f.downloads.length,0);assert.match(f.status.textContent,/No se pudo descargar/);assert.equal(f.button.disabled,false);
+ }
+ console.log("Studio history export: separate recovery format, authorization, session change and missing schema verified.");
+})().catch(error=>{console.error(error);process.exitCode=1});
