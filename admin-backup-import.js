@@ -3,23 +3,8 @@
   window.__jhdAdminBackupImport = true;
 
   const db = window.supabaseClient || window.AdminPro;
-  const { cleanRow: sanitizeRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
+  const { TABLES, FORMAT, VERSION, conflictKey, cleanRow: sanitizeRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   const BATCH_SIZE = 200;
-  const FORMAT = "SHALOM backup";
-  const VERSION = 1;
-  const TABLES = [
-    "artists",
-    "categories",
-    "albums",
-    "songs",
-    "donation_settings",
-    "song_artists",
-    "song_categories",
-    "album_songs",
-    "song_links",
-    "song_capo_versions",
-    "artist_featured_songs"
-  ];
   const LABELS = {
     artists: "artistas",
     categories: "categorías",
@@ -189,7 +174,7 @@
     const cleanRows = rows.map(cleanRow).filter((row) => Object.keys(row).length);
     const orderedRows = table === "categories" ? categoryOrder(cleanRows) : cleanRows;
     for (const group of chunks(orderedRows)) {
-      const result = await db.from(table).upsert(group, { onConflict: "id" });
+      const result = await db.from(table).upsert(group, { onConflict: conflictKey(table) });
       if (result.error) throw new Error(`${LABELS[table] || table}: ${result.error.message}`);
     }
     return orderedRows.length;

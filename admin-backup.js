@@ -4,7 +4,7 @@
 
   const db = window.supabaseClient || window.AdminPro;
   const TRASH_TABLE = "admin_trash";
-  const { cleanRow, missingRelations, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
+  const { TABLES, FORMAT, VERSION, cleanRow, missingRelations, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   let trashRows = [];
   let busy = false;
 
@@ -157,13 +157,13 @@
     if (button) button.disabled = true;
     if (status) status.textContent = "Preparando respaldo del catálogo...";
     try {
-      const tables = ["artists", "categories", "albums", "songs", "song_artists", "song_categories", "album_songs", "song_links", "song_capo_versions", "artist_featured_songs", "donation_settings"];
+
       const catalog = {};
-      for (const table of tables) {
+      for (const table of TABLES) {
         if (status) status.textContent = `Respaldando ${table}...`;
         catalog[table] = await selectAll(table);
       }
-      const payload = { format: "SHALOM backup", version: 1, created_at: new Date().toISOString(), catalog };
+      const payload = { format: FORMAT, version: VERSION, created_at: new Date().toISOString(), catalog };
       downloadJson(payload, `juntos-hacia-dios-respaldo-${filenameDate()}.json`);
       if (status) status.textContent = "Respaldo descargado. Guárdalo en Drive o en otra ubicación segura.";
     } catch (error) {

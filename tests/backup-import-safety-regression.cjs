@@ -156,3 +156,28 @@ assert.match(restoreSql,/select song_id,song_revision,arrangement,updated_at fro
 assert.ok(restoreSql.indexOf("insert into public.song_studio_arrangements")<restoreSql.indexOf("delete from public.admin_trash"));
 assert.match(trashSql,/revoke all on function public.admin_restore_song\(uuid\) from public,anon/);
 console.log("Studio trash SQL contract: snapshot, identity, revision and permission checks; live transaction tests still required.");
+
+// The import, export and safety backup share one schema and preserve old format.
+assert.equal(core.FORMAT,"SHALOM backup");assert.equal(core.VERSION,1);
+assert.ok(Object.isFrozen(core.TABLES));
+assert.equal(core.TABLES.length,11);assert.equal(new Set(core.TABLES).size,11);
+assert.ok(core.TABLES.indexOf("songs")<core.TABLES.indexOf("song_artists"));
+assert.ok(core.TABLES.indexOf("artists")<core.TABLES.indexOf("artist_featured_songs"));
+assert.equal(core.conflictKey("artist_featured_songs"),"artist_id,song_id");
+assert.equal(core.conflictKey("songs"),"id");
+assert.match(backup,/for \(const table of TABLES\)/);
+assert.equal((source.match(/for \(const table of TABLES\)/g)||[]).length,2);
+assert.doesNotMatch(source,/const TABLES = \[/);
+const tableStart=source.indexOf("  async function restoreTable("),tableEnd=source.indexOf("  async function importBackup(",tableStart);
+assert.ok(tableStart>=0&&tableEnd>tableStart);
+async function backupConflictKeys(){
+ const calls=[];
+ const ctx={cleanRow:row=>core.cleanRow(row,true),categoryOrder:rows=>rows,chunks:rows=>[rows],LABELS:{},conflictKey:core.conflictKey,db:{from(table){return {async upsert(rows,opts){calls.push({table,rows,opts});return {error:null}}}}}};
+ vm.createContext(ctx);vm.runInContext(source.slice(tableStart,tableEnd),ctx);
+ assert.equal(await ctx.restoreTable("artist_featured_songs",[{artist_id:"a",song_id:"s",sort_order:1}]),1);
+ assert.equal(calls[0].opts.onConflict,"artist_id,song_id");assert.equal(calls[0].rows[0].song_id,"s");
+ assert.equal(await ctx.restoreTable("songs",[{id:"s",title:"Canto"}]),1);
+ assert.equal(calls[1].opts.onConflict,"id");
+ console.log("Backup schema: one table manifest and correct composite conflict key verified.");
+}
+backupConflictKeys().catch(error=>{console.error(error);process.exitCode=1});

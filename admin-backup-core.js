@@ -1,6 +1,23 @@
 /* Shared backup mechanics. Callers own table order, UI, permissions and recovery policy. */
 (() => {
   const PAGE_SIZE = 500;
+  // Dependency order is used for imports and both kinds of export.
+  const TABLES = Object.freeze([
+    "artists",
+    "categories",
+    "albums",
+    "songs",
+    "donation_settings",
+    "song_artists",
+    "song_categories",
+    "album_songs",
+    "song_links",
+    "song_capo_versions",
+    "artist_featured_songs"
+  ]);
+  const FORMAT = "SHALOM backup";
+  const VERSION = 1;
+  const conflictKey = (table) => table === "artist_featured_songs" ? "artist_id,song_id" : "id";
   const filenameDate = () => new Date().toISOString().replace(/[:.]/g, "-");
   function cleanRow(row, keepId = true) {
     const out = {};
@@ -63,5 +80,5 @@
     URL.revokeObjectURL(url);
   }
 
-  window.ShalomAdminBackupCore = Object.freeze({ cleanRow, missingRelations, selectAll, downloadJson, filenameDate });
+  window.ShalomAdminBackupCore = Object.freeze({ TABLES, FORMAT, VERSION, conflictKey, cleanRow, missingRelations, selectAll, downloadJson, filenameDate });
 })();
