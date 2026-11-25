@@ -98,3 +98,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Intérprete del lector web
 
 `cancion.js` usa exclusivamente `song-chords.js` para interpretar las letras, acordes superiores, acordes entre paréntesis y secciones. El lector conserva su cálculo de transposición y capo; el intérprete compartido valida cada token y recibe una función para transponerlo. Se elimina el analizador alternativo anterior, que no soportaba todos los formatos. Si falta el script canónico, se muestra el texto fuente sin interpretar y un aviso de recarga; no se simula una transposición. `tests/song-reader-chords.cjs` verifica equivalencia de la ruta habitual y el modo degradado. No se cambia el motor nativo ni otros consumidores web.
+
+## Retiro del intérprete histórico y equivalencia musical
+
+`details.js` no tiene consumidores activos y se retira; su historial permanece en Git. El lector web utiliza `song-chords.js`, mientras las aplicaciones conservan las salidas generadas desde `native-chords.js`. `tests/chord-engine-parity.cjs` convierte el HTML web a filas semánticas y compara con el motor nativo para 20 ejemplos y 25 desplazamientos, incluidos espacios, secciones, acordes con bajo, formato mixto y caracteres HTML. Esta prueba comprueba equivalencia en las muestras, no una fusión de motores ni medición visual. También rechaza referencias al módulo retirado en archivos de código y configuración versionados.
