@@ -192,6 +192,11 @@ jobs:
       - name: Verify legacy admin cleanup and active dependencies
         run: node tests/legacy-admin-cleanup-regression.cjs
 
+      - name: Verify reproducible public CSS bundles
+        run: |
+          node scripts/build-public-css-bundles.cjs --check
+          node tests/public-css-generation.cjs
+
       - name: Verify informational page CSS equivalence
         run: node tests/public-info-bundle-regression.cjs
 
