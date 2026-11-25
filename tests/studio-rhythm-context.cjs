@@ -17,3 +17,18 @@ assert.deepEqual(C.compile(a,codec.decode(a,codec.encode(a,wide))),after);
 const narrower=C.redivide(wide,2);assert.deepEqual(C.compile(a,narrower),before);
 assert.throws(()=>C.redivide(cfg,3),/cuadrícula/);
 console.log("Ubicación de letra, acordes sostenidos y cambio de cuadrícula sin perder eventos comprobados.");
+
+const presetConfig={meter:"4/4",division:2};
+assert.deepEqual(C.presetHits(presetConfig,"worship").map(h=>h.hit),["down","rest","down","up","rest","down","rest","up"]);
+assert.deepEqual(C.presetHits(presetConfig,"all").map(h=>h.hit),["down","up","down","up","down","up","down","up"]);
+assert.deepEqual(C.presetHits({meter:"6/8",division:3},"basic").map(h=>h.hit),["down","rest","rest","down","rest","rest"]);
+assert.throws(()=>C.presetHits({meter:"3/4",division:2},"worship"),/Alabanza requiere/);
+assert.deepEqual(C.decodeRhythmCode(presetConfig,"D r d u R d m U"),[{hit:"down",accent:true},{hit:"rest",accent:false},{hit:"down",accent:false},{hit:"up",accent:false},{hit:"rest",accent:true},{hit:"down",accent:false},{hit:"mute",accent:false},{hit:"up",accent:true}]);
+assert.throws(()=>C.decodeRhythmCode(presetConfig,"du"),/8 posiciones/);
+assert.throws(()=>C.decodeRhythmCode(presetConfig,"dudududx"),/8 posiciones/);
+const firstPreset=C.presetHits(presetConfig,"basic");firstPreset[0].hit="mute";
+assert.equal(C.presetHits(presetConfig,"basic")[0].hit,"down");
+const source=require("node:fs").readFileSync("studio-lab.js","utf8");
+assert.doesNotMatch(source,/function presetHits\(/);
+assert.match(source,/core\.decodeRhythmCode\(config,code\.value\)/);
+console.log("Rhythm presets and imported accents: pure core and independent arrays verified.");

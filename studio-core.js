@@ -142,6 +142,17 @@
     if(p?.hits)return {...p.hits[offset%p.hits.length]};
     const base=config.patterns.filter(r=>r.start<=start+offset).at(-1);return {...base.hits[(start+offset-base.start)%base.hits.length]};
   }
+  function presetHits(config,name){
+   const m=resolution(config.meter,config.division),n=m.beats*m.division,w=["down","rest","down","up","rest","down","rest","up"];
+   if(name==="worship"&&n!==8)throw Error("Alabanza requiere 4/4 con dos posiciones por pulso.");
+   return Array.from({length:n},(_,i)=>({hit:name==="empty"?"rest":name==="ring"?i===0?"down":"rest":name==="all"?i%2?"up":"down":name==="worship"?w[i]:i%m.division===0?"down":"rest",accent:i===0}));
+  }
+  function decodeRhythmCode(config,code){
+    const m=resolution(config.meter,config.division),n=m.beats*m.division,v=code.replace(/\s+/g,"");
+    if(v.length!==n||!/^[durmDURM]+$/.test(v))throw Error("El código debe tener "+n+" posiciones (d/u/m/r).");
+    const decode={d:"down",u:"up",m:"mute",r:"rest"};
+    return [...v].map(x=>({hit:decode[x.toLowerCase()],accent:x!==x.toLowerCase()}));
+  }
   function sectionBarHits(config,g,bar){
     const m=resolution(config.meter,config.division),n=m.beats*m.division;return Array.from({length:n},(_,i)=>sectionHit(config,g,(bar-1)*n+i));
   }
@@ -233,5 +244,5 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,isolateSections,sectionHit,sectionBarHits,applySectionPattern,copySection,barContext,redivide});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
