@@ -59,3 +59,7 @@ Consultar `AGENTS.md` antes de cada tarea. Los nombres históricos no prueban qu
 `Respaldo` pertenece a las pestañas de `apRenderShell`; `apRenderView` llama `ShalomAdminBackup.mount(view)`, y la vista de respaldo llama `ShalomAdminBackupImport.mount()` después de crear su contenido. No se necesitan observadores de página ni reemplazar el renderizador para estas vistas. La protección de eliminación existente sigue separada; no modificar su lógica sin pruebas específicas de recuperación.
 
 Los estilos de formularios, navegación, respaldo, papelera e importación de Admin pertenecen a `admin-pro.css`. Sus módulos JS no crean etiquetas `style`; los cambios de presentación se hacen en los selectores responsables. Se mantiene el orden relativo de los bloques extraídos tras los estilos base y móviles. No se considera equivalente visualmente hasta comprobar el navegador en escritorio y móvil.
+
+### SHALOM Studio
+
+`studio-save-state.js` decide el estado visual de guardado y publicación mediante una función pura. `studio-lab.js` renderiza el resultado y conserva la coordinación de persistencia, confirmaciones y transporte. `studio-core.js` conserva la lógica musical, y `studio-codec.js` la serialización. Los bundles de `mobile/` y `admin-mobile/` se generan desde las fuentes web con `node scripts/build-studio-native.js`; nunca editarlos a mano. Public quality comprueba que ambos sean idénticos y reproducibles, sin necesidad de red durante el uso de Studio.
