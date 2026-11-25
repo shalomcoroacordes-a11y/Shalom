@@ -29,6 +29,9 @@ jobs:
       - name: Test home search source rendering
         run: node tests/home-search-render-regression.cjs
 
+      - name: Test shared public menu
+        run: node tests/web-menu.test.cjs
+
       - name: Check JavaScript syntax
         shell: bash
         run: |

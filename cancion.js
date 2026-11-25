@@ -35,19 +35,7 @@ const capoOffset = (position, capoKey) => {
   return -Number(position || 0);
 };
 
-function initNavigation() {
-  const menuButton = $("#menuToggle");
-  const menu = $("#navMenu");
-  menuButton?.setAttribute("aria-expanded", "false");
-  menuButton?.addEventListener("click", () => {
-    const open = Boolean(menu?.classList.toggle("open"));
-    menuButton.setAttribute("aria-expanded", String(open));
-  });
-  document.querySelectorAll("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    menuButton?.setAttribute("aria-expanded", "false");
-  }));
-}
+
 
 function setSongError(message) {
   $("#songTitle").textContent = "No se pudo cargar";
@@ -484,5 +472,5 @@ async function loadSong() {
   renderSong(data, relations);
 }
 
-initNavigation();
+window.ShalomWebMenu.mount();
 loadSong();

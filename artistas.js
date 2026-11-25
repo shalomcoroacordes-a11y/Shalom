@@ -20,19 +20,7 @@ const biography = (person) => cleanDescription(person?.bio || person?.descriptio
 const initials = (value) => String(value || "JHD").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
 const countLabel = (count) => `${count} ${count === 1 ? "canto" : "cantos"}`;
 
-function nav() {
-  const button = document.querySelector("#menuToggle");
-  const menu = document.querySelector("#navMenu");
-  button?.setAttribute("aria-expanded", "false");
-  button?.addEventListener("click", () => {
-    const open = Boolean(menu?.classList.toggle("open"));
-    button.setAttribute("aria-expanded", String(open));
-  });
-  document.querySelectorAll("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    button?.setAttribute("aria-expanded", "false");
-  }));
-}
+
 
 function artistGroup(person) {
   const type = norm(person.artist_type || person.type);
@@ -193,5 +181,5 @@ input?.addEventListener("input", () => {
   searchTimer = setTimeout(() => fetchArtists(false), 260);
 });
 
-nav();
+window.ShalomWebMenu.mount();
 start();
