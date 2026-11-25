@@ -1,0 +1,30 @@
+{
+  "mode": "strict",
+  "minLines": 8,
+  "minTokens": 80,
+  "format": [
+    "javascript",
+    "css"
+  ],
+  "reporters": [
+    "console",
+    "json"
+  ],
+  "ignore": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/scripts/**",
+    "**/docs/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/android/**",
+    "**/ios/**",
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "**/studio-bundle.js"
+  ]
+}
