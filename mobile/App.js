@@ -8,6 +8,7 @@ const NetInfo=require("@react-native-community/netinfo").default;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const {getCatalog,setMetadata,getMetadataBatch,setMetadataBatch}=require("./src/database");
 const {syncAll,networkState}=require("./src/sync");
+const {createSyncController}=require("./src/sync-controller");
 const {parseSong,transposeOne}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {clampReaderFont}=require("./src/score-zoom");
@@ -131,8 +132,6 @@ function AppScreen() {
  const [requestName,setRequestName]=useState("");
  const [requestEmail,setRequestEmail]=useState("");
  const [sending,setSending]=useState(false);
- const inFlight=useRef(false),prefRef=useRef(true),lastRef=useRef(null);
- const autoRetryRef=useRef({lastAttempt:0,failures:0});
  const previousTabRef=useRef("Inicio");
  const detailHistoryRef=useRef([]);
  const tabHistoryRef=useRef([]);
@@ -218,66 +217,29 @@ function AppScreen() {
   setTab("Solicitar");
   setDetail(null);
  }
- const updateNetwork=useCallback(async()=>{
-  try {const n=await networkState();setNetwork(n);return n}
-  catch(_){return {online:false,wifi:false}}
- },[]);
- const sync=useCallback(async(manual=false)=>{
-  if(inFlight.current)return;
-  if(!manual)autoRetryRef.current.lastAttempt=Date.now();
-  inFlight.current=true;setBusy(true);setError("");setProgress("Comprobando conexión…");
-  try{
-   const result=await syncAll({wifiOnly:prefRef.current,manual,onProgress:p=>
-    setProgress("Descargando "+p.index+"/"+p.total+" · "+p.table.replace(/_/g," "))});
-   if(result.skipped){setProgress(result.reason);return}
-   const saved=await getCatalog();
-   lastRef.current=saved.syncedAt;autoRetryRef.current.failures=0;setCopy(saved);
-   setProgress(saved.data.songs.length+" cantos y sus carpetas guardados en el teléfono.");
-  }catch(e){
-   if(!manual)autoRetryRef.current.failures=Math.min(autoRetryRef.current.failures+1,5);
-   setError(e.message||"No se pudo descargar el cancionero.");
-   setProgress("Si había una copia anterior, se conserva.");
-  }finally{inFlight.current=false;setBusy(false)}
- },[]);
- const tryAuto=useCallback(async()=>{
-  if(inFlight.current)return;
-  const retry=autoRetryRef.current;
-  if(retry.failures && Date.now()-retry.lastAttempt<20*60*1000*Math.pow(2,retry.failures))return;
-  if(lastRef.current && Date.now()-new Date(lastRef.current).valueOf()<20*60*1000)return;
-  const n=await networkState().catch(()=>({online:false,wifi:false}));
-  if(n.online&&(!prefRef.current||n.wifi))await sync(false);
- },[sync]);
- async function manualSync(){
-  const n=await updateNetwork();
-  if(!n.online)return Alert.alert("Sin internet","Puedes seguir leyendo los cantos que ya descargaste.");
-  if(prefRef.current&&!n.wifi){
-   return Alert.alert("No se detecta Wi-Fi","¿Deseas actualizar utilizando esta conexión?",[
-    {text:"Cancelar",style:"cancel"},{text:"Descargar",onPress:()=>sync(true)}]);
-  }
-  await sync(true);
- }
- async function changeWifi(enabled) {
-  prefRef.current=enabled;setWifiOnly(enabled);
-  try{await setMetadata("wifi_only",enabled?"true":"false")}
-  catch(e){setError("No fue posible guardar la preferencia: "+e.message)}
- }
+ const syncControllerRef=useRef(null);
+ if(!syncControllerRef.current)syncControllerRef.current=createSyncController({
+  syncAll,getCatalog,networkState,writePreference:setMetadata,setNetwork,setWifiOnly,setBusy,setError,setProgress,setCopy,
+  alert:(...args)=>Alert.alert(...args)
+ });
+ const {initialize,updateNetwork,sync,tryAuto,manualSync,changeWifi}=syncControllerRef.current;
  useEffect(()=>{
   let enabled=true;
   (async()=>{
    try{
     const [snapshot,n,prefs]=await Promise.all([
-     getCatalog(),networkState(),getMetadataBatch({wifi_only:"true",last_read:"",[FAVORITES_KEY]:"[]",[PERSONAL_KEY]:"",[PROFILE_KEY]:""})
+     getCatalog(),networkState().catch(()=>({online:false,wifi:false})),getMetadataBatch({wifi_only:"true",last_read:"",[FAVORITES_KEY]:"[]",[PERSONAL_KEY]:"",[PROFILE_KEY]:""})
     ]);
     const pref=prefs.wifi_only,last=prefs.last_read,likedRaw=prefs[FAVORITES_KEY],personalRaw=prefs[PERSONAL_KEY],profileRaw=prefs[PROFILE_KEY];
     if(!enabled)return;
-    lastRef.current=snapshot.syncedAt;prefRef.current=pref!=="false";
+    initialize(snapshot,pref!=="false");
     setCopy(snapshot);setWifiOnly(pref!=="false");setNetwork(n);
     likedRef.current=parseFavorites(likedRaw);setLikedIds(likedRef.current);
     const savedPersonal=parseStore(personalRaw),savedProfile=parseProfile(profileRaw);
     personalRef.current=savedPersonal;profileRef.current=savedProfile;
     setPersonal(savedPersonal);setProfile(savedProfile);
     if(last){try{setLastRead(JSON.parse(last))}catch(_){}}setLoaded(true);
-    if(!snapshot.syncedAt && n.online && n.wifi) sync(false);
+    if(n.online)tryAuto();
    }catch(e){if(enabled){setLoaded(true);setError("No se pudo abrir la biblioteca local: "+e.message)}}
   })();
   const unsubscribe=NetInfo.addEventListener(s=>{
@@ -290,7 +252,7 @@ function AppScreen() {
    if(state==="active") {updateNetwork();tryAuto();}
   });
   return()=>{enabled=false;unsubscribe();listener.remove()};
- },[tryAuto,updateNetwork]);
+ },[initialize,tryAuto,updateNetwork]);
  async function submitRequest(){
   if(sending)return;
   const n=await updateNetwork();
