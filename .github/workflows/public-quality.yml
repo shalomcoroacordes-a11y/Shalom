@@ -71,6 +71,9 @@ jobs:
       - name: Test category parent hierarchy validation
         run: node tests/category-hierarchy-regression.cjs
 
+      - name: Test shared Admin category tree operations
+        run: node tests/admin-category-hierarchy.cjs
+
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 

@@ -85,26 +85,10 @@ function apCaptureSongDraft() {
 }
 function apDraftValue(key) { return AP.draft?.[key] ?? ""; }
 function apCategoryPath(item) {
-  const parts = [];
-  let current = item;
-  const seen = new Set();
-  while (current && !seen.has(apId(current.id))) {
-    seen.add(apId(current.id));
-    parts.unshift(current.name || "Categoría");
-    current = AP.categories.find((row) => apId(row.id) === apId(current.parent_id));
-  }
-  return parts.join(" › ");
+  return window.ShalomAdminCategoryHierarchy.path(AP.categories, item).map(row => row.name || "Categoría").join(" › ");
 }
 function apCategoryDescendants(id) {
-  const out = new Set([apId(id)]);
-  let added = true;
-  while (added) {
-    added = false;
-    AP.categories.forEach((row) => {
-      if (out.has(apId(row.parent_id)) && !out.has(apId(row.id))) { out.add(apId(row.id)); added = true; }
-    });
-  }
-  return out;
+  return window.ShalomAdminCategoryHierarchy.descendants(AP.categories, id);
 }
 function apFlatCategories() { return apSortRows(AP.categories, apCategoryPath); }
 function apSongArtists(song) { return (song._artists || []).map((row) => row.name).filter(Boolean).join(" · ") || "Sin artista"; }
