@@ -2,7 +2,7 @@
 const React=require("react");
 const {useState,useEffect,useRef}=React;
 const RN=require("react-native");
-const {View,Text,Pressable,ScrollView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
+const {View,Pressable,ScrollView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
@@ -11,7 +11,6 @@ const {S,C}=require("./src/styles");
 const {TITLES}=require("./src/model");
 const {createEditorController}=require("./src/editor-controller");
 const {effective,mapped}=require("./src/permissions");
-const {TABLES}=require("./src/config");
 const {txt,button,input,wrapChips}=require("./src/components/Controls");
 const UsersScreen=require("./src/screens/UsersScreen");
 const EditorScreen=require("./src/screens/EditorScreen");
