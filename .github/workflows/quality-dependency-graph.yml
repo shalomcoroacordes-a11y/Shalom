@@ -1,0 +1,52 @@
+name: SHALOM dependency architecture
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-graph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify graph report and architecture rules
+        run: node tests/dependency-graph.test.cjs
+      - name: Verify analyzer detects deliberate violations
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe="$(mktemp -d "$RUNNER_TEMP/shalom-dep-probe.XXXXXX")"
+          mkdir -p "$probe/mobile/src" "$probe/admin-mobile/src" "$probe/tests"
+          printf '%s\n' 'require("./b"); require("../../admin-mobile/src/c"); require("../../tests/probe");' > "$probe/mobile/src/a.js"
+          printf '%s\n' 'require("./a");' > "$probe/mobile/src/b.js"
+          printf '%s\n' 'require("../../mobile/src/b");' > "$probe/admin-mobile/src/c.js"
+          printf '%s\n' 'module.exports = {};' > "$probe/tests/probe.js"
+          (cd "$probe" && npm exec --yes --package=dependency-cruiser@17.0.0 -- depcruise --config "$GITHUB_WORKSPACE/.dependency-cruiser.cjs" --output-type json mobile/src admin-mobile/src) > "$probe/graph.json"
+          node -e 'const r=require(process.argv[1]);const rules=new Set(r.summary.violations.map(v=>v.rule.name));for(const name of ["no-local-cycles","public-app-does-not-import-admin","admin-app-does-not-import-public","production-does-not-import-tests"])if(!rules.has(name))throw Error("Missing rule: "+name)' "$probe/graph.json"
+      - name: Analyze production dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/shalom-dependency-graph"
+          mkdir -p "$report"
+          npm exec --yes --package=dependency-cruiser@17.0.0 -- depcruise --config .dependency-cruiser.cjs --output-type json ./*.js mobile/App.js mobile/src admin-mobile/App.js admin-mobile/src > "$report/graph.json"
+          node scripts/summarize_dependency_graph.cjs "$report/graph.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Retain dependency graph
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shalom-dependency-graph
+          path: ${{ runner.temp }}/shalom-dependency-graph/
+          retention-days: 14
+          if-no-files-found: warn
