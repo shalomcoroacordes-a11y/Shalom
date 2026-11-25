@@ -1,0 +1,9 @@
+id: review-render-reassignment
+valid:
+  - "function apRenderView() { return renderPage(); }"
+  - "window.ShalomAdminFormLayout = { enhance };"
+  - "const render = () => draw();"
+invalid:
+  - "apRenderView = () => draw();"
+  - "window.apRenderView = function () { oldRender(); };"
+  - "window.renderSongs = renderWrapper;"

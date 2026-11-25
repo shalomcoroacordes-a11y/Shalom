@@ -1,0 +1,8 @@
+id: review-dom-observer
+valid:
+  - "const observer = new IntersectionObserver(callback);"
+  - "renderSong();"
+  - "const observer = createObserver(callback);"
+invalid:
+  - "const observer = new MutationObserver(() => updateCards());"
+  - "new MutationObserver(callback);"

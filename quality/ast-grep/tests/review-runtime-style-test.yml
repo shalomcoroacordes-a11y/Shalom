@@ -1,0 +1,8 @@
+id: review-runtime-style
+valid:
+  - "document.createElement('div');"
+  - "element.classList.add('selected');"
+  - "const style = { color: 'green' };"
+invalid:
+  - "const style = document.createElement('style');"
+  - "document.createElement(\"style\");"
