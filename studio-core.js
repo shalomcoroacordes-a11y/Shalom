@@ -385,5 +385,26 @@
     }
     return result;
   }
-  return Object.freeze({upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Canonical anchors are ordered by lyric row and column. Preserve first ID
+  // lookup and the exact number of preceding columns, even for unsorted fixtures.
+  function indexAnchors(anchors){
+    const byLine=new Map(),index=new Map(),ordinals=new Array(anchors.length);
+    anchors.forEach((anchor,i)=>{
+      if(!byLine.has(anchor.line))byLine.set(anchor.line,[]);
+      byLine.get(anchor.line).push(i);
+    });
+    for(const indices of byLine.values()){
+      indices.sort((a,b)=>anchors[a].column-anchors[b].column);
+      let rank=0;
+      indices.forEach((i,j)=>{
+        if(j&&anchors[i].column!==anchors[indices[j-1]].column)rank=j;
+        ordinals[i]=rank;
+      });
+    }
+    anchors.forEach((anchor,i)=>{
+      if(!index.has(anchor.id))index.set(anchor.id,{anchor,index:i,ordinal:ordinals[i]});
+    });
+    return index;
+  }
+  return Object.freeze({indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
