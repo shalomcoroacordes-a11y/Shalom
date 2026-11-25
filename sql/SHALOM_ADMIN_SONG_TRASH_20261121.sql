@@ -41,7 +41,7 @@ $$;
 -- the complete endpoint explicitly and never fall back to the old deployment.
 create or replace function public.admin_delete_song(p_song_id uuid)
 returns boolean language sql security invoker set search_path=''
-as $ select public.admin_delete_song_complete(p_song_id); $;
+as $delegate$ select public.admin_delete_song_complete(p_song_id); $delegate$;
 
 create or replace function public.admin_restore_song(p_trash_id uuid)
 returns boolean language plpgsql security definer set search_path=''

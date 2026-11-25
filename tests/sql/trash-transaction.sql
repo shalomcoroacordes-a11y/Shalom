@@ -25,9 +25,9 @@ create table public.admin_trash(id uuid primary key default gen_random_uuid(),it
 create table public.admin_audit_log(actor_id uuid,subject_id uuid,action text);
 \ir ../../sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql
 
-do $begin
+do $grants$begin
  if has_function_privilege('anon','public.admin_delete_song_complete(uuid)','EXECUTE') or not has_function_privilege('authenticated','public.admin_delete_song_complete(uuid)','EXECUTE') then raise exception 'complete RPC grants incorrect';end if;
-end$;
+end$grants$;
 begin;
 select set_config('test.actor','00000000-0000-4000-8000-000000000001',true);
 select set_config('test.can_delete','yes',true);
