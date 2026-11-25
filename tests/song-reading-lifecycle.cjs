@@ -1,0 +1,36 @@
+const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
+const preferences=fs.readFileSync("song-preferences.js","utf8"),mode=fs.readFileSync("song-reading-mode.js","utf8"),reader=fs.readFileSync("cancion.js","utf8"),html=fs.readFileSync("cancion.html","utf8");
+assert.doesNotMatch(preferences+mode,/MutationObserver/);
+assert.doesNotMatch(preferences,/trigger\?\.click\(\)/);
+for(const name of ["song-preferences","song-reading-mode"])assert.ok(html.indexOf('src="'+name+'.js')<html.indexOf('src="cancion.js'));
+assert.match(reader,/transpose = window\.ShalomSongPreferences\?\.readTranspose\(\) \?\? 0/);
+assert.match(reader,/window\.ShalomSongPreferences\?\.saveTranspose\(transpose\)/);
+assert.match(reader,/renderChordLyrics\(\);\s*window\.ShalomSongPreferences\?\.mount\(\);\s*window\.ShalomSongReadingMode\?\.mount\(\);/);
+const nodes=new Map(),stored=new Map([["jhd-song-reader-preferences-v1",'{"fontScale":1.16,"hideChords":true}'],["jhd-song-transpose-v1:a","-3"]]),classes=new Set(),styles=new Map(),events=new Map(),frames=[];
+function element(tag){
+ const listeners=new Map();
+ return {tag,children:[],attributes:{},textContent:"",style:{setProperty:(k,v)=>styles.set(k,v)},classList:{contains:k=>classes.has(k),toggle(k,on){if(on)classes.add(k);else classes.delete(k);return on},remove:k=>classes.delete(k)},setAttribute(k,v){this.attributes[k]=v},addEventListener(k,v){if(!listeners.has(k))listeners.set(k,[]);listeners.get(k).push(v)},click(){for(const fn of listeners.get("click")||[])fn({currentTarget:this})},append(...items){for(const item of items){item.parentElement=this;this.children.push(item);if(item.id)nodes.set(item.id,item)}},insertBefore(item){this.append(item)},querySelector(q){return nodes.get(q.replace(/^#/,""))||null},set innerHTML(value){this.markup=value;for(const m of value.matchAll(/id="([^"]+)"/g)){const child=element("div");child.id=m[1];this.append(child)}},get innerHTML(){return this.markup||""}};
+}
+const toolbar=element("aside"),lyrics=element("div");toolbar.id="songReaderToolbar";lyrics.id="songLyrics";
+nodes.set(toolbar.id,toolbar);nodes.set(lyrics.id,lyrics);
+const document={getElementById:id=>nodes.get(id)||null,querySelector:q=>nodes.get(q.replace(/^#/,""))||null,createElement:element,documentElement:element("html"),body:element("body")};
+let printed=0;
+const window={addEventListener:(k,v)=>events.set(k,v),matchMedia:()=>({matches:false}),print(){printed++}};
+const localStorage={getItem:k=>stored.get(k)??null,setItem:(k,v)=>stored.set(k,v)};
+const context={window,document,location:{search:"?id=a",pathname:"/cancion.html"},localStorage,URLSearchParams,requestAnimationFrame:fn=>{frames.push(fn);return frames.length},clearTimeout(){},setTimeout(){}};
+vm.runInNewContext(preferences,context);vm.runInNewContext(mode,context);
+const p=window.ShalomSongPreferences,m=window.ShalomSongReadingMode;
+assert.equal(nodes.has("songReaderPreferences"),false);assert.equal(nodes.has("songReaderActions"),false);
+assert.equal(p.readTranspose(),-3);p.saveTranspose(17);assert.equal(p.readTranspose(),11);p.saveTranspose(-19);assert.equal(p.readTranspose(),-11);p.saveTranspose(0);assert.equal(p.readTranspose(),0);
+assert.equal(p.mount(),true);assert.equal(styles.get("--jhd-lyrics-scale"),"1.16");assert.equal(classes.has("song-hide-chords"),true);
+nodes.get("songFontIncrease").click();assert.equal(styles.get("--jhd-lyrics-scale"),"1.24");
+nodes.get("songFontDecrease").click();assert.equal(styles.get("--jhd-lyrics-scale"),"1.16");
+nodes.get("songChordVisibility").click();assert.equal(classes.has("song-hide-chords"),false);assert.equal(JSON.parse(stored.get("jhd-song-reader-preferences-v1")).hideChords,false);
+const preferenceNode=nodes.get("songReaderPreferences");p.mount();assert.equal(nodes.get("songReaderPreferences"),preferenceNode);
+assert.equal(m.mount(),true);const actions=nodes.get("songReaderActions");assert.ok(actions);assert.ok(nodes.get("songReadingProgress"));assert.ok(nodes.get("songReadingTop"));
+m.mount();assert.equal(nodes.get("songReaderActions"),actions);
+nodes.get("songPrint").click();assert.equal(printed,1);
+nodes.get("songReadingMode").click();assert.equal(classes.has("song-reading-mode"),true);
+nodes.get("songReadingMode").click();assert.equal(classes.has("song-reading-mode"),false);
+assert.ok(events.has("resize"));assert.ok(events.has("scroll"));
+console.log("Reader lifecycle: explicit mounts, persisted preferences, direct transpose state, idempotence, reading mode and print verified.");

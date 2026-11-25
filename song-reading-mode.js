@@ -266,11 +266,11 @@
     requestProgressUpdate();
   }, { passive: true });
 
-  const observer = new MutationObserver(() => {
-    install();
-    if (document.body.classList.contains("song-reading-mode") && isMobile()) moveSettingsToSheet();
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-
-  install();
+  window.ShalomSongReadingMode = {
+    mount() {
+      if (!install()) return false;
+      if (document.body.classList.contains("song-reading-mode") && isMobile()) moveSettingsToSheet();
+      return true;
+    }
+  };
 })();
