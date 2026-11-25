@@ -167,6 +167,9 @@ jobs:
       - name: Test explicit artist search lifecycle
         run: node tests/admin-artist-search-lifecycle.cjs
 
+      - name: Test explicit artist profile lifecycle
+        run: node tests/admin-artist-profile-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

@@ -65,7 +65,7 @@ const extractedStyles=[
     "file": "admin-artist-profile-storage.js",
     "marker": "/* ===== Admin artist profile storage ===== */",
     "hash": 2092721125,
-    "version": 2
+    "version": 3
   }
 ];
 for(const item of extractedStyles){
