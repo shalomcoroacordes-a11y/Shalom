@@ -10,8 +10,8 @@ const SHALOM_SOURCE = String(SUPABASE_URL).match(/^https:\/\/([a-z0-9]+)\.supaba
 function fileFor(slot) {
   return new File(Paths.document, "shalom-offline-" + slot + ".json");
 }
-function prefsFile() {
-  return new File(Paths.document, "shalom-offline-preferences.json");
+function prefsFile(slot = "") {
+  return new File(Paths.document, "shalom-offline-preferences" + (slot ? "-" + slot : "") + ".json");
 }
 function emptyData() {
   return Object.fromEntries(TABLES.map(table => [table, []]));
@@ -72,7 +72,13 @@ async function readSnapshot() {
   };
 }
 
-async function saveSnapshot(data, lastSqlSync = null) {
+let snapshotWrites = Promise.resolve();
+function saveSnapshot(data, lastSqlSync = null) {
+  const task = snapshotWrites.then(() => writeSnapshot(data, lastSqlSync));
+  snapshotWrites = task.catch(() => {});
+  return task;
+}
+async function writeSnapshot(data, lastSqlSync = null) {
   if (!data || !TABLES.every(table => Array.isArray(data[table]))) {
     throw new Error("El cancionero recibido está incompleto.");
   }
@@ -112,21 +118,59 @@ async function saveSnapshot(data, lastSqlSync = null) {
   }
 }
 
-async function getPreference(key, fallback = null) {
+// Preferences use their own alternating verified files; old installations
+// still read the original flat JSON as the initial baseline.
+function validPreferences(data) {
+  return data && typeof data === "object" && !Array.isArray(data) &&
+    Object.values(data).every(value => typeof value === "string");
+}
+async function readPreferences(slot) {
   try {
-    const file = prefsFile();
-    if (!file.exists) return fallback;
-    const value = JSON.parse(await file.text());
-    return Object.hasOwn(value, key) ? String(value[key]) : fallback;
-  } catch (_) { return fallback; }
+    const file = prefsFile(slot);
+    if (!file.exists) return null;
+    const record = JSON.parse(await file.text());
+    if (!validPreferences(record.data) || !Number.isSafeInteger(record.revision) ||
+        record.revision < 1 || record.checksum !== snapshotChecksum(record.data)) return null;
+    return { ...record, slot };
+  } catch (_) { return null; }
 }
-async function setPreference(key, value) {
-  const file = prefsFile();
-  let prefs = {};
-  try { if (file.exists) prefs = JSON.parse(await file.text()) || {}; } catch (_) { prefs = {}; }
-  prefs[key] = String(value);
-  file.create({ overwrite: true });
-  await file.write(JSON.stringify(prefs));
+async function latestPreferences() {
+  const [a,b] = await Promise.all([readPreferences("A"),readPreferences("B")]);
+  if (a || b) return !a ? b : !b ? a : a.revision >= b.revision ? a : b;
+  try {
+    const legacy = prefsFile();
+    if (legacy.exists) {
+      const data = JSON.parse(await legacy.text());
+      if (validPreferences(data)) return { data, revision: 0 };
+    }
+  } catch (_) {}
+  return { data: {}, revision: 0 };
 }
-
+async function getPreference(key, fallback = null) {
+  const {data} = await latestPreferences();
+  return Object.hasOwn(data,key) ? data[key] : fallback;
+}
+let preferenceWrites = Promise.resolve();
+function setPreference(key, value) {
+  const task = preferenceWrites.then(() => writePreference(key,value));
+  preferenceWrites = task.catch(() => {});
+  return task;
+}
+async function writePreference(key,value) {
+  const previous = await latestPreferences();
+  const data = { ...previous.data, [key]: String(value) };
+  const slot = previous.slot === "A" ? "B" : "A";
+  const file = prefsFile(slot);
+  const record = { data, revision: previous.revision + 1, checksum: snapshotChecksum(data) };
+  try {
+    file.create({ overwrite: true });
+    await file.write(JSON.stringify(record));
+    const verified = await readPreferences(slot);
+    if (!verified || verified.revision !== record.revision ||
+        JSON.stringify(verified.data) !== JSON.stringify(data)) throw Error("No se pudo verificar la preferencia guardada.");
+  } catch (error) {
+    try { if (file.exists) file.delete(); } catch (_) {}
+    throw error;
+  }
+}
 module.exports = { readSnapshot, saveSnapshot, getPreference, setPreference, validSnapshot };

@@ -102,5 +102,27 @@ const key=name=>"shalom-offline-"+name+".json";
  const storedAt=await storage.saveSnapshot(newest,futureSql);
  assert.ok(Date.parse(storedAt)>Date.parse(futureSql));
  assert.equal((await storage.readSnapshot()).data.songs[0].id,"after-sql");
- console.log("SHALOM Android: doble respaldo, recuperación, integridad y compatibilidad comprobados.");
+ // Parallel preference updates must not erase a different key.
+ await Promise.all([storage.setPreference("profile","p"),storage.setPreference("favorites","f"),storage.setPreference("collections","c")]);
+ assert.equal(await storage.getPreference("profile"),"p");
+ assert.equal(await storage.getPreference("favorites"),"f");
+ assert.equal(await storage.getPreference("collections"),"c");
+ nextWrite=(name,value)=>memory.set(name,value.slice(0,10));
+ await assert.rejects(storage.setPreference("profile","broken"),/verificar/);
+ assert.equal(await storage.getPreference("profile"),"p");
+ assert.equal(await storage.getPreference("collections"),"c");
+ await storage.setPreference("profile","updated");
+ assert.equal(await storage.getPreference("profile"),"updated");
+ // Legacy flat file remains a readable baseline on upgrade.
+ memory.delete(key("preferences-A"));memory.delete(key("preferences-B"));
+ memory.set(key("preferences"),JSON.stringify({legacy:"kept",wifiOnly:"true"}));
+ assert.equal(await storage.getPreference("legacy"),"kept");
+ await storage.setPreference("profile","new");
+ assert.equal(await storage.getPreference("legacy"),"kept");
+ assert.equal(await storage.getPreference("profile"),"new");
+ const parallel1=data(),parallel2=data();parallel1.songs=[row("p1")];parallel2.songs=[row("p2")];
+ const [p1,p2]=await Promise.all([storage.saveSnapshot(parallel1),storage.saveSnapshot(parallel2)]);
+ assert.ok(Date.parse(p2)>Date.parse(p1));
+ assert.equal((await storage.readSnapshot()).data.songs[0].id,"p2");
+ console.log("SHALOM Android: doble respaldo, recuperación, integridad, concurrencia y preferencias verificadas.");
 })().catch(err=>{console.error(err);process.exitCode=1});

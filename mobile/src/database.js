@@ -25,14 +25,18 @@ async function openDb(){
 const empty=()=>Object.fromEntries(TABLES.map(table=>[table,[]]));
 async function sqliteCatalog(){
  const db=await openDb();
- const row=await db.getFirstAsync("SELECT meta_value FROM metadata WHERE meta_key='last_sync'");
- const syncedAt=row?.meta_value||null;
+ // A single SQL statement reads metadata and records from the same snapshot.
+ const rows=await db.getAllAsync("SELECT 'last_sync' AS kind, meta_value AS payload, NULL AS table_name, NULL AS record_id FROM metadata WHERE meta_key='last_sync' UNION ALL SELECT 'record' AS kind,payload,table_name,record_id FROM catalog_records ORDER BY kind,table_name,record_id");
+ const syncedAt=rows.find(row=>row.kind==="last_sync")?.payload||null;
  const data=empty();
  if(!syncedAt)return {data,syncedAt,storage:"sqlite"};
- for(const table of TABLES){
-  const items=await db.getAllAsync("SELECT payload FROM catalog_records WHERE table_name=? ORDER BY record_id",table);
-  data[table]=items.map(record=>JSON.parse(record.payload));
+ if(!Number.isFinite(Date.parse(syncedAt)))throw Error("Fecha de sincronización incorrecta");
+ for(const row of rows)if(row.kind==="record"&&Object.hasOwn(data,row.table_name)){
+  const item=JSON.parse(row.payload);
+  if(item?.id!==row.record_id)throw Error("Identificador local incorrecto");
+  data[row.table_name].push(item);
  }
+ validate(data);
  return {data,syncedAt,storage:"sqlite"};
 }
 async function getCatalog(){
@@ -74,7 +78,15 @@ function newerTimestamp(...values){
   .filter(value=>Number.isFinite(value)));
  return new Date(Math.max(Date.now(),newest+1)).toISOString();
 }
-async function commitCatalog(data){
+// Serialize both backend writes. Otherwise concurrent commits can choose the
+// same recovery slot and finish SQLite in a different order.
+let catalogWrites=Promise.resolve();
+function commitCatalog(data){
+ const task=catalogWrites.then(()=>writeCatalog(data));
+ catalogWrites=task.catch(()=>{});
+ return task;
+}
+async function writeCatalog(data){
  validate(data);
  let fileSaved=null,sqlSaved=false,errors=[];
  // La copia nueva debe ser más reciente que SQLite anterior, aun si
@@ -104,7 +116,14 @@ async function getMetadata(key,fallback=null){
  }catch(_){}
  return backup.getPreference(key,fallback);
 }
-async function setMetadata(key,value){
+// Preserve the order of writes from independent profile/likes/collection UI queues.
+let metadataWrites=Promise.resolve();
+function setMetadata(key,value){
+ const task=metadataWrites.then(()=>writeMetadata(key,value));
+ metadataWrites=task.catch(()=>{});
+ return task;
+}
+async function writeMetadata(key,value){
  let okay=false,lastError=null;
  try{
   const db=await openDb();
