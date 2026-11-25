@@ -22,8 +22,10 @@ assert.match(app,/donation_settings/);
 
 const model=fs.readFileSync("src/model.js","utf8");
 assert.match(model,/featured_song_ids/);
-assert.match(app,/fromServer\(table,record,lists\)/);
-assert.match(app,/store\.upsertDraft\(owner,draftRecord\(selectedType,form,editing,queue\)\)/);
+const editor=fs.readFileSync("src/editor-controller.js","utf8");
+assert.match(app,/editor\.begin\(\{owner,table,record,fromDraft,lists,origin:tab\}\)/);
+assert.match(editor,/fromServer\(table,record,lists\)/);
+assert.match(editor,/store\.upsertDraft\(snapshot.owner,draftRecord\(snapshot.table,snapshot.form,snapshot.editing,queue\)\)/);
 assert.match(app,/requestRecovery/);
 
 assert.match(fs.readFileSync("../sql/SHALOM_ADMIN_DONATIONS_RBAC_20261121.sql","utf8"),/donation_settings/);

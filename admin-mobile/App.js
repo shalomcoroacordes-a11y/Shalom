@@ -8,7 +8,8 @@ const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {S,C}=require("./src/styles");
-const {TITLES,FIELDS,initial,fromServer,draftRecord,displayTitle}=require("./src/model");
+const {TITLES,FIELDS,displayTitle}=require("./src/model");
+const {createEditorController}=require("./src/editor-controller");
 const {RESOURCES,ACTIONS,effective,canPublish,canEdit,mapped}=require("./src/permissions");
 const {TABLES}=require("./src/config");
 const {renderLines}=require("./src/score");
@@ -61,8 +62,24 @@ function Main(){
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
  const [overrides,setOverrides]=useState({}),[overrideUser,setOverrideUser]=useState(null),[trash,setTrash]=useState([]);
  const [studioPayload,setStudioPayload]=useState(null),[studioStatus,setStudioStatus]=useState(null);
- const editorOrigin=useRef("Cantos"),editorBaseline=useRef(null),leavingEditor=useRef(false);
+ const [editorSaving,setEditorSaving]=useState(false);
+ const editorRef=useRef(null),editorCallbacks=useRef(null);
  const owner=session?.user_id;
+ editorCallbacks.current={owner,reloadDrafts,sendQueue};
+ if(!editorRef.current)editorRef.current=createEditorController({store,createId:localId,alert:(...args)=>Alert.alert(...args),onBusy:setEditorSaving,notice:setMessage,apply:next=>{
+  if("table" in next)setSelectedType(next.table);
+  if("form" in next)setForm(next.form);
+  if("editing" in next)setEditing(next.editing);
+  if("section" in next)setSection(next.section);
+  if("tab" in next)setTab(next.tab);
+ },onSaved:async(id,queue)=>{
+  if(editorCallbacks.current.owner!==id)return;
+  await editorCallbacks.current.reloadDrafts();
+  if(editorCallbacks.current.owner!==id)return;
+  setMessage(queue?"Guardado en cola; se publicará al recuperar internet y validar permisos.":"Borrador guardado solo en tu teléfono.");
+  if(queue&&await network()&&editorCallbacks.current.owner===id)await editorCallbacks.current.sendQueue();
+ }});
+ const editor=editorRef.current;
  async function hydrate(s){
   setSession(s);setBoot(false);
   if(!s)return;
@@ -120,21 +137,8 @@ function Main(){
    setMessage("Catálogo actualizado");}
   catch(e){setMessage(e.message);}finally{setBusy(false);}
  }
- function begin(table,record,fromDraft){
-  editorOrigin.current=tab;const nextForm=fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table);editorBaseline.current=JSON.stringify(nextForm);
-  setSelectedType(table);setSection("Datos");setTab("Editor");
-  setEditing({id:fromDraft?.id||record?.id||record?.content_key||(table==="site_content"?"new":localId()),expected:fromDraft?.expected_updated||record?.updated_at||null});
-  setForm(nextForm);
- }
- async function saveDraft(queue=false){
-  if(!owner||!form||!editing)return;
-  try{
-   await store.upsertDraft(owner,draftRecord(selectedType,form,editing,queue));
-   await reloadDrafts();setTab("Pendientes");setForm(null);
-   setMessage(queue?"Guardado en cola; se publicará al recuperar internet y validar permisos.":"Borrador guardado solo en tu teléfono.");
-   if(queue&&await network())await sendQueue();
-  }catch(e){Alert.alert("No se pudo guardar",e.message);}
- }
+ function begin(table,record,fromDraft){editor.begin({owner,table,record,fromDraft,lists,origin:tab});}
+ function saveDraft(queue=false){return editor.save(queue);}
  function confirmRemove(record){
   if(!effective(access,mapped(selectedType)+".delete"))return Alert.alert("Sin permiso","No puedes eliminar este contenido");
   Alert.alert("Eliminar contenido","Esta acción elimina datos del servidor. ¿Continuar?",[
@@ -145,7 +149,7 @@ function Main(){
    }}
   ]);
  }
- async function logout(){studioContext.current=null;setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
+ async function logout(){editor.reset();editorCallbacks.current.owner=null;studioContext.current=null;setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
   try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
@@ -246,12 +250,7 @@ function Main(){
   return studio.publish(owner,studioPayload.song,arrangement);
  }
 
- function leaveEditor(){
-  if(leavingEditor.current)return;
-  const leave=()=>{leavingEditor.current=false;setForm(null);setEditing(null);setSection("Datos");setTab(editorOrigin.current==="Editor"?(selectedType==="songs"?"Cantos":"Catálogo"):editorOrigin.current);};
-  if(form&&JSON.stringify(form)!==editorBaseline.current){leavingEditor.current=true;Alert.alert("Cambios sin guardar","¿Quieres salir del editor? Los cambios nuevos se perderán.",[{text:"Seguir editando",style:"cancel",onPress:()=>{leavingEditor.current=false}},{text:"Salir sin guardar",style:"destructive",onPress:leave}],{cancelable:true,onDismiss:()=>{leavingEditor.current=false}});}
-  else leave();
- }
+ function leaveEditor(){editor.leave();}
  function adminBack(){
   if(!session||boot)return false;
   if(tab==="Editor"){if(section!=="Datos"){setSection("Datos");return true;}leaveEditor();return true;}
@@ -269,7 +268,7 @@ function Main(){
     song&&section==="Letra"?specs.filter(x=>x[0]==="lyrics"):
     song&&section==="Capos"?specs.filter(x=>x[0]==="capos"):
     song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:specs;
-  const update=(key,v)=>setForm(f=>({...f,[key]:v}));
+  const update=(key,v)=>editor.update(key,v);
   return h(View,{style:{gap:14}},
    h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",adminBack,"secondary")),
    song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):null,
@@ -284,8 +283,8 @@ function Main(){
    ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists,createId:localId}))),
    song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión"):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&(studioStatus.arrangement||studioStatus.draft)?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
    h(View,{style:S.divider}),
-   h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
-    button("Enviar a publicación",()=>saveDraft(true),null,!canPublish(access,selectedType)&&!offline)),
+   h(View,{style:{gap:9}},button(editorSaving?"Guardando…":"Guardar borrador local",()=>saveDraft(false),"secondary",editorSaving),
+    button("Enviar a publicación",()=>saveDraft(true),null,editorSaving||(!canPublish(access,selectedType)&&!offline))),
    txt("Sin internet se guarda localmente. La publicación se confirma solo después de verificar sesión y permisos en Supabase.",S.note)
   );
  }
