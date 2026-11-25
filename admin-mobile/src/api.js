@@ -81,15 +81,15 @@ function createApi(fetcher,auth){
  }
  async function myAccess(owner){return raw("/rest/v1/rpc/admin_my_access","POST",{},undefined,owner);}
  async function redeem(){return raw("/rest/v1/rpc/admin_redeem_invite","POST",{});}
- async function roles(){
-  const [roles,grants]=await Promise.all([list("admin_roles"),list("admin_role_permissions")]);
+ async function roles(owner){
+  const [roles,grants]=await Promise.all([list("admin_roles",owner),list("admin_role_permissions",owner)]);
   return roles.map(role=>({...role,permissions:grants.filter(p=>p.role_id===role.id).map(p=>p.permission)}));
  }
  async function createRole(role){return raw("/rest/v1/rpc/admin_create_role","POST",{p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
  async function changeRole(role){return raw("/rest/v1/rpc/admin_update_role","POST",{p_id:role.id,p_name:role.name,p_description:role.description||"",p_permissions:role.permissions});}
- async function assignUserRoles(userId,roleIds){return raw("/rest/v1/rpc/admin_assign_user_roles","POST",{p_user_id:userId,p_role_ids:roleIds});}
- async function setPermissionOverride(userId,permission,allowed){
-  return raw("/rest/v1/rpc/admin_set_permission_override","POST",{p_user_id:userId,p_permission:permission,p_allowed:allowed});
+ async function assignUserRoles(userId,roleIds,owner){return raw("/rest/v1/rpc/admin_assign_user_roles","POST",{p_user_id:userId,p_role_ids:roleIds},undefined,owner);}
+ async function setPermissionOverride(userId,permission,allowed,owner){
+  return raw("/rest/v1/rpc/admin_set_permission_override","POST",{p_user_id:userId,p_permission:permission,p_allowed:allowed},undefined,owner);
  }
  async function invite(email,roles){
   return raw("/rest/v1/rpc/admin_invite_user","POST",{p_email:email,p_role_ids:roles});

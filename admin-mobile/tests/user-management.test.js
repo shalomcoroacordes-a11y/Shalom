@@ -5,9 +5,9 @@ const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{r
 async function test(){
  let owner="a",view=null,gate=null,start=null,fail=false;
  const calls=[];
- const api={roles:async()=>[{id:"r1"},{id:"r2"}],list:async table=>({admin_profiles:[{user_id:"u"}],admin_user_roles:[],admin_access_blocks:[],admin_permission_overrides:[],admin_trash:[]})[table],
- async assignUserRoles(id,roles){calls.push(["roles",id,roles]);if(gate){start.resolve();await gate.promise;}if(fail)throw Error("No guardado");},
- async setPermissionOverride(id,key,value){calls.push(["override",id,key,value]);}};
+ const api={roles:async id=>{assert.equal(id,owner);return [{id:"r1"},{id:"r2"}]},list:async (table,id)=>(assert.equal(id,owner),({admin_profiles:[{user_id:"u"}],admin_user_roles:[],admin_access_blocks:[],admin_permission_overrides:[],admin_trash:[]})[table]),
+ async assignUserRoles(id,roles,expectedOwner){assert.equal(expectedOwner,owner);calls.push(["roles",id,roles]);if(gate){start.resolve();await gate.promise;}if(fail)throw Error("No guardado");},
+ async setPermissionOverride(id,key,value,expectedOwner){assert.equal(expectedOwner,owner);calls.push(["override",id,key,value]);}};
  const m=createUserManagement({api,auth:{requireFresh:async()=>({user_id:owner})},apply:data=>{view=data}});
  m.reset("a");await m.load("a");
  await Promise.all([m.toggleRole("a","u","r1"),m.toggleRole("a","u","r2")]);
