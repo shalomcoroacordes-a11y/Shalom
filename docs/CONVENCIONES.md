@@ -83,3 +83,7 @@ El reloj de reproducción de Studio pertenece a `studio-core.js`: `playbackSpeed
 `mobile/src/settings-screen-ui.js` posee la presentación de Configuración (preferencias, estado de sincronización, métricas, respaldo e información). Recibe el estado, estilos y callbacks originales desde App; la sincronización, preferencias y almacenamiento siguen en sus responsables existentes. Las pruebas de cabecera y retroceso consultan el módulo propietario de cada responsabilidad.
 
 `mobile/src/exploration-screens-ui.js` contiene las pantallas secundarias Más, Explorar y Álbumes. Reciben los componentes visuales compartidos y callbacks de navegación desde App, sin acceso directo a almacenamiento o sincronización. Las regresiones verifican las rutas y filtros en el módulo propietario, además de comprobar que App lo renderiza.
+
+### Aplicación Admin
+
+`admin-mobile/src/model.js` concentra el esquema de edición, hidratación de registros y relaciones (`initial`, `fromServer`) y normalización de borradores (`draftRecord`). `admin-mobile/App.js` conserva la interfaz, identidad del usuario, permisos, escritura local y sincronización. Las revisiones esperadas, claves de contenido, estados de cola y valores nulos se preservan; las pruebas verifican estos contratos sin escribir a Supabase.

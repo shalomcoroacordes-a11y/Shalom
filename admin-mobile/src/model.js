@@ -67,4 +67,42 @@ function relations(rec){
  };
 }
 function displayTitle(table,rec){return rec.title||rec.name||rec.content_key||rec.song_title||rec.id||"Sin título";}
-module.exports={FIELDS,OPTIONS,TITLES,ID_FIELDS,baseRecord,mainPayload,relations,slug,displayTitle};
+// Form hydration and draft normalization belong to the same schema as validation.
+function initial(table){
+ const values={};for(const [key,,kind] of FIELDS[table]){
+  values[key]=["categories","artists","links","capos","featured"].includes(kind)?[]:kind==="json"?(key==="content"?"{}":"[]"):kind==="boolean"?false:kind==="number"?"0":"";
+ }
+ if(table==="songs")values.song_type="catolico";
+ if(table==="repertoires")values.kind="misa";
+ if(table==="medleys")values.song_type="catolico";
+ if(table==="contact_messages")values.status="pendiente";
+ return values;
+}
+function fromServer(table,raw,all){
+ const out={...initial(table),...raw};
+ if(table==="artists")out.featured_song_ids=(all.artist_featured_songs||[]).filter(r=>r.artist_id===raw.id).sort((a,b)=>a.sort_order-b.sort_order).map(r=>r.song_id);
+ if(table==="songs"){
+  out.category_ids=(all.song_categories||[]).filter(r=>r.song_id===raw.id).map(r=>r.category_id);
+  out.collaborator_ids=(all.song_artists||[]).filter(r=>r.song_id===raw.id&&r.role==="colaborador").map(r=>r.artist_id);
+  out.album_id=(all.album_songs||[]).find(r=>r.song_id===raw.id)?.album_id||"";
+  out.links=(all.song_links||[]).filter(r=>r.song_id===raw.id);
+  out.capos=(all.song_capo_versions||[]).filter(r=>r.song_id===raw.id);
+  out.artist_id=raw.artist_id||(all.song_artists||[]).find(r=>r.song_id===raw.id&&r.role==="principal")?.artist_id||"";
+ }
+ for(const [key,,kind] of FIELDS[table])if(kind==="json")out[key]=JSON.stringify(out[key]??(key==="content"?{}:[]),null,2);
+ return out;
+}
+function draftRecord(selectedType,form,editing,queue=false){
+   const clean=baseRecord(selectedType,form,selectedType==="site_content"&&editing.id!=="new"?editing.id:null);
+   if(selectedType!=="site_content")clean.id=editing.id;
+   if(selectedType==="songs")clean.artist_id=clean.artist_id||null;
+   if(selectedType==="albums")clean.artist_id=clean.artist_id||null;
+   if(selectedType==="categories")clean.parent_id=clean.parent_id||null;
+   if(selectedType==="repertoires")clean.event_date=clean.event_date||null;
+   if(selectedType==="songs")clean.category_id=clean.category_ids[0]||null;
+   if(selectedType==="contact_messages")clean.id=editing.id;
+   if(selectedType==="home_recommendations")clean.id=editing.id;
+   if(selectedType==="site_content")clean.content_key=editing.id==="new"||!editing.id?clean.content_key:editing.id;
+   return {id:selectedType==="site_content"?clean.content_key:editing.id,type:selectedType,body:clean,status:queue?"queued":"draft",expected_updated:editing.expected};
+}
+module.exports={FIELDS,OPTIONS,TITLES,ID_FIELDS,baseRecord,mainPayload,relations,slug,displayTitle,initial,fromServer,draftRecord};

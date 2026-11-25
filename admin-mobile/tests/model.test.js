@@ -29,3 +29,25 @@ assert.equal(donation.sort_order,2);
 
 assert.throws(()=>baseRecord("artists",{name:"Artista",featured_song_ids:["1","2","3","4"]}),/Máximo tres/);
 assert.equal(mainPayload("artists",baseRecord("artists",{name:"Artista",featured_song_ids:["1"]})).featured_song_ids,undefined);
+
+const {initial,fromServer,draftRecord}=require("../src/model");
+for(const table of Object.keys(FIELDS)){
+ const form=initial(table);assert.deepEqual(Object.keys(form),FIELDS[table].map(([key])=>key));
+ for(const [key,,kind] of FIELDS[table])if(["categories","artists","links","capos","featured"].includes(kind)){assert.ok(Array.isArray(form[key]));assert.notEqual(form[key],initial(table)[key]);}
+}
+const raw={id:"s",title:"Gloria",lyrics:"G    D\nTexto",artist_id:null,updated_at:"r1"};
+const all={song_categories:[{song_id:"s",category_id:"c2"},{song_id:"other",category_id:"c3"},{song_id:"s",category_id:"c1"}],song_artists:[{song_id:"s",artist_id:"a",role:"principal"},{song_id:"s",artist_id:"b",role:"colaborador"}],album_songs:[{song_id:"s",album_id:"al"}],song_links:[{song_id:"s",title:"Tutorial",url:"https://example.com"}],song_capo_versions:[{song_id:"s",capo_position:2,capo_key:"F"}]};
+const form=fromServer("songs",raw,all);
+assert.equal(form.artist_id,"a");assert.deepEqual(form.category_ids,["c2","c1"]);assert.deepEqual(form.collaborator_ids,["b"]);assert.equal(form.album_id,"al");assert.equal(form.links.length,1);assert.equal(form.capos.length,1);
+const draft=draftRecord("songs",form,{id:"s",expected:"r1"},true);
+assert.equal(draft.id,"s");assert.equal(draft.expected_updated,"r1");assert.equal(draft.status,"queued");assert.equal(draft.body.category_id,"c2");assert.equal(draft.body.id,"s");
+assert.equal(draftRecord("songs", {...initial("songs"),title:"Nuevo",lyrics:"C"}, {id:"new-song",expected:null}).body.artist_id,null);
+assert.equal(draftRecord("albums",{...initial("albums"),title:"Álbum"},{id:"al",expected:null}).body.artist_id,null);
+assert.equal(draftRecord("categories",{...initial("categories"),name:"General"},{id:"c",expected:null}).body.parent_id,null);
+assert.equal(draftRecord("repertoires",{...initial("repertoires"),title:"Misa"},{id:"r",expected:null}).body.event_date,null);
+assert.deepEqual(draftRecord("site_content",{...initial("site_content"),content_key:"about",content:'{"a":1}'},{id:"new",expected:null}),{id:"about",type:"site_content",body:{content_key:"about",content:{a:1}},status:"draft",expected_updated:null});
+assert.equal(draftRecord("site_content",{...initial("site_content"),content_key:"changed"},{id:"original",expected:"old"}).body.content_key,"original");
+assert.deepEqual(JSON.parse(fromServer("medleys",{parts:[{song_id:"s"}]},{}).parts),[{song_id:"s"}]);
+assert.deepEqual(fromServer("artists",{id:"a"},{artist_featured_songs:[{artist_id:"a",song_id:"two",sort_order:2},{artist_id:"a",song_id:"one",sort_order:1}]}).featured_song_ids,["one","two"]);
+assert.throws(()=>draftRecord("songs",initial("songs"),{id:"s",expected:null}),/Falta el campo/);
+console.log("Admin: hidratación de formularios, relaciones, borradores y revisiones verificados.");
