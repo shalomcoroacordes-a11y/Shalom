@@ -1,9 +1,11 @@
 "use strict";
 const {BASE,KEY}=require("./config");
 const {mainPayload,relations,ID_FIELDS}=require("./model");
+const {readCatalogPages}=require("./catalog-pagination");
 function createApi(fetcher,auth){
- async function raw(path,method="GET",body,preference){
+ async function raw(path,method="GET",body,preference,owner){
   const s=await auth.requireFresh();
+  if(owner!==undefined&&s.user_id!==owner)throw Error("La sesión cambió durante la solicitud");
   const options={method,headers:{apikey:KEY,Authorization:"Bearer "+s.access_token,Accept:"application/json",...(body!==undefined?{"Content-Type":"application/json"}:{}),...(preference?{Prefer:preference}:{})}};
   if(body!==undefined)options.body=JSON.stringify(body);
   const response=await fetcher(BASE+path,options);
@@ -16,27 +18,26 @@ function createApi(fetcher,auth){
   return result;
  }
  const quote=value=>encodeURIComponent(String(value));
- async function list(table){
-  const result=[];let offset=0;const limit=250;
-  while(true){
-   const rows=await raw("/rest/v1/"+quote(table)+"?select=*&limit="+limit+"&offset="+offset);
-   if(!Array.isArray(rows))throw Error("No se pudo leer el catálogo");
-   result.push(...rows);if(rows.length<limit)return result;offset+=rows.length;
-   if(offset>20000)throw Error("Catálogo demasiado grande: falta paginación");
-  }
+ async function list(table,owner){
+  // Pin every page to the same account, even if the token is refreshed.
+  const session=await auth.requireFresh();
+  const expectedOwner=owner===undefined?session.user_id:owner;
+  if(expectedOwner!==undefined&&session.user_id!==expectedOwner)throw Error("La sesión cambió durante la descarga");
+  return readCatalogPages(table,({order,limit,offset})=>
+   raw("/rest/v1/"+quote(table)+"?select=*&order="+quote(order)+"&limit="+limit+"&offset="+offset,"GET",undefined,undefined,expectedOwner));
  }
- async function find(table,id){
+ async function find(table,id,owner){
   const column=ID_FIELDS[table]||"id";
-  const rows=await raw("/rest/v1/"+quote(table)+"?select=*&"+column+"=eq."+quote(id)+"&limit=1");
+  const rows=await raw("/rest/v1/"+quote(table)+"?select=*&"+column+"=eq."+quote(id)+"&limit=1","GET",undefined,undefined,owner);
   return rows[0]||null;
  }
- async function publish(table,record,expected){
+ async function publish(table,record,expected,owner){
   const id=record[ID_FIELDS[table]||"id"];
   if(!id)throw Error("Falta identificador de publicación");
   if(table==="artists"){
    return raw("/rest/v1/rpc/admin_publish_artist","POST",{
     p_artist:mainPayload(table,record),p_featured:record.featured_song_ids||[],p_expected:expected||null
-   });
+   },undefined,owner);
   }
   if(table==="songs"){
    const r=relations(record);
@@ -45,9 +46,9 @@ function createApi(fetcher,auth){
     p_artists:r.song_artists,p_categories:r.song_categories,p_albums:r.album_songs,
     p_links:r.song_links,p_capos:r.song_capo_versions,
     p_expected:expected||null
-   });
+   },undefined,owner);
   }
-  const previous=await find(table,id);
+  const previous=await find(table,id,owner);
   const payload=mainPayload(table,record);
   if(previous){
    // COMPARACIÓN ATÓMICA: solo cambiar si la versión de servidor no cambió.
@@ -58,7 +59,7 @@ function createApi(fetcher,auth){
    payload.updated_at=new Date().toISOString();
    const column=ID_FIELDS[table]||"id";
    const path="/rest/v1/"+quote(table)+"?"+column+"=eq."+quote(id)+"&updated_at=eq."+quote(expected)+"&select=*";
-   const updated=await raw(path,"PATCH",payload,"return=representation");
+   const updated=await raw(path,"PATCH",payload,"return=representation",owner);
    if(!Array.isArray(updated)||updated.length!==1){
     const error=new Error("CONFLICT: el servidor cambió antes de guardar. No se sobrescribió.");
     error.code="CONFLICT";throw error;
@@ -69,7 +70,7 @@ function createApi(fetcher,auth){
    const error=new Error("CONFLICT: el registro se eliminó del servidor.");
    error.code="CONFLICT";throw error;
   }
-  const created=await raw("/rest/v1/"+quote(table)+"?select=*","POST",[payload],"return=representation");
+  const created=await raw("/rest/v1/"+quote(table)+"?select=*","POST",[payload],"return=representation",owner);
   if(!Array.isArray(created)||created.length!==1)throw Error("El servidor no confirmó la creación.");
   return created[0];
  }
@@ -78,7 +79,7 @@ function createApi(fetcher,auth){
   const column=ID_FIELDS[table]||"id";
   return raw("/rest/v1/"+quote(table)+"?"+column+"=eq."+quote(id),"DELETE",undefined,"return=representation");
  }
- async function myAccess(){return raw("/rest/v1/rpc/admin_my_access","POST",{});}
+ async function myAccess(owner){return raw("/rest/v1/rpc/admin_my_access","POST",{},undefined,owner);}
  async function redeem(){return raw("/rest/v1/rpc/admin_redeem_invite","POST",{});}
  async function roles(){
   const [roles,grants]=await Promise.all([list("admin_roles"),list("admin_role_permissions")]);

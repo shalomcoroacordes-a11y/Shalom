@@ -34,3 +34,23 @@ const guarded=(url,opts)=>{
  await assert.rejects(()=>a.publish("albums",{id:"existing",title:"Otros cambios",slug:"otro"},"2026-11-21T09:00:00Z"),/CONFLICT/);
  console.log("Concurrencia optimista: no sobrescribir modificaciones de otros admins.");
 })().catch(e=>{console.error(e);process.exit(1);});
+
+(async()=>{
+ const owner="admin-a";let current=owner;const requests=[];
+ const records=Array.from({length:251},(_,i)=>({artist_id:"artist-"+String(Math.floor(i/2)).padStart(3,"0"),song_id:"song-"+i}));
+ const a=createApi(async(url,opts)=>{
+  requests.push({url,opts});
+  const q=new URL(url).searchParams,offset=Number(q.get("offset"));
+  assert.equal(q.get("order"),"artist_id.asc,song_id.asc");
+  return{ok:true,status:200,text:async()=>JSON.stringify(records.slice(offset,offset+250))};
+ },{requireFresh:async()=>({user_id:current,access_token:"token-"+current})});
+ assert.deepEqual(await a.list("artist_featured_songs",owner),records);
+ assert.equal(requests.length,2);
+ current="admin-b";await assert.rejects(a.list("artist_featured_songs",owner),/sesión cambió/);assert.equal(requests.length,2);
+ await assert.rejects(a.publish("songs",{id:"s"},null,owner),/sesión cambió/);
+ await assert.rejects(a.myAccess(owner),/sesión cambió/);
+ let calls=0;
+ const switched=createApi(async()=>{calls++;current="admin-b";return{ok:true,status:200,text:async()=>JSON.stringify(records.slice(0,250))}},{requireFresh:async()=>({user_id:current,access_token:"token-"+current})});
+ current=owner;await assert.rejects(switched.list("artist_featured_songs",owner),/sesión cambió/);assert.equal(calls,1);
+ console.log("Catalog page requests and queued publication are pinned to their owner.");
+})().catch(error=>{console.error(error);process.exitCode=1});

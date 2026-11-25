@@ -10,7 +10,7 @@ function createSync(api,auth,network){
    const online=await network();if(!online)return{offline:true};
    const s=await auth.requireFresh();
    if(s.user_id!==owner)throw Error("La sesión no corresponde al propietario de los borradores");
-   const access=await api.myAccess();
+   const access=await api.myAccess(owner);
    if(!access?.authorized)throw Error("Sin permisos de administración");
    const priority=["artists","categories","albums","songs","medleys","repertoires","contact_messages","home_recommendations","site_content"];
    const queue=(await listDrafts(owner)).filter(x=>x.status==="queued"||x.status==="error")
@@ -19,7 +19,7 @@ function createSync(api,auth,network){
     try{
      const current=await auth.requireFresh();
      if(current.user_id!==owner)throw Error("La sesión cambió durante la sincronización");
-     await api.publish(draft.type,draft.body,draft.expected_updated);
+     await api.publish(draft.type,draft.body,draft.expected_updated,owner);
      await dropDraft(owner,draft.id);sent++;
     }catch(error){
      const conflict=error.code==="CONFLICT"||error.status===409;
@@ -34,18 +34,18 @@ function createSync(api,auth,network){
  async function download(owner){
   const online=await network();if(!online)return{offline:true};
   const s=await auth.requireFresh();if(s.user_id!==owner)throw Error("Usuario distinto");
-  const access=await api.myAccess();if(!access?.authorized)throw Error("Sin permisos de administración");
+  const access=await api.myAccess(owner);if(!access?.authorized)throw Error("Sin permisos de administración");
   const counts={},data={};
   for(const type of TABLES){
    const current=await auth.requireFresh();
    if(current.user_id!==owner)throw Error("La sesión cambió durante la descarga");
-   const rows=await api.list(type);
+   const rows=await api.list(type,owner);
    if(!Array.isArray(rows))throw Error("Catálogo incompleto: "+type);
    data[type]=rows;counts[type]=rows.length;
   }
   const current=await auth.requireFresh();
   if(current.user_id!==owner)throw Error("La sesión cambió durante la descarga");
-  const finalAccess=await api.myAccess();if(!finalAccess?.authorized)throw Error("Permisos revocados durante la descarga");
+  const finalAccess=await api.myAccess(owner);if(!finalAccess?.authorized)throw Error("Permisos revocados durante la descarga");
   await cacheCatalog(owner,data,TABLES);
   return{counts};
  }
