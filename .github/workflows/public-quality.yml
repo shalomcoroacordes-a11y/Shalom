@@ -116,6 +116,9 @@ jobs:
       - name: Test Studio undo revision safety
         run: node tests/studio-safe-undo.cjs
 
+      - name: Test single Studio fingerprint per editor refresh
+        run: node tests/studio-render-fingerprint.cjs
+
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
       - name: Test Studio historical recovery contracts

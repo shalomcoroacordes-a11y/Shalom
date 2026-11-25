@@ -25,7 +25,7 @@ const src=fs.readFileSync("studio-lab.js","utf8");
 assert.match(src,/if\(core.canUndo\(timingUndo,fingerprint\(\)\)\)\{stop\(\);config=timingUndo.config/);
 assert.match(src,/if\(!core.canUndo\(rhythmUndo,fingerprint\(\)\)\)return/);
 assert.match(src,/timingUndo=null;rhythmUndo=null;renderEditor\(\)/);
-assert.match(src,/function showFragment\(\)\{\s*renderUndoState\(\)/);
+assert.match(src,/function showFragment\(fp=fingerprint\(\)\)\{\s*renderEditingState\(fp\)/);
 assert.match(src,/previous.after=fingerprint\(\);rhythmUndo=previous/);
 assert.equal((src.match(/rememberTiming\(next\);/g)||[]).length,3);
 console.log("Studio undo: valid restoration, stale revision rejection, independent snapshot, reset and later edits preserved.");
