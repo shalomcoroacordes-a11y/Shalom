@@ -101,6 +101,9 @@ jobs:
       - name: Test isolated sections and complete rhythm copy
         run: node tests/studio-section-independence.cjs
 
+      - name: Test pure Studio arrangement review summary and offline dependencies
+        run: node tests/studio-review-summary.cjs
+
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
       - name: Test Studio historical recovery contracts

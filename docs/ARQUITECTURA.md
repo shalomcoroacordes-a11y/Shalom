@@ -114,3 +114,7 @@ Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación
 ## Preparación de publicaciones de cantos (Admin web)
 
 `admin-song-publication.js` contiene la validación de campos y la construcción pura del contrato `admin_publish_song`. No ejecuta solicitudes ni altera los borradores. `admin-pro.js` conserva la sesión autorizada, el identificador idempotente, la revisión original, el control de concurrencia, la llamada RPC y la confirmación de guardado. `tests/admin-song-publication.cjs` comprueba el contrato completo y `tests/admin-save-regression.cjs` mantiene la cobertura de errores, conflictos y cambios posteriores.
+
+## Resumen musical de Studio
+
+El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interfaz `studio-lab.js` solamente presenta las filas. Se conserva duración, compás, número de acordes, secciones y patrones, incluidos tempos independientes. Las dos salidas nativas se mantienen idénticas y CI verifica su regeneración canónica. La caché Offline pasa a v22 para actualizar conjuntamente núcleo e interfaz y añadir `studio-save-state.js` y `studio-reading-geometry.js`, dependencias presentes en el HTML pero ausentes del inventario previo. No se modifican arreglos persistidos ni el protocolo de publicación.
