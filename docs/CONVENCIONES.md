@@ -87,3 +87,5 @@ El reloj de reproducción de Studio pertenece a `studio-core.js`: `playbackSpeed
 ### Aplicación Admin
 
 `admin-mobile/src/model.js` concentra el esquema de edición, hidratación de registros y relaciones (`initial`, `fromServer`) y normalización de borradores (`draftRecord`). `admin-mobile/App.js` conserva la interfaz, identidad del usuario, permisos, escritura local y sincronización. Las revisiones esperadas, claves de contenido, estados de cola y valores nulos se preservan; las pruebas verifican estos contratos sin escribir a Supabase.
+
+`admin-mobile/src/components/Controls.js` contiene los controles visuales reutilizados por el editor y las demás pantallas. `EditorFields.js` posee el despacho de campos, fragmentos/repertorios, enlaces y capos; recibe el callback de creación de identificadores desde App. La autenticación, permisos, revisión de cambios, almacenamiento y publicación permanecen en sus responsables. No duplicar controles ni reconstruir formularios mediante parches en App.

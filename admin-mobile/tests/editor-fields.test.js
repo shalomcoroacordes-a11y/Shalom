@@ -1,0 +1,30 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const model=require("../src/model"),selector=require("../src/selector");
+const h=(type,props,...children)=>({type,props:props||{},children});
+const S=new Proxy({}, {get:(_,key)=>String(key)}),C={green:"green",muted:"muted"};
+const alerts=[];let state=[],cursor=0;
+const React={createElement:h,useState:initial=>{const index=cursor++;return [index in state?state[index]:initial,()=>{}]}};
+const native={View:"View",Text:"Text",TextInput:"TextInput",Pressable:"Pressable",Alert:{alert:(...v)=>alerts.push(v)}};
+function load(file,dependencies){const m={exports:{}};new Function("require","module",fs.readFileSync(file,"utf8"))(n=>{assert.ok(n in dependencies,"Missing dependency "+n);return dependencies[n]},m);return m.exports;}
+const shared={react:React,"react-native":native,"../styles":{S,C}};
+const controls=load("src/components/Controls.js",shared);
+const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"./Picker":"Picker","./LyricsEditor":"LyricsEditor","./Controls":controls});
+const calls=[];const props={form:{lyrics:"G",category_ids:["c"],parts:"[]",kind:"misa"},lists:{categories:[{id:"c",name:"Coro",song_type:"catolico"}],songs:[{id:"s",title:"Canto",tone:"G",lyrics:"[Coro]\nG\nTexto"}]},onChange:(...v)=>calls.push(v),createId:()=>"part-id"};
+const lyrics=Field({...props,spec:["lyrics","Letra","multiline"]});assert.equal(lyrics.type,"LyricsEditor");lyrics.props.onChange("D");assert.deepEqual(calls.pop(),["lyrics","D"]);
+const picker=Field({...props,spec:["category_ids","Categorías","categories"]});assert.equal(picker.type,"Picker");assert.equal(picker.props.multiple,true);assert.deepEqual(picker.props.value,["c"]);picker.props.onChange(["c2"]);assert.deepEqual(calls.pop(),["category_ids",["c2"]]);
+const featured=Field({...props,spec:["featured_song_ids","Destacadas","featured"]});assert.equal(featured.props.maxSelected,3);
+const composite=Field({...props,spec:["parts","Partes","json"]});assert.equal(composite.type,CompositeEditor);assert.equal(composite.props.createId,props.createId);
+const flat=n=>Array.isArray(n)?n.flatMap(flat):n&&typeof n==="object"?[n,...n.children.flatMap(flat)]:[];
+function hasText(n,value){return flat(n).some(x=>x.type==="Text"&&x.children.includes(value))}
+const action=(tree,text)=>flat(tree).find(n=>n.type==="Pressable"&&hasText(n,text));
+const updates=[];const cp={kind:"parts",value:"[]",onChange:v=>updates.push(JSON.parse(v)),songs:props.lists.songs,mode:"misa",createId:props.createId};
+cursor=0;action(CompositeEditor(cp),"+ Agregar").props.onPress();
+assert.deepEqual(updates.pop(),[{id:"part-id",song_id:"s",song_title:"Canto",title:"Canto",tone:"G",lyrics:"[Coro]\nG\nTexto",shift:0}]);
+cursor=0;action(CompositeEditor({...cp,kind:"items"}),"+ Agregar").props.onPress();assert.deepEqual(updates.pop(),[{song_id:"s",moment:"Entrada",notes:""}]);
+cursor=0;const tree=CompositeEditor({...cp,value:JSON.stringify([{song_id:"s",title:"A"},{song_id:"s",title:"B"}])});
+const downs=flat(tree).filter(n=>n.type==="Pressable"&&hasText(n,"↓"));downs[0].props.onPress();assert.deepEqual(updates.pop().map(x=>x.title),["B","A"]);
+cursor=0;action(CompositeEditor({...cp,value:JSON.stringify(Array.from({length:30},()=>({song_id:"s"})))}),"+ Agregar").props.onPress();assert.deepEqual(alerts.pop(),["Límite alcanzado","Máximo 30 cantos."]);
+state=["Tutorial","https://example.com","YouTube","Tutorial","","2","G"];cursor=0;action(NestedEditor({kind:"links",value:[],onChange:v=>updates.push(v)}),"+ Agregar enlace").props.onPress();assert.equal(updates.pop()[0].url,"https://example.com");
+state=["","","YouTube","Tutorial","","4","D"];cursor=0;action(NestedEditor({kind:"capos",value:[],onChange:v=>updates.push(v)}),"+ Agregar capo").props.onPress();assert.deepEqual(updates.pop(),[{label:"Capo 4 · D",capo_position:4,capo_key:"D",sort_order:0}]);
+console.log("Admin: reusable controls, editor fields, relationships, medleys, links and capos verified.");

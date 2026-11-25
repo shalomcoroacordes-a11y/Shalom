@@ -2,19 +2,18 @@
 const React=require("react");
 const {useState,useEffect,useRef}=React;
 const RN=require("react-native");
-const {View,Text,TextInput,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
+const {View,Text,Pressable,ScrollView,KeyboardAvoidingView,Platform,Alert,AppState,ActivityIndicator,BackHandler}=RN;
 const {SafeAreaProvider,SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const SecureStore=require("expo-secure-store");
 const Crypto=require("expo-crypto");
 const NetInfo=require("@react-native-community/netinfo").default;
 const {S,C}=require("./src/styles");
-const {TITLES,FIELDS,OPTIONS,initial,fromServer,draftRecord,displayTitle}=require("./src/model");
+const {TITLES,FIELDS,initial,fromServer,draftRecord,displayTitle}=require("./src/model");
 const {RESOURCES,ACTIONS,effective,canPublish,canEdit,mapped}=require("./src/permissions");
 const {TABLES}=require("./src/config");
 const {renderLines}=require("./src/score");
-const Picker=require("./src/components/Picker");
-const LyricsEditor=require("./src/components/LyricsEditor");
-const {categoryChoices}=require("./src/selector");
+const {txt,heading,button,chip,input,wrapChips,itemRow}=require("./src/components/Controls");
+const {Field}=require("./src/components/EditorFields");
 const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
 const {createSync}=require("./src/sync");
@@ -26,130 +25,7 @@ const network=async()=>{const n=await NetInfo.fetch();return !!(n.isConnected&&n
 const sync=createSync(api,auth,network);
 const tabs=[["Inicio","⌂"],["Cantos","♫"],["Catálogo","▤"],["Pendientes","⇧"],["Usuarios","♙"]];
 const catalogTabs=["artists","albums","categories","repertoires","medleys","contact_messages","home_recommendations","site_content","donation_settings"];
-function txt(value,style){return h(Text,{style},String(value??""));}
-function heading(text){return txt(text,S.section);}
-function button(title,action,kind,disabled){
- return h(Pressable,{accessibilityRole:"button",disabled:!!disabled,onPress:action,style:[S.btn,kind==="secondary"&&S.btnSecondary,kind==="danger"&&S.btnDanger,disabled&&{opacity:.45}]},txt(title,S.btnText));
-}
-function chip(text,selected,action){
- return h(Pressable,{onPress:action,style:[S.chip,selected&&S.chipSelected],accessibilityRole:"button"},txt(text,[S.chipText,selected&&S.chipTextSelected]));
-}
-function input(label,value,onChange,extra){
- return h(View,{style:{gap:5}},txt(label,S.label),h(TextInput,{style:[S.input,extra?.multi&&S.multi],value:String(value??""),onChangeText:onChange,placeholderTextColor:C.muted,multiline:!!extra?.multi,autoCapitalize:extra?.email?"none":"sentences",keyboardType:extra?.email?"email-address":"default",secureTextEntry:!!extra?.secure}));
-}
-function wrapChips(list,selected,onSelect){
- return h(View,{style:{flexDirection:"row",gap:7,flexWrap:"wrap"}},list.map(([k,label])=>h(View,{key:String(k)},chip(label,Array.isArray(selected)?selected.includes(k):selected===k,()=>onSelect(k)))));
-}
-function itemRow(title,sub,onPress,right){
- return h(Pressable,{onPress,style:S.item},h(View,{style:S.apart},h(View,{style:{flex:1,gap:3}},txt(title,S.itemTitle),sub?txt(sub,S.itemSub):null),txt(right||"›",{color:C.green,fontSize:20})));
-}
 function localId(){return Crypto.randomUUID();}
-function CompositeEditor({kind,value,onChange,songs,mode}){
- const [query,setQuery]=useState("");
- let entries;
- try{entries=JSON.parse(String(value||"[]"));}catch(_){return input("Corrige los datos JSON",value,onChange,{multi:true});}
- if(!Array.isArray(entries))return input("Se requiere una lista JSON",value,onChange,{multi:true});
- const medley=kind==="parts",limit=medley?30:45;
- const save=a=>onChange(JSON.stringify(a,null,2));
- const change=(index,key,value)=>save(entries.map((x,i)=>i===index?{...x,[key]:value}:x));
- const remove=index=>save(entries.filter((_,i)=>i!==index));
- const move=(index,delta)=>{
-  const to=index+delta;if(to<0||to>=entries.length)return;
-  const list=entries.slice();[list[index],list[to]]=[list[to],list[index]];save(list);
- };
- const add=song=>{
-  if(entries.length>=limit)return Alert.alert("Límite alcanzado","Máximo "+limit+" cantos.");
-  const entry=medley?
-   {id:localId(),song_id:song.id,song_title:song.title,title:song.title,tone:song.tone||"",lyrics:song.lyrics||"",shift:0}:
-   {song_id:song.id,moment:mode==="misa"?"Entrada":"Ensayo",notes:""};
-  save([...entries,entry]);setQuery("");
- };
- const filtered=songs.filter(x=>String(x.title||"").toLowerCase().includes(query.toLowerCase())).slice(0,16);
- function chooseSection(index,label){
-  const source=String(songs.find(x=>x.id===entries[index].song_id)?.lyrics||"");
-  const labelRx=/^\[([^\]]+)\]\s*$/gm;
-  const found=[...source.matchAll(labelRx)];
-  const match=found.find(x=>x[1]===label);
-  if(!match)return;
-  const at=source.indexOf(match[0],match.index);
-  const next=found.find(x=>x.index>at);
-  change(index,"lyrics",source.slice(at,next?.index??source.length).trim());
- }
- return h(View,{style:{gap:11}},
-  txt(medley?"Fragmentos del popurrí ("+entries.length+"/"+limit+")":"Cantos del repertorio ("+entries.length+"/"+limit+")",S.section),
-  entries.map((e,i)=>h(View,{key:(e.id||e.song_id||"item")+"_"+i,style:S.card},
-   h(View,{style:S.apart},txt((i+1)+". "+(e.title||e.song_title||songs.find(x=>x.id===e.song_id)?.title||"Canto"),S.itemTitle),
-    h(View,{style:S.row},button("↑",()=>move(i,-1),"secondary",i===0),button("↓",()=>move(i,1),"secondary",i===entries.length-1),button("Quitar",()=>remove(i),"danger"))),
-   medley?
-    h(View,{style:{gap:7}},
-     input("Nombre del fragmento",e.title||"",v=>change(i,"title",v)),
-     input("Transponer (−11 a +11 semitonos)",String(e.shift||0),v=>change(i,"shift",Number(v)||0)),
-     i<entries.length-1?input("Studio: pausa al siguiente fragmento (ms, vacío = sin configurar)",String(e.studio_gap_ms??""),v=>change(i,"studio_gap_ms",v.trim()===""?null:Number(v))):null,
-     txt("Usar sección del canto original",S.label),
-     wrapChips([...String(songs.find(x=>x.id===e.song_id)?.lyrics||"").matchAll(/^\[([^\]]+)\]\s*$/gm)].slice(0,12).map(x=>[x[1],x[1]]),"",section=>chooseSection(i,section)),
-     input("Letra y acordes de esta parte",e.lyrics||"",v=>change(i,"lyrics",v),{multi:true})):
-    h(View,{style:{gap:7}},
-     txt("Momento de la celebración",S.label),
-     wrapChips((mode==="misa"?["Entrada","Señor ten piedad","Gloria","Salmo","Aleluya","Ofertorio","Santo","Cordero de Dios","Comunión","Salida"]:["Ensayo","Repaso","Nuevo canto","Inicio","Final"]).map(x=>[x,x]),e.moment||"",v=>change(i,"moment",v)),
-     input("Indicaciones para el coro",e.notes||"",v=>change(i,"notes",v)))
-  )),
-  txt("Agregar un canto existente",S.label),
-  input("Buscar título",query,setQuery),
-  h(View,{style:{gap:4}},filtered.map(song=>h(Pressable,{key:song.id,style:S.item,onPress:()=>add(song)},
-   h(View,{style:S.apart},txt(song.title,S.itemTitle),txt("+ Agregar",{color:C.green,fontSize:11,fontWeight:"800"}))))),
-  !songs.length&&txt("Primero descarga el catálogo conectado a internet para elegir cantos.",S.note),
-  txt("Los cantos originales no se modifican. Puedes reordenar y eliminar fragmentos sin alterar sus fuentes.",S.note)
- );
-}
-function Field({spec,form,onChange,lists}){
- const [key,label,kind]=spec,value=form[key];
- const set=v=>onChange(key,v);
- if(OPTIONS[kind])return h(View,{style:{gap:7}},txt(label,S.label),wrapChips(OPTIONS[kind],value,set));
- if(kind==="boolean")return h(View,{style:S.apart},txt(label,S.label),chip(value?"Sí":"No",!!value,()=>set(!value)));
- if(["artist","album","category","artists","categories","featured"].includes(kind)){
-  const multiple=["artists","categories","featured"].includes(kind);
-  const table=["artist","artists"].includes(kind)?"artists":
-              kind==="album"?"albums":
-              ["category","categories"].includes(kind)?"categories":"songs";
-  const records=lists[table]||[];
-  const options=table==="categories"?categoryChoices(records):records.map(x=>[x.id,displayTitle(table,x)]);
-  const noneLabel=kind==="album"?"Sin álbum":"Ninguno";
-  return h(Picker,{title:label,options,value,onChange:set,multiple,
-   maxSelected:kind==="featured"?3:0,noneLabel,
-   hint:multiple?"Busca y selecciona sin mostrar toda la lista":"Toca para buscar o cambiar",
-   placeholder:"Buscar "+label.toLowerCase()+"..."});
- }
- if(key==="lyrics")return h(LyricsEditor,{value:value||"",onChange:set});
- if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
- if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa"});
- return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});
-}
-function NestedEditor({kind,value,onChange}){
- const [title,setTitle]=useState(""),[url,setUrl]=useState(""),[platform,setPlatform]=useState("YouTube"),[linkType,setLinkType]=useState("Tutorial"),[capoLabel,setCapoLabel]=useState("");
- const [position,setPosition]=useState("2"),[key,setKey]=useState("G");
- function add(){
-  if(kind==="links"){
-   if(!title.trim()||!/^https:\/\//i.test(url))return Alert.alert("Enlace incompleto","Indica título y URL HTTPS.");
-   onChange([...value,{title,platform,link_type:linkType,url,sort_order:value.length}]);setTitle("");setUrl("");
-  }else{
-   if(!Number(position)||!key.trim())return Alert.alert("Capo incompleto","Indica capo y figuras.");
-   onChange([...value,{label:capoLabel.trim()||"Capo "+position+" · "+key,capo_position:Number(position),capo_key:key,sort_order:value.length}]);setCapoLabel("");
-  }
- }
- return h(View,{style:{gap:10}},
-  heading(kind==="links"?"Tutoriales y enlaces":"Versiones de capo"),
-  value.map((x,i)=>h(View,{key:"item"+i,style:S.apart},
-    h(View,{style:{flex:1,gap:3}},txt(x.title||x.label,S.itemTitle),txt(x.url||"Capo "+x.capo_position+" / "+x.capo_key,S.itemSub)),
-    button("Quitar",()=>onChange(value.filter((_,j)=>j!==i)),"danger"))),
-  kind==="links"?
-   h(View,{style:{gap:9}},input("Título del enlace",title,setTitle),
-    txt("Tipo de enlace",S.label),wrapChips(["Tutorial","Video","Canal","Cover","Acordes"].map(x=>[x,x]),linkType,setLinkType),
-    txt("Plataforma",S.label),wrapChips(["YouTube","TikTok","Instagram","Facebook","Spotify","Sitio web"].map(x=>[x,x]),platform,setPlatform),
-    input("URL (HTTPS)",url,setUrl)):
-   h(View,{style:{gap:9}},input("Nombre de la versión",capoLabel,setCapoLabel),input("Posición del capo (1-12)",position,setPosition),input("Figuras",key,setKey)),
-  button(kind==="links"?"+ Agregar enlace":"+ Agregar capo",add,"secondary")
- );
-}
 function Login({onSuccess}){
  const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[creating,setCreating]=useState(false);
  useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",()=>{if(busy)return true;if(creating){setCreating(false);setMessage("");return true;}return false});return()=>sub.remove()},[creating,busy]);
@@ -404,7 +280,7 @@ function Main(){
       h(View,{style:{gap:2}},renderLines(form.lyrics).map((r,i)=>h(Text,{key:"line"+i,
        style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
         {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
-   ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists}))),
+   ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists,createId:localId}))),
    song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión"):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&(studioStatus.arrangement||studioStatus.draft)?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button("Guardar borrador local",()=>saveDraft(false),"secondary"),
