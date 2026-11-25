@@ -28,8 +28,9 @@ assert.doesNotMatch(profile,/style:S.profileStats/,"No extra profile dashboard")
 assert.doesNotMatch(profile,/style:S.profileShortcuts/,"No duplicate collection cards in Profile");
 assert.match(profile,/Tus canciones favoritas/);
 assert.match(profile,/style:S.toolList/);
+const exploration=fs.readFileSync("src/exploration-screens-ui.js","utf8");
 for(const url of ["acerca.html","contacto.html","donaciones.html"])
- assert.ok(app.includes("https://shalomcoroacordes-a11y.github.io/Shalom/"+url),"Keep existing public link "+url);
+ assert.ok(exploration.includes("https://shalomcoroacordes-a11y.github.io/Shalom/"+url),"Keep existing public link "+url);
 assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);
 const today=app.indexOf("style:S.shalomToday}");
 const search=app.indexOf("style:S.homeSearchWrap}");
