@@ -6,9 +6,11 @@ const expected={"max-width":"min(92vw,520px)",background:"#131c18",color:"#edf3e
 const dialogRules=css.match(/dialog\.studio-collection-dialog\s*\{([^}]+)\}/)[1];
 for(const [name,value] of Object.entries(expected))assert.ok(dialogRules.includes(name+": "+value+";"),name);
 assert.match(css,/\.studio-collection-dialog \.studio-collection-row\s*\{\s*padding: 6px 0;/);
-for(const [page,bundle] of [["popurris.html","medleys-page-bundle.css"],["repertorios.html","repertoires-page-bundle.css"]]){
+for(const [page,bundle] of [["popurris.html","medleys.css?v=1"],["repertorios.html","repertoires.css?v=1"]]){
  const html=fs.readFileSync(page,"utf8");
  assert.equal((html.match(/href="studio-collection-web\.css\?v=1"/g)||[]).length,1);
+ assert.ok(html.includes(bundle));
+ assert.ok(html.indexOf("collection-reader-bundle.css")<html.indexOf(bundle));
  assert.ok(html.indexOf(bundle)<html.indexOf("studio-collection-web.css"));
  assert.match(html,/src="studio-collection-web\.js\?v=2"/);
 }

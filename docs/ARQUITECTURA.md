@@ -82,3 +82,7 @@ Studio comparte `studio-native-screen.js` (fábrica de pantalla nativa), `studio
 ## Presentación compartida de artistas y álbumes
 
 `catalog-list-view.js` es propietario de las tarjetas y el botón de paginación; `artistas.js` y `albumes.js` conservan sus consultas y filtros. Ambas páginas cargan `catalog-list-bundle.css` (copia concatenada y verificada de `catalog-cards.css` y `detalles.css`). Álbumes carga después `catalogo.css`, que también utiliza Categorías. No se modifica el orden de reglas ni los selectores. Si cambian los estilos fuente, actualizar el paquete y ejecutar `node tests/catalog-css-bundles-regression.cjs`. El bundle de detalle de canto conserva su propio contrato. Se elimina un paquete redundante a cambio de una hoja adicional en Álbumes, que puede aprovechar caché compartida; medir antes de afirmar una mejora de velocidad.
+
+## Estilos de lectores de colecciones
+
+Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación exacta de `site-shell.css`, `public-accessibility.css` y `song-chords.css`). Cada página carga a continuación su hoja específica (`repertoires.css` o `medleys.css`) y después `studio-collection-web.css`. El orden de cascada y la importación inicial de `mobile-experience.css` se conservan. Admin sigue utilizando las hojas originales. Los controles `public-page-bundles-regression.cjs` y `studio-collection-styles.cjs` verifican el contrato. Se añade una solicitud CSS por página a cambio de reutilizar un paquete común en caché; el rendimiento debe medirse.
