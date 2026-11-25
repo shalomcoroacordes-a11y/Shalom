@@ -23,5 +23,33 @@ function bundle(read){
  html=html.replace(/<script>[\s\S]*?<\/script>/g,"").replace("</body>",()=>'<script>window.__shalomStudioInit=__STUDIO_PAYLOAD__;</script>'+scripts.join("")+"</body>");
  return '"use strict";\n// Generated from canonical Studio sources. Run node scripts/build-studio-native.js.\nconst template='+JSON.stringify(html)+';\nmodule.exports=function makeStudioHtml(payload){const json=JSON.stringify(payload).replace(/</g,"\\\\u003c").replace(/\\u2028/g,"\\\\u2028").replace(/\\u2029/g,"\\\\u2029");return template.replace("__STUDIO_PAYLOAD__",()=>json);};\n';
 }
-if(require.main===module){const result=bundle(read);for(const app of ["mobile","admin-mobile"])fs.writeFileSync(path.join(root,app,"src/studio-bundle.js"),result);}
-module.exports={bundle};
+function screen(read,admin=false){
+ const source=read("studio-native-screen.js");
+ const trailer="module.exports=createStudioScreen;\n";
+ if(!source.endsWith(trailer))throw Error("Studio screen factory export changed.");
+ const options=admin?', "✓ Acompañamiento guardado y publicado."':"";
+ return "// Generated from studio-native-screen.js. Run node scripts/build-studio-native.js.\n"+source.slice(0,-trailer.length)+'module.exports=createStudioScreen(require("./studio-bundle")'+options+');\n';
+}
+function outputs(read){
+ const html=bundle(read);
+ return {
+  "mobile/src/studio-bundle.js":html,
+  "admin-mobile/src/studio-bundle.js":html,
+  "mobile/src/studio-collections.js":read("studio-collections.js"),
+  "mobile/src/studio-screen.js":screen(read),
+  "admin-mobile/src/studio-screen.js":screen(read,true)
+ };
+}
+function sync({read,write,check=false}){
+ for(const [name,value] of Object.entries(outputs(read))){
+  if(check){if(read(name)!==value)throw Error(name+" differs from canonical Studio sources. Run node scripts/build-studio-native.js.");}
+  else write(name,value);
+ }
+}
+if(require.main===module){
+ const args=process.argv.slice(2);
+ if(args.length>1||(args.length&&args[0]!=="--check"))throw Error("Usage: node scripts/build-studio-native.js [--check]");
+ sync({read,write:(name,value)=>fs.writeFileSync(path.join(root,name),value),check:args[0]==="--check"});
+ console.log("Native Studio sources "+(args[0]==="--check"?"verified":"generated")+".");
+}
+module.exports={bundle,screen,outputs,sync};

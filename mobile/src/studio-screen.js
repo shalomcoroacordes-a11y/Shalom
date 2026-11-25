@@ -1,10 +1,11 @@
+// Generated from studio-native-screen.js. Run node scripts/build-studio-native.js.
 "use strict";
 const React=require("react");
 const {Modal,View,Text,Pressable,AppState,Alert}=require("react-native");
 const {SafeAreaView}=require("react-native-safe-area-context");
 const {WebView}=require("react-native-webview");
-const makeHtml=require("./studio-bundle");
 const h=React.createElement;
+function createStudioScreen(makeHtml,publishSuccessMessage="Acompañamiento publicado."){
 function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
  const web=React.useRef(null),busy=React.useRef(false),alive=React.useRef(true),loaded=React.useRef(false);
  const source=React.useMemo(()=>({html:makeHtml(payload),baseUrl:"about:blank"}),[payload]);
@@ -16,7 +17,7 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
   if(payload.mode!=="admin"||busy.current||!data?.arrangement||data.arrangement.v!==1||JSON.stringify(data.arrangement).length>64000)return;
   const handler=data.type==="shalom-studio-draft"?onSaveDraft:data.type==="shalom-studio-publish"?onPublish:null;
   if(!handler)return;
-  busy.current=true;try{await handler(data.arrangement);reply(true,data.type==="shalom-studio-draft"?"Borrador guardado en este dispositivo.":"Acompañamiento publicado.")}catch(e){reply(false,e.message||"No se pudo guardar.")}finally{busy.current=false}
+  busy.current=true;try{await handler(data.arrangement);reply(true,data.type==="shalom-studio-draft"?"Borrador guardado en este dispositivo.":publishSuccessMessage)}catch(e){reply(false,e.message||"No se pudo guardar.")}finally{busy.current=false}
  }
  function close(){if(busy.current){Alert.alert("SHALOM Studio","Espera a que termine el guardado.");return;}if(!loaded.current||!web.current){onClose();return;}web.current.injectJavaScript('if(typeof window.__shalomStudioBack!=="function"||window.__shalomStudioBack()){window.ReactNativeWebView.postMessage(JSON.stringify({type:"shalom-studio-close"}));}true;')}
  return h(Modal,{visible:true,animationType:"slide",onRequestClose:close,accessibilityViewIsModal:true},
@@ -31,4 +32,6 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
    h(WebView,{ref:web,source,style:{flex:1,backgroundColor:"#131c18"},originWhitelist:["*"],onShouldStartLoadWithRequest:r=>r.url==="about:blank"||r.url.startsWith("data:text/html"),onMessage:receive,onLoadEnd:()=>{loaded.current=true},onLoadStart:()=>{loaded.current=false},javaScriptEnabled:true,domStorageEnabled:false,allowFileAccess:false,allowUniversalAccessFromFileURLs:false,allowFileAccessFromFileURLs:false,mixedContentMode:"never",setSupportMultipleWindows:false,mediaPlaybackRequiresUserAction:true,onError:()=>Alert.alert("Studio","No se pudo iniciar la vista de práctica.")})
   ));
 }
-module.exports=StudioScreen;
+return StudioScreen;
+}
+module.exports=createStudioScreen(require("./studio-bundle"));
