@@ -33,19 +33,7 @@ function jsonList(value) {
   }
 }
 
-function initNavigation() {
-  const menuButton = document.querySelector("#menuToggle");
-  const menu = document.querySelector("#navMenu");
-  menuButton?.setAttribute("aria-expanded", "false");
-  menuButton?.addEventListener("click", () => {
-    const open = Boolean(menu?.classList.toggle("open"));
-    menuButton.setAttribute("aria-expanded", String(open));
-  });
-  document.querySelectorAll("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    menuButton?.setAttribute("aria-expanded", "false");
-  }));
-}
+
 
 function updateFilterState() {
   filterButtons.forEach((button) => {
@@ -296,5 +284,5 @@ window.addEventListener("popstate", () => {
   fetchSongs(false);
 });
 
-initNavigation();
+window.ShalomWebMenu.mount();
 start();

@@ -12,19 +12,7 @@ JHD.slugify = (value) => JHD.normalize(value).replace(/[^a-z0-9]+/g, "-").replac
 JHD.typeLabel = (value) => ({ catolico: "Católico", cristiano: "Cristiano", mixto: "Mixto" }[JHD.normalize(value)] || "General");
 JHD.state = JHD.state || { songs: [], artists: [], categories: [], albums: [], songType: "", categorySongLinks: [] };
 
-JHD.initCommon = () => {
-  const menu = JHD.$("#navMenu");
-  const button = JHD.$("#menuToggle");
-  button?.setAttribute("aria-expanded", "false");
-  button?.addEventListener("click", () => {
-    const open = Boolean(menu?.classList.toggle("open"));
-    button.setAttribute("aria-expanded", String(open));
-  });
-  JHD.$$("#navMenu a").forEach((link) => link.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    button?.setAttribute("aria-expanded", "false");
-  }));
-};
+JHD.initCommon = () => window.ShalomWebMenu.mount();
 
 JHD.errorCard = (title, text) => `<article class="song-card"><h3>${JHD.esc(title)}</h3><p>${JHD.esc(text)}</p></article>`;
 JHD.fetchArtists = async () => JHD.sb
