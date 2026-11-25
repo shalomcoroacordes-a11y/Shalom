@@ -5,7 +5,6 @@ const {LinearGradient}=require("expo-linear-gradient");
 const {CoverArt,PRESETS}=require("./personal-cover-ui");
 const {photoUri,chooseCover}=require("./collection-covers");
 const {BANNER_ACTIONS}=require("./profile-core");
-const {InitialCover}=require("./visual-ui");
 const h=React.createElement;
 const GREEN="#27c98b",FG="#f4f7f7",MUTED="#b0c0c7";
 const ACTION_LABEL={explorar:"Explorar cantos",repertorios:"Ver repertorios",recientes:"Continuar leyendo",favoritos:"Mis me gusta",popurris:"Mis popurrís"};

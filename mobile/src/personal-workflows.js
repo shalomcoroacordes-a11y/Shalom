@@ -1,5 +1,5 @@
 // Acciones simples para la biblioteca personal, sin migraciones ni acceso a Supabase.
-const {newCollection,newEntry,importCode,LIMIT_PARTS}=require("./personal-collections");
+const {newCollection,newEntry,importCode}=require("./personal-collections");
 const KINDS=["misa","popurri","repertorio"];
 const KIND_LABEL={misa:"misa",popurri:"popurrí",repertorio:"repertorio"};
 function items(store,kind=null){

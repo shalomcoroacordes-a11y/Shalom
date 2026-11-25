@@ -1,6 +1,6 @@
 const React=require("react");
 const {useState,useEffect}=React;
-const {View,Text,TextInput,Pressable,ScrollView,Share,Alert}=require("react-native");
+const {View,Text,TextInput,Pressable,Share,Alert}=require("react-native");
 const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");

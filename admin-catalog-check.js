@@ -3,7 +3,6 @@
   window.__jhdCatalogAudit = true;
 
   const db = window.supabaseClient;
-  let installed = false;
 
   const esc = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const norm = (value) => String(value || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -15,7 +14,6 @@
   };
 
   function setTabActive(button) {
-    const tabs = button?.closest(".admin-tabs");
     document.querySelectorAll("#adminWorkspace .admin-tab").forEach((item) => item.classList.toggle("active", item === button));
   }
 
@@ -192,7 +190,6 @@
     button.addEventListener("click", openAudit);
     tabs.append(button);
     tabs.querySelectorAll(".admin-tab:not([data-jhd-audit-tab])").forEach((tab) => tab.addEventListener("click", () => button.classList.remove("active")));
-    installed = true;
     return true;
   }
 

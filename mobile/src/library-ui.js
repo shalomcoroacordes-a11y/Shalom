@@ -4,7 +4,6 @@ const React=require("react");
 const {useState}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Image,StyleSheet}=require("react-native");
 const {LinearGradient}=require("expo-linear-gradient");
-const {CoverArt}=require("./personal-cover-ui");
 const {InitialCover}=require("./visual-ui");
 const {safeWebUrl}=require("./catalog");
 const h=React.createElement;

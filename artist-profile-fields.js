@@ -1,7 +1,6 @@
 (() => {
   const db = window.supabaseClient;
   const params = new URLSearchParams(location.search);
-  const escText = (value) => String(value || "");
   const norm = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const typeLabel = (value) => ({ catolico: "Católico", cristiano: "Cristiano", mixto: "Mixto" }[norm(value)] || "General");
   const safeUrl = (value) => {

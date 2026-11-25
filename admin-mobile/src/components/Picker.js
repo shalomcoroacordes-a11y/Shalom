@@ -3,7 +3,7 @@ const React=require("react");
 const {useMemo,useState}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Alert}=require("react-native");
 const {S,C}=require("../styles");
-const {filterChoices,categoryChoices}=require("../selector");
+const {filterChoices}=require("../selector");
 const h=React.createElement;
 function label(value,style){return h(Text,{style,numberOfLines:1},String(value));}
 function Picker({title,options,value,onChange,multiple=false,maxSelected=0,placeholder="Buscar...",noneLabel="Ninguno",hint=""}){

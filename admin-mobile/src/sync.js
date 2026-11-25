@@ -1,7 +1,6 @@
 "use strict";
 const {TABLES}=require("./config");
 const {listDrafts,dropDraft,status,cacheList,cachedList}=require("./store");
-const {ID_FIELDS}=require("./model");
 function createSync(api,auth,network){
  let executing=false;
  async function push(owner){
