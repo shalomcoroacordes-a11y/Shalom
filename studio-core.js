@@ -123,6 +123,24 @@
     const index=g.indices[0],last=g.indices.at(-1);
     return {index,start:config.changes[index].step,end:config.changes[last+1]?.step??config.endStep??config.totalSteps};
   }
+  // Section navigation uses the same boundaries as the musical timeline.
+  function groupRange(config,g){
+    const {start,end}=groupBounds(config,g);
+    return {start,end,title:g.title};
+  }
+  function sectionBarCount(config,g){
+    const {start,end}=groupBounds(config,g),m=resolution(config.meter,config.division);
+    return Math.max(1,Math.ceil((end-start)/(m.beats*m.division)));
+  }
+  function sectionBarSelection(config,g,value){
+    const m=resolution(config.meter,config.division),n=m.beats*m.division;
+    const bar=Math.max(1,Math.min(sectionBarCount(config,g),Math.round(Number(value)||1)));
+    return {bar,start:groupBounds(config,g).start+(bar-1)*n,hits:sectionBarHits(config,g,bar)};
+  }
+  function sectionTransitionRange(config,previous,current){
+    const p=groupRange(config,previous),c=groupRange(config,current),m=resolution(config.meter,config.division),n=m.beats*m.division;
+    return {start:Math.max(p.start,p.end-n),end:Math.min(c.end,c.start+n)};
+  }
   // Convert inherited global rhythm to independent, section-relative snapshots,
   // preserving phase and any existing pattern switches inside the section.
   function isolateSections(config,groups){
@@ -244,5 +262,5 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
