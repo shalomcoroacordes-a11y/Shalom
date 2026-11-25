@@ -380,25 +380,7 @@ function apAddCapoDraft() { apCaptureSongDraft(); const draft = AP.draft, positi
 async function apSaveArtist(event) { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget).entries()); if (!String(data.name || "").trim()) return; const payload = { name: String(data.name).trim(), slug: apSlug(data.name), artist_type: String(data.artist_type || "").trim() || "general", description: String(data.description || "").trim() || null }; const result = AP.edits.artist ? await AdminPro.from("artists").update(payload).eq("id", AP.edits.artist) : await AdminPro.from("artists").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } AP.edits.artist = null; await apRefresh("Artista guardado."); }
 async function apSaveAlbum(event) { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget).entries()); const payload = { artist_id: data.artist_id, title: String(data.title || "").trim(), slug: apSlug(data.title), sort_order: Number(data.sort_order || 0), description: String(data.description || "").trim() || null }; if (!payload.artist_id || !payload.title) { apNote("Selecciona artista y escribe el nombre del álbum.", true); return; } const result = AP.edits.album ? await AdminPro.from("albums").update(payload).eq("id", AP.edits.album) : await AdminPro.from("albums").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } AP.edits.album = null; await apRefresh("Álbum guardado."); }
 function apSongPublication(draft, id, expected) {
-  const main = apId(draft.main_artist_id);
-  const artists = [...new Set([main, ...(draft.collaborators || []).map(apId)].filter(Boolean))];
-  const categories = [...new Set((Array.isArray(draft.category_ids) ? draft.category_ids : [draft.category_id]).map(apId).filter(Boolean))];
-  const position = Number(draft.capo_position || 0);
-  return {
-    p_song: {
-      id, title: String(draft.title || "").trim(), slug: apSlug(draft.title),
-      song_type: draft.song_type || "catolico", tone: String(draft.tone || "").trim(),
-      lyrics: String(draft.lyrics || ""), difficulty: String(draft.difficulty || "").trim() || null,
-      capo_position: position, capo_key: position > 0 ? String(draft.capo_key || "").trim() : "",
-      artist_id: main || null, category_id: categories[0] || null
-    },
-    p_artists: artists.map((artist_id, index) => ({ artist_id, role: index === 0 ? "principal" : "colaborador", sort_order: index })),
-    p_categories: categories.map(category_id => ({ category_id })),
-    p_albums: draft.album_id ? [{ album_id: draft.album_id, sort_order: 0 }] : [],
-    p_links: AP.links.map((row, index) => ({ title: row.title || "Enlace", link_type: row.link_type || "Tutorial", platform: row.platform || "", url: row.url || "", sort_order: index })),
-    p_capos: AP.capos.map((row, index) => ({ label: row.label || "", capo_position: Number(row.capo_position || 0), capo_key: row.capo_key || "", sort_order: index })),
-    p_expected: expected
-  };
+  return window.ShalomAdminSongPublication.prepare(draft, id, expected, AP.links, AP.capos);
 }
 async function apSaveSong(event) {
   event.preventDefault();
@@ -406,12 +388,8 @@ async function apSaveSong(event) {
   apCaptureSongDraft();
   const draft = AP.draft, edit = AP.songEdit, owner = AP.user?.id;
   if (!draft || !edit || !owner) { apNote("Abre el editor con una sesión autorizada.", true); return; }
-  if (!String(draft.title || "").trim()) { apNote("Escribe el título de la canción.", true); return; }
-  if (!String(draft.tone || "").trim()) { apNote("Escribe el tono original.", true); return; }
-  if (!apId(draft.main_artist_id)) { apNote("Selecciona al menos un artista.", true); return; }
-  const position = Number(draft.capo_position || 0);
-  if (!Number.isInteger(position) || position < 0 || position > 12) { apNote("Capo principal inválido.", true); return; }
-  if (position > 0 && !String(draft.capo_key || "").trim()) { apNote("Si usas capo principal, escribe las figuras.", true); return; }
+  const validation = window.ShalomAdminSongPublication.validate(draft);
+  if (validation) { apNote(validation, true); return; }
   if (AP.edits.song && (edit.id !== AP.edits.song || !edit.expected)) {
     apNote("No se conoce la revisión original. Conserva tu borrador y vuelve a abrir el canto antes de publicar.", true);
     return;
