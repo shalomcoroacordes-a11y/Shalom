@@ -138,3 +138,7 @@ Los snapshots de tiempo y rasgueo usan `undoSnapshot` y `canUndo` del núcleo mu
 ## Huella compartida por refresco de Studio
 
 El refresco completo del editor calcula la huella canónica una vez y la pasa a las vistas de rasgueo, fragmentos y resumen. Los controles de guardar y deshacer comparten esa misma huella; las llamadas individuales la calculan de nuevo. No hay caché persistente ni invalidación manual. La asignación/eliminación de rangos también actualiza el estado de guardado. Se conserva la comprobación de huella al ejecutar deshacer; el resumen musical mantiene su compilación separada. La prueba mide llamadas de huella, no latencia real de dispositivos. Ambas salidas nativas y caché Offline v27 actualizadas.
+
+## Reutilización de la partitura de Studio
+
+`readRows` conserva únicamente la partitura original sin transposición ni resaltado para la misma fuente textual y nodo de destino. Los recorridos posteriores no reconstruyen el DOM ni recalculan filas. Un cambio de letra, nodo, reproducción transpuesta o resaltado invalida la reutilización. `renderPlaybackScore` concentra las escrituras de reproducción, y `showStep` invalida antes de modificar la partitura. La prueba cuenta renderizados y escrituras, no mide latencia de dispositivos. Copias nativas y caché Offline v28 sincronizadas. No se modifica el formato musical persistido.

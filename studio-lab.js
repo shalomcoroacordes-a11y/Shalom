@@ -46,9 +46,20 @@ function submitSave(kind){
 
 function safe(fn){return async()=>{try{await fn()}catch(e){stop();note(e.message||String(e))}}}
 function elem(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e}
+// Reuse only the untransposed, unhighlighted score for the exact current source.
+let originalScore=null;
 function readRows(){
- const score=$("score");score.innerHTML=window.ShalomChords.render($("source").value);
- return Array.from(score.children).map(e=>e.classList.contains("song-section-label")?{kind:"section",text:e.textContent}:e.classList.contains("song-line")?{kind:"chords",chordLine:e.querySelector(".chord-line").textContent}:e.classList.contains("song-standalone-chords")?{kind:"chordsOnly",text:e.textContent}:{kind:"other"});
+ const score=$("score"),source=$("source").value;
+ if(originalScore?.source===source&&originalScore.score===score)return originalScore.rows;
+ originalScore=null;
+ score.innerHTML=window.ShalomChords.render(source);
+ const rows=Array.from(score.children).map(e=>e.classList.contains("song-section-label")?{kind:"section",text:e.textContent}:e.classList.contains("song-line")?{kind:"chords",chordLine:e.querySelector(".chord-line").textContent}:e.classList.contains("song-standalone-chords")?{kind:"chordsOnly",text:e.textContent}:{kind:"other"});
+ originalScore={source,score,rows};
+ return rows;
+}
+function renderPlaybackScore(source,move){
+ originalScore=null;
+ $("score").innerHTML=window.ShalomChords.render(source,{transpose:chord=>shifted(chord,move)});
 }
 function divisions(){const m=$("meter").value;$("division").replaceChildren(...core.divisions[m].map(d=>new Option(d+" por pulso"+(d===core.meters[m].division?" · recomendado":""),String(d))));$("division").value=String(core.meters[m].division)}
 function size(){const m=core.resolution(config.meter,config.division);return m.beats*m.division}
@@ -274,7 +285,7 @@ $("score").addEventListener("wheel",e=>{if(playing&&Math.abs(e.deltaY)>Math.abs(
 window.addEventListener("resize",syncTransportSpace);
 if(typeof ResizeObserver!=="undefined")new ResizeObserver(syncTransportSpace).observe($("transport"));
 function showStep(timeline,i){
- const e=timeline[i];if(!e)return;const n=size(),anchorIndex=anchors.findIndex(a=>a.id===e.anchorId),parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
+ const e=timeline[i];if(!e)return;originalScore=null;const n=size(),anchorIndex=anchors.findIndex(a=>a.id===e.anchorId),parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
  if($("chord").textContent!==(e.chord||"—")){$("chord").textContent=e.chord||"—";diagram(e.chord)}
  $("transportSection").textContent=anchors[anchorIndex]?.section||"Inicio";$("where").textContent="Compás "+(bar+1)+" · Pulso "+(beat+1)+(e.tempo?" · "+Math.round(e.tempo)+" BPM":"");
  const upcoming=timeline.find((x,j)=>j>i&&x.anchorId!==e.anchorId&&x.chord);
@@ -318,7 +329,7 @@ function prepareSequence(){
 function displayTrack(track,index){
  anchors=track.anchors;config=track.config;practiceRange=track.range||null;
  $("source").value=track.song.lyrics;
- $("score").innerHTML=window.ShalomChords.render(track.song.lyrics,{transpose:chord=>shifted(chord,track.shift)});
+ renderPlaybackScore(track.song.lyrics,track.shift);
  $("studioTitle").textContent=sequenceTitle;
  $("labNote").textContent=(index+1)+"/"+sequence.length+" · "+track.song.title+(track.range?.title?" · "+track.range.title:"");
  $("shift").value=track.shift;$("capo").value=track.capo;
@@ -358,7 +369,7 @@ async function playSequence(){
 async function play(range=null,inline=null){
  if(sequence)return playSequence();
  stop();validate();const move=Number($("shift").value);if(!Number.isInteger(move)||Math.abs(move)>12)throw Error("Transposición inválida.");const timeline=core.compile(anchors,config,c=>shifted(c,move));for(const c of new Set(timeline.map(e=>e.chord).filter(Boolean)))guitar.voicing(c);
- if(inline===null){$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;playerPanel();}
+ if(inline===null){renderPlaybackScore($("source").value,move);$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;playerPanel();}
  const speed=core.playbackSpeed($("speed").value),capo=Number($("capo").value);if(!Number.isInteger(capo)||capo<0||capo>12)throw Error("Capo inválido");
  if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error("Audio no disponible en este dispositivo.");ctx=new Audio();engine=guitar.createEngine(ctx)}
  const generation=epoch;await ctx.resume();if(epoch!==generation)return;playing=true;inlineSection=inline;engine.volume(Number($("volume").value)/100);
@@ -374,7 +385,7 @@ async function play(range=null,inline=null){
  function animate(){if(!playing)return;const elapsed=Math.max(0,ctx.currentTime-start),position=core.playbackFrame(timeline,first,end,clock,speed,elapsed,loop());if(position.finished){stop();note("Práctica finalizada.");return}const {index:i,paused}=position;if(paused){if(inline===null){$("where").textContent="Pausa entre secciones";$("transportWhere").textContent="Pausa entre secciones";}else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Pausa entre secciones";}last=-1;}else if(i!==last){if(inline===null)showStep(timeline,i);else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent=(timeline[i].chord||"Silencio")+" · "+Math.round(timeline[i].tempo)+" BPM";}last=i}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.");
 }
-function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){validate();const move=Number($("shift").value)||0;$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;showStep(core.compile(anchors,config,c=>shifted(c,move)),practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0);if(!edit){playerPanel();syncTransportSpace();}}
+function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){validate();const move=Number($("shift").value)||0;renderPlaybackScore($("source").value,move);$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;showStep(core.compile(anchors,config,c=>shifted(c,move)),practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0);if(!edit){playerPanel();syncTransportSpace();}}
 function changeDivision(division){
  if(!config||division===config.division)return;
  const old=config.division;
