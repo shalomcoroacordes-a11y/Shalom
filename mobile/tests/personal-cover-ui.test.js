@@ -11,7 +11,10 @@ assert.match(ui,/h\(CoverPicker,/,"Collection creation/editing offers preview an
 assert.match(ui,/function folderView\(/,"Existing personal misas and medleys stay accessible");
 assert.match(ui,/function editView\(/,"Flexible medley editor must remain intact");
 assert.match(ui,/function readingView\(/,"Continuous reading mode must remain intact");
-assert.match(ui,/function pasteImport\(/,"WhatsApp code import remains available");
+assert.match(ui,/function receiveView\(/,"WhatsApp code import remains available");
+assert.match(ui,/action\("Revisar composición",examineImport/);
+assert.match(ui,/action\("Guardar en mi teléfono",completeImport/);
+assert.match(ui,/if\(view==="import"\)return receiveView\(\)/);
 assert.match(ui,/shareEntry\(item\)/,"WhatsApp code share remains available");
 assert.match(picker,/COVER_PRESETS/,"Native cover presets must be present");
 assert.match(picker,/h\(CoverArt,/,"Show actual collection cover previews");
