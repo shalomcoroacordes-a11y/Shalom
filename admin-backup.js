@@ -4,7 +4,7 @@
 
   const db = window.supabaseClient || window.AdminPro;
   const TRASH_TABLE = "admin_trash";
-  const { cleanRow, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
+  const { cleanRow, missingRelations, selectAll: readAll, downloadJson, filenameDate } = window.ShalomAdminBackupCore;
   let trashRows = [];
   let busy = false;
 
@@ -192,11 +192,26 @@
     bindTrashActions();
   }
 
-  async function restoreRelations(relations) {
-    const tables = ["song_artists", "song_categories", "album_songs", "song_links", "song_capo_versions", "artist_featured_songs"];
-    for (const table of tables) {
-      const values = (relations?.[table] || []).map((row) => cleanRow(row, false));
-      if (!values.length) continue;
+  async function restoreRelations(kind, id, relations) {
+    const scopes = {
+      song: { song_artists: "song_id", song_categories: "song_id", album_songs: "song_id", song_links: "song_id", song_capo_versions: "song_id", artist_featured_songs: "song_id" },
+      album: { album_songs: "album_id" },
+      artist: { artist_featured_songs: "artist_id" },
+      category: {}
+    }[kind];
+    // Preserve the established insertion order, and reject unrelated snapshot rows.
+    const plan = [];
+    for (const [table, key] of Object.entries(scopes || {})) {
+      const saved = relations?.[table] || [];
+      if (!Array.isArray(saved) || saved.some((row) => !row || String(row[key]) !== String(id))) {
+        throw new Error(`${table}: el respaldo contiene relaciones no válidas.`);
+      }
+      if (!saved.length) continue;
+      const existing = await rows(table, key, id);
+      const values = missingRelations(saved, existing);
+      if (values.length) plan.push({ table, values });
+    }
+    for (const { table, values } of plan) {
       const result = await db.from(table).insert(values);
       if (result.error) throw new Error(`${table}: ${result.error.message}`);
     }
@@ -217,7 +232,7 @@
         const created = await db.from(table).insert([cleanRow(snapshot.record, true)]);
         if (created.error) throw created.error;
       }
-      await restoreRelations(snapshot.relations || {});
+      await restoreRelations(row.item_type, snapshot.record.id, snapshot.relations || {});
       const removed = await db.from(TRASH_TABLE).delete().eq("id", row.id);
       if (removed.error) throw removed.error;
       await window.apRefresh?.("Elemento restaurado correctamente.");
