@@ -1,4 +1,5 @@
 (() => {
+  let itemReady = false;
   const DEFAULT_TITLE = "SHALOM";
   const DEFAULT_DESCRIPTION = "Cancionero cristiano y católico con letras, acordes, tonos, artistas y categorías para comunidades y coros.";
   const imageUrl = () => new URL("social-card.svg", location.href).href;
@@ -70,6 +71,7 @@
   }
 
   function setSong({ title, description, artist, tone, type, categories = [] } = {}) {
+    itemReady = true;
     const cleanTitle = String(title || "Canción").trim();
     const cleanArtist = String(artist || "").replace(/^Por\s+/i, "").trim();
     const artistPrefix = cleanArtist && !/canción del cancionero/i.test(cleanArtist) ? `${cleanArtist} - ` : "";
@@ -97,6 +99,7 @@
   }
 
   function setArtist({ name, description } = {}) {
+    itemReady = true;
     const copy = description || `Perfil, canciones y álbumes de ${name || "este artista"} en SHALOM.`;
     setPage({ title: `${name || "Artista"} | ${DEFAULT_TITLE}`, description: copy, type: "profile" });
     replaceJsonLd("jhdItemSchema", {
@@ -109,6 +112,7 @@
   }
 
   function setAlbum({ title, artist, description } = {}) {
+    itemReady = true;
     const copy = description || `Canciones de ${title || "este álbum"}${artist ? ` por ${artist}` : ""} en SHALOM.`;
     setPage({ title: `${title || "Álbum"} | ${DEFAULT_TITLE}`, description: copy, type: "music.album" });
     replaceJsonLd("jhdItemSchema", {
@@ -122,5 +126,5 @@
   }
 
   window.JHDSEO = { setPage, setSong, setArtist, setAlbum };
-  document.addEventListener("DOMContentLoaded", () => setPage());
+  document.addEventListener("DOMContentLoaded", () => { if (!itemReady) setPage(); });
 })();

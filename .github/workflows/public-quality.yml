@@ -209,6 +209,9 @@ jobs:
       - name: Test shared Studio collection stylesheet
         run: node tests/studio-collection-styles.cjs
 
+      - name: Test direct public SEO ownership
+        run: node tests/public-seo-ownership.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

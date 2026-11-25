@@ -421,6 +421,13 @@ function renderSong(song, relations) {
   $("#songSubtitle").textContent = artistText ? `Por ${artistText}` : "Canción del cancionero.";
   renderReaderNavigation(song, relations);
   renderMeta(song, relations);
+  window.JHDSEO?.setSong({
+    title,
+    artist: artistText,
+    tone: song.tone || song.key || "",
+    type,
+    categories: (relations.categories || []).map(item => item.name).filter(Boolean).slice(0, 4)
+  });
   renderControls(relations);
   renderReaderOverview(type, title, artistText ? `Por ${artistText}` : "Canción del cancionero.");
   renderChordLyrics();
