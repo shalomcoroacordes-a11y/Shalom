@@ -4,7 +4,7 @@ const src=fs.readFileSync("admin-pro.js","utf8");
 const start=src.indexOf("function apRenderShell() {");
 const end=src.indexOf("function apSectionHead(",start);
 assert.ok(start>=0 && end>start,"Panel de pestañas presente");
-const ids=["artists","categories","albums","songs","medleys","donations","backup"];
+const ids=["artists","categories","albums","songs","medleys","donations","backup","messages"];
 const tabs=ids.map(id=>{
   const listeners={};let active=id==="songs";
   return {dataset:{adminTab:id},
@@ -41,13 +41,13 @@ const scope={
  apBindAlbums:()=>bound.push("albums"),
  apBindSongs:()=>bound.push("songs"),
  apBindDonations:()=>bound.push("donations"),
- window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
+ window:{ShalomMedleyAdmin:{mount:()=>bound.push("medleys")},ShalomAdminFormLayout:{enhance:()=>lifecycle.push(state.tab)},ShalomAdminSongCategories:{mount:()=>categoryMounts.push(state.tab)},ShalomAdminMainArtistSearch:{mount:()=>artistSearchMounts.push(state.tab)},ShalomAdminMessages:{mount:target=>{target.innerHTML="<p>MESSAGES</p>";bound.push("messages")}},ShalomAdminBackup:{mount:target=>{target.innerHTML="<p>BACKUP</p>";bound.push("backup")}}}
 };
 vm.createContext(scope);
 vm.runInContext(src.slice(start,end)+"\napRenderShell();",scope);
 assert.ok(workspace.innerHTML.includes("Popurrís"),"Falta nueva pestaña");
 assert.match(workspace.innerHTML,/data-admin-tab="backup">Respaldo<\/button>/,"Backup belongs to the native tab list");
-const displays=["ARTISTS","CATEGORIES","ALBUMS","SONGS","","DONATIONS","BACKUP"];
+const displays=["ARTISTS","CATEGORIES","ALBUMS","SONGS","","DONATIONS","BACKUP","MESSAGES"];
 ids.forEach((id,i)=>{
  tabs[i].click();
  assert.equal(state.tab,id,"No cambió a "+id);
@@ -55,7 +55,7 @@ ids.forEach((id,i)=>{
  else assert.equal(bound.at(-1),"medleys","No abrió editor de popurrís");
  for(let k=0;k<tabs.length;k++)assert.equal(tabs[k].classList.contains("active"),k===i,"Activo incorrecto al pulsar "+id);
 });
-assert.ok(["artists","categories","albums","songs","donations","medleys","backup"].every(id=>bound.includes(id)),"No todas las pestañas abrieron");
+assert.ok(["artists","categories","albums","songs","donations","medleys","backup","messages"].every(id=>bound.includes(id)),"No todas las pestañas abrieron");
 document.activeElement={id:"artistFilter",selectionStart:1,selectionEnd:3};
 tabs[0].click();
 assert.deepEqual(focusCalls,[true,1,3],"Search focus and selection restored by the owner");
@@ -78,3 +78,5 @@ tabs[ids.indexOf("donations")].click();
 assert.equal(view.innerHTML,"<p>DONATIONS PLUS</p>");
 assert.deepEqual(donationsMounts,["donations"]);
 assert.equal(bound.filter(x=>x==="donations").length,basicBindsBefore,"No basic donation form binding when the advanced module owns the view");
+
+assert.match(workspace.innerHTML,/id="adminMessagesTab" data-admin-tab="messages">Mensajes<\/button>/);
