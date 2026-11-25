@@ -50,14 +50,6 @@
     return output;
   };
 
-  function addStyle() {
-    if (document.getElementById("jhdAdminBackupImportStyle")) return;
-    const style = document.createElement("style");
-    style.id = "jhdAdminBackupImportStyle";
-    style.textContent = ".jhd-import-summary{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}.jhd-import-summary span{padding:6px 9px;border:1px solid var(--border);border-radius:999px;background:var(--card);font-size:.82rem;color:var(--muted)}.jhd-import-file{margin-top:12px;font-size:.88rem;line-height:1.45;color:var(--muted)}.jhd-import-file strong{color:var(--text)}.jhd-import-status[data-error=\"true\"]{color:#d95b5b}.jhd-import-status[data-success=\"true\"]{color:var(--gold)}";
-    document.head.append(style);
-  }
-
   function getCard() {
     return document.getElementById("jhdImportBackupCard");
   }
@@ -289,7 +281,6 @@
   window.ShalomAdminBackupImport = { mount: mountImporter };
 
   function boot() {
-    addStyle();
     mountImporter();
   }
 
