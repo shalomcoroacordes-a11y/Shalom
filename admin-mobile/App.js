@@ -108,6 +108,7 @@ function Main(){
   try{const r=await sync.push(owner);await reloadDrafts();
    if(r?.sent){setMessage(r.sent+" publicación(es) sincronizadas");await reloadCatalog();}
    if(r?.failed||r?.conflicts)setMessage("Pendientes: "+r.failed+" errores, "+r.conflicts+" conflictos. Revisar.");
+   if(r?.preserved)setMessage(value=>(value?value+" · ":"")+r.preserved+" borrador(es) cambiaron durante el envío; se conservó la versión actual.");
   }catch(e){setMessage(e.message);}
  }
  async function refresh(){
@@ -313,9 +314,9 @@ function Main(){
     txt(TITLES[d.type]||d.type,S.itemSub),d.error?txt(d.error,S.error):null,
     h(View,{style:S.row},
      button("Editar",()=>begin(d.type,null,d),"secondary"),
-     button(d.status==="queued"?"Volver a borrador":"Enviar",async()=>{await store.upsertDraft(owner,{...d,status:d.status==="queued"?"draft":"queued"});await reloadDrafts();},"secondary"),
+     button(d.status==="queued"?"Volver a borrador":"Enviar",async()=>{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(!changed)setMessage("El borrador cambió. Revisa la versión actual.");},"secondary"),
      button("Borrar",()=>Alert.alert("Eliminar borrador local","No podrás recuperar los cambios sin publicar.",[
-      {text:"Cancelar"},{text:"Eliminar",style:"destructive",onPress:async()=>{await store.dropDraft(owner,d.id);await reloadDrafts();}}
+      {text:"Cancelar"},{text:"Eliminar",style:"destructive",onPress:async()=>{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}}
      ]),"danger")))),
    !drafts.length&&txt("No hay borradores pendientes.",S.note)
   );

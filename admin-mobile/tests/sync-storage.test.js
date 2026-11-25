@@ -24,7 +24,7 @@ async function test(){
  let calls=[],owner="owner",denied=false,badTable=null,release;
  const api={async myAccess(){return {authorized:!denied}},async list(type){calls.push(type);if(type===badTable)throw Error("network error");return data[type]},async publish(){calls.push("publish")}};
  const auth={async requireFresh(){return{user_id:owner}}};
- const injected={...store,async listDrafts(){return[{id:"draft",type:"songs",status:"queued",body:{id:"draft"}}]},async dropDraft(){calls.push("drop")},async status(){calls.push("status")}};
+ const injected={...store,async listDrafts(){return[{id:"draft",type:"songs",status:"queued",body:{id:"draft"}}]},async isCurrentDraft(){return true},async completeDraft(){calls.push("drop");return true},async transitionDraft(){calls.push("status");return true}};
  const sMod={exports:{}};vm.runInNewContext(syncSource,{module:sMod,require:name=>name==="./config"?{TABLES:types}:injected});
  const sync=sMod.exports.createSync(api,auth,async()=>true);
  const first=sync.pull("owner"),second=sync.pull("owner");assert.equal(first,second);await assert.rejects(sync.pull("other"),/otra sesión/);await first;assert.equal(calls.length,3);

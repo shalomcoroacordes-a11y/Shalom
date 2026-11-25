@@ -1,34 +1,36 @@
 "use strict";
 const {TABLES}=require("./config");
-const {listDrafts,dropDraft,status,cacheCatalog,readCatalog,cachedList}=require("./store");
+const {listDrafts,isCurrentDraft,completeDraft,transitionDraft,cacheCatalog,readCatalog,cachedList}=require("./store");
 function createSync(api,auth,network){
  let executing=false,pulling=null;
  async function push(owner){
   if(executing)return{busy:true};
-  executing=true;let sent=0,failed=0,conflicts=0;
+  executing=true;let sent=0,failed=0,conflicts=0,preserved=0;
   try{
    const online=await network();if(!online)return{offline:true};
    const s=await auth.requireFresh();
    if(s.user_id!==owner)throw Error("La sesión no corresponde al propietario de los borradores");
    const access=await api.myAccess(owner);
    if(!access?.authorized)throw Error("Sin permisos de administración");
-   const priority=["artists","categories","albums","songs","medleys","repertoires","contact_messages","home_recommendations","site_content"];
+   const priority=["artists","categories","albums","songs","medleys","repertoires","contact_messages","home_recommendations","site_content","donation_settings"];
    const queue=(await listDrafts(owner)).filter(x=>x.status==="queued"||x.status==="error")
     .sort((a,b)=>priority.indexOf(a.type)-priority.indexOf(b.type));
    for(const draft of queue){
     try{
      const current=await auth.requireFresh();
      if(current.user_id!==owner)throw Error("La sesión cambió durante la sincronización");
+     if(!await isCurrentDraft(owner,draft)){preserved++;continue;}
      await api.publish(draft.type,draft.body,draft.expected_updated,owner);
-     await dropDraft(owner,draft.id);sent++;
+     sent++;
+     if(!await completeDraft(owner,draft))preserved++;
     }catch(error){
      const conflict=error.code==="CONFLICT"||error.status===409;
-     await status(owner,draft.id,conflict?"conflict":"error",error.message);
+     if(!await transitionDraft(owner,draft,conflict?"conflict":"error",error.message))preserved++;
      if(conflict)conflicts++;else failed++;
      // Nunca eliminar borradores ante errores; continuar con independientes.
     }
    }
-   return{sent,failed,conflicts};
+   return{sent,failed,conflicts,preserved};
   }finally{executing=false;}
  }
  async function download(owner){
