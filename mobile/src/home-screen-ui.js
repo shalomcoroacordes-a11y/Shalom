@@ -1,0 +1,122 @@
+// Home presentation. Personal state, downloads and navigation stay with the root.
+const h=require("react").createElement;
+const {View,Text,TextInput,Pressable,Image}=require("react-native");
+const {normalize,names}=require("./catalog");
+const {personalCounts,officialHighlights}=require("./home-spotlight");
+const {CoverArt}=require("./personal-cover-ui");
+function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,manualSync,busy,copy,setSettingsOpen,progress,error}){
+  const term=normalize(homeSearch.trim());
+  const found=homeMatches;
+  const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
+  function goBanner(){
+   switch(profile.bannerAction){
+    case "repertorios":return goTab("Repertorios");
+    case "favoritos":return goTab("Canciones",{liked:true});
+    case "popurris":return goTab("Mis colecciones",{personalKind:"popurri"});
+    case "recientes":return recent?selectSong(recent):goTab("Canciones");
+    default:return goTab("Canciones");
+   }
+  }
+  const counts=personalCounts(personal,likedIds);
+  const official=officialHighlights(model,new Date());
+  const shortcuts=[
+   ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
+   ["medleys","Mis popurrís","Cantos enlazados",counts.medleys,()=>goTab("Mis colecciones",{personalKind:"popurri"})],
+   ["mass","Mis misas","Celebraciones guardadas",counts.masses,()=>goTab("Mis colecciones",{personalKind:"misa"})],
+   ["repertoires","Mis repertorios","Ensayos y selecciones",Math.max(0,counts.creations-counts.medleys-counts.masses),()=>goTab("Mis colecciones",{personalKind:"repertorio"})]
+  ];
+  return h(View,{style:S.homeContainer},
+   h(View,{style:S.spotifyWelcome},
+    label("Bienvenido a SHALOM",S.spotifyWelcomeTitle),
+    label("Tu música para celebrar y ensayar.",S.spotifyWelcomeText)),
+   h(View,{style:S.shalomToday},
+    h(View,{style:S.shalomTodayHeader},
+     h(View,{style:S.todayTitleWrap},
+      label("▦",S.todayTitleIcon),label("Hoy en SHALOM",S.shalomTodayHeading)),
+     h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
+      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
+      label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
+    
+    ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
+     style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{
+      if(item.type==="medley"){
+       const medley=model.medleys.find(x=>String(x.id)===item.id);
+       if(medley)selectMedley(medley);
+      }else{
+       const rep=model.repertoires.find(x=>String(x.id)===item.id);
+       if(rep)selectRepertoire(rep);
+      }
+     },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
+     h(View,{style:S.todayEntryBody},
+      h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
+      h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
+       [item.label,item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle]
+        .filter(Boolean).join(" · "))),
+     label("›",S.shalomTodayArrow))),
+    !official.length?h(View,{style:S.shalomTodayEmpty},
+     label(copy?.syncedAt?
+      "Aquí aparecerán las misas, repertorios y popurrís que publique el coro.":
+      "Descarga el cancionero para ver las publicaciones oficiales de SHALOM.",S.shalomTodayEmptyText),
+     label("Publicaciones oficiales",S.todayFootnote),
+     !copy?.syncedAt?h(Btn,{text:"Descargar biblioteca",onPress:manualSync,
+      disabled:busy,small:true}):null):null),
+   h(View,{style:S.homeSearchWrap},
+    label("⌕",S.homeSearchIcon),
+    h(TextInput,{style:S.homeSearch,value:homeSearch,onChangeText:setHomeSearch,
+     placeholder:"Buscar canto, artista o tema…",placeholderTextColor:C.muted,
+     accessibilityLabel:"Buscar canto, artista o tema",returnKeyType:"search",
+     onSubmitEditing:()=>{if(homeSearch.trim())goTab("Canciones",{search:homeSearch})}})),
+   term?h(View,{style:S.homeResults},
+    ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
+    !found.length?label("No se encontraron cantos.",S.empty):null,
+    h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
+   h(View,{style:S.spotifyBlock},
+    label("Continuar donde te quedaste",S.spotifyHeading),
+    h(Pressable,{style:S.homeRecentCard,onPress:()=>recent?selectSong(recent):goTab("Canciones"),
+     accessibilityRole:"button",accessibilityLabel:recent?"Continuar con "+recent.title:"Explorar cantos"},
+     h(View,{style:{flex:1,minWidth:0}},
+      h(Text,{style:S.homeRecentTitle,numberOfLines:1},
+       recent?recent.title:"Abre un canto para comenzar"),
+      recent?h(Text,{style:S.homeRecentSubtitle,numberOfLines:1},
+       names(recent._artists)||"Último canto consultado"):null),
+     label("›",S.homeRecentArrow))),
+   h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading)),
+   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
+    h(Pressable,{key:name,onPress,accessibilityRole:"button",
+     accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
+     h(View,{style:S.spotifyShortcutTop},
+      h(View,{style:S.spotifyShortcutSymbolBox},
+       icon==="heart"?label("♥",S.spotifyShortcutIcon):
+       h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage})),
+      h(View,{style:S.spotifyShortcutCount},label(count,S.spotifyShortcutCountText))),
+     h(View,{style:S.spotifyShortcutText},
+      label(name,S.spotifyShortcutName),
+      label(subtitle,S.spotifyShortcutSubtitle))))),
+   h(Pressable,{style:S.spotifyBannerMini,onPress:goBanner,accessibilityRole:"button",
+    accessibilityLabel:"Destacado: "+(profile.bannerTitle||"Explorar cantos")},
+    h(View,{style:S.spotifyBannerMiniCover},
+     h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,
+      color:C.green,height:53})),
+    h(View,{style:{flex:1,minWidth:0}},
+     label("DESTACADO DE TU PERFIL",S.spotifyBannerEyebrow),
+     h(Text,{style:S.spotifyBannerMiniTitle,numberOfLines:1},profile.bannerTitle||"Cantos de SHALOM")),
+    label("›",S.homeRecentArrow)),
+   h(View,{style:S.spotifyBlock},
+    label("Descubre más en SHALOM",S.spotifyHeading),
+    h(View,{style:S.homeGrid},...[
+     ["Explorar","Artistas, álbumes y categorías","categories","Explorar"],
+     ["Popurrís oficiales","Cantos unidos por SHALOM","medleys","Popurrís"],
+     ["Álbumes","Colecciones oficiales","albums","Álbumes"],
+     ["Más opciones","Solicitudes y ajustes","more","Más"]
+    ].map(([name,subtitle,icon,destination])=>h(Pressable,{
+     key:name,onPress:()=>goTab(destination),style:S.homeTile,accessibilityRole:"button"},
+     h(View,{style:S.homeTileIcon},
+      h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
+     h(View,{style:{flex:1,minWidth:0}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)))))),
+
+   !copy?.syncedAt?h(Pressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
+    label("↓ Descargar cancionero sin conexión  ›",S.homeSyncText)):null,
+   busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
+ }
+
+module.exports=HomeScreen;

@@ -36,3 +36,15 @@ assert.equal(safeWebUrl("javascript:alert(1)"),null);
 assert.equal(safeWebUrl("https://youtu.be/test"),"https://youtu.be/test");
 assert.equal(buildCatalog({}).songs.length,0);
 console.log("SHALOM Android: navegación nativa y vínculos verificados.");
+// Compare indexed queries to the previous scan semantics on a synthetic large catalog.
+const many={artists:Array.from({length:30},(_,i)=>({id:"a"+i,name:"Artista "+i})),albums:Array.from({length:12},(_,i)=>({id:"al"+i,title:"Álbum "+i})),categories:Array.from({length:60},(_,i)=>({id:"c"+i,name:"Categoría "+i,parent_id:i===0?null:"c"+Math.floor((i-1)/3),song_type:i%2?"catolico":"cristiano",sort_order:i%5})),songs:Array.from({length:2400},(_,i)=>({id:"s"+i,title:"Canto "+i,artist_id:"a"+i%30,category_id:"c"+i%60})),song_categories:[],album_songs:[]};
+for(let i=0;i<many.songs.length;i++){many.song_categories.push({song_id:"s"+i,category_id:"c"+i%60},{song_id:"s"+i,category_id:"c"+(i+1)%60});many.album_songs.push({song_id:"s"+i,album_id:"al"+i%12});}
+const indexed=buildCatalog(many);
+for(const a of many.artists)assert.deepEqual(indexed.songsForArtist(a.id),indexed.songs.filter(s=>s._artists.some(x=>x.id===a.id)));
+for(const a of many.albums)assert.deepEqual(indexed.songsForAlbum(a.id),indexed.songs.filter(s=>s._albums.some(x=>x.id===a.id)));
+for(const cat of many.categories){const ids=indexed.descendants(cat.id);assert.deepEqual(indexed.songsForCategory(cat.id),indexed.songs.filter(s=>s._categories.some(x=>ids.has(x.id))));}
+const before=indexed.songsForArtist("a0").length;indexed.songsForArtist("a0").pop();assert.equal(indexed.songsForArtist("a0").length,before);
+indexed.songs.filter=()=>{throw Error("Unexpected full library scan")};
+assert.equal(indexed.songsForArtist("a0").length,80);assert.equal(indexed.songsForAlbum("al0").length,200);assert.equal(indexed.songsForCategory("c0").length,2400);
+const cyclic=buildCatalog({categories:[{id:"a",parent_id:"b"},{id:"b",parent_id:"a"},{id:"c",parent_id:"b"}]});assert.deepEqual([...cyclic.descendants("a")].sort(),["a","b","c"]);
+console.log("Catalog indexes: 102 relation comparisons, 2400 songs, cyclic hierarchy and no repeated full scan verified.");

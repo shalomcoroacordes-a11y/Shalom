@@ -1,10 +1,13 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const app=fs.readFileSync("mobile/App.js","utf8");
+const readers=fs.readFileSync("mobile/src/music-readers-ui.js","utf8");
+const catalogScreens=fs.readFileSync("mobile/src/catalog-screens-ui.js","utf8");
 const database=fs.readFileSync("mobile/src/database.js","utf8");
 const favorites=fs.readFileSync("mobile/src/favorites.js","utf8");
 
-const reader=app.slice(app.indexOf(" function renderSongDetail(song){"),app.indexOf(" function renderRequest(){"));
+const reader=readers.slice(readers.indexOf("function SongReader("));
+assert.match(app,/h\(SongReader,\{/);
 assert.ok(reader.includes("const parsed=parseSong(song.lyrics"),"The native reader must render the downloaded lyrics");
 const grid=fs.readFileSync("mobile/src/aligned-score-ui.js","utf8");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Shared web score renders verse and chorus labels");
@@ -17,8 +20,8 @@ assert.match(app,/write:setMetadata/,"Likes must be written to local metadata");
 assert.match(fs.readFileSync("mobile/src/personal-edit-controller.js","utf8"),/key:FAVORITES_KEY/);
 assert.match(app,/getMetadataBatch\(\{[^\n]*\[FAVORITES_KEY\]:"\[\]"/,"Likes must be restored locally on startup");
 assert.match(app,/likedRaw=prefs\[FAVORITES_KEY\]/);
-assert.match(app,/setOnlyLiked\(value==="liked"\)/,"Users need to filter their liked songs");
-assert.match(app,/\["liked","Mis me gusta"\]/,"The favorites chip must remain visible in Cantos");
+assert.match(catalogScreens,/setOnlyLiked\(value==="liked"\)/,"Users need to filter their liked songs");
+assert.match(catalogScreens,/\["liked","Mis me gusta"\]/,"The favorites chip must remain visible in Cantos");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View/,"Native bottom navigation is hidden for all readers");
 const songActions=fs.readFileSync("mobile/src/song-actions-ui.js","utf8");
 assert.match(app,/onPress:\(\)=>active\?setActionSongId\(String\(active\.id\)\)/,
@@ -42,7 +45,7 @@ assert.doesNotMatch(app,/style:S.songActionBar/,
 assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Supabase calls");
 assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
 assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
-assert.match(app,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is applied to every aligned column");
+assert.match(reader,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is applied to every aligned column");
 assert.doesNotMatch(grid,/anchoredTokens\(|token\.column\*cell/,"Do not approximate character positions in native Text");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.chordLine\|\|" "\)/,"One complete chord line with no word fragmentation");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.lyricLine\|\|" "\)/,"One complete continuous lyric line");
