@@ -1,6 +1,6 @@
 const assert=require("node:assert/strict");
 const {buildCatalog}=require("../src/catalog");
-const {favoriteSongs,filterSongs,filterArtists,searchHomeSongs}=require("../src/library-selectors");
+const {favoriteSongs,filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("../src/library-selectors");
 
 const raw={
  songs:[
@@ -48,3 +48,26 @@ assert.deepEqual(titles(searchHomeSongs(model,"")),[]);
 assert.deepEqual(titles(searchHomeSongs(model,"a",2)),["Aleluya","Ave María"]);
 assert.deepEqual([...liked],["s2","s3"],"Los favoritos no deben modificarse");
 console.log("SHALOM: filtros, favoritos, artistas y busqueda Inicio independientes.");
+
+const detailed=buildCatalog({...raw,albums:[{id:"al1",title:"Álbum"}],medleys:[{id:"m1",title:"Popurrí",is_published:true,parts:[]}],repertoires:[{id:"r1",title:"Misa",is_published:true,items:[]}]});
+const empty={active:null,focusedArtist:null,focusedAlbum:null,focusedMedley:null,focusedRepertoire:null};
+assert.deepEqual(selectDetailRecords(detailed,null),empty);
+for(const [type,id,key,record] of [
+ ["song","s1","active",detailed.songs.find(s=>s.id==="s1")],
+ ["artist","a1","focusedArtist",detailed.artistMap.get("a1")],
+ ["album","al1","focusedAlbum",detailed.albumMap.get("al1")],
+ ["medley","m1","focusedMedley",detailed.medleys[0]],
+ ["repertoire","r1","focusedRepertoire",detailed.repertoires[0]]
+]){
+ assert.deepEqual(selectDetailRecords(detailed,{type,id}),{...empty,[key]:record});
+ assert.deepEqual(selectDetailRecords(detailed,{type,id:"missing"}),{...empty,[key]:undefined});
+}
+assert.equal(selectActionSong(detailed,"s1").id,"s1");
+assert.equal(selectActionSong(detailed,null),null);
+assert.equal(selectActionSong(detailed,"missing"),undefined);
+const numeric=buildCatalog({songs:[{id:12,title:"Ejemplo"}]});
+assert.equal(selectActionSong(numeric,"12").id,12);
+assert.equal(selectDetailRecords(numeric,{type:"song",id:"12"}).active,undefined);
+const appSource=require("node:fs").readFileSync("App.js","utf8");
+assert.ok(appSource.includes("selectDetailRecords(model,detail)"));
+assert.ok(appSource.includes("selectActionSong(model,actionSongId)"));

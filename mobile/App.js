@@ -51,7 +51,8 @@ const HOME_IMAGES={
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const {tabs,isSelectedTab,routeForTab,matchesSearch}=require("./src/navigation-core");
-const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs}=require("./src/library-selectors");
+const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
+const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
  const url=safeWebUrl(value);
  if(!url)return Alert.alert("Enlace no válido","No se encontró una dirección válida.");
@@ -145,13 +146,9 @@ function AppScreen() {
  }
  useEffect(()=>()=>{if(noticeTimerRef.current)clearTimeout(noticeTimerRef.current)},[]);
  const model=useMemo(()=>buildCatalog(copy?.data||{}),[copy]);
- const active=detail?.type==="song"?model.songs.find(s=>s.id===detail.id):null;
- const focusedArtist=detail?.type==="artist"?model.artistMap.get(detail.id):null;
- const focusedAlbum=detail?.type==="album"?model.albumMap.get(detail.id):null;
- const focusedMedley=detail?.type==="medley"?model.medleys.find(x=>x.id===detail.id):null;
- const focusedRepertoire=detail?.type==="repertoire"?model.repertoires.find(x=>x.id===detail.id):null;
+ const {active,focusedArtist,focusedAlbum,focusedMedley,focusedRepertoire}=useMemo(()=>selectDetailRecords(model,detail),[model,detail]);
  const likedSet=useMemo(()=>new Set(likedIds),[likedIds]);
- const actionSong=actionSongId?model.songs.find(song=>String(song.id)===String(actionSongId)):null;
+ const actionSong=selectActionSong(model,actionSongId);
  const favorites=useMemo(()=>favoriteSongs(model,likedSet),[model,likedSet]);
  const eligible=useMemo(()=>filterSongs(model,{
   query,typeFilter,categoryId,onlyLiked,likedSet
@@ -808,9 +805,9 @@ function AppScreen() {
   return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){
-  const ready=plan.ready||[];
-  if(!ready[index])return;
-  setStudioQueue({entries:ready,index});setStudioPayload(ready[index].payload);
+  const selection=startStudioQueue(plan,index);
+  if(!selection)return;
+  setStudioQueue(selection.queue);setStudioPayload(selection.payload);
  }
  function openStudioPart(song,part){
   const result=StudioCollections.resolve(song,part);
@@ -818,9 +815,8 @@ function AppScreen() {
  }
  function closeStudio(){setStudioPayload(null);setStudioQueue(null);}
  function nextStudio(delta){
-  if(!studioQueue)return;
-  const index=studioQueue.index+delta,entry=studioQueue.entries[index];
-  if(entry){setStudioQueue({...studioQueue,index});setStudioPayload(entry.payload);}
+  const selection=advanceStudioQueue(studioQueue,delta);
+  if(selection){setStudioQueue(selection.queue);setStudioPayload(selection.payload);}
  }
  function renderStudioCollectionAction(plan,caption){
   if(!plan.ready.length)return null;

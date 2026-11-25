@@ -34,4 +34,17 @@ function searchHomeSongs(model,query="",limit=6){
  ],term)).slice(0,limit);
 }
 
-module.exports=Object.freeze({favoriteSongs,filterSongs,filterArtists,searchHomeSongs});
+// Keep the original distinction between a closed detail (null) and a missing record (undefined).
+function selectDetailRecords(model,detail){
+ const active=detail?.type==="song"?model.songs.find(s=>s.id===detail.id):null;
+ const focusedArtist=detail?.type==="artist"?model.artistMap.get(detail.id):null;
+ const focusedAlbum=detail?.type==="album"?model.albumMap.get(detail.id):null;
+ const focusedMedley=detail?.type==="medley"?model.medleys.find(x=>x.id===detail.id):null;
+ const focusedRepertoire=detail?.type==="repertoire"?model.repertoires.find(x=>x.id===detail.id):null;
+ return {active,focusedArtist,focusedAlbum,focusedMedley,focusedRepertoire};
+}
+function selectActionSong(model,actionSongId){
+ const actionSong=actionSongId?model.songs.find(song=>String(song.id)===String(actionSongId)):null;
+ return actionSong;
+}
+module.exports=Object.freeze({favoriteSongs,filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong});
