@@ -1,7 +1,7 @@
 /* Shared lifecycle for the two public-content editors. Views own their HTML. */
 (() => {
   const missingTable = error => error?.code === "PGRST205" || /site_content|relation .*site_content/i.test(String(error?.message || ""));
-  const waitFor = (promise, ms, message) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))]);
+  const waitFor = (promise, ms, message) => Promise.race([promise, new Promise((_, reject) => { setTimeout(() => reject(new Error(message)), ms); })]);
   const missingSave = "Falta ejecutar supabase-public-pages.sql en Supabase.";
   function create(options) {
     const { db, defaults, key, sectionId, tabId, formId, statusId, resetId, render, messages } = options;

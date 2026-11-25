@@ -26,17 +26,6 @@
     } catch (_) {}
   }
 
-  function mapRelations(rows, relationKey, targetKey) {
-    const map = new Map();
-    (rows || []).forEach((row) => {
-      const id = String(row[relationKey] || "");
-      if (!id || !row[targetKey]) return;
-      if (!map.has(id)) map.set(id, []);
-      map.get(id).push(row[targetKey]);
-    });
-    return map;
-  }
-
   async function buildSearchIndex() {
     const cached = readCache();
     if (cached) return cached;

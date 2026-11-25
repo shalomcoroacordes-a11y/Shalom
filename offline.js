@@ -23,7 +23,7 @@
 
   function openDB() {
     return new Promise((resolve, reject) => {
-      if (!("indexedDB" in window)) return reject(new Error("Este navegador no admite guardar el catálogo sin conexión."));
+      if (!("indexedDB" in window)) { reject(new Error("Este navegador no admite guardar el catálogo sin conexión.")); return; }
       const request = indexedDB.open(DB_NAME, 1);
       request.onupgradeneeded = () => {
         if (!request.result.objectStoreNames.contains(STORE_NAME)) {
@@ -160,7 +160,7 @@
       setMessage("Descargando acompañamientos de guitarra publicados…");
       const arrangements = await fetchAll("song_studio_arrangements", "song_id", true);
       const bySong = new Map(arrangements.map(row => [row.song_id, row]));
-      data.songs = data.songs.map(song => { const row = bySong.get(song.id); const {_studio,...rest} = song; return row && song.updated_at && row.song_revision === song.updated_at && row.arrangement?.v === 1 ? {...rest,_studio:row.arrangement} : rest; });
+      data.songs = data.songs.map(song => { const row = bySong.get(song.id); const rest = {...song}; delete rest._studio; return row && song.updated_at && row.song_revision === song.updated_at && row.arrangement?.v === 1 ? {...rest,_studio:row.arrangement} : rest; });
       const snapshot = {
         version: 1,
         savedAt: new Date().toISOString(),
