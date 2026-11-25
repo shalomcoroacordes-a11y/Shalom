@@ -279,52 +279,14 @@ async function renderRelatedSongs(song, relations) {
   const section = $("#relatedSongsSection");
   const grid = $("#relatedSongsGrid");
   if (!section || !grid) return;
-  const artistIds = (relations.artists || []).map((artist) => artist.id).filter(Boolean);
-  const categoryIds = (relations.categories || []).map((category) => category.id).filter(Boolean);
-  const albumIds = (relations.albums || []).map((album) => album.id).filter(Boolean);
-  if (!artistIds.length && !categoryIds.length && !albumIds.length) {
-    section.hidden = true;
-    return;
-  }
-
-  grid.innerHTML = "<article class='song-card shimmer-card'><h3>Buscando cantos relacionados…</h3><p>Un momento por favor.</p></article>";
-  section.hidden = false;
-
-  const requests = [];
-  if (artistIds.length) requests.push(client.from("song_artists").select("song_id").in("artist_id", artistIds));
-  if (categoryIds.length) requests.push(client.from("song_categories").select("song_id").in("category_id", categoryIds));
-  if (albumIds.length) requests.push(client.from("album_songs").select("song_id").in("album_id", albumIds));
-  const responses = await Promise.all(requests);
-  if (responses.some((response) => response.error)) {
-    section.hidden = true;
-    return;
-  }
-
-  const candidateIds = [...new Set(responses.flatMap((response) => (response.data || []).map((row) => row.song_id)).filter((id) => String(id) !== String(song.id)))];
-  if (!candidateIds.length) {
-    section.hidden = true;
-    return;
-  }
-
-  const result = await client.from("songs").select("id,title,slug,song_type,tone").in("id", candidateIds).order("title", { ascending: true }).limit(30);
-  if (result.error || !(result.data || []).length) {
-    section.hidden = true;
-    return;
-  }
-
-  const score = new Map();
-  responses.forEach((response, index) => {
-    const weight = artistIds.length && index === 0 ? 3 : categoryIds.length && index === (artistIds.length ? 1 : 0) ? 2 : 1;
-    (response.data || []).forEach((row) => {
-      const id = String(row.song_id);
-      score.set(id, (score.get(id) || 0) + weight);
-    });
+  const suggestions = await window.ShalomRelatedSongs.find(client, song, relations, () => {
+    grid.innerHTML = "<article class='song-card shimmer-card'><h3>Buscando cantos relacionados…</h3><p>Un momento por favor.</p></article>";
+    section.hidden = false;
   });
-
-  const suggestions = (result.data || [])
-    .sort((a, b) => (score.get(String(b.id)) || 0) - (score.get(String(a.id)) || 0) || String(a.title || "").localeCompare(String(b.title || ""), "es"))
-    .slice(0, 6);
-
+  if (!suggestions.length) {
+    section.hidden = true;
+    return;
+  }
   grid.innerHTML = suggestions.map((item) => {
     const href = item.slug ? `cancion.html?slug=${encodeURIComponent(item.slug)}` : `cancion.html?id=${encodeURIComponent(item.id)}`;
     const meta = [item.song_type || "Canción", item.tone ? `Tono ${item.tone}` : ""].filter(Boolean).join(" · ");
