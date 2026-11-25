@@ -80,9 +80,10 @@
   }
 
   function enhance(form) {
-    if (!form || form.dataset.profileStorage === "on") return;
+    if (!form) return false;
+    if (form.dataset.profileStorage === "on") return true;
     const bio = form.querySelector('textarea[name="description"]');
-    if (!bio) return;
+    if (!bio) return false;
     const artist = currentArtist();
     const label = bio.closest("label");
     [...(label?.childNodes || [])].forEach((node) => { if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) node.textContent = "Biografía pública"; });
@@ -108,17 +109,8 @@
 
     form.addEventListener("submit", (event) => { event.preventDefault(); event.stopImmediatePropagation(); save(form); }, true);
     form.dataset.profileStorage = "on";
+    return true;
   }
 
-  function scan() {
-    const app = state();
-    (app?.artists || []).forEach((artist) => { if (artist.bio) artist.description = artist.bio; });
-    enhance(document.querySelector("#artistAdminForm"));
-  }
-
-  function boot() {
-    scan();
-    new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+  window.ShalomAdminArtistProfile = { mount: enhance };
 })();

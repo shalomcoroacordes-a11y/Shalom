@@ -176,7 +176,7 @@ async function apLoadData() {
   ]);
   const error = [songsRes, artistsRes, categoriesRes, albumsRes, artistJoinRes, categoryJoinRes, albumJoinRes, linksRes, capoRes].find((item) => item.error)?.error;
   if (error) throw error;
-  AP.artists = artistsRes.data || [];
+  AP.artists = (artistsRes.data || []).map((artist) => artist.bio ? { ...artist, description: artist.bio } : artist);
   AP.categories = categoriesRes.data || [];
   AP.albums = albumsRes.data || [];
   AP.donation = donationRes.data || null;
@@ -303,7 +303,8 @@ function apDonationsHTML() {
 
 function apBindShowMore() { ap$$("[data-show-more]").forEach((button) => button.addEventListener("click", () => { AP.limits[button.dataset.showMore] += 8; apRenderView(); })); }
 function apBindArtists() {
-  ap$("#artistAdminForm")?.addEventListener("submit", apSaveArtist);
+  const form = ap$("#artistAdminForm");
+  if (!window.ShalomAdminArtistProfile?.mount(form)) form?.addEventListener("submit", apSaveArtist);
   ap$("#artistFilter")?.addEventListener("input", (event) => { AP.filters.artists = event.target.value; AP.limits.artists = 8; apRenderView(); });
   ap$("[data-cancel-artist]")?.addEventListener("click", () => { AP.edits.artist = null; apRenderView(); });
   ap$$("[data-edit-artist]").forEach((button) => button.addEventListener("click", () => { AP.edits.artist = button.dataset.editArtist; apRenderView(); }));
