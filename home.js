@@ -125,7 +125,7 @@
       results.hidden = true;
       results.innerHTML = "";
     };
-    const artistItem = (artist) => `<a class="home-search-result" href="artista.html?slug=${encodeURIComponent(artist.slug || JHD.slugify(artist.name))}"><span class="home-search-result-icon" aria-hidden="true">✝</span><span class="home-search-result-copy"><strong>${esc(artist.name)}</strong><small>${esc(artist.description || "Ver artista y sus cantos")}</small></span></a>`;
+    const artistItem = (artist) => `<a class="home-search-result" href="artista.html?slug=${encodeURIComponent(artist.slug || JHD.slugify(artist.name))}"><span class="home-search-result-icon home-search-artist-initials" aria-hidden="true">${esc(artist.name?.trim() ? initials(artist.name) : "A")}</span><span class="home-search-result-copy"><strong>${esc(artist.name)}</strong><small>${esc(artist.description || "Ver artista y sus cantos")}</small></span></a>`;
     const songItem = (song) => {
       const meta = [song.artists.join(" · "), song.categories.join(" · "), song.song_type ? JHD.typeLabel(song.song_type) : "", song.tone ? `Tono ${song.tone}` : ""].filter(Boolean).join(" · ");
       return `<a class="home-search-result" href="cancion.html?slug=${encodeURIComponent(song.slug || JHD.slugify(song.title))}"><span class="home-search-result-icon" aria-hidden="true">♫</span><span class="home-search-result-copy"><strong>${esc(song.title)}</strong><small>${esc(meta || "Ver letra y acordes")}</small></span></a>`;

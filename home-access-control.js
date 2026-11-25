@@ -63,21 +63,6 @@
     section.querySelector(".home-access-groups").innerHTML = `${groupShell("catolico", "Católico", "Misa, tiempos litúrgicos y devociones.", catholicCards)}${groupShell("cristiano", "Cristiano", "Alabanza, oración y ministerios.", christianCards)}`;
   }
 
-  function improveArtistSearchResults() {
-    const results = document.getElementById("homeSearchResults");
-    if (!results) return;
-    const artistGroup = [...results.querySelectorAll(".home-search-group")].find((group) => /artistas/i.test(group.querySelector(".home-search-group-title")?.textContent || ""));
-    artistGroup?.querySelectorAll(".home-search-result").forEach((item) => {
-      const icon = item.querySelector(".home-search-result-icon");
-      const name = item.querySelector("strong")?.textContent || "";
-      if (!icon || icon.dataset.artistInitials === "true") return;
-      const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase() || "A";
-      icon.textContent = initials;
-      icon.dataset.artistInitials = "true";
-      icon.classList.add("home-search-artist-initials");
-    });
-  }
-
   async function refreshSection() {
     const section = document.getElementById("homeFaithAccess");
     if (!section || section.dataset.homeAccessLoading === "true") return false;
@@ -146,12 +131,10 @@
 
   function boot() {
     const observer = new MutationObserver(() => {
-      improveArtistSearchResults();
       const section = document.getElementById("homeFaithAccess");
       if (section && !section.dataset.homeAccessConfigured) refreshSection();
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
-    improveArtistSearchResults();
     refreshSection();
   }
 
