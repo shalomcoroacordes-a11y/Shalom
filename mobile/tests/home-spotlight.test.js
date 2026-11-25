@@ -53,16 +53,18 @@ assert.deepEqual(officialHighlights({repertoires:[repertoire("draft","Privada","
 assert.deepEqual(officialHighlights({medleys:[{id:"empty",title:"Sin partes",is_published:true,parts:[]}]},today),[],
  "Incomplete medleys cannot be featured");
 const app=fs.readFileSync("App.js","utf8");
+const home=fs.readFileSync("src/home-screen-ui.js","utf8");
+assert.match(app,/h\(HomeScreen,\{/);
 const styles=fs.readFileSync("src/app-styles.js","utf8");
-assert.match(app,/personalCounts\(personal,likedIds\)/,"Counters follow persisted local state");
-assert.match(app,/officialHighlights\(model,new Date\(\)\)/,"Feature only real admin published content");
+assert.match(home,/personalCounts\(personal,likedIds\)/,"Counters follow persisted local state");
+assert.match(home,/officialHighlights\(model,new Date\(\)\)/,"Feature only real admin published content");
 assert.match(styles,/spotifyShortcuts:\{flexDirection:"row",flexWrap:"wrap"/,"Four shortcuts form 2x2 grid");
 assert.match(styles,/spotifyShortcutCountText/,"Every tile has a numeric count");
 assert.doesNotMatch(styles,/spotifyShortcutShade:/,"Remove poster backgrounds and double-overlay icon");
-assert.match(app,/Hoy en SHALOM/);
-assert.match(app,/selectRepertoire\(rep\)/,"Tap opens official repertoire or mass");
-assert.match(app,/selectMedley\(medley\)/,"Tap opens official medley");
-assert.match(app,/accessibilityLabel:"Actualizar publicaciones del coro"/,"User can refresh admin content");
-assert.match(app,/Aquí aparecerán las misas, repertorios y popurrís que publique el coro/,
+assert.match(home,/Hoy en SHALOM/);
+assert.match(home,/selectRepertoire\(rep\)/,"Tap opens official repertoire or mass");
+assert.match(home,/selectMedley\(medley\)/,"Tap opens official medley");
+assert.match(home,/accessibilityLabel:"Actualizar publicaciones del coro"/,"User can refresh admin content");
+assert.match(home,/Aquí aparecerán las misas, repertorios y popurrís que publique el coro/,
  "Empty state explains source and avoids invented content");
 console.log("SHALOM: minimalistic counters, official publication selection and Home navigation verified.");

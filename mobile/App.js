@@ -1,7 +1,7 @@
 const React=require("react");
 const {useEffect,useMemo,useState,useRef,useCallback}=React;
 const {
- View,Text,TextInput,Pressable,ScrollView,StatusBar,
+ View,Text,Pressable,ScrollView,StatusBar,
  Alert,AppState,BackHandler,Platform,Linking,Image,ActivityIndicator,Share
 }=require("react-native");
 const NetInfo=require("@react-native-community/netinfo").default;
@@ -12,14 +12,14 @@ const {createSyncController}=require("./src/sync-controller");
 const {parseSong,transposeOne}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {clampReaderFont}=require("./src/score-zoom");
-const {buildCatalog,normalize,names,safeWebUrl}=require("./src/catalog");
+const {buildCatalog,names,safeWebUrl}=require("./src/catalog");
 const {sendRequest}=require("./src/requests");
 const RequestScreen=require("./src/request-screen-ui");
 const SettingsScreen=require("./src/settings-screen-ui");
 const {MoreScreen,ExploreScreen,AlbumsScreen}=require("./src/exploration-screens-ui");
 const {FAVORITES_KEY,parseFavorites,hasFavorite}=require("./src/favorites");
 const {repertoireType}=require("./src/repertoire-ui");
-const {personalCounts,officialHighlights}=require("./src/home-spotlight");
+const HomeScreen=require("./src/home-screen-ui");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
 const StudioCollections=require("./src/studio-collections");
@@ -36,7 +36,6 @@ const Print=require("expo-print");
 const {ProfileScreen}=require("./src/profile-ui");
 const {PROFILE_KEY,defaults:profileDefaults,parseProfile}=require("./src/profile-core");
 const {InitialCover}=require("./src/visual-ui");
-const {CoverArt}=require("./src/personal-cover-ui");
 const {SongsScreen,ArtistsScreen,CategoriesScreen,RepertoiresScreen,MedleysScreen}=require("./src/catalog-screens-ui");
 const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
@@ -55,7 +54,7 @@ const HOME_IMAGES={
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const {tabs,isSelectedTab,routeForTab,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
-const {filterSongs,filterArtists,favoriteSongs,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
+const {filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
 const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
  const url=safeWebUrl(value);
@@ -149,7 +148,6 @@ function AppScreen() {
  const {active,focusedArtist,focusedAlbum,focusedMedley,focusedRepertoire}=useMemo(()=>selectDetailRecords(model,detail),[model,detail]);
  const likedSet=useMemo(()=>new Set(likedIds),[likedIds]);
  const actionSong=selectActionSong(model,actionSongId);
- const favorites=useMemo(()=>favoriteSongs(model,likedSet),[model,likedSet]);
  const eligible=useMemo(()=>filterSongs(model,{
   query,typeFilter,categoryId,onlyLiked,likedSet
  }),[model,typeFilter,categoryId,query,onlyLiked,likedSet]);
@@ -219,7 +217,7 @@ function AppScreen() {
   syncAll,getCatalog,networkState,writePreference:setMetadata,setNetwork,setWifiOnly,setBusy,setError,setProgress,setCopy,
   alert:(...args)=>Alert.alert(...args)
  });
- const {initialize,updateNetwork,sync,tryAuto,manualSync,changeWifi}=syncControllerRef.current;
+ const {initialize,updateNetwork,tryAuto,manualSync,changeWifi}=syncControllerRef.current;
  useEffect(()=>{
   let enabled=true;
   (async()=>{
@@ -274,120 +272,7 @@ function AppScreen() {
  function renderSettings(){
   return h(SettingsScreen,{S,C,title,label,Card,Btn,copy,model,wifiOnly,changeWifi,busy,manualSync,progress,error,goTab,openWeb});
  }
- function renderHome(){
-  const term=normalize(homeSearch.trim());
-  const found=homeMatches;
-  const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
-  function goBanner(){
-   switch(profile.bannerAction){
-    case "repertorios":return goTab("Repertorios");
-    case "favoritos":return goTab("Canciones",{liked:true});
-    case "popurris":return goTab("Mis colecciones",{personalKind:"popurri"});
-    case "recientes":return recent?selectSong(recent):goTab("Canciones");
-    default:return goTab("Canciones");
-   }
-  }
-  const counts=personalCounts(personal,likedIds);
-  const official=officialHighlights(model,new Date());
-  const shortcuts=[
-   ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
-   ["medleys","Mis popurrís","Cantos enlazados",counts.medleys,()=>goTab("Mis colecciones",{personalKind:"popurri"})],
-   ["mass","Mis misas","Celebraciones guardadas",counts.masses,()=>goTab("Mis colecciones",{personalKind:"misa"})],
-   ["repertoires","Mis repertorios","Ensayos y selecciones",Math.max(0,counts.creations-counts.medleys-counts.masses),()=>goTab("Mis colecciones",{personalKind:"repertorio"})]
-  ];
-  return h(View,{style:S.homeContainer},
-   h(View,{style:S.spotifyWelcome},
-    label("Bienvenido a SHALOM",S.spotifyWelcomeTitle),
-    label("Tu música para celebrar y ensayar.",S.spotifyWelcomeText)),
-   h(View,{style:S.shalomToday},
-    h(View,{style:S.shalomTodayHeader},
-     h(View,{style:S.todayTitleWrap},
-      label("▦",S.todayTitleIcon),label("Hoy en SHALOM",S.shalomTodayHeading)),
-     h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
-      accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
-      label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
-    
-    ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
-     style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{
-      if(item.type==="medley"){
-       const medley=model.medleys.find(x=>String(x.id)===item.id);
-       if(medley)selectMedley(medley);
-      }else{
-       const rep=model.repertoires.find(x=>String(x.id)===item.id);
-       if(rep)selectRepertoire(rep);
-      }
-     },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
-     h(View,{style:S.todayEntryBody},
-      h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
-      h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
-       [item.label,item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle]
-        .filter(Boolean).join(" · "))),
-     label("›",S.shalomTodayArrow))),
-    !official.length?h(View,{style:S.shalomTodayEmpty},
-     label(copy?.syncedAt?
-      "Aquí aparecerán las misas, repertorios y popurrís que publique el coro.":
-      "Descarga el cancionero para ver las publicaciones oficiales de SHALOM.",S.shalomTodayEmptyText),
-     label("Publicaciones oficiales",S.todayFootnote),
-     !copy?.syncedAt?h(Btn,{text:"Descargar biblioteca",onPress:manualSync,
-      disabled:busy,small:true}):null):null),
-   h(View,{style:S.homeSearchWrap},
-    label("⌕",S.homeSearchIcon),
-    h(TextInput,{style:S.homeSearch,value:homeSearch,onChangeText:setHomeSearch,
-     placeholder:"Buscar canto, artista o tema…",placeholderTextColor:C.muted,
-     accessibilityLabel:"Buscar canto, artista o tema",returnKeyType:"search",
-     onSubmitEditing:()=>{if(homeSearch.trim())goTab("Canciones",{search:homeSearch})}})),
-   term?h(View,{style:S.homeResults},
-    ...found.map(song=>h(SongRow,{key:song.id,song,onPress:()=>selectSong(song)})),
-    !found.length?label("No se encontraron cantos.",S.empty):null,
-    h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
-   h(View,{style:S.spotifyBlock},
-    label("Continuar donde te quedaste",S.spotifyHeading),
-    h(Pressable,{style:S.homeRecentCard,onPress:()=>recent?selectSong(recent):goTab("Canciones"),
-     accessibilityRole:"button",accessibilityLabel:recent?"Continuar con "+recent.title:"Explorar cantos"},
-     h(View,{style:{flex:1,minWidth:0}},
-      h(Text,{style:S.homeRecentTitle,numberOfLines:1},
-       recent?recent.title:"Abre un canto para comenzar"),
-      recent?h(Text,{style:S.homeRecentSubtitle,numberOfLines:1},
-       names(recent._artists)||"Último canto consultado"):null),
-     label("›",S.homeRecentArrow))),
-   h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading)),
-   h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
-    h(Pressable,{key:name,onPress,accessibilityRole:"button",
-     accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
-     h(View,{style:S.spotifyShortcutTop},
-      h(View,{style:S.spotifyShortcutSymbolBox},
-       icon==="heart"?label("♥",S.spotifyShortcutIcon):
-       h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage})),
-      h(View,{style:S.spotifyShortcutCount},label(count,S.spotifyShortcutCountText))),
-     h(View,{style:S.spotifyShortcutText},
-      label(name,S.spotifyShortcutName),
-      label(subtitle,S.spotifyShortcutSubtitle))))),
-   h(Pressable,{style:S.spotifyBannerMini,onPress:goBanner,accessibilityRole:"button",
-    accessibilityLabel:"Destacado: "+(profile.bannerTitle||"Explorar cantos")},
-    h(View,{style:S.spotifyBannerMiniCover},
-     h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,
-      color:C.green,height:53})),
-    h(View,{style:{flex:1,minWidth:0}},
-     label("DESTACADO DE TU PERFIL",S.spotifyBannerEyebrow),
-     h(Text,{style:S.spotifyBannerMiniTitle,numberOfLines:1},profile.bannerTitle||"Cantos de SHALOM")),
-    label("›",S.homeRecentArrow)),
-   h(View,{style:S.spotifyBlock},
-    label("Descubre más en SHALOM",S.spotifyHeading),
-    h(View,{style:S.homeGrid},...[
-     ["Explorar","Artistas, álbumes y categorías","categories","Explorar"],
-     ["Popurrís oficiales","Cantos unidos por SHALOM","medleys","Popurrís"],
-     ["Álbumes","Colecciones oficiales","albums","Álbumes"],
-     ["Más opciones","Solicitudes y ajustes","more","Más"]
-    ].map(([name,subtitle,icon,destination])=>h(Pressable,{
-     key:name,onPress:()=>goTab(destination),style:S.homeTile,accessibilityRole:"button"},
-     h(View,{style:S.homeTileIcon},
-      h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
-     h(View,{style:{flex:1,minWidth:0}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)))))),
-
-   !copy?.syncedAt?h(Pressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
-    label("↓ Descargar cancionero sin conexión  ›",S.homeSyncText)):null,
-   busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
- }
+ function renderHome(){return h(HomeScreen,{S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,manualSync,busy,copy,setSettingsOpen,progress,error});}
  function renderSongs(){return h(SongsScreen,{S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId});}
  function renderArtists(){return h(ArtistsScreen,{S,label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail});}
  function renderCategories(){return h(CategoriesScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,folderId,folderType,query,setFolderType,setFolderId,setQuery,sectionSearchOpen,selectSong});}

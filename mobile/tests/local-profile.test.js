@@ -20,6 +20,8 @@ assert.equal(parseProfile("{bad").name,"Mi perfil","Una preferencia dañada no d
 assert.equal(parseProfile(JSON.stringify({...custom,avatar:"../../unsafe.jpg"})).avatar,null);
 assert.equal(parseProfile(JSON.stringify({...custom,bannerAction:"pay"})).bannerAction,"explorar");
 const app=fs.readFileSync("App.js","utf8");
+const home=fs.readFileSync("src/home-screen-ui.js","utf8");
+assert.match(app,/h\(HomeScreen,\{/);
 const catalogScreens=fs.readFileSync("src/catalog-screens-ui.js","utf8");
 const shared=fs.readFileSync("src/app-components.js","utf8");
 const profile=fs.readFileSync("src/profile-ui.js","utf8");
@@ -30,7 +32,7 @@ assert.match(app,/profileRaw=prefs\[PROFILE_KEY\]/);
 assert.match(app,/write:setMetadata/,"Guardar perfil privado");
 assert.match(fs.readFileSync("src/personal-edit-controller.js","utf8"),/key:PROFILE_KEY/);
 assert.match(app,/onPress:\(\)=>tab==="Perfil"\?openProfileMenu\(\)/,"Opciones de perfil en tres puntos");
-assert.match(app,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,
+assert.match(home,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,
  "El destacado usa la foto local seleccionada");
 assert.match(shared,/h\(InitialCover,\{title:title\|\|"Canto",size:53\}/,
  "Las listas de cantos utilizan iniciales de color");
