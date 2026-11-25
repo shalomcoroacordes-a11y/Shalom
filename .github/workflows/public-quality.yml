@@ -176,6 +176,9 @@ jobs:
       - name: Test explicit messages lifecycle
         run: node tests/admin-messages-lifecycle.cjs
 
+      - name: Test explicit request page lifecycle
+        run: node tests/admin-request-page-lifecycle.cjs
+
       - name: Test rehearsal and mass repertories
         run: node tests/repertoires-regression.cjs
 

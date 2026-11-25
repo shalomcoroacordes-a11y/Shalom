@@ -19,7 +19,8 @@
     tip3_text: "Un video o página permite revisar la letra, el tono y el contexto del canto."
   };
   let current = { ...defaults };
-  let open = false;
+  let mounted = null;
+  const isCurrent = (section) => Boolean(section && section === mounted && $("#adminRequestPageContent") === section && $("#adminRequestPageTab")?.classList.contains("active"));
 
   const waitFor = (promise, ms, message) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))]);
   const missingTable = (error) => error?.code === "PGRST205" || /site_content|relation .*site_content/i.test(String(error?.message || ""));
@@ -32,24 +33,27 @@
   const field = (name, label, value, multiline = false) => `<label>${esc(label)}${multiline ? `<textarea name="${esc(name)}" rows="3">${esc(value)}</textarea>` : `<input name="${esc(name)}" value="${esc(value)}">`}</label>`;
 
   function formHTML() {
-    return `<section class="admin-section"><div class="admin-section-heading"><div><p class="hero-kicker">Contenido público</p><h2>Página Solicitar canto</h2></div><a class="song-btn small-btn secondary" href="solicitar-canto.html" target="_blank" rel="noopener">Ver página ↗</a></div><div class="admin-card"><p class="admin-note">Edita los textos de la página donde los usuarios piden nuevos cantos. Las solicitudes aparecerán en la pestaña <strong>Mensajes</strong>.</p><form class="admin-form" id="requestPageForm"><div class="admin-form-grid">${field("eyebrow", "Etiqueta superior", current.eyebrow)}${field("title", "Título principal", current.title)}</div>${field("highlight", "Palabras destacadas", current.highlight)}${field("intro", "Introducción", current.intro, true)}<h3 class="admin-subsection-title">Tarjeta lateral</h3>${field("side_title", "Título lateral", current.side_title)}${field("side_text", "Texto lateral", current.side_text, true)}<h3 class="admin-subsection-title">Consejos</h3><div class="admin-form-grid">${field("tip1_title", "Consejo 1 · Título", current.tip1_title)}${field("tip2_title", "Consejo 2 · Título", current.tip2_title)}${field("tip3_title", "Consejo 3 · Título", current.tip3_title)}</div><div class="admin-form-grid">${field("tip1_text", "Consejo 1 · Texto", current.tip1_text, true)}${field("tip2_text", "Consejo 2 · Texto", current.tip2_text, true)}${field("tip3_text", "Consejo 3 · Texto", current.tip3_text, true)}</div><div class="admin-actions"><button class="song-btn" type="submit">Guardar página</button><button class="song-btn small-btn secondary" id="restoreRequestDefaults" type="button">Restaurar texto inicial</button></div><p class="admin-message" id="requestPageStatus" aria-live="polite"></p></form></div></section>`;
+    return `<div class="admin-section-heading"><div><p class="hero-kicker">Contenido público</p><h2>Página Solicitar canto</h2></div><a class="song-btn small-btn secondary" href="solicitar-canto.html" target="_blank" rel="noopener">Ver página ↗</a></div><div class="admin-card"><p class="admin-note">Edita los textos de la página donde los usuarios piden nuevos cantos. Las solicitudes aparecerán en la pestaña <strong>Mensajes</strong>.</p><form class="admin-form" id="requestPageForm"><div class="admin-form-grid">${field("eyebrow", "Etiqueta superior", current.eyebrow)}${field("title", "Título principal", current.title)}</div>${field("highlight", "Palabras destacadas", current.highlight)}${field("intro", "Introducción", current.intro, true)}<h3 class="admin-subsection-title">Tarjeta lateral</h3>${field("side_title", "Título lateral", current.side_title)}${field("side_text", "Texto lateral", current.side_text, true)}<h3 class="admin-subsection-title">Consejos</h3><div class="admin-form-grid">${field("tip1_title", "Consejo 1 · Título", current.tip1_title)}${field("tip2_title", "Consejo 2 · Título", current.tip2_title)}${field("tip3_title", "Consejo 3 · Título", current.tip3_title)}</div><div class="admin-form-grid">${field("tip1_text", "Consejo 1 · Texto", current.tip1_text, true)}${field("tip2_text", "Consejo 2 · Texto", current.tip2_text, true)}${field("tip3_text", "Consejo 3 · Texto", current.tip3_text, true)}</div><div class="admin-actions"><button class="song-btn" type="submit">Guardar página</button><button class="song-btn small-btn secondary" id="restoreRequestDefaults" type="button">Restaurar texto inicial</button></div><p class="admin-message" id="requestPageStatus" aria-live="polite"></p></form></div>`;
   }
 
   async function loadPage() {
     const { data, error } = await waitFor(db.from("site_content").select("content").eq("content_key", "request_song").maybeSingle(), 6500, "La conexión tardó demasiado.");
     if (error) throw error;
-    current = data?.content && typeof data.content === "object" ? { ...defaults, ...data.content } : { ...defaults };
+    return data?.content && typeof data.content === "object" ? { ...defaults, ...data.content } : { ...defaults };
   }
 
   function bind() {
+    const section = mounted;
     const form = $("#requestPageForm");
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (!isCurrent(section)) return;
       const raw = Object.fromEntries(new FormData(form).entries());
       const content = Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, String(value || "").trim()]));
       setStatus("Guardando página…");
       try {
         const { error } = await waitFor(db.from("site_content").upsert({ content_key: "request_song", content, updated_at: new Date().toISOString() }, { onConflict: "content_key" }), 9000, "La conexión tardó demasiado al guardar.");
+        if (!isCurrent(section) || $("#requestPageForm") !== form) return;
         if (error) {
           setStatus(missingTable(error) ? "Falta ejecutar supabase-public-pages.sql en Supabase." : `No se pudo guardar: ${error.message}`, true);
           return;
@@ -57,56 +61,43 @@
         current = { ...defaults, ...content };
         setStatus("Página guardada. Actualiza Solicitar canto para ver los cambios.");
       } catch (error) {
-        setStatus(error.message || "No se pudo guardar.", true);
+        if (isCurrent(section) && $("#requestPageForm") === form) setStatus(error.message || "No se pudo guardar.", true);
       }
     });
     $("#restoreRequestDefaults")?.addEventListener("click", () => {
+      if (!isCurrent(section)) return;
       current = { ...defaults };
-      const view = $("#adminView");
-      if (!view) return;
-      view.innerHTML = formHTML();
+      section.innerHTML = formHTML();
       bind();
       setStatus("Texto inicial restaurado. Presiona Guardar página para publicarlo.");
     });
   }
 
-  async function openEditor() {
-    open = true;
-    const view = $("#adminView");
-    const tab = $("#adminRequestPageTab");
-    if (!view || !tab) return;
-    document.querySelectorAll(".admin-tab").forEach((button) => button.classList.remove("active"));
-    tab.classList.add("active");
+  async function mount(view) {
+    if (!view) return;
     current = { ...defaults };
-    view.innerHTML = formHTML();
+    view.innerHTML = '<section class="admin-section" id="adminRequestPageContent"></section>';
+    const section = view.querySelector("#adminRequestPageContent");
+    mounted = section;
+    section.innerHTML = formHTML();
     bind();
+    const initialForm = $("#requestPageForm");
+    let dirty = false;
+    initialForm?.addEventListener("input", () => { dirty = true; });
+    initialForm?.addEventListener("submit", () => { dirty = true; });
     setStatus("Cargando contenido guardado…");
+    const canApply = () => isCurrent(section) && !dirty && $("#requestPageForm") === initialForm;
     try {
-      await loadPage();
-      if (!open) return;
-      view.innerHTML = formHTML();
+      const stored = await loadPage();
+      if (!canApply()) return;
+      current = stored;
+      section.innerHTML = formHTML();
       bind();
       setStatus("Contenido guardado cargado.");
     } catch (error) {
-      setStatus(missingTable(error) ? "Falta ejecutar supabase-public-pages.sql en Supabase." : (error.message || "No se pudo cargar."), true);
+      if (canApply()) setStatus(missingTable(error) ? "Falta ejecutar supabase-public-pages.sql en Supabase." : (error.message || "No se pudo cargar."), true);
     }
   }
 
-  function attach() {
-    const workspace = $("#adminWorkspace");
-    const tabs = workspace?.querySelector(".admin-tabs");
-    if (!tabs || $("#adminRequestPageTab")) return;
-    const button = document.createElement("button");
-    button.id = "adminRequestPageTab";
-    button.className = "admin-tab";
-    button.type = "button";
-    button.textContent = "Solicitar canto";
-    button.addEventListener("click", openEditor);
-    tabs.append(button);
-    tabs.querySelectorAll("[data-admin-tab]").forEach((tab) => tab.addEventListener("click", () => { open = false; }));
-  }
-
-  const observer = new MutationObserver(attach);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  attach();
+  window.ShalomAdminRequestPage = { mount };
 })();
