@@ -224,17 +224,28 @@
     busy = true;
     try {
       const snapshot = row.snapshot || {};
-      const table = { song: "songs", artist: "artists", category: "categories", album: "albums" }[row.item_type];
-      if (!table || !snapshot.record) throw new Error("El respaldo no tiene datos suficientes.");
-      const exists = await db.from(table).select("id").eq("id", snapshot.record.id).maybeSingle();
-      if (exists.error) throw exists.error;
-      if (!exists.data) {
-        const created = await db.from(table).insert([cleanRow(snapshot.record, true)]);
-        if (created.error) throw created.error;
+      // Native snapshots include full database rows and song_versions. Use the same
+      // transactional owner-only endpoint as native Admin; never fall back on errors.
+      if (row.item_type === "song" && Object.hasOwn(snapshot, "song")) {
+        if (!snapshot.song?.id || idOf(snapshot.song.id) !== idOf(row.original_id) || Object.hasOwn(snapshot, "record")) {
+          throw new Error("El respaldo nativo no coincide con el canto original.");
+        }
+        const { data, error } = await db.rpc("admin_restore_song", { p_trash_id: row.id });
+        if (error) throw error;
+        if (data !== true) throw new Error("No se confirmó la restauración del canto.");
+      } else {
+        const table = { song: "songs", artist: "artists", category: "categories", album: "albums" }[row.item_type];
+        if (!table || !snapshot.record) throw new Error("El respaldo no tiene datos suficientes.");
+        const exists = await db.from(table).select("id").eq("id", snapshot.record.id).maybeSingle();
+        if (exists.error) throw exists.error;
+        if (!exists.data) {
+          const created = await db.from(table).insert([cleanRow(snapshot.record, true)]);
+          if (created.error) throw created.error;
+        }
+        await restoreRelations(row.item_type, snapshot.record.id, snapshot.relations || {});
+        const removed = await db.from(TRASH_TABLE).delete().eq("id", row.id);
+        if (removed.error) throw removed.error;
       }
-      await restoreRelations(row.item_type, snapshot.record.id, snapshot.relations || {});
-      const removed = await db.from(TRASH_TABLE).delete().eq("id", row.id);
-      if (removed.error) throw removed.error;
       await window.apRefresh?.("Elemento restaurado correctamente.");
     } catch (error) {
       say(`No se pudo restaurar: ${error?.message || "Error desconocido."}`, true);

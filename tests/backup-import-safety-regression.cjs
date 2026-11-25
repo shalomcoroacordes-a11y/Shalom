@@ -114,3 +114,29 @@ async function relationRecovery(){
  console.log("Legacy restore: exact existing relations, multiplicity, scoped reads and invalid relation preflight verified.");
 }
 relationRecovery().catch(error=>{console.error(error);process.exitCode=1});
+
+// Native snapshot restoration uses the exact same RPC as native Admin.
+const nativeApi=fs.readFileSync("admin-mobile/src/api.js","utf8");
+assert.match(nativeApi,/rpc\/admin_restore_song/);
+const restoreStart=backup.indexOf("  async function restoreTrash("),restoreEnd=backup.indexOf("  async function purgeTrash(",restoreStart);
+assert.ok(restoreStart>=0&&restoreEnd>restoreStart);
+function restoreFixture(snapshot,{kind="song",original="s",rpcResult={data:true},accepted=true}={}){
+ const calls=[],notes=[],refreshes=[];
+ const ctx={trashRows:[{id:"trash",item_type:kind,original_id:original,item_name:"Canto",snapshot}],busy:false,idOf:value=>String(value||""),confirm:()=>accepted,say:(message,bad)=>notes.push({message,bad}),cleanRow:core.cleanRow,restoreRelations:async(...args)=>calls.push(["legacy-relations",...args]),TRASH_TABLE:"admin_trash",db:{async rpc(name,args){calls.push(["rpc",name,args]);return rpcResult},from(table){calls.push(["table",table]);return {select(){return this},eq(){return this},async maybeSingle(){return {data:{id:"s"}}},delete(){return this}}}},window:{async apRefresh(message){refreshes.push(message)}}};
+ vm.createContext(ctx);vm.runInContext(backup.slice(restoreStart,restoreEnd),ctx);
+ return {ctx,calls,notes,refreshes,run:()=>ctx.restoreTrash("trash")};
+}
+async function nativeRecovery(){
+ const snapshot={song:{id:"s"},song_versions:[{parent_song_id:"s",version_song_id:"v"}]};
+ const ok=restoreFixture(snapshot);await ok.run();assert.equal(JSON.stringify(ok.calls),JSON.stringify([["rpc","admin_restore_song",{p_trash_id:"trash"}]]));assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
+ for(const response of [{error:{message:"Sin permiso"}},{error:{message:"CONFLICT"}},{error:{message:"Función no disponible",code:"PGRST202"}},{data:false}]){
+  const failed=restoreFixture(snapshot,{rpcResult:response});await failed.run();assert.equal(failed.calls.length,1);assert.equal(failed.calls[0][0],"rpc");assert.equal(failed.refreshes.length,0);assert.match(failed.notes[0].message,/No se pudo restaurar/);assert.equal(failed.ctx.busy,false);
+ }
+ for(const malformed of [{song:{id:"other"}},{song:null},{song:{id:"s"},record:{id:"s"}}]){
+  const bad=restoreFixture(malformed);await bad.run();assert.equal(bad.calls.length,0);assert.match(bad.notes[0].message,/no coincide/);
+ }
+ const cancel=restoreFixture(snapshot,{accepted:false});await cancel.run();assert.equal(cancel.calls.length,0);
+ const old=restoreFixture({record:{id:"s"},relations:{}});await old.run();assert.equal(old.calls[0][0],"table");assert.ok(old.calls.some(c=>c[0]==="legacy-relations"));assert.equal(old.refreshes.length,1);
+ console.log("Native trash compatibility: owner RPC, no fallback, invalid snapshots, cancellation and legacy route verified.");
+}
+nativeRecovery().catch(error=>{console.error(error);process.exitCode=1});
