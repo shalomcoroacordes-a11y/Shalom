@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'sql/SHALOM_ADMIN_ROLE_PRIVILEGES.sql'
+      - 'sql/SHALOM_ADMIN_ROLE_VISIBILITY.sql'
+      - 'tests/sql/admin-role-visibility.sql'
       - 'sql/SHALOM_ADMIN_ROLES_20261121.sql'
       - 'tests/sql/admin-role-privileges.sql'
       - '.github/workflows/admin-role-privileges.yml'

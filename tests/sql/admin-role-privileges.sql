@@ -88,3 +88,5 @@ do $$begin
 end$$;
 reset role;
 \echo 'RBAC least privilege, rollback, idempotency, RLS, representative RPC and service role passed.'
+
+\ir admin-role-visibility.sql

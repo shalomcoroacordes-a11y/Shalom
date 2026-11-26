@@ -289,7 +289,7 @@ create policy "Roles visible a administradores" on public.admin_roles for select
 );
 create policy "Permisos del rol visibles a administradores" on public.admin_role_permissions for select to authenticated using (
  public.admin_is_owner() or public.admin_has_permission('roles.view') or exists(
- select 1 from public.admin_user_roles u where u.role_id=role_id and u.user_id=auth.uid())
+ select 1 from public.admin_user_roles u where u.role_id=admin_role_permissions.role_id and u.user_id=auth.uid())
 );
 create policy "Asignaciones visibles a propietario y a sí mismo" on public.admin_user_roles for select to authenticated using (
  public.admin_is_owner() or user_id=auth.uid()

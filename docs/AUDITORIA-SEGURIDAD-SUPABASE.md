@@ -125,3 +125,7 @@ order by tablename,policyname;
 
 ### Criterio de cierre
 Inventario reproducible, plan de migración revisado, respaldo restaurable, matriz de permisos probada en PostgreSQL aislado y comprobaciones posteriores de web y Android. La aprobación de una auditoría no equivale a haber desplegado una corrección. No modificar producción hasta autorización y verificación de precondiciones. Consultar los asesores en el panel de Supabase y la documentación oficial de RLS y seguridad de contraseñas.
+
+### Corrección focalizada de visibilidad de roles
+
+La consulta de `pg_policies` confirmó que la política SELECT de `admin_role_permissions` resolvía el nombre `role_id` sin calificar como `u.role_id`, convirtiendo la comparación en una tautología. Esto amplía lectura de permisos, no concede por sí solo su ejecución. Se corrige el origen histórico y se prepara `sql/SHALOM_ADMIN_ROLE_VISIBILITY.sql` como mantenimiento independiente: verifica RLS, política única y rol esperado antes de alterar solo su expresión. No amplía grants ni modifica funciones de autorización, membresías o datos. La prueba aislada reproduce el defecto y comprueba dos roles propios, rol ajeno, usuario sin asignación, propietario, roles.view y visitante. La corrección no cambia la visibilidad propia de cuentas bloqueadas ni resuelve otras rutas heredadas. Pendiente CI, respaldo, revisión y autorización de producción.
