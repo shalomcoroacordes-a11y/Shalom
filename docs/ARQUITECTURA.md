@@ -162,3 +162,7 @@ Los seis paquetes de estilos públicos conservan su orden de cascada y bytes ori
 ## Auditoría de cierre: módulos históricos
 
 El controlador de acceso histórico se retira por no estar conectado al HTML, a Offline ni a las apps; la autorización activa permanece en `admin-auth-controller.js`, `admin-pro.js` y las políticas SQL. No se modifica el flujo de autenticación. `artist-discovery.js` se conserva deliberadamente como funcionalidad histórica pendiente de decisión: no se carga en la página actual; sus dos hallazgos estructurales no representan ejecución activa. No se elimina ni se activa por el mero informe. Los seis paquetes CSS y las copias nativas generadas tienen comprobación de origen; los clones de esos archivos no implican múltiples fuentes manuales.
+
+## Dependencias explícitas de pruebas nativas
+
+Las herramientas Babel usadas directamente por la prueba de referencias léxicas de Pública se declaran como dependencias de desarrollo con las mismas versiones del árbol bloqueado. No se introducen módulos de ejecución ni se modifican las versiones resueltas; los avisos de paquetes Expo quedan documentados para revisión sin modificar funcionalidad nativa.
