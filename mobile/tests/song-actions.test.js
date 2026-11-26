@@ -62,7 +62,7 @@ const gridUI=fs.readFileSync("src/aligned-score-ui.js","utf8");
 assert.match(app,/h\(AlignedScore,/,"Lector muestra renglones completos compartidos entre pantallas");
 assert.match(fs.readFileSync("src/web-score-html.js","utf8"),/overflow-x:auto/,"El lector conserva desplazamiento horizontal de la letra");
 const readerActions=fs.readFileSync("src/song-reader-actions.js","utf8");
-assert.match(readerActions,/Print\.printAsync\(\{html:buildPrintableSong\(song,readerShiftForPrint\(song,transpose,capo\)\)\}\)/,"Impresión nativa sin navegador y con capo");
+assert.match(readerActions,/Print\.printAsync\(\{html:buildPrintableSong\(song,readerShiftForPrint\(song,transpose,capo\),showReaderCues\)\}\)/,"Impresión nativa sin navegador y con capo");
 assert.match(app,/createSongReaderActions\(\{/,"App conecta las acciones del lector con los servicios nativos");
 assert.match(sheet,/onRequestClose:back/,"El botón nativo cierra panel o retrocede dentro de él");
 for(const value of ["Quitar de Mis me gusta","Agregar a Mis me gusta","Agregar a repertorio","Agregar a misa",

@@ -45,7 +45,7 @@ const pickerCss=readSection(pickerMarker);
 let hash=2166136261;
 for(const c of pickerCss)hash=Math.imul(hash^c.charCodeAt(0),16777619)>>>0;
 assert.equal(hash,1309125158,"Category picker styles retain the exact original declarations and order");
-assert.match(html,/admin-song-category-picker\.js\?v=7/);
+assert.match(html,/admin-song-category-picker\.js\?v=8/);
 console.log("Category picker static CSS preserves original declarations.");
 
 const extractedStyles=[
@@ -53,7 +53,7 @@ const extractedStyles=[
     "file": "admin-category-browser-v2.js",
     "marker": "/* ===== Admin category browser ===== */",
     "hash": 2263716550,
-    "version": 2
+    "version": 3
   },
   {
     "file": "admin-main-artist-search.js",

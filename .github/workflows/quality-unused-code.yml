@@ -28,7 +28,7 @@ jobs:
         run: node tests/knip-scope.test.cjs
       - name: Install application dependencies for graph resolution
         working-directory: ${{ matrix.app }}
-        run: npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Inventory potentially unused files and dependencies
         working-directory: ${{ matrix.app }}
         shell: bash

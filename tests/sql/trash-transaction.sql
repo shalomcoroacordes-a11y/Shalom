@@ -25,6 +25,10 @@ create table public.admin_trash(id uuid primary key default gen_random_uuid(),it
 create table public.admin_audit_log(actor_id uuid,subject_id uuid,action text);
 \ir ../../sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql
 
+do $grants$begin
+ if has_function_privilege('anon','public.admin_restore_song_complete(uuid)','EXECUTE') or not has_function_privilege('authenticated','public.admin_restore_song_complete(uuid)','EXECUTE') then raise exception 'complete restore RPC grants incorrect';end if;
+ if has_function_privilege('anon','public.admin_delete_song_complete(uuid)','EXECUTE') or not has_function_privilege('authenticated','public.admin_delete_song_complete(uuid)','EXECUTE') then raise exception 'complete RPC grants incorrect';end if;
+end$grants$;
 begin;
 select set_config('test.actor','00000000-0000-4000-8000-000000000001',true);
 select set_config('test.can_delete','yes',true);
@@ -51,7 +55,7 @@ begin
  end;
  if not exists(select 1 from public.songs where id=target_id) then raise exception 'unauthorized delete';end if;
  perform set_config('test.actor','00000000-0000-4000-8000-000000000001',true);
- if public.admin_delete_song(target_id) is distinct from true then raise exception 'delete not confirmed';end if;
+ if public.admin_delete_song_complete(target_id) is distinct from true then raise exception 'delete not confirmed';end if;
  select id,snapshot into trash_id,saved from public.admin_trash where original_id=target_id;
  if trash_id is null or saved->'song_studio_arrangements'->0->'arrangement' is distinct from original then raise exception 'Studio not captured';end if;
  if exists(select 1 from public.songs where id=target_id) or exists(select 1 from public.song_studio_arrangements a where a.song_id=target_id) then raise exception 'cascade not completed';end if;
@@ -76,7 +80,7 @@ begin
  if exists(select 1 from public.songs where id=target_id) or exists(select 1 from public.song_versions v where v.parent_song_id=target_id) then raise exception 'partial restore escaped rollback';end if;
  if not exists(select 1 from public.admin_trash where id=trash_id) then raise exception 'backup lost after rollback';end if;
  update public.admin_trash set snapshot=saved where id=trash_id;
- if public.admin_restore_song(trash_id) is distinct from true then raise exception 'restore not confirmed';end if;
+ if public.admin_restore_song_complete(trash_id) is distinct from true then raise exception 'restore not confirmed';end if;
  if not exists(select 1 from public.song_studio_arrangements a where a.song_id=target_id and a.song_revision=rev and a.arrangement=original) then raise exception 'Studio roundtrip mismatch';end if;
  if not exists(select 1 from public.song_versions v where v.parent_song_id=target_id and v.version_song_id=other_id) then raise exception 'version missing';end if;
  if exists(select 1 from public.admin_trash where id=trash_id) then raise exception 'restored backup not consumed';end if;

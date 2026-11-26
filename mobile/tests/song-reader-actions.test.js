@@ -3,6 +3,9 @@ const {songPermalink,createSongReaderActions}=require("../src/song-reader-action
 const {buildPrintableSong,readerShiftForPrint}=require("../src/song-print");
 async function run(){
  const song={id:"s/1",title:"Gloria",tone:"G",lyrics:"G\nTexto",capo_position:2,capo_key:"F",_links:[{url:"https://youtu.be/example"}]};
+ const core=require("../src/studio-core"),codec=require("../src/studio-codec"),{parseSong}=require("../src/chords");
+ const anchors=core.anchorsFromRows(parseSong(song.lyrics));
+ song._studio=codec.encode(anchors,core.setCues(core.draft(anchors),[{index:0,ticks:0,action:"start",audience:"choir",text:"Entra todo el coro"}]));
  const events=[];
  const services={
   Share:{share:async payload=>events.push(["share",payload])},
@@ -19,6 +22,9 @@ async function run(){
  assert.deepEqual(events.pop(),["share",{title:"Gloria",message:"Gloria — SHALOM\n"+url}]);
  await actions.printSong(song);
  assert.deepEqual(events.pop(),["print",{html:buildPrintableSong(song,readerShiftForPrint(song,2,"main"))}]);
+ await createSongReaderActions({...services,showReaderCues:false}).printSong(song);
+ const without=events.pop();assert.equal(without[0],"print");assert.doesNotMatch(without[1].html,/Entra todo el coro/);
+ await actions.printSong(song);assert.match(events.pop()[1].html,/Entra todo el coro/);
  await actions.checkSongOffline(song);
  assert.deepEqual(events.pop(),["alert","Disponible sin conexión","Este canto ya está guardado en la biblioteca de SHALOM. Puedes abrirlo sin internet."]);
  await createSongReaderActions({...services,copy:null}).checkSongOffline(song);

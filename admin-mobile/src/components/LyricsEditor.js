@@ -13,7 +13,7 @@ function Preview({value}){
  return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,contentContainerStyle:{paddingVertical:12,paddingHorizontal:4,minWidth:"100%"}},
   h(View,{style:{gap:3}},renderLines(value).map((line,i)=>text(line.text,[line.type==="chords"?S.chords:line.type==="section"?S.kicker:S.lyrics,{fontSize:15,lineHeight:25,marginTop:line.type==="section"?12:0}]))));
 }
-function LyricsEditor({value,onChange}){
+function LyricsEditor({value,onChange,onOpenCues}){
  const {height}=useWindowDimensions(),insets=useSafeAreaInsets();
  const [full,setFull]=useState(false),[preview,setPreview]=useState(false),[font,setFont]=useState(15);
  const selection=useRef({start:0,end:0});
@@ -43,7 +43,7 @@ function LyricsEditor({value,onChange}){
   });
  }
  function toolbar(){return h(ScrollView,{horizontal:true,keyboardShouldPersistTaps:"always",showsHorizontalScrollIndicator:false,contentContainerStyle:{gap:7,paddingVertical:6}},
-  SECTIONS.map(s=>tool("＋ "+s,()=>insertSection(s))));}
+  onOpenCues?tool("＋ Indicación",()=>{setFull(false);onOpenCues();}):null,SECTIONS.map(s=>tool("＋ "+s,()=>insertSection(s))));}
  function header(){return h(View,{style:S.apart},
   h(View,{style:{flex:1,gap:3}},text("Letra y acordes",S.section),text("Cada acorde queda sobre la palabra usando espacios.",S.note)),
   tool("⤢  Ampliar",()=>{setFull(true);setPreview(false);}));

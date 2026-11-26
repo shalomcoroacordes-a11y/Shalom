@@ -1,5 +1,5 @@
 // Acciones simples para la biblioteca personal, sin migraciones ni acceso a Supabase.
-const {newCollection,newEntry,importCode}=require("./personal-collections");
+const {newCollection,newEntry,importCode,entryFrom,songSections,LIMIT_PARTS}=require("./personal-collections");
 const KINDS=["misa","popurri","repertorio"];
 const KIND_LABEL={misa:"misa",popurri:"popurrí",repertorio:"repertorio"};
 function items(store,kind=null){
@@ -33,6 +33,29 @@ function createPersonal(store,kind,title,folderId=null){
  folder.entries.push(entry);
  return {store:{...store,collections},folder,entry};
 }
+// Copy from the official catalog into a new independent local composition.
+// Never silently omit a modified fragment or exceed the personal part limit.
+function copyOfficial(store,official,kind,songs,folderId=null){
+ if(!KINDS.includes(kind)||!official||official.is_published===false)throw Error("Colección oficial no disponible.");
+ const source=kind==="popurri"?official.parts:official.items;
+ if(!Array.isArray(source)||!source.length||source.length>LIMIT_PARTS)throw Error("La copia personal admite de 1 a 30 cantos o fragmentos.");
+ const catalog=new Map((songs||[]).map(s=>[String(s.id),s]));
+ const parts=source.map((item,index)=>{
+  const songId=String(item.song_id||""),song=catalog.get(songId);
+  if(!song)throw Error("Descarga primero el canto "+(index+1)+".");
+  let sectionIndex=null,sectionTitle="",snapshot={};
+  if(kind==="popurri"&&item.lyrics!==song.lyrics){
+   const matches=songSections(song.lyrics).filter(s=>s.text===item.lyrics);
+   if(matches.length===1){sectionIndex=matches[0].index;sectionTitle=matches[0].title;}
+   else{if(typeof item.lyrics!=="string"||!item.lyrics.trim())throw Error("El fragmento "+(index+1)+" no tiene letra válida.");snapshot={fragmentLyrics:item.lyrics,fragmentTitle:item.title||item.song_title||"Fragmento personalizado"};}
+  }
+  return {songId,sectionIndex,sectionTitle,...snapshot,shift:item.shift||0,moment:item.moment||"",notes:item.notes||"",cueOverride:item.cue_override??null,capoId:item.capo_id??"none"};
+ });
+ const entry=entryFrom({kind,title:official.title,parts},true);
+ const created=createPersonal(store,kind,entry.title,folderId);
+ created.folder.entries[created.folder.entries.length-1]=entry;
+ return {...created,entry};
+}
 function receivePersonal(store,message,folderId=null){
  const imported=importCode(message);
  const collections=store.collections.map(c=>({...c,entries:c.entries.slice()}));
@@ -48,4 +71,4 @@ function codePreview(message,songs){
  return {entry:imported,missingCount:missing.length,count:imported.parts.length};
 }
 function kindName(kind){return KIND_LABEL[kind]||"composición";}
-module.exports={KINDS,KIND_LABEL,items,createPersonal,receivePersonal,codePreview,kindName};
+module.exports={KINDS,KIND_LABEL,items,createPersonal,copyOfficial,receivePersonal,codePreview,kindName};

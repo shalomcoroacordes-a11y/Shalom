@@ -6,7 +6,7 @@ const styles=new Proxy({},{get:(_,key)=>String(key)});
 const controls={txt:(text)=>h("text",{text}),heading:(text)=>h("text",{text}),button:(text,action,kind,disabled)=>h("button",{text,action,disabled:!!disabled}),input:(text,value,action)=>h("input",{text,value,action}),wrapChips:(choices,selected,action)=>h("chips",{choices,selected,action}),itemRow:(text,sub,action)=>h("row",{text,sub,action})};
 let dialog;
 const native={View:"View",Text:"Text",ScrollView:"ScrollView",Alert:{alert:(...args)=>{dialog=args}}};
-const modules={"react":{createElement:h},"react-native":native,"../styles":{S:styles,C:styles},"../model":model,"../permissions":permissions,"../score":{renderLines:()=>[{type:"lyrics",text:"Letra"}]},"../components/Controls":controls,"../components/EditorFields":{Field:"Field"},"../trash-format":require("../src/trash-format")};
+const modules={"react":{createElement:h},"react-native":native,"../styles":{S:styles,C:styles},"../model":model,"../permissions":permissions,"../score":{renderLines:()=>[{type:"lyrics",text:"Letra"}]},"../components/Controls":controls,"../components/EditorFields":{Field:"Field"},"../trash-format":require("../src/trash-format"),"./StudioHistory":"StudioHistory"};
 function load(name){const module={exports:{}};vm.runInNewContext(fs.readFileSync(path.join(root,"screens",name+".js"),"utf8"),{module,require:id=>{assert.ok(modules[id],"Unexpected dependency "+id);return modules[id]}});return module.exports;}
 function nodes(value){if(Array.isArray(value))return value.flatMap(nodes);if(!value||typeof value!=="object")return [];return [value,...nodes(value.children)];}
 function find(tree,type,text){const result=nodes(tree).find(n=>n.type===type&&n.props.text===text);assert.ok(result,type+" "+text);return result.props;}
@@ -19,8 +19,18 @@ for(const [type,record] of [["songs",song],["artists",artist]]){
 }
 const Editor=load("EditorScreen");
 const editorProps={form:{...model.initial("songs"),title:"Canto",lyrics:"G\nLetra"},selectedType:"songs",section:"Letra",update:(...args)=>calls.push(args),adminBack:noop,setSection:noop,lists:{},localId:()=>"id",editing:{id:"song-id"},studioStatus:null,openStudio:noop,editorSaving:false,saveDraft:flag=>calls.push(["save",flag]),access,offline:false};
-let tree=Editor(editorProps);const field=nodes(tree).find(n=>n.type==="Field");assert.equal(field.props.spec[0],"lyrics");field.props.onChange("lyrics","Nueva letra");find(tree,"button","Enviar a publicación").action();assert.deepEqual(calls.splice(0),[["lyrics","Nueva letra"],["save",true]]);
+const openLyricCues=()=>calls.push(["cues"]);let tree=Editor({...editorProps,openLyricCues});const field=nodes(tree).find(n=>n.type==="Field");assert.equal(field.props.spec[0],"lyrics");assert.equal(field.props.onOpenCues,openLyricCues);field.props.onOpenCues();assert.deepEqual(calls.splice(0),[["cues"]]);field.props.onChange("lyrics","Nueva letra");find(tree,"button","Enviar a publicación").action();assert.deepEqual(calls.splice(0),[["lyrics","Nueva letra"],["save",true]]);
 tree=Editor({...editorProps,editorSaving:true});assert.equal(find(tree,"button","Enviar a publicación").disabled,true);assert.equal(find(tree,"button","Guardando…").disabled,true);
+const listHistory=()=>calls.push(["history-list"]),chooseHistory=(...args)=>calls.push(["history-choose",...args]);
+const lyricOnlyTree=Editor({...editorProps,editing:{id:"song-id",expected:"r2"},studioStatus:{id:"song-id",checked:true,arrangement:{v:1,k:"lyrics",j:[]}}});assert.ok(nodes(lyricOnlyTree).some(n=>n.type==="text"&&n.value==="✓ Indicaciones publicadas · sin acompañamiento")||JSON.stringify(lyricOnlyTree).includes("✓ Indicaciones publicadas · sin acompañamiento"));assert.ok(find(lyricOnlyTree,"button","Configurar acompañamiento de guitarra"));
+const historyProps={...editorProps,editing:{id:"song-id",expected:"r2"},historyOwner:"owner",listStudioHistory:listHistory,chooseStudioHistory:chooseHistory};
+const history=nodes(Editor(historyProps)).find(n=>n.type==="StudioHistory");
+assert.ok(history);assert.equal(history.props.revision,"r2");assert.equal(history.props.key,JSON.stringify(["owner","song-id","r2"]));
+history.props.onList();history.props.onChoose("revision",false);assert.deepEqual(calls.splice(0),[["history-list"],["history-choose","revision",false]]);
+for(const props of [{offline:true},{access:{permissions:["songs.edit"]}},{access:{owner:true,blocked:true}},{editing:{id:"song-id"}}]){
+ assert.ok(!nodes(Editor({...historyProps,...props})).some(n=>n.type==="StudioHistory"));
+}
+assert.notEqual(nodes(Editor({...historyProps,historyOwner:"other"})).find(n=>n.type==="StudioHistory").props.key,history.props.key);
 const Pending=load("PendingScreen"),draft={id:"d",type:"songs",body:song,status:"queued"};
 tree=Pending({busy:false,offline:false,sendQueue:noop,drafts:[draft],begin:(...args)=>calls.push(args),onTransition:d=>calls.push(["transition",d]),onDelete:d=>calls.push(["delete",d])});
 find(tree,"button","Volver a borrador").action();find(tree,"button","Borrar").action();assert.equal(dialog[0],"Eliminar borrador local");dialog[2][1].onPress();assert.deepEqual(calls.splice(0),[["transition",draft],["delete",draft]]);

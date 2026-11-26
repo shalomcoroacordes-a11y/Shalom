@@ -1,6 +1,6 @@
 /* El trabajador solamente guarda archivos públicos de SHALOM Offline.
    No intercepta el administrador ni almacena respuestas privadas de Supabase. */
-const VERSION = "shalom-offline-shell-v21-collection-styles";
+const VERSION = "shalom-offline-shell-v34-lyric-cues";
 const ASSETS = [
   "./offline.html",
   "./offline.css",
@@ -12,7 +12,12 @@ const ASSETS = [
   "./studio-core.js",
   "./studio-guitar.js",
   "./studio-codec.js",
+  "./studio-reader-cues.js",
+  "./song-reader-cues-web.js",
+  "./song-reader-cues.css",
   "./studio-collections.js",
+  "./studio-save-state.js",
+  "./studio-reading-geometry.js",
   "./studio-collection-web.js",
   "./studio-collection-web.css",
   "./studio-entry.js",

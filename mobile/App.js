@@ -12,6 +12,7 @@ const {createSyncController}=require("./src/sync-controller");
 const {parseSong}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {RepertoireReader,MedleyReader,SongReader}=require("./src/music-readers-ui");
+const ReaderCues=require("./src/studio-reader-cues");
 const {clampReaderFont}=require("./src/score-zoom");
 const {buildCatalog,names,safeWebUrl}=require("./src/catalog");
 const {sendRequest}=require("./src/requests");
@@ -30,6 +31,9 @@ const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./s
 const {createPersonalBackupController}=require("./src/personal-backup-controller");
 const {createPersonalEditController}=require("./src/personal-edit-controller");
 const {addToPersonal}=require("./src/song-actions-core");
+const {copyOfficial}=require("./src/personal-workflows");
+const {updateOccurrenceCues}=require("./src/personal-store");
+const {buildPrintableSong}=require("./src/song-print");
 const {songPermalink,createSongReaderActions}=require("./src/song-reader-actions");
 const {capoSelection}=require("./src/song-capo-core");
 const Print=require("expo-print");
@@ -99,12 +103,16 @@ function AppScreen() {
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
  const [readerFont,setReaderFont]=useState(15);
+ const [showReaderCues,setShowReaderCues]=useState(true);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
  const [personalFilter,setPersonalFilter]=useState(null);
  const [profile,setProfile]=useState(profileDefaults());
- const [actionSongId,setActionSongId]=useState(null);
+ const [actionSongId,setActionId]=useState(null);
+ const [actionContext,setActionContext]=useState(null);
+ function setActionSongId(id){setActionContext(null);setActionId(id);}
+ function openCollectionSong(song,context){setActionContext(context);setActionId(String(song.id));}
  const [studioPayload,setStudioPayload]=useState(null);
  const [studioQueue,setStudioQueue]=useState(null);
  const [notice,setNotice]=useState(null);
@@ -315,6 +323,7 @@ function AppScreen() {
       accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
       label("A+",S.songFontText)))),
    h(View,{style:S.multiControlFooter},
+    h(Pressable,{onPress:()=>setShowReaderCues(v=>!v),accessibilityRole:"button",accessibilityState:{selected:showReaderCues},style:S.multiTextAction},label(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",S.multiTextActionLabel)),
     h(Pressable,{onPress:resetTone,accessibilityRole:"button",
      accessibilityLabel:"Restablecer transposición",style:S.multiTextAction},
      label("Restablecer tono",S.multiTextActionLabel)),
@@ -328,9 +337,11 @@ function AppScreen() {
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
-  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
+  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null,override=null){
   const parsed=parseSong(lyrics,delta);
-  return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
+  const arrangement=song&&lyrics===song.lyrics?song._studio:null;
+  const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(lyrics,0),arrangement,override,parsed):parsed;
+  return renderAlignedScoreRows(rows,fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){
   const selection=startStudioQueue(plan,index);
@@ -351,9 +362,13 @@ function AppScreen() {
   return h(View,{style:{paddingVertical:8}},h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioCollection(plan)},
    label("♫ "+caption+" · "+plan.ready.length+"/"+plan.total,S.multiOriginalText)));
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
+ function copyOfficialLocally(collection,kind){
+  try{const result=copyOfficial(personalRef.current,collection,kind,model.songs);savePersonal(result.store,{notice:"Copia guardada en Mis creaciones"});}
+  catch(error){Alert.alert("No se pudo copiar",error.message);}
+ }
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(rep,rep.kind==="misa"?"misa":"repertorio")});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(medley,"popurri")});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }
@@ -404,14 +419,14 @@ function AppScreen() {
   );
  }
  const {shareSong,printSong,checkSongOffline,openSongVideo}=createSongReaderActions({
-  Share,Print,Alert,openWeb,manualSync,copy,model,network,transpose,capo
+  Share,Print,Alert,openWeb,manualSync,copy,model,network,transpose,capo,showReaderCues
  });
  function addSongLocally(song,kind,choice){
   const result=addToPersonal(personal,String(song.id),kind,choice);
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont});}
+ function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,
@@ -429,7 +444,7 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
@@ -517,14 +532,14 @@ function AppScreen() {
        adjustsFontSizeToFit:true,minimumFontScale:.78,allowFontScaling:false},name));})) : null,
   actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
-   store:personal,onDismiss:()=>setActionSongId(null),
+   store:personal,onDismiss:()=>setActionSongId(null),context:actionContext,onSaveCues:actionContext?.personalTarget?value=>{const next=updateOccurrenceCues(personalRef.current,actionContext.personalTarget,actionSong,actionContext.lyrics,actionContext.override,value);savePersonal(next,{notice:"Indicaciones actualizadas solo en esta colección"});}:null,onOpenOriginal:actionContext?()=>selectSong(actionSong):null,
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
    onOpenLink:url=>openWeb(url),
    onOpenSongPage:()=>openWeb(songPermalink(actionSong)),
    onVideo:()=>openSongVideo(actionSong),
-   onStudio:()=>{setStudioQueue(null);const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
-   onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
-   onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
+   onStudio:actionContext? (actionContext.practiceReady?()=>openStudioPart(actionSong,{lyrics:actionContext.lyrics,shift:actionContext.shift,capo:actionContext.capo}):null):()=>{setStudioQueue(null);const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
+   onPrint:actionContext?()=>Print.printAsync({html:buildPrintableSong({...actionSong,lyrics:actionContext.lyrics,_studio:actionContext.lyrics===actionSong.lyrics?actionSong._studio:null},actionContext.shift,showReaderCues,actionContext.override)}):()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
+   onFullScreen:()=>setImmersive(true),onResetTone:actionContext?null:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
    studioPayload?h(require("./src/studio-screen"),{key:studioQueue?"studio-"+studioQueue.index:"studio-song",payload:studioPayload,onClose:closeStudio,queue:studioQueue,onNext:nextStudio}):null,
    !immersiveActive?h(LocalNotice,{notice,

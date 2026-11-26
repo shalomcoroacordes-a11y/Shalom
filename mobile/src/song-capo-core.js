@@ -1,3 +1,5 @@
+/* Canonical capo calculation for web and native readers. */
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.ShalomSongCapo=api;})(globalThis,function(){
 // El capo se resuelve de forma identica en lectura e impresion.
 // Modulo puro, sin React Native, red o modificaciones del catalogo.
 const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -27,4 +29,12 @@ function capoSelection(song,selected="none"){
  }
  return {choices,chosen,offset};
 }
-module.exports=Object.freeze({capoChoices,capoSelection});
+// Collection preferences are keyed by occurrence, not song id.
+function occurrenceKey(collection,index,part){return JSON.stringify([collection?.id,collection?.updated_at||"",index,part?.id||"",part?.song_id||part?.songId||""]);}
+function collectionCapo(song,part,selected){
+ const value=selected??part?.capoId??part?.capo_id??"none";
+ return capoSelection(song,value);
+}
+return Object.freeze({capoChoices,capoSelection,occurrenceKey,collectionCapo});
+
+});

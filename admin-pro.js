@@ -20,43 +20,19 @@ const AP = {
   filters: { artists: "", categories: "", albums: "", albumArtist: "", songs: "", songArtist: "", songCategory: "", songAlbum: "" },
   limits: { artists: 8, categories: 8, albums: 8, songs: 8 },
   draft: null,
+  songEdit: null,
+  songSaving: false,
   links: [],
   capos: []
 };
 
-// La edición recuerda su altura y posición del cursor al cambiar de sección.
-const AP_EDITOR_POSITION_KEY = "shalom-admin-editor-positions-v1";
-const apEditorPositions = (() => {
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(AP_EDITOR_POSITION_KEY) || "{}");
-    return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  } catch { return {}; }
-})();
-function apPersistEditorPositions() {
-  try { sessionStorage.setItem(AP_EDITOR_POSITION_KEY, JSON.stringify(apEditorPositions)); } catch {}
-}
+// La edición conserva el cursor y desplazamiento de cada canto durante la sesión.
+const apEditorPosition = window.ShalomAdminEditorPosition.create(() => sessionStorage);
 function apRememberEditorPosition() {
-  const editor = ap$("#songLyricsField");
-  const key = editor?.dataset.scrollSong;
-  if (!editor || !key) return;
-  apEditorPositions[key] = {
-    top: editor.scrollTop,
-    left: editor.scrollLeft,
-    start: editor.selectionStart,
-    end: editor.selectionEnd
-  };
-  apPersistEditorPositions();
+  apEditorPosition.remember(ap$("#songLyricsField"));
 }
 function apRestoreEditorPosition() {
-  const editor = ap$("#songLyricsField");
-  if (!editor) return;
-  const saved = apEditorPositions[editor.dataset.scrollSong];
-  if (!saved) return;
-  const start = Math.min(editor.value.length, Math.max(0, Number(saved.start) || 0));
-  const end = Math.min(editor.value.length, Math.max(start, Number(saved.end) || start));
-  editor.setSelectionRange(start, end);
-  editor.scrollTop = Number(saved.top) || 0;
-  editor.scrollLeft = Number(saved.left) || 0;
+  apEditorPosition.restore(ap$("#songLyricsField"));
 }
 
 function apNote(text, bad = false) {
@@ -92,69 +68,27 @@ function apEmpty(text) { return `<div class="admin-empty">${apEsc(text)}</div>`;
 function apSortRows(rows, label) { return [...(rows || [])].sort((a, b) => String(label(a)).localeCompare(String(label(b)), "es")); }
 
 function apResetDraft(song) {
-  const source = song || {};
-  const links = source._links || [];
-  const capos = source._capos || [];
-  const artistLinks = [...(source._artistLinks || [])].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
-  const principal = artistLinks.find((row) => apNorm(row.role) === "principal") || artistLinks[0];
-  AP.edits.song = song?.id || null;
-  AP.draft = {
-    title: source.title || "",
-    song_type: source.song_type || "catolico",
-    main_artist_id: principal?.artist_id || "",
-    collaborators: artistLinks.filter((row) => apId(row.artist_id) !== apId(principal?.artist_id)).map((row) => apId(row.artist_id)),
-    category_id: source._categories?.[0]?.id || "",
-    category_ids: [...new Set((source._categories || []).map((row) => apId(row.id)).filter(Boolean))],
-    album_id: source._albums?.[0]?.id || "",
-    tone: source.tone || "",
-    difficulty: source.difficulty || "",
-    capo_position: String(source.capo_position || 0),
-    capo_key: source.capo_key || "",
-    lyrics: source.lyrics || "",
-    collaborator_query: "",
-    new_link_title: "",
-    new_link_type: "Tutorial",
-    new_link_platform: "YouTube",
-    new_link_url: "",
-    new_capo_label: "",
-    new_capo_position: "0",
-    new_capo_key: ""
-  };
-  AP.links = links.map((row, index) => ({ title: row.title || "", link_type: row.link_type || "Tutorial", platform: row.platform || "", url: row.url || "", sort_order: index }));
-  AP.capos = capos.map((row, index) => ({ label: row.label || "", capo_position: Number(row.capo_position || 0), capo_key: row.capo_key || "", sort_order: index }));
-  if (!song) { delete apEditorPositions.__new__; apPersistEditorPositions(); }
+  const prepared = window.ShalomAdminSongDraft.fromSong(song);
+  AP.edits.song = prepared.songEdit.id;
+  AP.songEdit = prepared.songEdit;
+  AP.draft = prepared.draft;
+  AP.links = prepared.links;
+  AP.capos = prepared.capos;
+  if (!song) apEditorPosition.clear("__new__");
 }
 function apCaptureSongDraft() {
   const form = ap$("#songAdminForm");
   if (!form || !AP.draft) return;
   const data = Object.fromEntries(new FormData(form).entries());
-  AP.draft = Object.assign({}, AP.draft, data, {
-    collaborators: ap$$("input[name='collaborator']:checked", form).map((input) => input.value),
-    category_ids: Array.isArray(AP.draft.category_ids) ? AP.draft.category_ids : [AP.draft.category_id].filter(Boolean)
-  });
+  const collaborators = ap$$("input[name='collaborator']:checked", form).map((input) => input.value);
+  AP.draft = window.ShalomAdminSongDraft.capture(AP.draft, data, collaborators);
 }
 function apDraftValue(key) { return AP.draft?.[key] ?? ""; }
 function apCategoryPath(item) {
-  const parts = [];
-  let current = item;
-  const seen = new Set();
-  while (current && !seen.has(apId(current.id))) {
-    seen.add(apId(current.id));
-    parts.unshift(current.name || "Categoría");
-    current = AP.categories.find((row) => apId(row.id) === apId(current.parent_id));
-  }
-  return parts.join(" › ");
+  return window.ShalomAdminCategoryHierarchy.path(AP.categories, item).map(row => row.name || "Categoría").join(" › ");
 }
 function apCategoryDescendants(id) {
-  const out = new Set([apId(id)]);
-  let added = true;
-  while (added) {
-    added = false;
-    AP.categories.forEach((row) => {
-      if (out.has(apId(row.parent_id)) && !out.has(apId(row.id))) { out.add(apId(row.id)); added = true; }
-    });
-  }
-  return out;
+  return window.ShalomAdminCategoryHierarchy.descendants(AP.categories, id);
 }
 function apFlatCategories() { return apSortRows(AP.categories, apCategoryPath); }
 function apSongArtists(song) { return (song._artists || []).map((row) => row.name).filter(Boolean).join(" · ") || "Sin artista"; }
@@ -325,7 +259,7 @@ function apSongsHTML() {
   const collaborators = new Set(draft.collaborators || []);
   const filteredArtists = AP.artists.filter((row) => !apNorm(draft.collaborator_query).trim() || apNorm([row.name, row.artist_type].join(" ")).includes(apNorm(draft.collaborator_query)));
   const albumOptions = AP.albums.filter((row) => !draft.main_artist_id || apId(row.artist_id) === apId(draft.main_artist_id));
-  return `<section class="admin-section">${apSectionHead("Cancionero", "Canciones", `${AP.songs.length} registradas`)}<div class="admin-filter-row"><input class="admin-filter-input" id="songFilter" type="search" value="${apEsc(AP.filters.songs)}" placeholder="Buscar título, tono, artista, categoría o álbum"><select id="songArtistFilter"><option value="">Todos los artistas</option>${apOptions(AP.artists, "id", (row) => row.name).replace(`value=\"${apEsc(AP.filters.songArtist || "")}\"`, `value=\"${apEsc(AP.filters.songArtist || "")}\" selected`)}</select><select id="songCategoryFilter"><option value="">Todas las categorías</option>${apOptions(apFlatCategories(), "id", (row) => apCategoryPath(row)).replace(`value=\"${apEsc(AP.filters.songCategory || "")}\"`, `value=\"${apEsc(AP.filters.songCategory || "")}\" selected`)}</select><select id="songAlbumFilter"><option value="">Todos los álbumes</option>${apOptions(AP.albums, "id", (row) => row.title).replace(`value=\"${apEsc(AP.filters.songAlbum || "")}\"`, `value=\"${apEsc(AP.filters.songAlbum || "")}\" selected`)}</select></div><div class="admin-layout"><div class="admin-card"><div class="admin-editor-head"><h3>${AP.edits.song ? "Editar canción" : "Agregar canción"}</h3>${AP.edits.song ? `<button class="song-btn small-btn secondary" data-cancel-song type="button">Cancelar</button>` : ""}</div><form class="admin-form" id="songAdminForm"><label>Título<input name="title" required value="${apEsc(draft.title)}" placeholder="Ejemplo: Caminar contigo María"></label><div class="admin-form-grid"><label>Tipo<select name="song_type"><option value="catolico" ${apNorm(draft.song_type) === "catolico" ? "selected" : ""}>Católico</option><option value="cristiano" ${apNorm(draft.song_type) === "cristiano" ? "selected" : ""}>Cristiano</option><option value="mixto" ${apNorm(draft.song_type) === "mixto" ? "selected" : ""}>Mixto</option></select></label><label>Artista principal<select name="main_artist_id" id="songMainArtist"><option value="">Selecciona artista</option>${apOptions(AP.artists, "id", (row) => row.name).replace(`value=\"${apEsc(draft.main_artist_id || "")}\"`, `value=\"${apEsc(draft.main_artist_id || "")}\" selected`)}</select></label></div><label>Buscar colaboradores<input name="collaborator_query" id="collaboratorSearch" value="${apEsc(draft.collaborator_query)}" placeholder="Buscar por nombre"></label><div class="admin-check-list" id="collaboratorList">${filteredArtists.map((artist) => `<label class="admin-check-item"><input type="checkbox" name="collaborator" value="${apEsc(artist.id)}" ${collaborators.has(apId(artist.id)) ? "checked" : ""} ${apId(artist.id) === apId(draft.main_artist_id) ? "disabled" : ""}><span>${apEsc(artist.name)} <small>${apEsc(apType(artist.artist_type))}</small></span></label>`).join("") || "<p class='admin-note'>No se encontraron artistas.</p>"}</div><div class="jhd-song-category-field"><label>Categorías <small>(puedes elegir varias)</small></label><input type="hidden" name="category_id" value="${apEsc(draft.category_id || "")}"><div id="songMultiCategories" class="jhd-multi-category-picker"></div></div><label>Álbum / carpeta<select name="album_id"><option value="">Sin álbum</option>${apOptions(albumOptions, "id", (row) => row.title).replace(`value=\"${apEsc(draft.album_id || "")}\"`, `value=\"${apEsc(draft.album_id || "")}\" selected`)}</select></label><div class="admin-form-grid three"><label>Tono original<input name="tone" value="${apEsc(draft.tone)}" placeholder="Ejemplo: C"></label><label>Dificultad<select name="difficulty"><option value="">Sin dificultad</option><option value="Fácil" ${draft.difficulty === "Fácil" ? "selected" : ""}>Fácil</option><option value="Intermedio" ${draft.difficulty === "Intermedio" ? "selected" : ""}>Intermedio</option><option value="Avanzado" ${draft.difficulty === "Avanzado" ? "selected" : ""}>Avanzado</option></select></label><label>Capo principal<select name="capo_position"><option value="0" ${String(draft.capo_position) === "0" ? "selected" : ""}>Sin capo</option>${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${String(draft.capo_position) === String(i + 1) ? "selected" : ""}>Capo ${i + 1}</option>`).join("")}</select></label></div><label>Figuras con capo<input name="capo_key" value="${apEsc(draft.capo_key)}" placeholder="Ejemplo: G"></label><div class="admin-resource-grid"><div class="admin-resource-draft"><h4>Versiones con capo</h4><div class="admin-form-grid"><input name="new_capo_label" value="${apEsc(draft.new_capo_label)}" placeholder="Ejemplo: Capo 2 · E"><select name="new_capo_position"><option value="0">Capo</option>${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${String(draft.new_capo_position) === String(i + 1) ? "selected" : ""}>Capo ${i + 1}</option>`).join("")}</select></div><input name="new_capo_key" value="${apEsc(draft.new_capo_key)}" placeholder="Figuras"><button class="song-btn small-btn" type="button" id="addCapoDraft">Agregar versión</button><div class="admin-mini-list">${apCaposDraft()}</div></div><div class="admin-resource-draft"><h4>Tutoriales y enlaces</h4><input name="new_link_title" value="${apEsc(draft.new_link_title)}" placeholder="Título"><div class="admin-form-grid"><select name="new_link_type"><option value="Tutorial">Tutorial</option><option value="Video">Video</option><option value="Canal">Canal</option><option value="Cover">Cover</option><option value="Acordes">Acordes</option></select><select name="new_link_platform"><option value="YouTube">YouTube</option><option value="TikTok">TikTok</option><option value="Instagram">Instagram</option><option value="Facebook">Facebook</option><option value="Spotify">Spotify</option><option value="Sitio web">Sitio web</option></select></div><input name="new_link_url" type="url" value="${apEsc(draft.new_link_url)}" placeholder="https://..."><button class="song-btn small-btn" type="button" id="addLinkDraft">Agregar enlace</button><div class="admin-mini-list">${apSongLinksDraft()}</div></div></div><label>Letra con acordes</label><div class="admin-section-buttons"><button class="song-btn small-btn" type="button" data-add-section="Intro">Intro</button><button class="song-btn small-btn" type="button" data-add-section="Verso 1">Verso 1</button><button class="song-btn small-btn" type="button" data-add-section="Coro">Coro</button><button class="song-btn small-btn" type="button" data-add-section="Puente">Puente</button><button class="song-btn small-btn" type="button" data-add-section="Final">Final</button></div><p class="admin-note">Escribe los acordes en una línea arriba de la letra y usa espacios para colocarlos sobre la palabra exacta. También sigue funcionando el formato anterior (D) dentro de la letra.</p><textarea name="lyrics" id="songLyricsField" data-scroll-song="${apEsc(AP.edits.song || "__new__")}" rows="16" placeholder="[Intro]\nF#                 D#m\nHola, Dios, soy yo otra vez.\n\n[Coro]\nG#m            C#\nAquí comienza el coro.">${apEsc(draft.lyrics)}</textarea><div class="admin-actions"><button class="song-btn" type="submit">${AP.edits.song ? "Guardar cambios" : "Guardar canción"}</button><button class="song-btn secondary" type="button" id="newSongDraft">Nueva canción</button></div><p id="songFormMessage" class="admin-note" role="status" aria-live="polite"></p></form></div>${apSongPreview()}</div><div class="admin-list" style="margin-top:18px">${shown.length ? shown.map((song) => `<article class="admin-list-item"><h4>${apEsc(song.title || "Sin título")}</h4><p>${apEsc(apSongArtists(song))}</p><p>${apEsc(apType(song.song_type))}${song.tone ? ` · Tono ${apEsc(song.tone)}` : ""}${apSongCategories(song) ? ` · ${apEsc(apSongCategories(song))}` : ""}${apSongAlbums(song) ? ` · ${apEsc(apSongAlbums(song))}` : ""}</p><div class="admin-actions"><button class="song-btn small-btn" type="button" data-edit-song="${apEsc(song.id)}">Editar</button><button class="song-btn small-btn secondary" type="button" data-delete-song="${apEsc(song.id)}">Eliminar</button></div></article>`).join("") : apEmpty("No hay canciones que coincidan.")}</div>${apShowMore("songs", rows.length, shown.length)}</section>`;
+  return `<section class="admin-section">${apSectionHead("Cancionero", "Canciones", `${AP.songs.length} registradas`)}<div class="admin-filter-row"><input class="admin-filter-input" id="songFilter" type="search" value="${apEsc(AP.filters.songs)}" placeholder="Buscar título, tono, artista, categoría o álbum"><select id="songArtistFilter"><option value="">Todos los artistas</option>${apOptions(AP.artists, "id", (row) => row.name).replace(`value=\"${apEsc(AP.filters.songArtist || "")}\"`, `value=\"${apEsc(AP.filters.songArtist || "")}\" selected`)}</select><select id="songCategoryFilter"><option value="">Todas las categorías</option>${apOptions(apFlatCategories(), "id", (row) => apCategoryPath(row)).replace(`value=\"${apEsc(AP.filters.songCategory || "")}\"`, `value=\"${apEsc(AP.filters.songCategory || "")}\" selected`)}</select><select id="songAlbumFilter"><option value="">Todos los álbumes</option>${apOptions(AP.albums, "id", (row) => row.title).replace(`value=\"${apEsc(AP.filters.songAlbum || "")}\"`, `value=\"${apEsc(AP.filters.songAlbum || "")}\" selected`)}</select></div><div class="admin-layout"><div class="admin-card"><div class="admin-editor-head"><h3>${AP.edits.song ? "Editar canción" : "Agregar canción"}</h3>${AP.edits.song ? `<button class="song-btn small-btn secondary" data-cancel-song type="button">Cancelar</button>` : ""}</div><form class="admin-form" id="songAdminForm"><label>Título<input name="title" required value="${apEsc(draft.title)}" placeholder="Ejemplo: Caminar contigo María"></label><div class="admin-form-grid"><label>Tipo<select name="song_type"><option value="catolico" ${apNorm(draft.song_type) === "catolico" ? "selected" : ""}>Católico</option><option value="cristiano" ${apNorm(draft.song_type) === "cristiano" ? "selected" : ""}>Cristiano</option><option value="mixto" ${apNorm(draft.song_type) === "mixto" ? "selected" : ""}>Mixto</option></select></label><label>Artista principal<select name="main_artist_id" id="songMainArtist"><option value="">Selecciona artista</option>${apOptions(AP.artists, "id", (row) => row.name).replace(`value=\"${apEsc(draft.main_artist_id || "")}\"`, `value=\"${apEsc(draft.main_artist_id || "")}\" selected`)}</select></label></div><label>Buscar colaboradores<input name="collaborator_query" id="collaboratorSearch" value="${apEsc(draft.collaborator_query)}" placeholder="Buscar por nombre"></label><div class="admin-check-list" id="collaboratorList">${filteredArtists.map((artist) => `<label class="admin-check-item"><input type="checkbox" name="collaborator" value="${apEsc(artist.id)}" ${collaborators.has(apId(artist.id)) ? "checked" : ""} ${apId(artist.id) === apId(draft.main_artist_id) ? "disabled" : ""}><span>${apEsc(artist.name)} <small>${apEsc(apType(artist.artist_type))}</small></span></label>`).join("") || "<p class='admin-note'>No se encontraron artistas.</p>"}</div><div class="jhd-song-category-field"><label>Categorías <small>(puedes elegir varias)</small></label><input type="hidden" name="category_id" value="${apEsc(draft.category_id || "")}"><div id="songMultiCategories" class="jhd-multi-category-picker"></div></div><label>Álbum / carpeta<select name="album_id"><option value="">Sin álbum</option>${apOptions(albumOptions, "id", (row) => row.title).replace(`value=\"${apEsc(draft.album_id || "")}\"`, `value=\"${apEsc(draft.album_id || "")}\" selected`)}</select></label><div class="admin-form-grid three"><label>Tono original<input name="tone" value="${apEsc(draft.tone)}" placeholder="Ejemplo: C"></label><label>Dificultad<select name="difficulty"><option value="">Sin dificultad</option><option value="Fácil" ${draft.difficulty === "Fácil" ? "selected" : ""}>Fácil</option><option value="Intermedio" ${draft.difficulty === "Intermedio" ? "selected" : ""}>Intermedio</option><option value="Avanzado" ${draft.difficulty === "Avanzado" ? "selected" : ""}>Avanzado</option></select></label><label>Capo principal<select name="capo_position"><option value="0" ${String(draft.capo_position) === "0" ? "selected" : ""}>Sin capo</option>${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${String(draft.capo_position) === String(i + 1) ? "selected" : ""}>Capo ${i + 1}</option>`).join("")}</select></label></div><label>Figuras con capo<input name="capo_key" value="${apEsc(draft.capo_key)}" placeholder="Ejemplo: G"></label><div class="admin-resource-grid"><div class="admin-resource-draft"><h4>Versiones con capo</h4><div class="admin-form-grid"><input name="new_capo_label" value="${apEsc(draft.new_capo_label)}" placeholder="Ejemplo: Capo 2 · E"><select name="new_capo_position"><option value="0">Capo</option>${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${String(draft.new_capo_position) === String(i + 1) ? "selected" : ""}>Capo ${i + 1}</option>`).join("")}</select></div><input name="new_capo_key" value="${apEsc(draft.new_capo_key)}" placeholder="Figuras"><button class="song-btn small-btn" type="button" id="addCapoDraft">Agregar versión</button><div class="admin-mini-list">${apCaposDraft()}</div></div><div class="admin-resource-draft"><h4>Tutoriales y enlaces</h4><input name="new_link_title" value="${apEsc(draft.new_link_title)}" placeholder="Título"><div class="admin-form-grid"><select name="new_link_type"><option value="Tutorial">Tutorial</option><option value="Video">Video</option><option value="Canal">Canal</option><option value="Cover">Cover</option><option value="Acordes">Acordes</option></select><select name="new_link_platform"><option value="YouTube">YouTube</option><option value="TikTok">TikTok</option><option value="Instagram">Instagram</option><option value="Facebook">Facebook</option><option value="Spotify">Spotify</option><option value="Sitio web">Sitio web</option></select></div><input name="new_link_url" type="url" value="${apEsc(draft.new_link_url)}" placeholder="https://..."><button class="song-btn small-btn" type="button" id="addLinkDraft">Agregar enlace</button><div class="admin-mini-list">${apSongLinksDraft()}</div></div></div><label>Letra con acordes</label><div class="admin-section-buttons"><button class="song-btn small-btn" type="button" data-add-section="Intro">Intro</button><button class="song-btn small-btn" type="button" data-add-section="Verso 1">Verso 1</button><button class="song-btn small-btn" type="button" data-add-section="Coro">Coro</button><button class="song-btn small-btn" type="button" data-add-section="Puente">Puente</button><button class="song-btn small-btn" type="button" data-add-section="Final">Final</button><button class="song-btn small-btn" type="button" id="openLyricCues">＋ Indicación</button></div><p class="admin-note">Escribe los acordes en una línea arriba de la letra y usa espacios para colocarlos sobre la palabra exacta. También sigue funcionando el formato anterior (D) dentro de la letra.</p><textarea name="lyrics" id="songLyricsField" data-scroll-song="${apEsc(AP.edits.song || "__new__")}" rows="16" placeholder="[Intro]\nF#                 D#m\nHola, Dios, soy yo otra vez.\n\n[Coro]\nG#m            C#\nAquí comienza el coro.">${apEsc(draft.lyrics)}</textarea><div class="admin-actions"><button class="song-btn" type="submit">${AP.edits.song ? "Guardar cambios" : "Guardar canción"}</button><button class="song-btn secondary" type="button" id="newSongDraft">Nueva canción</button></div><p id="songFormMessage" class="admin-note" role="status" aria-live="polite"></p></form></div>${apSongPreview()}</div><div class="admin-list" style="margin-top:18px">${shown.length ? shown.map((song) => `<article class="admin-list-item"><h4>${apEsc(song.title || "Sin título")}</h4><p>${apEsc(apSongArtists(song))}</p><p>${apEsc(apType(song.song_type))}${song.tone ? ` · Tono ${apEsc(song.tone)}` : ""}${apSongCategories(song) ? ` · ${apEsc(apSongCategories(song))}` : ""}${apSongAlbums(song) ? ` · ${apEsc(apSongAlbums(song))}` : ""}</p><div class="admin-actions"><button class="song-btn small-btn" type="button" data-edit-song="${apEsc(song.id)}">Editar</button><button class="song-btn small-btn secondary" type="button" data-delete-song="${apEsc(song.id)}">Eliminar</button></div></article>`).join("") : apEmpty("No hay canciones que coincidan.")}</div>${apShowMore("songs", rows.length, shown.length)}</section>`;
 }
 function apDonationsHTML() {
   const data = AP.donation || {};
@@ -367,10 +301,16 @@ function apBindSongs() {
     b.className = "song-btn secondary";
     b.textContent = "Configurar acompañamiento de guitarra";
     const studioStatus = document.createElement("p");studioStatus.className="note";studioStatus.textContent="Consultando acompañamiento…";
-    async function refreshStudioStatus(){const saved=AP.songs.find(row=>apId(row.id)===apId(AP.edits.song));if(!saved?.updated_at){studioStatus.textContent="Guarda primero el canto.";return;}try{const {data,error}=await AdminPro.from("song_studio_arrangements").select("song_id").eq("song_id",saved.id).eq("song_revision",saved.updated_at).maybeSingle();if(error)throw error;studioStatus.textContent=data?"✓ Acompañamiento publicado":"Sin acompañamiento publicado";b.textContent=data?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra";}catch{studioStatus.textContent="No se pudo consultar el estado del acompañamiento.";}}
+    async function refreshStudioStatus(){const saved=AP.songs.find(row=>apId(row.id)===apId(AP.edits.song));if(!saved?.updated_at){studioStatus.textContent="Guarda primero el canto.";return;}try{const {data,error}=await AdminPro.from("song_studio_arrangements").select("song_id,song_revision,arrangement").eq("song_id",saved.id).maybeSingle();if(error)throw error;if(data&&data.song_revision!==saved.updated_at){studioStatus.textContent="Existe un acompañamiento de una revisión anterior. Descarga un respaldo antes de sustituirlo; no se publicará automáticamente con la letra nueva.";b.textContent="Revisar acompañamiento";}else{const onlyLyrics=data?.arrangement?.k==="lyrics";studioStatus.textContent=onlyLyrics?"✓ Indicaciones publicadas · sin acompañamiento":data?"✓ Acompañamiento publicado":"Sin acompañamiento publicado";b.textContent=data&&!onlyLyrics?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra";}}catch{studioStatus.textContent="No se pudo consultar el estado del acompañamiento.";}}
     const actions = form.querySelector(".admin-actions");
     actions?.insertAdjacentElement("beforebegin", studioStatus);actions?.insertAdjacentElement("beforebegin", b);refreshStudioStatus();
-    b.addEventListener("click", async () => {
+    const historyButton=document.createElement("button");historyButton.type="button";historyButton.className="song-btn secondary";historyButton.textContent="Historial Studio";
+    actions?.insertAdjacentElement("beforebegin",historyButton);
+    historyButton.addEventListener("click",async()=>{const saved=AP.songs.find(row=>apId(row.id)===apId(AP.edits.song));if(!saved?.updated_at)return apNote("Guarda primero el canto.",true);historyButton.disabled=true;try{await window.ShalomStudioHistory.open({client:AdminPro,song:saved,owner:AP.user?.id,onClose:refreshStudioStatus});}catch(e){apNote(e.message,true);}finally{historyButton.disabled=false;}});
+    const cuesButton=form.querySelector("#openLyricCues");
+    cuesButton?.addEventListener("click",()=>openArrangement(true,cuesButton));
+    b.addEventListener("click",()=>openArrangement(false,b));
+    async function openArrangement(cueOnly,button){
       const saved = AP.songs.find(row => apId(row.id) === apId(AP.edits.song));
       const lyrics = ap$("#songLyricsField")?.value || "";
       const status = ap$("#songFormMessage");
@@ -378,12 +318,12 @@ function apBindSongs() {
         if (status) status.textContent = "Guarda primero los cambios de letra y acordes para configurar Studio.";
         return;
       }
-      b.disabled = true;
-      try { await window.ShalomStudioEntry.open({client:AdminPro,song:saved,admin:true,onClose:refreshStudioStatus}); }
+      button.disabled = true;
+      try { await window.ShalomStudioEntry.open({client:AdminPro,song:saved,admin:true,cueOnly,expectedOwner:cueOnly?AP.user?.id:null,onClose:refreshStudioStatus}); }
       catch(e) { if(status) status.textContent = e.message; }
-      finally { b.disabled = false; }
-    });
-  }
+      finally { button.disabled = false; }
+    }
+  }else form?.querySelector("#openLyricCues")?.addEventListener("click",()=>apNote("Guarda primero el canto para agregar indicaciones.",true));
 
   form?.addEventListener("input", (event) => { if (event.target.name !== "collaborator_query") apCaptureSongDraft(); if (event.target.id === "songLyricsField") { apRememberEditorPosition(); apUpdatePreview(); } });
   const lyricsEditor = ap$("#songLyricsField");
@@ -442,34 +382,60 @@ function apAddCapoDraft() { apCaptureSongDraft(); const draft = AP.draft, positi
 
 async function apSaveArtist(event) { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget).entries()); if (!String(data.name || "").trim()) return; const payload = { name: String(data.name).trim(), slug: apSlug(data.name), artist_type: String(data.artist_type || "").trim() || "general", description: String(data.description || "").trim() || null }; const result = AP.edits.artist ? await AdminPro.from("artists").update(payload).eq("id", AP.edits.artist) : await AdminPro.from("artists").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } AP.edits.artist = null; await apRefresh("Artista guardado."); }
 async function apSaveAlbum(event) { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget).entries()); const payload = { artist_id: data.artist_id, title: String(data.title || "").trim(), slug: apSlug(data.title), sort_order: Number(data.sort_order || 0), description: String(data.description || "").trim() || null }; if (!payload.artist_id || !payload.title) { apNote("Selecciona artista y escribe el nombre del álbum.", true); return; } const result = AP.edits.album ? await AdminPro.from("albums").update(payload).eq("id", AP.edits.album) : await AdminPro.from("albums").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } AP.edits.album = null; await apRefresh("Álbum guardado."); }
-async function apOptionalSongWrite(payload, id) { const optional = ["difficulty", "capo_position", "capo_key"]; let patch = { ...payload }; for (let attempt = 0; attempt <= optional.length; attempt++) { const query = id ? AdminPro.from("songs").update(patch).eq("id", id).select("id").single() : AdminPro.from("songs").insert([patch]).select("id").single(); const result = await query; if (!result.error) return result; const key = optional.find((field) => String(result.error.message || "").toLowerCase().includes(field.toLowerCase())); if (!key || !(key in patch)) return result; delete patch[key]; } return { error: { message: "No se pudo guardar la canción." } }; }
+function apSongPublication(draft, id, expected) {
+  return window.ShalomAdminSongPublication.prepare(draft, id, expected, AP.links, AP.capos);
+}
 async function apSaveSong(event) {
-  event.preventDefault(); apCaptureSongDraft(); const draft = AP.draft; const main = apId(draft.main_artist_id); const artists = [...new Set([main, ...(draft.collaborators || []).map(apId)].filter(Boolean))];
-  if (!String(draft.title || "").trim()) { apNote("Escribe el título de la canción.", true); return; }
-  if (!String(draft.tone || "").trim()) { apNote("Escribe el tono original.", true); return; }
-  if (!artists.length) { apNote("Selecciona al menos un artista.", true); return; }
-  if (Number(draft.capo_position || 0) > 0 && !String(draft.capo_key || "").trim()) { apNote("Si usas capo principal, escribe las figuras.", true); return; }
-  const payload = { title: String(draft.title).trim(), slug: apSlug(draft.title), song_type: draft.song_type || "catolico", tone: String(draft.tone).trim(), lyrics: String(draft.lyrics || ""), difficulty: String(draft.difficulty || "").trim() || null, capo_position: Number(draft.capo_position || 0), capo_key: Number(draft.capo_position || 0) > 0 ? String(draft.capo_key || "").trim() : "" };
-  const saved = await apOptionalSongWrite(payload, AP.edits.song);
-  if (saved.error || !saved.data) { apNote(`Error: ${saved.error?.message || "No se pudo guardar."}`, true); return; }
-  const songId = saved.data.id;
-  const clearResults = await Promise.all([AdminPro.from("song_artists").delete().eq("song_id", songId), AdminPro.from("song_categories").delete().eq("song_id", songId), AdminPro.from("album_songs").delete().eq("song_id", songId), AdminPro.from("song_links").delete().eq("song_id", songId), AdminPro.from("song_capo_versions").delete().eq("song_id", songId)]);
-  const clearError = clearResults.find((row) => row.error)?.error; if (clearError) { apNote(`Error al actualizar relaciones: ${clearError.message}`, true); return; }
-  const writes = [];
-  writes.push(AdminPro.from("song_artists").insert(artists.map((artistId, index) => ({ song_id: songId, artist_id: artistId, role: index === 0 ? "principal" : "colaborador", sort_order: index }))));
-  const categoryIds = [...new Set((Array.isArray(draft.category_ids) ? draft.category_ids : [draft.category_id]).map(apId).filter(Boolean))];
-  if (categoryIds.length) writes.push(AdminPro.from("song_categories").insert(categoryIds.map((categoryId) => ({ song_id: songId, category_id: categoryId }))));
-  if (draft.album_id) writes.push(AdminPro.from("album_songs").insert([{ song_id: songId, album_id: draft.album_id, sort_order: 0 }]));
-  if (AP.links.length) writes.push(AdminPro.from("song_links").insert(AP.links.map((row, index) => ({ song_id: songId, title: row.title || "Enlace", link_type: row.link_type || "Tutorial", platform: row.platform || "", url: row.url || "", sort_order: index }))));
-  if (AP.capos.length) writes.push(AdminPro.from("song_capo_versions").insert(AP.capos.map((row, index) => ({ song_id: songId, label: row.label || "", capo_position: Number(row.capo_position || 0), capo_key: row.capo_key || "", sort_order: index }))));
-  const writeResults = await Promise.all(writes); const writeError = writeResults.find((row) => row.error)?.error; if (writeError) { apNote(`La canción se guardó, pero una relación falló: ${writeError.message}`, true); return; }
-  apResetDraft(); await apRefresh("Canción guardada.");
+  event.preventDefault();
+  if (AP.songSaving) return;
+  apCaptureSongDraft();
+  const draft = AP.draft, edit = AP.songEdit, owner = AP.user?.id;
+  if (!draft || !edit || !owner) { apNote("Abre el editor con una sesión autorizada.", true); return; }
+  const validation = window.ShalomAdminSongPublication.validate(draft);
+  if (validation) { apNote(validation, true); return; }
+  if (AP.edits.song && (edit.id !== AP.edits.song || !edit.expected)) {
+    apNote("No se conoce la revisión original. Conserva tu borrador y vuelve a abrir el canto antes de publicar.", true);
+    return;
+  }
+  // A retry after an ambiguous network result reuses the same identifier; it cannot create a duplicate.
+  try { if (!edit.id) edit.id = crypto.randomUUID(); }
+  catch { apNote("No se pudo generar un identificador seguro para el canto.", true); return; }
+  const payload = apSongPublication(draft, edit.id, edit.expected);
+  const snapshot = JSON.stringify([draft, AP.links, AP.capos]);
+  const current = () => AP.user?.id === owner && AP.songEdit === edit;
+  AP.songSaving = true;
+  apNote("Guardando canto y relaciones…");
+  try {
+    const result = await AdminPro.rpc("admin_publish_song", payload);
+    if (result.error) throw result.error;
+    if (result.data?.id !== edit.id || !result.data.updated_at) throw Error("El servidor no confirmó la publicación.");
+    if (!current()) return;
+    // Preserve changes typed while a request was pending; advance only the confirmed revision.
+    if (JSON.stringify([AP.draft, AP.links, AP.capos]) !== snapshot) {
+      edit.expected = result.data.updated_at;
+      AP.edits.song = edit.id;
+      await apRefresh("Se guardó la revisión enviada. Tus cambios posteriores siguen en el editor.");
+      return;
+    }
+    apResetDraft();
+    await apRefresh("Canción guardada.");
+  } catch (error) {
+    if (current()) apNote("No se confirmó el guardado: " + (error?.message || "error desconocido") + ". Conservamos tu borrador. Si hay un conflicto, revisa el canto antes de reintentar.", true);
+  } finally {
+    AP.songSaving = false;
+  }
 }
 async function apHandleDeleteError(error) { if (!error) return false; apNote(`Error: ${error.message}`, true); return true; }
 async function apDeleteArtist(id) { const usedSongs = AP.songs.some((song) => song._artists.some((artist) => apId(artist.id) === apId(id))); const usedAlbums = AP.albums.some((album) => apId(album.artist_id) === apId(id)); if (usedSongs || usedAlbums) { apNote("No se puede eliminar: este artista tiene canciones o álbumes relacionados.", true); return; } if (!confirm("¿Eliminar este artista?")) return; const { error } = await AdminPro.from("artists").delete().eq("id", id); if (await apHandleDeleteError(error)) return; await apRefresh("Artista eliminado."); }
 async function apDeleteCategory(id) { if (AP.categories.some((row) => apId(row.parent_id) === apId(id))) { apNote("No se puede eliminar una categoría con subcategorías.", true); return; } if (AP.songs.some((song) => song._categories.some((category) => apId(category.id) === apId(id)))) { apNote("No se puede eliminar: hay canciones relacionadas.", true); return; } if (!confirm("¿Eliminar esta categoría?")) return; const { error } = await AdminPro.from("categories").delete().eq("id", id); if (await apHandleDeleteError(error)) return; await apRefresh("Categoría eliminada."); }
 async function apDeleteAlbum(id) { if (!confirm("¿Eliminar este álbum? Las canciones no se eliminarán.")) return; const removed = await AdminPro.from("album_songs").delete().eq("album_id", id); if (removed.error) { apNote(`Error: ${removed.error.message}`, true); return; } const { error } = await AdminPro.from("albums").delete().eq("id", id); if (await apHandleDeleteError(error)) return; await apRefresh("Álbum eliminado."); }
-async function apDeleteSong(id) { if (!confirm("¿Eliminar esta canción y sus relaciones?")) return; const results = await Promise.all([AdminPro.from("song_artists").delete().eq("song_id", id), AdminPro.from("song_categories").delete().eq("song_id", id), AdminPro.from("album_songs").delete().eq("song_id", id), AdminPro.from("song_links").delete().eq("song_id", id), AdminPro.from("song_capo_versions").delete().eq("song_id", id)]); const relationError = results.find((row) => row.error)?.error; if (relationError) { apNote(`Error: ${relationError.message}`, true); return; } const { error } = await AdminPro.from("songs").delete().eq("id", id); if (await apHandleDeleteError(error)) return; await apRefresh("Canción eliminada."); }
+async function apDeleteSong(id) {
+  if (typeof window.ShalomAdminBackup?.deleteSong !== "function") {
+    apNote("La protección de papelera no está disponible. No se eliminará el canto.", true);
+    return;
+  }
+  return window.ShalomAdminBackup.deleteSong(id);
+}
 async function apSaveDonation(event) { event.preventDefault(); const raw = Object.fromEntries(new FormData(event.currentTarget).entries()); const payload = Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, String(value || "").trim() || null])); const result = AP.donation?.id ? await AdminPro.from("donation_settings").update(payload).eq("id", AP.donation.id) : await AdminPro.from("donation_settings").insert([payload]); if (result.error) { apNote(`Error: ${result.error.message}`, true); return; } await apRefresh("Datos de donación guardados."); }
 async function apRefresh(message) { try { await apLoadData(); apRenderShell(); apNote(message); } catch (error) { apNote(`Error: ${error.message || "No se pudo actualizar."}`, true); } }
 

@@ -54,9 +54,21 @@ const guarded=(url,opts)=>{
  await assert.rejects(a.roles(owner),/sesión cambió/);
  await assert.rejects(a.remove("songs","s",owner),/sesión cambió/);
  await assert.rejects(a.remove("albums","a",owner),/sesión cambió/);
+ for(const call of [()=>a.createRole({name:"x",permissions:[]},owner),()=>a.changeRole({id:"r",name:"x",permissions:[]},owner),()=>a.invite("test@example.test",["r"],owner),()=>a.restoreSong("t",owner),()=>a.blockUser("u","reason",owner),()=>a.unblockUser("u",owner)])await assert.rejects(call,/sesión cambió/);
  assert.equal(requests.length,2);
  let calls=0;
  const switched=createApi(async()=>{calls++;current="admin-b";return{ok:true,status:200,text:async()=>JSON.stringify(records.slice(0,250))}},{requireFresh:async()=>({user_id:current,access_token:"token-"+current})});
  current=owner;await assert.rejects(switched.list("artist_featured_songs",owner),/sesión cambió/);assert.equal(calls,1);
  console.log("Catalog page requests and queued publication are pinned to their owner.");
+})().catch(error=>{console.error(error);process.exitCode=1});
+
+(async()=>{
+ const requests=[];let ready=false;const owner="admin-a";
+ const a=createApi(async(url,opts)=>{requests.push({url,opts});return ready?{ok:true,status:200,text:async()=>"true"}:{ok:false,status:404,text:async()=>JSON.stringify({code:"PGRST202",message:"Missing function"})}},{requireFresh:async()=>({user_id:owner,access_token:"jwt"})});
+ await assert.rejects(a.remove("songs","s",owner),/protección completa/);
+ await assert.rejects(a.restoreSong("t",owner),/protección completa/);
+ assert.deepEqual(requests.map(r=>r.url.split("/").at(-1)),["admin_delete_song_complete","admin_restore_song_complete"]);
+ ready=true;assert.equal(await a.remove("songs","s",owner),true);assert.equal(await a.restoreSong("t",owner),true);
+ assert.equal(requests.length,4);assert.ok(requests.every(r=>r.url.endsWith("_complete")));
+ console.log("Recovery operations require the complete server contract, never the legacy RPC.");
 })().catch(error=>{console.error(error);process.exitCode=1});

@@ -1,7 +1,6 @@
 const db = window.supabaseClient;
 const $ = (selector) => document.querySelector(selector);
-const esc = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-const norm = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const {esc,countLabel,card: catalogCard,createLoadMore} = window.ShalomCatalogListView;
 const params = new URLSearchParams(location.search);
 const selected = params.get("album") || params.get("id") || "";
 const PAGE_SIZE = 24;
@@ -17,21 +16,19 @@ let songRequestVersion = 0;
 
 
 
-function countLabel(count) {
-  return `${count} ${count === 1 ? "canto" : "cantos"}`;
-}
-
-
-
 function names(items) {
   return (items || []).map((item) => item?.name || item?.title || "").filter(Boolean).join(" · ");
 }
 
 function card(album) {
   const key = album.slug || album.id;
-  const count = Number(album.song_count || 0);
-  const description = album.description || album.year || "Colección de cantos disponible en el cancionero.";
-  return `<a class="artist-card catalog-album-card" href="albumes.html?album=${encodeURIComponent(key)}" aria-label="Ver álbum ${esc(album.title || "Álbum")}"><div class="catalog-card-heading"><span class="catalog-album-disc" aria-hidden="true">◉</span><div><p class="catalog-card-kicker">${esc(album.artist_name || "Colección")}</p><h3>${esc(album.title || "Álbum")}</h3></div><span class="catalog-card-arrow" aria-hidden="true">→</span></div><p class="catalog-card-description">${esc(description)}</p><div class="catalog-card-footer"><span class="catalog-card-count"><span aria-hidden="true">♫</span> ${esc(countLabel(count))}</span><strong>Ver álbum →</strong></div></a>`;
+  return catalogCard({
+    kind:"album",href:"albumes.html?album="+encodeURIComponent(key),
+    ariaLabel:"Ver álbum "+(album.title || "Álbum"),
+    iconClass:"catalog-album-disc",icon:"◉",kicker:album.artist_name || "Colección",
+    title:album.title || "Álbum",description:album.description || album.year || "Colección de cantos disponible en el cancionero.",
+    count:Number(album.song_count || 0),action:"Ver álbum →"
+  });
 }
 
 function setStatus(message) {
@@ -39,28 +36,7 @@ function setStatus(message) {
   if (status) status.textContent = message;
 }
 
-function ensureListLoadMore() {
-  let button = $("#albumsLoadMore");
-  if (button) return button;
-  const grid = $("#albumsGrid");
-  if (!grid) return null;
-  const wrap = document.createElement("div");
-  wrap.className = "catalog-load-more";
-  wrap.innerHTML = '<button class="song-btn secondary" id="albumsLoadMore" type="button" hidden>Cargar más álbumes</button>';
-  grid.after(wrap);
-  button = $("#albumsLoadMore");
-  button?.addEventListener("click", () => fetchAlbums(true));
-  return button;
-}
-
-function updateListLoadMore() {
-  const button = ensureListLoadMore();
-  if (!button) return;
-  const hasMore = catalog.state.rows.length < catalog.state.total;
-  button.hidden = !hasMore;
-  button.disabled = catalog.state.loading;
-  button.textContent = catalog.state.loading ? "Cargando…" : "Cargar más álbumes";
-}
+const loadMore = createLoadMore({grid:$("#albumsGrid"),id:"albumsLoadMore",label:"Cargar más álbumes",onLoad:()=>fetchAlbums(true)});
 
 function renderAlbums() {
   const grid = $("#albumsGrid");
@@ -70,19 +46,14 @@ function renderAlbums() {
   grid.innerHTML = catalog.state.rows.length
     ? catalog.state.rows.map(card).join("")
     : "<article class='artist-card'><h3>Sin álbumes</h3><p>Aún no hay álbumes que coincidan con la búsqueda.</p></article>";
-  updateListLoadMore();
+  loadMore.update(catalog.state);
 }
 
 function beginAlbumLoad() {
   const grid = $("#albumsGrid");
   if (grid) grid.innerHTML = "<article class='artist-card shimmer-card'><h3>Buscando álbumes…</h3><p>Un momento por favor.</p></article>";
   setStatus("Buscando álbumes…");
-  const button = ensureListLoadMore();
-  if (button) {
-    button.hidden = true;
-    button.disabled = true;
-    button.textContent = "Cargar más álbumes";
-  }
+  loadMore.reset();
 }
 
 function rpcErrorMessage(error, functionName, label) {
@@ -100,14 +71,13 @@ const catalog = window.ShalomCatalogSongRow.createPager({
     if (error) throw error;
     return data || [];
   },
-  onStart: append => append ? updateListLoadMore() : beginAlbumLoad(),
+  onStart: append => append ? loadMore.update(catalog.state) : beginAlbumLoad(),
   onRender: renderAlbums,
   onError: error => {
     const grid = $("#albumsGrid");
     if (grid) grid.innerHTML = `<article class='artist-card'><h3>No se pudieron cargar los álbumes</h3><p>${esc(rpcErrorMessage(error, "search_albums_catalog", "álbumes"))}</p></article>`;
     setStatus("No se pudieron cargar los álbumes.");
-    const button = ensureListLoadMore();
-    if (button) button.hidden = true;
+    loadMore.hide();
   }
 });
 function fetchAlbums(append = false) {
@@ -215,7 +185,7 @@ function start() {
     openDetail();
     return;
   }
-  ensureListLoadMore();
+  loadMore.ensure();
   fetchAlbums(false);
   $("#albumSearch")?.addEventListener("input", () => {
     clearTimeout(searchTimer);

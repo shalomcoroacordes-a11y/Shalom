@@ -8,6 +8,7 @@ Cancionero web y aplicación móvil del coro SHALOM.
 | --- | --- |
 | Entender qué hace cada parte | [Arquitectura](docs/ARQUITECTURA.md) |
 | Instalar, probar o publicar cambios | [Desarrollo](docs/DESARROLLO.md) |
+| Preparar una entrega segura y verificar sus requisitos | [Protocolo de lanzamiento](docs/PROTOCOLO-LANZAMIENTO.md) |
 | Aprender programación con este proyecto | [Guía para aprender](docs/GUIA-PARA-APRENDER.md) |
 | Saber cómo nombrar y organizar código | [Convenciones](docs/CONVENCIONES.md) |
 | Comprender tablas y permisos | [Base de datos](docs/BASE-DE-DATOS.md) |

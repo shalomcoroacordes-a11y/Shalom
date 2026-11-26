@@ -1,0 +1,17 @@
+const assert=require("node:assert/strict"),{updateOccurrenceCues,reorderParts}=require("../src/personal-store"),{parseSong}=require("../src/chords"),core=require("../src/studio-core"),codec=require("../src/studio-codec"),reader=require("../src/studio-reader-cues");
+const song={id:"s",lyrics:"[Coro]\nC\nCantemos juntos"};
+const rows=parseSong(song.lyrics,0),cue={...core.lyricCueAnchor(rows,1),action:"note",audience:"choir",text:"Suave"};
+const override={v:1,mode:"append",j:codec.encodeLyricCues([cue]).j};
+const parts=[{id:"a",songId:"s",sectionIndex:null},{id:"b",songId:"s",sectionIndex:null}],entry={id:"e",parts};
+const store={version:1,collections:[{id:"f",entries:[entry]}]},target={folderId:"f",entryId:"e",partId:"b"};
+const next=updateOccurrenceCues(store,target,song,song.lyrics,null,override);
+assert.equal(next.collections[0].entries[0].parts[0].cueOverride,undefined);
+assert.deepEqual(next.collections[0].entries[0].parts[1].cueOverride,override);
+assert.equal(store.collections[0].entries[0].parts[1].cueOverride,undefined);
+assert.ok(reader.decorateCollection(rows,null,override).some(r=>r.kind==="cue"&&r.text.includes("Suave")));
+assert.throws(()=>updateOccurrenceCues(next,target,song,song.lyrics,null,override),/cambió/);
+assert.throws(()=>updateOccurrenceCues(store,target,{...song,lyrics:"Nueva letra"},song.lyrics,null,override),/cambió/);
+const reordered={...next,collections:[{...next.collections[0],entries:[reorderParts(next.collections[0].entries[0],1,-1)]}]};
+const reset=updateOccurrenceCues(reordered,target,song,song.lyrics,override,null);
+assert.equal(reset.collections[0].entries[0].parts[0].id,"b");assert.equal(reset.collections[0].entries[0].parts[0].cueOverride,undefined);
+console.log("Local per-occurrence indications: repeated songs, safe editing, reordering and reset.");

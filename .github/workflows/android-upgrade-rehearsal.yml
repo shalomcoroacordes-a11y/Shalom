@@ -8,9 +8,9 @@ on:
 permissions:
   contents: read
 env:
-  BASELINE_VERSION: "0.4.22"
-  BASELINE_CODE: "45"
-  CANDIDATE_CODE: "47"
+  BASELINE_VERSION: "0.4.24"
+  BASELINE_CODE: "47"
+  CANDIDATE_CODE: "48"
 concurrency:
   group: shalom-upgrade-rehearsal-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -26,10 +26,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Restore npm download cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-node22-mobile-${{ hashFiles('mobile/package.json', 'mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-node22-mobile-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+      - name: Restore Gradle dependency downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
+          key: ${{ runner.os }}-gradle-deps-jdk17-mobile-${{ hashFiles('mobile/package.json', 'mobile/package-lock.json', 'mobile/app.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-deps-jdk17-mobile-
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
@@ -37,7 +53,7 @@ jobs:
         run: sdkmanager --install "build-tools;35.0.0"
       - name: Install and test candidate code
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx expo install --check
           npm run test:syntax
           npm test
@@ -47,7 +63,7 @@ jobs:
           /tmp/shalom-upgrade-icons/bin/pip install --disable-pip-version-check --quiet cairosvg
           /tmp/shalom-upgrade-icons/bin/python scripts/generate_icons.py
           node scripts/release-preflight.js
-      - name: Verify candidate v0.4.24 and versionCode 47
+      - name: Verify candidate v0.4.25 and versionCode 48
         run: node scripts/release-preflight.js --publish
       - name: Generate official-package Android project
         run: npx expo prebuild --platform android --non-interactive --no-install
@@ -58,21 +74,21 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon :app:assembleRelease
-      - name: Download actual official v0.4.22 APK
+      - name: Download actual official v0.4.24 APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/shalom-upgrade"
-          gh release download android-v0.4.22 --repo "$GITHUB_REPOSITORY" \
-            --pattern 'SHALOM-Android-v0.4.22.apk' --dir "$RUNNER_TEMP/shalom-upgrade"
-          test -s "$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.22.apk"
+          gh release download android-v0.4.24 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'SHALOM-Android-v0.4.24.apk' --dir "$RUNNER_TEMP/shalom-upgrade"
+          test -s "$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v0.4.24.apk"
       - name: REQUIRE matching real certificate, package and versionCode
         run: bash scripts/verify-upgrade-candidate.sh
       - name: Preserve VERIFIED rehearsal candidate as temporary artifact only
         uses: actions/upload-artifact@v4
         with:
-          name: SHALOM-UPGRADE-TEST-0.4.24-${{ github.sha }}
+          name: SHALOM-UPGRADE-TEST-0.4.25-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
@@ -84,7 +100,7 @@ jobs:
           fi
           sudo chmod a+rw /dev/kvm
           ls -l /dev/kvm
-      - name: Rehearse 0.4.22 to 0.4.24 on emulator with adb install -r
+      - name: Rehearse 0.4.24 to 0.4.25 on emulator with adb install -r
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -97,7 +113,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SHALOM-0.4.24-UI-${{ github.sha }}
+          name: SHALOM-0.4.25-UI-${{ github.sha }}
           path: ${{ runner.temp }}/shalom-upgrade/screenshots/*.png
           if-no-files-found: warn
           retention-days: 14

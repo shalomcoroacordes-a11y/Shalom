@@ -8,6 +8,8 @@ let currentSong = null;
 let transpose = 0;
 let capoShift = 0;
 let capoLabel = "Sin capo";
+let readerArrangement = null;
+let readerCuesVisible = true;
 
 const escapeHTML = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const N = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -22,12 +24,6 @@ const chord = (value, move) => String(value || "").replace(/^([A-G](?:#|b)?)(.*)
   const bass = String(rest || "").replace(/\/([A-G](?:#|b)?)/g, (_match, note) => `/${moveNote(note, move)}`);
   return moveNote(root, move) + bass;
 });
-const isChordToken = (value) => /^[A-G](?:#|b)?(?:maj(?:7|9|11|13)?|m(?:maj7|[0-9]*)?|min(?:[0-9]*)?|sus[24]?|add\d+|dim7?|aug|\+|-|[0-9]*)?(?:\/[A-G](?:#|b)?)?$/.test(String(value || "").trim());
-const isChordGroup = (value) => {
-  const tokens = String(value || "").trim().split(/\s+/).filter(Boolean);
-  return tokens.length > 0 && tokens.every(isChordToken);
-};
-const chordGroup = (value, move) => String(value || "").split(/(\s+)/).map((token) => isChordToken(token) ? chord(token, move) : token).join("");
 const capoOffset = (position, capoKey) => {
   const original = toneIndex(rootNote(currentSong?.tone || currentSong?.key));
   const shape = toneIndex(rootNote(capoKey));
@@ -174,44 +170,21 @@ function renderChordLyrics() {
   const lyrics = currentSong.lyrics || currentSong.letter || currentSong.content || "Letra no disponible.";
   const move = transpose + capoShift;
   target.className = "lyrics-block";
-  target.innerHTML = window.ShalomChords?.render
-    ? window.ShalomChords.render(lyrics, { transpose: (value) => chordGroup(value, move) })
-    : String(lyrics).split("\n").map((line) => {
-    if (!line.trim()) return "<span class='song-empty-line'></span>";
-    const section = line.trim().match(/^\[([^\]]+)\]$/);
-    if (section) return `<span class="song-section-label">${escapeHTML(section[1])}</span>`;
-
-    const regex = /\(([^)]+)\)/g;
-    let chordLine = "";
-    let lyricLine = "";
-    let position = 0;
-    let last = 0;
-    let match;
-    let hasChords = false;
-
-    while ((match = regex.exec(line)) !== null) {
-      const before = line.slice(last, match.index);
-      lyricLine += before;
-      position += before.length;
-
-      if (isChordGroup(match[1])) {
-        while (chordLine.length < position) chordLine += " ";
-        chordLine += chordGroup(match[1], move);
-        hasChords = true;
-      } else {
-        lyricLine += match[0];
-        position += match[0].length;
-      }
-      last = regex.lastIndex;
-    }
-
-    if (!hasChords) return `<span class="song-plain-line">${escapeHTML(line)}</span>`;
-    lyricLine += line.slice(last);
-    return `<span class="song-line"><span class="chord-line">${escapeHTML(chordLine)}</span><span class="lyric-line">${escapeHTML(lyricLine)}</span></span>`;
-  }).join("");
+  const renderer = window.ShalomChords?.render;
+  if (typeof renderer === "function") {
+    // The canonical renderer validates and unwraps each chord token.
+    target.innerHTML = renderer(lyrics, { transpose: (value) => chord(value, move), arrangement: typeof readerArrangement==="undefined"?null:readerArrangement });
+    if(window.ShalomReaderCueControls)window.ShalomReaderCueControls.mount(target,readerCuesVisible,value=>{readerCuesVisible=value;renderChordLyrics();});
+  } else {
+    // Preserve the source as readable text if the shared script fails to load.
+    // Never reinterpret or transpose it with a different parser.
+    target.textContent = lyrics;
+  }
 
   const status = $("#transposeStatus");
-  if (status) status.textContent = `${transpose === 0 ? "Tono original" : `Transposición ${transpose > 0 ? "+" : ""}${transpose}`} · ${capoLabel}`;
+  if (status) status.textContent = typeof renderer === "function"
+    ? `${transpose === 0 ? "Tono original" : `Transposición ${transpose > 0 ? "+" : ""}${transpose}`} · ${capoLabel}`
+    : "Intérprete no disponible. Recarga la página para ajustar tono y capo.";
 }
 
 function renderControls(relations) {
@@ -279,52 +252,14 @@ async function renderRelatedSongs(song, relations) {
   const section = $("#relatedSongsSection");
   const grid = $("#relatedSongsGrid");
   if (!section || !grid) return;
-  const artistIds = (relations.artists || []).map((artist) => artist.id).filter(Boolean);
-  const categoryIds = (relations.categories || []).map((category) => category.id).filter(Boolean);
-  const albumIds = (relations.albums || []).map((album) => album.id).filter(Boolean);
-  if (!artistIds.length && !categoryIds.length && !albumIds.length) {
-    section.hidden = true;
-    return;
-  }
-
-  grid.innerHTML = "<article class='song-card shimmer-card'><h3>Buscando cantos relacionados…</h3><p>Un momento por favor.</p></article>";
-  section.hidden = false;
-
-  const requests = [];
-  if (artistIds.length) requests.push(client.from("song_artists").select("song_id").in("artist_id", artistIds));
-  if (categoryIds.length) requests.push(client.from("song_categories").select("song_id").in("category_id", categoryIds));
-  if (albumIds.length) requests.push(client.from("album_songs").select("song_id").in("album_id", albumIds));
-  const responses = await Promise.all(requests);
-  if (responses.some((response) => response.error)) {
-    section.hidden = true;
-    return;
-  }
-
-  const candidateIds = [...new Set(responses.flatMap((response) => (response.data || []).map((row) => row.song_id)).filter((id) => String(id) !== String(song.id)))];
-  if (!candidateIds.length) {
-    section.hidden = true;
-    return;
-  }
-
-  const result = await client.from("songs").select("id,title,slug,song_type,tone").in("id", candidateIds).order("title", { ascending: true }).limit(30);
-  if (result.error || !(result.data || []).length) {
-    section.hidden = true;
-    return;
-  }
-
-  const score = new Map();
-  responses.forEach((response, index) => {
-    const weight = artistIds.length && index === 0 ? 3 : categoryIds.length && index === (artistIds.length ? 1 : 0) ? 2 : 1;
-    (response.data || []).forEach((row) => {
-      const id = String(row.song_id);
-      score.set(id, (score.get(id) || 0) + weight);
-    });
+  const suggestions = await window.ShalomRelatedSongs.find(client, song, relations, () => {
+    grid.innerHTML = "<article class='song-card shimmer-card'><h3>Buscando cantos relacionados…</h3><p>Un momento por favor.</p></article>";
+    section.hidden = false;
   });
-
-  const suggestions = (result.data || [])
-    .sort((a, b) => (score.get(String(b.id)) || 0) - (score.get(String(a.id)) || 0) || String(a.title || "").localeCompare(String(b.title || ""), "es"))
-    .slice(0, 6);
-
+  if (!suggestions.length) {
+    section.hidden = true;
+    return;
+  }
   grid.innerHTML = suggestions.map((item) => {
     const href = item.slug ? `cancion.html?slug=${encodeURIComponent(item.slug)}` : `cancion.html?id=${encodeURIComponent(item.id)}`;
     const meta = [item.song_type || "Canción", item.tone ? `Tono ${item.tone}` : ""].filter(Boolean).join(" · ");
@@ -400,6 +335,7 @@ function renderSongFeedback(title, subtitle) {
 function renderSong(song, relations) {
   if (!currentSong || currentSong.id !== song.id) transpose = window.ShalomSongPreferences?.readTranspose() ?? 0;
   currentSong = song;
+  readerArrangement = null;
   const title = song.title || song.name || "Canción sin título";
   const type = song.song_type || song.type || "Canción";
   const artistText = names(relations.artists) || song.artist || song.artist_name || "";
@@ -426,8 +362,11 @@ function renderSong(song, relations) {
   renderRelatedSongs(song, relations);
   // Only expose Studio for an available, current publication; never load audio here.
   if (window.ShalomStudioEntry && song.updated_at) {
-    window.ShalomStudioEntry.available(client, song).then(available => {
-      if (!available || currentSong?.id !== song.id || document.getElementById("songStudioAction")) return;
+    window.ShalomStudioEntry.publication(client, song).then(arrangement => {
+      if (!arrangement || currentSong?.id !== song.id || currentSong.updated_at !== song.updated_at) return;
+      readerArrangement=arrangement;renderChordLyrics();
+      if(arrangement.k==="lyrics")return;
+      if(document.getElementById("songStudioAction"))return;
       const actions = document.getElementById("songReaderActions") || prepareReaderToolbar();
       if (!actions) return;
       const b = document.createElement("button");

@@ -7,6 +7,7 @@ const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const {readingRows}=require("./personal-reader-core");
+const {CollectionCapoControl,CollectionSongMenu}=require("./music-readers-ui");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
@@ -28,7 +29,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -155,6 +156,12 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   if(value!==entry?.title)updateEntry(e=>({...e,title:value.slice(0,120)}),{notice:"Nombre actualizado"});
  }
  function changePart(id,fn){updateEntry(e=>({...e,parts:e.parts.map(p=>p.id===id?fn(p):p)}));}
+ function choosePartSection(part,sectionIndex,sectionTitle){
+  if(part.fragmentLyrics==null&&part.sectionIndex===sectionIndex&&part.sectionTitle===sectionTitle)return;
+  const apply=()=>changePart(part.id,x=>{const next={...x,sectionIndex,sectionTitle};delete next.fragmentLyrics;delete next.fragmentTitle;delete next.cueOverride;return next;});
+  if(part.fragmentLyrics!=null||part.cueOverride!=null)Alert.alert("Cambiar fragmento","Se reemplazará la letra de esta aparición y se restablecerán sus indicaciones personalizadas. El canto original no cambia.",[{text:"Cancelar",style:"cancel"},{text:"Cambiar",onPress:apply}]);
+  else apply();
+ }
  function movePart(index,delta){
   if(!entry||index+delta<0||index+delta>=entry.parts.length)return;
   updateEntry(e=>reorderParts(e,index,delta));
@@ -337,19 +344,19 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function shareView(){
   if(!folder||!entry)return homeView();
-  let code="";
-  try{code=exportCode(entry);}catch(_){}
+  let code="",shareError="";
+  try{code=exportCode(entry);}catch(error){shareError=error.message||"No se pudo preparar el código.";}
   const shareMessage="🕊️ SHALOM · "+kindName(entry.kind)+"\n"+entry.title+
    "\n\n"+code+"\n\nPara guardarlo: abre SHALOM → Mis creaciones → Recibir composición → Pegar mensaje.";
   async function shareNative(){
    try{
-    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    if(!code)throw new Error(shareError);
     await Share.share({title:"SHALOM · "+entry.title,message:shareMessage});
    }catch(e){Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");}
   }
   async function copyCode(){
    try{
-    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    if(!code)throw new Error(shareError);
     await Clipboard.setStringAsync(shareMessage);
     Alert.alert("Mensaje copiado","Ya puedes pegarlo en WhatsApp o en otra conversación.");
    }catch(e){Alert.alert("No se pudo copiar",e?.message||"Inténtalo de nuevo.");}
@@ -361,11 +368,13 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    label(entry.title,styles.cardTitle),
    label(entry.parts.length+" cantos · "+kindName(entry.kind),styles.meta),
    label("La otra persona podrá guardarla en su SHALOM, sin que ninguno de los dos tenga que iniciar sesión.",styles.description),
+   shareError?label(shareError+" Puedes conservar la composición completa mediante Respaldo y restauración.",styles.warning):null,
    action("↗  Enviar por WhatsApp u otra app",shareNative,false,!code),
    action("▣  Copiar mensaje",copyCode,true,!code),
    h(View,{style:styles.infoCard},
     label("¿Qué recibe la otra persona?",styles.cardTitle),
-    label("El orden de los cantos, los fragmentos y sus tonos. No se envían tus fotos ni las letras completas.",styles.description),
+    label("El orden de los cantos, los fragmentos, tonos, capos y notas personalizadas. Las indicaciones pueden incluir las frases seleccionadas y los fragmentos modificados incluyen su letra y acordes. No se envían tus fotografías.",styles.description),
+    code.startsWith("SHALOM2-")?label("Quien lo reciba necesita una versión compatible con las indicaciones y capos personalizados.",styles.meta):null,
     label("Solo tiene que abrir Mis creaciones → Recibir composición y pegar el mensaje.",styles.meta)),
    action(showRawCode?"Ocultar código":"Ver código de SHALOM",()=>setShowRawCode(v=>!v),true),
    showRawCode?h(Text,{selectable:true,style:styles.codePreview},code):null);
@@ -500,7 +509,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
       h(View,{style:{flex:1,minWidth:0}},
        h(Text,{style:styles.cardTitle,numberOfLines:2},song?.title||"Canto pendiente de descargar"),
-       label((p.sectionIndex===null?"Completo":p.sectionTitle||"Fragmento")+" · "+
+       label((p.fragmentLyrics!=null?p.fragmentTitle||"Fragmento personalizado":p.sectionIndex===null?"Completo":p.sectionTitle||"Fragmento")+" · "+
         (song?.tone?transposeOne(song.tone,p.shift):"Sin tono")+
         (p.moment?" · "+p.moment:""),styles.meta))),
      h(View,{style:styles.actions},
@@ -511,9 +520,10 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      expanded?h(View,{style:styles.partDetails},
       label("¿Qué parte quieres usar?",styles.inputLabel),
       song?h(View,{style:styles.wrap},
-       chip("Canto completo",p.sectionIndex===null,()=>changePart(p.id,x=>({...x,sectionIndex:null,sectionTitle:""}))),
+       p.fragmentLyrics!=null?label("Se conserva el fragmento de la copia oficial.",styles.meta):null,
+       chip("Canto completo",p.fragmentLyrics==null&&p.sectionIndex===null,()=>choosePartSection(p,null,"")),
        ...sections.map(section=>chip(section.title,p.sectionIndex===section.index,
-        ()=>changePart(p.id,x=>({...x,sectionIndex:section.index,sectionTitle:section.title}))))):
+        ()=>choosePartSection(p,section.index,section.title)))):
        label("Descarga la biblioteca para elegir estrofas.",styles.warning),
       entry.kind==="misa"?h(View,{style:{gap:7}},
        label("Momento de la misa",styles.inputLabel),
@@ -533,7 +543,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function readingView(){
   if(!folder||!entry)return folderView();
   const rows=readingRows(entry,catalog,readerShift);
-  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift})),songs);
+  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,scoreShift,selection})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position})),songs);
   return h(View,{style:styles.container},
    action("← Editar "+kindName(entry.kind),back,true),
    label(entry.title,styles.pageTitle),
@@ -544,19 +554,23 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
     action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
     action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
+   setShowReaderCues?action(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",()=>setShowReaderCues(v=>!v),true):null,
    entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
-   ...rows.map(({part:p,index,song,resolved,shift,tone})=>{
+   ...rows.map(({part:p,index,song,resolved,scoreShift,selection,tone})=>{
     return h(View,{key:p.id,style:styles.readerPart},
      h(View,{style:styles.partHead},
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
       h(View,{style:{flex:1}},entry.kind==="misa"&&p.moment?label(p.moment,styles.tag):null,
-       label(song?.title||"Canto no disponible",styles.cardTitle),
+       label(song?.title||p.fragmentTitle||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
-        (song?.tone?" · Tono "+tone:""),styles.meta))),
+        (song?.tone?" · Tono "+tone:""),styles.meta)),
+      h(CollectionSongMenu,{song,style:styles.chip,textStyle:styles.chipText,onPress:onSongOptions&&resolved.lyrics!==null?()=>onSongOptions(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position,override:p.cueOverride,personalTarget:{folderId:folder.id,entryId:entry.id,partId:p.id},practiceReady:!!plan.entries[index]?.ready}):null})),
+     h(CollectionCapoControl,{song,selection,onSelect:id=>changePart(p.id,x=>({...x,capoId:id})),style:styles.chip,textStyle:styles.chipText}),
+     p.notes?label(p.notes,styles.meta):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
+      resolved.lyrics?renderScore(resolved.lyrics,scoreShift,"local-"+p.id,readerFont,song,p.cueOverride):
        label("Este canto no tiene letra descargada.",styles.warning),
-     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift}),true):null,
+     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
    action("Compartir",()=>showShare(entry,folder,"reading"),true));

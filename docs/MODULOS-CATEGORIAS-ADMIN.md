@@ -36,3 +36,7 @@ El orden de estos cuatro archivos se protege ahora en `scripts/check_admin_scrip
 La restricción activa de Supabase es `categories_song_type_check`: `song_type IN ('', 'catolico', 'cristiano')`. La columna es `text NOT NULL` con valor predeterminado `''`. El recuento de categorías fue 11 generales (`''`) y 13 católicas (`catolico`); no se alteraron datos. Por tanto, la normalización actual de `admin-category-save-fix.js` coincide con los valores admitidos por la base de datos. La pestaña visual `mixto` no equivale a un tipo persistible; su significado y tratamiento en la interfaz requieren diseño explícito antes de añadir soporte en SQL.
 
 Se añadió `tests/category-type-regression.cjs`, prueba aislada del manejador de guardado con seis casos, ejecutada por el flujo de calidad. Esta prueba no utiliza credenciales ni guarda categorías reales.
+
+## Actualización de arquitectura (25 de noviembre de 2026)
+
+`admin-category-hierarchy.js` centraliza la búsqueda, rutas, descendientes y orden de hijos. Se carga antes de `admin-pro.js`; el navegador y el selector múltiple consumen el mismo núcleo. El guardado y la validación de padre permanecen en `admin-category-browser-v2.js`, que ya incorporó el antiguo guardado externo; `admin-category-save-fix.js` no es un script activo. Se conservan los filtros de tipo particulares de cada pantalla, las reglas de eliminación y las consultas. Las pruebas de jerarquía y la nueva regresión de árbol no acceden a producción.
