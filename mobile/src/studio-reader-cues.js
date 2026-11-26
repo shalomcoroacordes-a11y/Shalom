@@ -7,7 +7,7 @@
  function decorate(sourceRows,arrangement,displayRows=sourceRows){
   if((!arrangement?.i?.length&&!arrangement?.j?.length)||sourceRows.length!==displayRows.length)return displayRows;
   try{
-   const anchors=core.anchorsFromRows(sourceRows),config=codec.decode(anchors,arrangement),byLine=new Map();
+   const anchors=core.anchorsFromRows(sourceRows),config=arrangement.k==='lyrics'?{lyricCues:codec.decodeLyricCues(arrangement)}:codec.decode(anchors,arrangement),byLine=new Map();
    function add(line,cue){
     const row={kind:"cue",text:core.cueText(cue)};
     if(!byLine.has(line))byLine.set(line,[]);

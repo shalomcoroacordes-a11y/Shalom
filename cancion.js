@@ -365,6 +365,7 @@ function renderSong(song, relations) {
     window.ShalomStudioEntry.publication(client, song).then(arrangement => {
       if (!arrangement || currentSong?.id !== song.id || currentSong.updated_at !== song.updated_at) return;
       readerArrangement=arrangement;renderChordLyrics();
+      if(arrangement.k==="lyrics")return;
       if(document.getElementById("songStudioAction"))return;
       const actions = document.getElementById("songReaderActions") || prepareReaderToolbar();
       if (!actions) return;

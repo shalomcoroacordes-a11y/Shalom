@@ -8,6 +8,17 @@ function ranges(value,total){
  const seen=new Set();
  return value.map(r=>{if(!r||!Number.isInteger(r.index)||r.index<0||r.index>250||seen.has(r.index)||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<0||r.end<=r.start||r.end>total)throw Error("Rango de fragmento inválido.");seen.add(r.index);return {index:r.index,start:r.start,end:r.end}});
 }
+// A lyric-only record deliberately has no rhythm, chords or synthesized playback.
+function encodeLyricCues(cues){
+ const j=core.normalizeLyricCues(cues).map(c=>[c.start,c.end,c.source,c.action,c.audience,c.text]);
+ const value={v:1,k:"lyrics",j};
+ if(JSON.stringify(value).length>64000)throw Error("Indicaciones demasiado grandes.");
+ return value;
+}
+function decodeLyricCues(value){
+ if(!value||value.v!==1||value.k!=="lyrics"||Object.keys(value).some(k=>!["v","k","j"].includes(k))||!Array.isArray(value.j)||value.j.some(c=>!Array.isArray(c)||c.length!==6)||JSON.stringify(value).length>64000)throw Error("Indicaciones de letra inválidas.");
+ return core.normalizeLyricCues(value.j.map(([start,end,source,action,audience,text])=>({start,end,source,action,audience,text})));
+}
 function encode(anchors,config){
  core.compile(anchors,config);
  const dictionary=[],index=new Map(),sections=[];
@@ -52,5 +63,5 @@ function decode(anchors,value){
  if(value.j!==undefined){if(!Array.isArray(value.j)||value.j.some(c=>!Array.isArray(c)||c.length!==6))throw Error("Indicaciones de letra inválidas.");config.lyricCues=core.normalizeLyricCues(value.j.map(([start,end,source,action,audience,text])=>({start,end,source,action,audience,text})));}
  core.compile(anchors,config);return config;
 }
-return Object.freeze({encode,decode});
+return Object.freeze({encode,decode,encodeLyricCues,decodeLyricCues});
 });

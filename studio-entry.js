@@ -4,14 +4,14 @@
 const table="song_studio_arrangements";
 const query=(client,song,withData=false)=>client.from(table).select(withData?"arrangement,song_revision,updated_at":"song_id").eq("song_id",song.id).eq("song_revision",song.updated_at).maybeSingle();
 async function publication(client,song){if(!song?.id||!song.updated_at)return null;const {data,error}=await query(client,song,true);return !error&&data?.song_revision===song.updated_at?data.arrangement:null}
-async function available(client,song){if(!song?.id||!song.updated_at)return false;const {data,error}=await query(client,song);return !error&&!!data}
+async function available(client,song){const arrangement=await publication(client,song);return !!arrangement&&arrangement.k!=="lyrics";}
 async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangement=null,onClose,sequence=null,title=null,recoveryDraft=null,expectedOwner=null,cueOnly=false}){
  if(!song?.id||!song.updated_at)throw Error("Guarda el canto antes de configurar su acompañamiento.");
  if(cueOnly&&(!admin||!expectedOwner))throw Error("Edición de indicaciones no autorizada.");
  if(recoveryDraft&&(!admin||!expectedOwner))throw Error("Recuperación administrativa no autorizada.");
  let {data,error}=arrangement&&!admin?{data:{arrangement},error:null}:await query(client,song,true);
  if(error)throw Error("Studio no está disponible: "+error.message);
- if(!admin&&!data)throw Error("Este canto no tiene acompañamiento vigente.");
+ if(!admin&&(!data||data.arrangement?.k==="lyrics"))throw Error("Este canto no tiene acompañamiento vigente.");
  if(cueOnly&&!data?.arrangement)throw Error("Este canto todavía no tiene acompañamiento. La edición independiente se habilitará en una revisión posterior.");
  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
  const musical=v=>{const {j,...rest}=v;return canonical(rest);};

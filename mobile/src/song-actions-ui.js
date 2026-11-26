@@ -85,7 +85,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
      button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
      button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
-     song._studio&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
+     song._studio&&song._studio.k!=="lyrics"&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
      button("↗","Ver enlaces y tutoriales",()=>setPhase("links"),
       links.length+" enlace(s) registrado(s)"),
      youtubeAvailable?button("▶","Abrir YouTube",()=>run(onVideo,true)):null,
