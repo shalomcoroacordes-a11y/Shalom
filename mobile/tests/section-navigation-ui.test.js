@@ -1,9 +1,12 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const {parseSong}=require("../src/chords");
 const states=[];let hook=0;
-const react={createContext:value=>({value}),useContext:context=>context.value,createElement:(type,props,...children)=>({type,props,children}),useState:initial=>{const i=hook++;if(!(i in states))states[i]=initial;return [states[i],next=>{states[i]=typeof next==="function"?next(states[i]):next}]}};
+const effects=new Map(),frames=new Map();let nextFrame=0;
+const flushFrames=()=>{for(const [id,fn] of [...frames]){frames.delete(id);fn();}};
+const resetHooks=()=>{for(const effect of effects.values())effect.cleanup?.();effects.clear();states.length=0;hook=0;};
+const react={createContext:value=>({value}),useContext:context=>context.value,useRef:initial=>{const i=hook++;if(!(i in states))states[i]={current:initial};return states[i];},useEffect:(fn,deps)=>{const i=hook++,old=effects.get(i);if(old&&deps.every((v,j)=>Object.is(v,old.deps[j])))return;old?.cleanup?.();effects.set(i,{deps,cleanup:fn()});},createElement:(type,props,...children)=>({type,props,children}),useState:initial=>{const i=hook++;if(!(i in states))states[i]=initial;return [states[i],next=>{states[i]=typeof next==="function"?next(states[i]):next}]}};
 const moduleStub={exports:{}};
-vm.runInNewContext(fs.readFileSync("src/section-reader-ui.js","utf8"),{module:moduleStub,require(name){if(name==="react")return react;if(name==="react-native")return{View:"View",Text:"Text",Pressable:"Pressable",useWindowDimensions:()=>({height:800})};if(name==="./aligned-score-ui")return "Score";return require("../src/"+name.slice(2));}});
+vm.runInNewContext(fs.readFileSync("src/section-reader-ui.js","utf8"),{module:moduleStub,requestAnimationFrame:fn=>{frames.set(++nextFrame,fn);return nextFrame;},cancelAnimationFrame:id=>frames.delete(id),require(name){if(name==="react")return react;if(name==="react-native")return{View:"View",Text:"Text",Pressable:"Pressable",useWindowDimensions:()=>({height:800})};if(name==="./aligned-score-ui")return "Score";return require("../src/"+name.slice(2));}});
 const entries=[{title:"Entrada",rows:parseSong("[Coro]\nG\nPrimero\n[Verso]\nC\nSegundo")},{title:"Entrada repetida",rows:parseSong("[Coro]\nA\nPrimero")},{title:"Fragmento",rows:parseSong("Solo letra")}];
 const render=()=>{hook=0;return moduleStub.exports.useCollectionSections(entries,15)};
 let nav=render();assert.equal(nav.enabled,false);nav.setEnabled(true);nav=render();assert.equal(nav.current.key,"0:0");
@@ -22,7 +25,7 @@ assert.equal(sectionFitHeight(480,190,72),198);
 assert.equal(sectionFitHeight(0,130,72),0);
 assert.equal(sectionFitHeight(780,null,72),0);
 assert.equal(sectionFitHeight(150,130,72),1);
-states.length=0;hook=0;const props={rows:entries[0].rows,sectionIndex:0,setSectionIndex:()=>{},fitMode:"auto",setFitMode:()=>{},fontSize:15,fitFont:15,onManualFont:()=>{},S:{}};
+resetHooks();const props={rows:entries[0].rows,sectionIndex:0,setSectionIndex:()=>{},fitMode:"auto",setFitMode:()=>{},fontSize:15,fitFont:15,onManualFont:()=>{},S:{}};
 moduleStub.exports.ReaderViewport.value=780;
 let section=moduleStub.exports(props);assert.equal(section.children[1].props.fitHeight,0);
 section.children[0].props.onLayout({nativeEvent:{layout:{height:130}}});section.children[2].props.onLayout({nativeEvent:{layout:{height:72}}});
@@ -30,3 +33,23 @@ hook=0;section=moduleStub.exports(props);assert.equal(section.children[1].props.
 moduleStub.exports.ReaderViewport.value=480;hook=0;section=moduleStub.exports(props);assert.equal(section.children[1].props.fitHeight,258);
 hook=0;section=moduleStub.exports({...props,fitMode:"manual",fitFont:21});assert.equal(section.children[1].props.fontSize,21);assert.equal(section.children[1].props.fitMode,"manual");
 console.log("Measured scroll viewport, wrapping controls, rotation and manual zoom contract verified.");
+
+resetHooks();
+const scrollCalls=[],measureCalls=[],content={};
+const scroll={getInnerViewRef:()=>content,scrollTo:args=>scrollCalls.push(args)};
+moduleStub.exports.ReaderScroll.value={current:scroll};
+moduleStub.exports.ReaderViewport.value=780;
+const anchor={measureLayout:(relative,success)=>{assert.equal(relative,content);measureCalls.push(success);}};
+function renderSection(extra={}){hook=0;const result=moduleStub.exports({...props,...extra});result.props.ref.current=anchor;return result;}
+section=renderSection();assert.equal(section.props.style.minHeight,780);
+flushFrames();assert.equal(measureCalls.length,1);measureCalls.shift()(0,240);assert.equal(scrollCalls.at(-1).y,240);
+renderSection({sectionIndex:1});flushFrames();assert.equal(measureCalls.length,1);measureCalls.shift()(0,300);assert.equal(scrollCalls.at(-1).y,300);
+renderSection({sectionIndex:1,fitMode:"manual",fitFont:21});flushFrames();assert.equal(measureCalls.length,0,"Pinch or manual font changes must not pull the scroll position");
+renderSection({sectionIndex:0,navigationKey:"1:0"});flushFrames();const stale=measureCalls.shift();
+renderSection({sectionIndex:0,navigationKey:"2:0"});flushFrames();stale(0,999);assert.notEqual(scrollCalls.at(-1).y,999);
+measureCalls.shift()(0,420);assert.equal(scrollCalls.at(-1).y,420,"Repeated occurrences with the same local section index still align");
+section=renderSection({sectionIndex:0,navigationKey:"2:0"});
+const selected=section.children[0].children[1].children[0].children[0];selected.props.onPress();
+renderSection({sectionIndex:0,navigationKey:"2:0"});flushFrames();assert.equal(measureCalls.length,1);measureCalls.shift()(0,450);assert.equal(scrollCalls.at(-1).y,450);
+resetHooks();
+console.log("Native section anchor: entry alignment, repeated occurrence, manual zoom preservation, stale measurement and reselect verified.");
