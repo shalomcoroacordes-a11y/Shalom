@@ -16,3 +16,6 @@ const changed=name=>name==="public-cards.css"?read(name)+"\n/* canonical change 
 for(const name of names)assert.equal(generate(name,changed)!==generate(name,read),bundles[name].includes("public-cards.css"));
 assert.throws(()=>generate("unknown.css",read),/Unknown public CSS bundle/);
 console.log("Public CSS: six exact bundles, complete inventory, drift rejection and shared-source regeneration verified.");
+
+const cueChange=name=>name==="song-reader-cues.css"?read(name)+"\n/* cue style update */":read(name);
+for(const name of names)assert.equal(generate(name,cueChange)!==generate(name,read),["song-reader-bundle.css","collection-reader-bundle.css"].includes(name));

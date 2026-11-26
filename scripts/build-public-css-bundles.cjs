@@ -18,7 +18,8 @@ const bundles=Object.freeze({
   "collection-reader-bundle.css": [
     "site-shell.css",
     "public-accessibility.css",
-    "song-chords.css"
+    "song-chords.css",
+    "song-reader-cues.css"
   ],
   "catalog-list-bundle.css": [
     "catalog-cards.css",
@@ -38,7 +39,8 @@ const bundles=Object.freeze({
     "song-reading-mobile-sheet.css",
     "song-capo-mobile-grid.css",
     "song-chords.css",
-    "song-print.css"
+    "song-print.css",
+    "song-reader-cues.css"
   ]
 });
 function generate(name,read){

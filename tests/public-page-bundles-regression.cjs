@@ -34,14 +34,14 @@ for (const [page, bundle, sources] of pages) {
   assert.equal((actual.match(/@import/g) || []).length, 1, page + ": no @import may be moved into middle of CSS");
 }
 const common = fs.readFileSync("collection-reader-bundle.css", "utf8");
-const sources = ["site-shell.css", "public-accessibility.css", "song-chords.css"];
+const sources = ["site-shell.css", "public-accessibility.css", "song-chords.css", "song-reader-cues.css"];
 assert.equal(common, sources.map((name,i) => (i ? "\n\n/* ===== " + name + " (original order) ===== */\n" : "") + fs.readFileSync(name,"utf8")).join(""));
 assert.ok(common.startsWith('@import url("mobile-experience.css?v=1");'));
 assert.equal((common.match(/@import/g)||[]).length,1);
 for(const [page,specific] of [["repertorios.html","repertoires.css"],["popurris.html","medleys.css"]]){
  const html=fs.readFileSync(page,"utf8");
  const styles=[...html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(m=>m[1]);
- assert.deepEqual(styles,["style.css?v=5","collection-reader-bundle.css?v=1",specific+"?v=1","studio-collection-web.css?v=1"]);
+ assert.deepEqual(styles,["style.css?v=5","collection-reader-bundle.css?v=2",specific+"?v=1","studio-collection-web.css?v=1"]);
  assert.doesNotMatch(fs.readFileSync(specific,"utf8"),/@import/);
 }
 for(const name of ["repertoires-page-bundle.css","medleys-page-bundle.css"]){
