@@ -151,7 +151,7 @@ const trashSql=fs.readFileSync("sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql","utf8"
 const delSql=trashSql.slice(0,trashSql.indexOf("create or replace function public.admin_restore_song"));
 const restoreSql=trashSql.slice(trashSql.indexOf("create or replace function public.admin_restore_song"));
 assert.match(delSql,/auth\.uid\(\) is null or not public\.admin_has_permission\('songs.delete'\)/);
-assert.match(restoreSql,/auth\.uid\(\) is null or not public\.admin_is_owner\(\)/);
+assert.match(restoreSql,/auth\.uid\(\) is null or public\.admin_is_owner\(\) is not true or public\.admin_has_permission\('songs\.delete'\) is not true/);
 assert.ok(delSql.indexOf("perform 1 from public.song_studio_arrangements")<delSql.indexOf("select jsonb_build_object"));
 assert.match(delSql,/'song_studio_arrangements',coalesce\(\(select jsonb_agg\(to_jsonb\(r\)\) from public\.song_studio_arrangements/);
 assert.ok(delSql.indexOf("'song_studio_arrangements',coalesce")<delSql.indexOf("delete from public.songs"));

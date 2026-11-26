@@ -31,11 +31,11 @@ insert into public.song_studio_arrangements(song_id,song_revision,arrangement,up
  values('10000000-0000-4000-8000-000000000010','2026-11-20 12:00:00+00','{"v":1,"pattern":["D","U"]}','2026-11-20 12:01:00+00');
 -- Existing arrangement predates the test. Mirror the deployed touch triggers
 -- for subsequent operations; updated_at is metadata, not song_revision.
-create function public.studio_touch_updated_at() returns trigger language plpgsql set search_path='' as $
-begin new.updated_at=now(); return new; end;$;
+create function public.studio_touch_updated_at() returns trigger language plpgsql set search_path='' as $touch$
+begin new.updated_at=now(); return new; end;$touch$;
 create trigger studio_touch before insert or update on public.song_studio_arrangements for each row execute function public.studio_touch_updated_at();
-create function public.set_updated_at() returns trigger language plpgsql set search_path to pg_catalog,public as $
-begin new.updated_at=now(); return new; end;$;
+create function public.set_updated_at() returns trigger language plpgsql set search_path to pg_catalog,public as $touch$
+begin new.updated_at=now(); return new; end;$touch$;
 create trigger set_songs_updated_at before update on public.songs for each row execute function public.set_updated_at();
 insert into public.song_links values(gen_random_uuid(),'10000000-0000-4000-8000-000000000010');
 -- Force the final audit insert to fail after all deletes and history triggers.
