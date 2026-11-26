@@ -108,3 +108,8 @@ const invalidCustom=JSON.parse(JSON.stringify(customSource));invalidCustom.perso
 assert.throws(()=>buildBackup(invalidCustom,[]),/no se puede recuperar/);
 assert.deepEqual(readBackup(buildBackup(source,[{name:photo1,base64:jpg},{name:photo2,base64:jpg}])).personal,parsed.personal);
 console.log("Backup round trip preserves occurrence-specific capos, notes and cues across all composition types; offline projection and print verified.");
+
+const snapPart={...newPart(localSong.id),fragmentLyrics:"[Coro]\nG\nTexto de prueba",fragmentTitle:"Versión del popurrí"};
+const snapFolder=newCollection("Copia oficial");snapFolder.entries=[{...newEntry("popurri","Prueba"),parts:[snapPart]}];
+const snapSource={profile:defaults(),personal:{version:1,collections:[snapFolder]},likedIds:[],lastRead:null};
+assert.deepEqual(readBackup(buildBackup(snapSource,[])).personal,snapSource.personal);

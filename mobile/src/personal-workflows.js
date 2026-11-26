@@ -40,17 +40,16 @@ function copyOfficial(store,official,kind,songs,folderId=null){
  const source=kind==="popurri"?official.parts:official.items;
  if(!Array.isArray(source)||!source.length||source.length>LIMIT_PARTS)throw Error("La copia personal admite de 1 a 30 cantos o fragmentos.");
  const catalog=new Map((songs||[]).map(s=>[String(s.id),s]));
- const normalized=value=>String(value??"").replace(/\r\n?/g,"\n").trim();
  const parts=source.map((item,index)=>{
   const songId=String(item.song_id||""),song=catalog.get(songId);
   if(!song)throw Error("Descarga primero el canto "+(index+1)+".");
-  let sectionIndex=null,sectionTitle="";
-  if(kind==="popurri"&&normalized(item.lyrics)!==normalized(song.lyrics)){
-   const matches=songSections(song.lyrics).filter(s=>normalized(s.text)===normalized(item.lyrics));
-   if(matches.length!==1)throw Error("El fragmento "+(index+1)+" fue modificado o es ambiguo. No se puede copiar sin cambiar su contenido.");
-   sectionIndex=matches[0].index;sectionTitle=matches[0].title;
+  let sectionIndex=null,sectionTitle="",snapshot={};
+  if(kind==="popurri"&&item.lyrics!==song.lyrics){
+   const matches=songSections(song.lyrics).filter(s=>s.text===item.lyrics);
+   if(matches.length===1){sectionIndex=matches[0].index;sectionTitle=matches[0].title;}
+   else{if(typeof item.lyrics!=="string"||!item.lyrics.trim())throw Error("El fragmento "+(index+1)+" no tiene letra válida.");snapshot={fragmentLyrics:item.lyrics,fragmentTitle:item.title||item.song_title||"Fragmento personalizado"};}
   }
-  return {songId,sectionIndex,sectionTitle,shift:item.shift||0,moment:item.moment||"",notes:item.notes||"",cueOverride:item.cue_override??null,capoId:item.capo_id??"none"};
+  return {songId,sectionIndex,sectionTitle,...snapshot,shift:item.shift||0,moment:item.moment||"",notes:item.notes||"",cueOverride:item.cue_override??null,capoId:item.capo_id??"none"};
  });
  const entry=entryFrom({kind,title:official.title,parts},true);
  const created=createPersonal(store,kind,entry.title,folderId);

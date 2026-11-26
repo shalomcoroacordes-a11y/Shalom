@@ -70,3 +70,10 @@ for(const kind of ["misa","repertorio","popurri"]){
 }
 const longParts=Array.from({length:30},(_,i)=>({...newPart("s"+i),notes:"x".repeat(500)}));
 assert.throws(()=>exportCode({...obj,parts:longParts}),/demasiado grande/);
+
+const snapshotPart={...newPart("s1"),fragmentLyrics:"[Coro]\nC G\nTexto de prueba",fragmentTitle:"Fragmento de prueba"};
+const snapshotEntry={...obj,parts:[snapshotPart]};
+assert.equal(importCode(exportCode(snapshotEntry)).parts[0].fragmentLyrics,snapshotPart.fragmentLyrics);
+assert.equal(resolvePart(song,snapshotPart).lyrics,snapshotPart.fragmentLyrics);
+assert.throws(()=>exportCode({...snapshotEntry,parts:[{...snapshotPart,fragmentLyrics:"x".repeat(25001)}]}),/personalizado inválido/);
+assert.throws(()=>exportCode({...snapshotEntry,parts:[{...snapshotPart,sectionIndex:1}]}),/personalizado inválido/);
