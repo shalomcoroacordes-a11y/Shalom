@@ -4,8 +4,8 @@ const path=require("node:path");
 const ROOT=path.resolve(__dirname,"..");
 const PROJECT="ehpvsasyzlrlypjjpzuk";
 const PACKAGE="com.shalomcoroacordes.cancionero";
-const BASELINE_VERSION="0.4.24";
-const BASELINE_CODE=47;
+const BASELINE_VERSION="0.4.25";
+const BASELINE_CODE=48;
 function isNewerVersion(version){
  const parse=s=>s.split(".").map(Number);
  const next=parse(version),base=parse(BASELINE_VERSION);

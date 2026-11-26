@@ -1,0 +1,3 @@
+# Release preparation — not authorization
+
+Baseline verified: official android-v0.4.25 (48) and admin-v0.1.7 (8) assets exist. Proposed versions 0.4.26 (49), 0.1.8 (9). No release tags for the proposed versions at inspection. Retain package identifiers and compare the actual signed APK certificates to the immediately previous official assets. The branch is based on PR #135's 98e1c0d, pending complete CI. Require all checks, physical-device functional tests, explicit approval of immutable SHA, and no production DB writes before publication. The isolated branch does not deploy the website. Manual official publication is guarded by exact SHA and confirmation; never overwrite an existing tag. Keep old release files intact.
