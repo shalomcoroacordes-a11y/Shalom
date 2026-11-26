@@ -1,0 +1,7 @@
+# Indicaciones y opciones por aparición de canto
+
+Tres niveles independientes: canto original (Studio), colección oficial (JSON de cada item/parte), colección personal (almacenamiento local). El objeto opcional `cue_override` oficial y `cueOverride` personal utiliza `{v:1, mode:"append"|"replace"|"hide", j:[...]}`, donde j es el formato canónico de indicaciones de letra. Ausencia = heredar; restablecer = quitar personalización. Los anclajes son relativos al fragmento mostrado; nunca se reescribe la canción principal.
+
+Primera fase: contrato puro, proyección y copia local de colecciones oficiales, sin interfaz ni escrituras remotas. La copia de fragmentos requiere coincidencia exacta; se rechaza material editado o ambiguo en vez de perderlo. Los códigos antiguos SHALOM1 se conservan; SHALOM2 incluye notas/personalizaciones de forma explícita y mantiene el límite de tamaño. Los clientes anteriores no pueden importar SHALOM2.
+
+Siguiente fase: conectar menú contextual por aparición (no por song_id), editores oficiales web y Android con validación de JSON, lector público de colecciones, lector y editor local, compartir/respaldo y pruebas de reordenamiento, duplicados y fragmentos. No publicar hasta integrar PR #133 y validar ambos clientes. No cambiar Supabase en esta fase.

@@ -95,3 +95,15 @@ console.log("Lyric-only record: no invented musical accompaniment, public web an
  uiModule.exports.SongReader({...publicProps,showReaderCues:visibility});
  assert.equal(displayed.some(r=>r.kind==="cue"),false);
  console.log("Normal native public song reader: lyric-only cue visible by default, hide control works without opening Studio.");
+
+const originalSnapshot=JSON.stringify(vocalRecord),localCue={...vocalCue,action:"note",audience:"choir",text:"Esperar"};
+const override={v:1,mode:"append",j:codec.encodeLyricCues([localCue]).j};
+const visible=(mode)=>reader.decorateCollection(vocalRows,vocalRecord,{...override,mode,j:mode==="hide"?[]:override.j}).filter(r=>r.kind==="cue").map(r=>r.text);
+assert.deepEqual(visible("append"),["Repetir · 2 veces","Indicación · Coro · Esperar"]);
+assert.deepEqual(visible("replace"),["Indicación · Coro · Esperar"]);
+assert.deepEqual(visible("hide"),[]);
+assert.deepEqual(reader.decorateCollection(vocalRows,vocalRecord,null),reader.decorate(vocalRows,vocalRecord));
+assert.deepEqual(reader.decorateCollection(vocalRows,vocalRecord,{v:1,mode:"bad"}),reader.decorate(vocalRows,vocalRecord));
+assert.equal(JSON.stringify(vocalRecord),originalSnapshot);
+assert.deepEqual(native.decorateCollection(vocalRows,vocalRecord,override),reader.decorateCollection(vocalRows,vocalRecord,override));
+console.log("Collection overrides: inherit, append, replace and hide without modifying the original.");

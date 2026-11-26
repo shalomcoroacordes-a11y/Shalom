@@ -46,3 +46,9 @@ assert.equal(parseStore(JSON.stringify({version:1,collections:[{...col,coverPhot
 assert.ok(!exportCode(obj).includes("cover-a1b2"),"El código compartido nunca debe incluir fotos");
 assert.equal(parseStore("not-json").collections.length,0);
 console.log("SHALOM: colecciones, fragmentos, misa/popurrí y códigos offline correctos.");
+
+const customEntry={...obj,parts:[{...piece,notes:"Solo coro",cueOverride:{v:1,mode:"hide",j:[]}}]};
+const customCode=exportCode(customEntry);assert.match(customCode,/^SHALOM2-/);
+const customDecoded=importCode(customCode);
+assert.equal(customDecoded.parts[0].notes,"Solo coro");assert.deepEqual(customDecoded.parts[0].cueOverride,{v:1,mode:"hide",j:[]});
+assert.throws(()=>exportCode({...customEntry,parts:[{...piece,cueOverride:{v:1,mode:"bad",j:[]}}]}),/inválida/);
