@@ -12,6 +12,7 @@ const {createSyncController}=require("./src/sync-controller");
 const {parseSong}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {RepertoireReader,MedleyReader,SongReader}=require("./src/music-readers-ui");
+const {ReaderViewport}=require("./src/section-reader-ui");
 const ReaderCues=require("./src/studio-reader-cues");
 const {clampReaderFont}=require("./src/score-zoom");
 const {buildCatalog,names,safeWebUrl}=require("./src/catalog");
@@ -103,6 +104,7 @@ function AppScreen() {
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
  const [readerFont,setReaderFont]=useState(15);
+ const [readerViewport,setReaderViewport]=useState(0);
  const [showReaderCues,setShowReaderCues]=useState(true);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
@@ -518,8 +520,8 @@ function AppScreen() {
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
-   keyboardShouldPersistTaps:"handled"},
-   settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
+   keyboardShouldPersistTaps:"handled",onLayout:e=>{const height=Math.floor(e.nativeEvent.layout.height);setReaderViewport(v=>v===height?v:height);}},
+   h(ReaderViewport.Provider,{value:readerViewport},settingsOpen?renderSettings():page),h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>{
     const selected=isSelectedTab(tab,name)&&!detail;

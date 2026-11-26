@@ -1,7 +1,7 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const {parseSong}=require("../src/chords");
 const states=[];let hook=0;
-const react={createElement:(type,props,...children)=>({type,props,children}),useState:initial=>{const i=hook++;if(!(i in states))states[i]=initial;return [states[i],next=>{states[i]=typeof next==="function"?next(states[i]):next}]}};
+const react={createContext:value=>({value}),useContext:context=>context.value,createElement:(type,props,...children)=>({type,props,children}),useState:initial=>{const i=hook++;if(!(i in states))states[i]=initial;return [states[i],next=>{states[i]=typeof next==="function"?next(states[i]):next}]}};
 const moduleStub={exports:{}};
 vm.runInNewContext(fs.readFileSync("src/section-reader-ui.js","utf8"),{module:moduleStub,require(name){if(name==="react")return react;if(name==="react-native")return{View:"View",Text:"Text",Pressable:"Pressable",useWindowDimensions:()=>({height:800})};if(name==="./aligned-score-ui")return "Score";return require("../src/"+name.slice(2));}});
 const entries=[{title:"Entrada",rows:parseSong("[Coro]\nG\nPrimero\n[Verso]\nC\nSegundo")},{title:"Entrada repetida",rows:parseSong("[Coro]\nA\nPrimero")},{title:"Fragmento",rows:parseSong("Solo letra")}];
@@ -14,3 +14,19 @@ nav.onPreviousEntry();nav=render();assert.equal(nav.current.key,"1:0");
 nav.manualFont(20);nav=render();assert.equal(nav.fitMode,"manual");assert.equal(nav.fitFont,20);
 nav.reset();nav=render();assert.equal(nav.enabled,false);assert.equal(nav.fitMode,"auto");
 console.log("Collection navigation traverses repeated occurrences and fragments without conflating chords.");
+
+const {sectionFitHeight}=require("../src/section-reader-core");
+assert.equal(sectionFitHeight(780,130,72),558);
+assert.equal(sectionFitHeight(480,130,72),258);
+assert.equal(sectionFitHeight(480,190,72),198);
+assert.equal(sectionFitHeight(0,130,72),0);
+assert.equal(sectionFitHeight(780,null,72),0);
+assert.equal(sectionFitHeight(150,130,72),1);
+states.length=0;hook=0;const props={rows:entries[0].rows,sectionIndex:0,setSectionIndex:()=>{},fitMode:"auto",setFitMode:()=>{},fontSize:15,fitFont:15,onManualFont:()=>{},S:{}};
+moduleStub.exports.ReaderViewport.value=780;
+let section=moduleStub.exports(props);assert.equal(section.children[1].props.fitHeight,0);
+section.children[0].props.onLayout({nativeEvent:{layout:{height:130}}});section.children[2].props.onLayout({nativeEvent:{layout:{height:72}}});
+hook=0;section=moduleStub.exports(props);assert.equal(section.children[1].props.fitHeight,558);
+moduleStub.exports.ReaderViewport.value=480;hook=0;section=moduleStub.exports(props);assert.equal(section.children[1].props.fitHeight,258);
+hook=0;section=moduleStub.exports({...props,fitMode:"manual",fitFont:21});assert.equal(section.children[1].props.fontSize,21);assert.equal(section.children[1].props.fitMode,"manual");
+console.log("Measured scroll viewport, wrapping controls, rotation and manual zoom contract verified.");

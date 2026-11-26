@@ -28,4 +28,11 @@ function chooseFitFont(min,max,fits){
  }
  return best/10;
 }
-module.exports=Object.freeze({sectionsOf,navigation,moveIndex,chooseFitFont});
+// Measure the actual scroll viewport and the controls surrounding the score.
+// Other reader metadata remains scrollable rather than shrinking the score.
+const SECTION_GAP=10;
+function sectionFitHeight(viewport,header,footer){
+ if(!Number.isFinite(viewport)||viewport<=0||!Number.isFinite(header)||header<0||!Number.isFinite(footer)||footer<0)return 0;
+ return Math.max(1,Math.floor(viewport-header-footer-2*SECTION_GAP));
+}
+module.exports=Object.freeze({sectionsOf,navigation,moveIndex,chooseFitFont,sectionFitHeight,SECTION_GAP});
