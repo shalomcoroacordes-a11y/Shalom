@@ -1,7 +1,7 @@
 /* Shared public/offline section navigation. All rows are preserved for printing. */
 .section-reader-controls{display:grid;gap:8px;margin:10px 0;color:var(--text,#f4f7f8);font:inherit}
 .section-reader-navigation{display:grid;gap:8px}
-.section-reader-navigation[hidden]{display:none}
+.section-reader-navigation[hidden],.section-reader-controls[hidden]{display:none}
 .section-reader-controls button,.section-reader-controls select{font:inherit;color:inherit;background:var(--panel2,#20262e);border:1px solid var(--border,#354650);border-radius:9px;padding:8px 10px;min-height:40px}
 .section-reader-controls button[aria-pressed="true"]{color:#aaffda;border-color:#27c98b;background:#174b35}
 .section-reader-controls button:disabled{opacity:.45}
@@ -9,7 +9,8 @@
 .section-reader-buttons{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
 .section-reader-buttons span{font-size:.85rem}
 @media screen{
- .section-reader-active>.section-reader-excluded{display:none!important}
- #songLyrics.section-reader-active,#offlineLyrics.section-reader-active{font-size:var(--section-reader-font,16px)!important;transition:none;overflow-x:auto}
+ .section-reader-active>.section-reader-excluded,.section-reader-excluded-article{display:none!important}
+ #songLyrics.section-reader-active,#offlineLyrics.section-reader-active,.rep-reader-lyrics.section-reader-active,.medley-lyrics.section-reader-active{font-size:var(--section-reader-font,16px)!important;transition:none;overflow-x:auto}
+ .rep-reader-lyrics.section-reader-active,.rep-reader-lyrics.section-reader-active .lyric-line{white-space:pre;font-family:"Courier New",Courier,monospace;letter-spacing:0}
 }
 @media print{.section-reader-controls{display:none!important}}

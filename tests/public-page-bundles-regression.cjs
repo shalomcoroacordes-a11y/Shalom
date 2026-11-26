@@ -41,7 +41,7 @@ assert.equal((common.match(/@import/g)||[]).length,1);
 for(const [page,specific] of [["repertorios.html","repertoires.css"],["popurris.html","medleys.css"]]){
  const html=fs.readFileSync(page,"utf8");
  const styles=[...html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(m=>m[1]);
- assert.deepEqual(styles,["style.css?v=5","collection-reader-bundle.css?v=3",specific+"?v=1","studio-collection-web.css?v=2"]);
+ assert.deepEqual(styles,["style.css?v=5","collection-reader-bundle.css?v=3",specific+"?v=1","studio-collection-web.css?v=2","section-reader-web.css?v=2"]);
  assert.doesNotMatch(fs.readFileSync(specific,"utf8"),/@import/);
 }
 for(const name of ["repertoires-page-bundle.css","medleys-page-bundle.css"]){

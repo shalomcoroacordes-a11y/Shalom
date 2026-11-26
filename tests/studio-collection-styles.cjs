@@ -14,7 +14,7 @@ for(const [page,bundle] of [["popurris.html","medleys.css?v=1"],["repertorios.ht
  assert.ok(html.indexOf(bundle)<html.indexOf("studio-collection-web.css"));
  assert.match(html,/src="studio-collection-web\.js\?v=4"/);assert.match(html,/src="song-capo-core\.js\?v=1"/);
 }
-assert.match(sw,/shalom-offline-shell-v35-action-colors/);
+assert.match(sw,/shalom-offline-shell-v37-collection-sections/);
 assert.match(sw,/"\.\/studio-collection-web\.css"/);
 const dialogs=[],opened=[];
 function element(tag){

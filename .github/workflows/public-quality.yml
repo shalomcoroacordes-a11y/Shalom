@@ -296,6 +296,9 @@ jobs:
       - name: Test explicit reading mode and preferences lifecycle
         run: node tests/song-reading-lifecycle.cjs
 
+      - name: Test shared section navigation and fit for individual and collection readers
+        run: node tests/web-section-reader.cjs
+
       - name: Test shared Studio collection stylesheet
         run: node tests/studio-collection-styles.cjs
 

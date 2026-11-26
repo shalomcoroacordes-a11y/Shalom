@@ -23,3 +23,21 @@ reader.mount(target,"two");flush();assert.equal(children[0].classList.excluded,f
 const css=fs.readFileSync("section-reader-web.css","utf8");assert.match(css,/@media screen\s*\{/);assert.match(css,/@media print/);
 const sw=fs.readFileSync("offline-sw.js","utf8");for(const path of ["section-reader-web.js","section-reader-web.css","mobile/src/section-reader-core.js"])assert.ok(sw.includes("./"+path));
 console.log("Shared web reader: fit, navigation, manual override, song identity and offline assets verified.");
+
+const scoreA={...target,children:[row("Coro",true),row("A"),row("Verso",true),row("B")]};
+const scoreB={...target,children:[row("Coro",true),row("A repetida")]};
+const articles=[scoreA,scoreB].map((score,i)=>({classList:{toggle(name,value){this.excluded=value;}},querySelector:s=>s==="h3"?{textContent:"Canto repetido "+(i+1)}:score}));
+const collection={before(){},querySelectorAll:()=>articles};
+reader.mountCollection(collection,"mass",{articleSelector:"article",scoreSelector:".score"});
+run("toggle");flush();assert.equal(articles[0].classList.excluded,false);assert.equal(articles[1].classList.excluded,true);
+run("next");flush();assert.equal(scoreA.children[0].classList.excluded,true);
+assert.equal(nodes.get('[data-action="next"]').textContent,"Siguiente canto ›");
+run("next");flush();assert.equal(articles[0].classList.excluded,true);assert.equal(articles[1].classList.excluded,false);
+assert.equal(scoreB.children[0].classList.excluded,false);
+scoreB.children=[row("Coro",true),row("A con capo")];
+reader.mountCollection(collection,"mass",{articleSelector:"article",scoreSelector:".score"});flush();assert.equal(articles[1].classList.excluded,false);
+assert.equal(reader.selectEntry(collection,0),true);flush();assert.equal(articles[0].classList.excluded,false);
+run("toggle");flush();assert.equal(articles[0].classList.excluded,false);assert.equal(articles[1].classList.excluded,false);assert.equal(scoreA.children[2].classList.excluded,false);
+assert.equal(reader.selectEntry(collection,1),false);
+for(const page of ["repertorios.html","popurris.html"]){const html=fs.readFileSync(page,"utf8");assert.ok(html.includes("section-reader-web.css?v=2"));assert.ok(html.indexOf("mobile/src/section-reader-core.js")<html.indexOf("section-reader-web.js"));}
+console.log("Collection navigation: repeated occurrences, capo repaint, direct song jump and normal reading verified.");
