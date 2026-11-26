@@ -53,6 +53,8 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,fi
    source,
    originWhitelist:["*"],
    javaScriptEnabled:true,
+   // Explicit reader sizes, not a second Android system text scale.
+   textZoom:100,
    domStorageEnabled:false,
    allowFileAccess:false,
    mixedContentMode:"never",
