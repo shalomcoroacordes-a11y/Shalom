@@ -50,7 +50,7 @@ function copyOfficial(store,official,kind,songs,folderId=null){
    if(matches.length!==1)throw Error("El fragmento "+(index+1)+" fue modificado o es ambiguo. No se puede copiar sin cambiar su contenido.");
    sectionIndex=matches[0].index;sectionTitle=matches[0].title;
   }
-  return {songId,sectionIndex,sectionTitle,shift:item.shift||0,moment:item.moment||"",notes:item.notes||"",cueOverride:item.cue_override??null};
+  return {songId,sectionIndex,sectionTitle,shift:item.shift||0,moment:item.moment||"",notes:item.notes||"",cueOverride:item.cue_override??null,capoId:item.capo_id??"none"};
  });
  const entry=entryFrom({kind,title:official.title,parts},true);
  const created=createPersonal(store,kind,entry.title,folderId);

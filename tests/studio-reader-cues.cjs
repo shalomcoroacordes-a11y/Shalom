@@ -76,7 +76,7 @@ console.log("Lyric-only record: no invented musical accompaniment, public web an
  // Verify the actual native public song screen (not Studio) with a lyric-only record.
  const sourceUI=fs.readFileSync("mobile/src/music-readers-ui.js","utf8");
  const dependencies={
-  react:{createElement:(type,props,...children)=>({type,props,children})},
+  react:{createElement:(type,props,...children)=>({type,props,children}),useState:initial=>[initial,()=>{}]},
   "react-native":{View:"View",Text:"Text",Pressable:"Pressable",Image:"Image",Alert:{alert(){}}},
   "./chords":require("../mobile/src/chords"),"./catalog":{names:()=>""},"./favorites":{hasFavorite:()=>false},
   "./song-capo-core":{capoSelection:()=>({choices:[{id:"none"}],chosen:{id:"none"},offset:0})},

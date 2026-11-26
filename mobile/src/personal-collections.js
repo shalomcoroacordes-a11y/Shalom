@@ -24,6 +24,7 @@ function partFrom(input,forceId=false){
  return {id:forceId?makeId():text(input.id,80)||makeId(),songId,
   sectionIndex,sectionTitle:sectionIndex===null?"":text(input.sectionTitle,100),
   shift,moment:text(input.moment,60),
+  ...(input.capoId!=null&&input.capoId!=="none"?{capoId:text(input.capoId,128)}:{}),
   ...(input.notes?{notes:text(input.notes,500)}:{}),
   ...(input.cueOverride!=null?{cueOverride:normalizeOverride(input.cueOverride)}:{})};
 }
@@ -125,10 +126,10 @@ function signature(bytes){
 function exportCode(entry){
  const valid=entryFrom(entry);
  if(!valid.parts.length)throw new Error("Agrega al menos un canto antes de compartir.");
- const custom=valid.parts.some(p=>p.notes||p.cueOverride);
+ const custom=valid.parts.some(p=>p.notes||p.cueOverride||p.capoId);
  const version=custom?2:1;
  const data=["SHALOM",version,valid.kind,valid.title,
-  valid.parts.map(p=>[p.songId,p.sectionIndex==null?-1:p.sectionIndex,p.sectionTitle,p.shift,p.moment,...(custom?[{notes:p.notes||"",cueOverride:p.cueOverride||null}]:[])])];
+  valid.parts.map(p=>[p.songId,p.sectionIndex==null?-1:p.sectionIndex,p.sectionTitle,p.shift,p.moment,...(custom?[{notes:p.notes||"",cueOverride:p.cueOverride||null,...(p.capoId?{capoId:p.capoId}:{})}]:[])])];
  const bytes=toBytes(JSON.stringify(data));
  if(bytes.length>9000)throw new Error("La composición es demasiado grande para compartir por código.");
  return (version===1?PREFIX:"SHALOM2-")+encode64(bytes)+"-"+signature(bytes);
@@ -150,9 +151,9 @@ function importCode(message){
  const parts=data[4].map(p=>{
   if(!Array.isArray(p)||p.length!==(data[1]===1?5:6))throw new Error("El código contiene un fragmento incorrecto.");
   const meta=data[1]===2?p[5]:{};
-  if(!meta||typeof meta!=="object"||Array.isArray(meta)||Object.keys(meta).some(k=>!["notes","cueOverride"].includes(k)))throw Error("Personalización no válida.");
+  if(!meta||typeof meta!=="object"||Array.isArray(meta)||Object.keys(meta).some(k=>!["notes","cueOverride","capoId"].includes(k)))throw Error("Personalización no válida.");
   return partFrom({songId:p[0],sectionIndex:p[1]===-1?null:p[1],
-   sectionTitle:p[2],shift:p[3],moment:p[4],notes:meta.notes,cueOverride:meta.cueOverride},true);
+   sectionTitle:p[2],shift:p[3],moment:p[4],notes:meta.notes,cueOverride:meta.cueOverride,capoId:meta.capoId},true);
  });
  return entryFrom({kind:data[2],title:data[3],parts},true);
 }

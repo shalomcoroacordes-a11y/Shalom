@@ -331,9 +331,10 @@ function AppScreen() {
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
-  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null){
+  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null,override=null){
   const parsed=parseSong(lyrics,delta);
-  const rows=showReaderCues&&song&&lyrics===song.lyrics?ReaderCues.decorate(parseSong(lyrics,0),song._studio,parsed):parsed;
+  const arrangement=song&&lyrics===song.lyrics?song._studio:null;
+  const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(lyrics,0),arrangement,override,parsed):parsed;
   return renderAlignedScoreRows(rows,fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){

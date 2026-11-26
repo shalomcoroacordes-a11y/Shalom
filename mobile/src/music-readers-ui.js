@@ -1,19 +1,33 @@
 // Musical reader presentation. All three use the existing canonical parser and shared score controls.
-const h=require("react").createElement;
+const {createElement:h,useState}=require("react");
 const {View,Text,Pressable,Image,Alert}=require("react-native");
 const {parseSong,transposeOne}=require("./chords");
 const {names,safeWebUrl}=require("./catalog");
 const {hasFavorite}=require("./favorites");
-const {capoSelection}=require("./song-capo-core");
+const {capoSelection,collectionCapo,occurrenceKey}=require("./song-capo-core");
 const {clampReaderFont}=require("./score-zoom");
 const {repertoireType}=require("./repertoire-ui");
 const StudioCollections=require("./studio-collections");
 const ReaderCues=require("./studio-reader-cues");
 
+// One compact control, reused by both official and personal readers.
+function CollectionCapoControl({song,selection,onSelect,style,textStyle}){
+ const [expanded,setExpanded]=useState(false);
+ if(!song||selection.choices.length<=1)return null;
+ const {chosen,choices}=selection;
+ return h(View,{style:{gap:4,alignItems:"flex-start"}},
+  h(Pressable,{style,onPress:()=>setExpanded(v=>!v),accessibilityRole:"button",accessibilityLabel:"Seleccionar capo de "+(song.title||"canto"),accessibilityState:{expanded}},h(Text,{style:textStyle},(chosen.id==="none"?"Sin capo":"Capo "+chosen.position+(chosen.key?" · "+chosen.key:""))+" ▾")),
+  expanded?h(View,{style:{gap:5,flexDirection:"row",flexWrap:"wrap"}},...choices.map(c=>h(Pressable,{key:String(c.id),style:[style,c.id===chosen.id&&{borderWidth:1,borderColor:"#27c98b"}],accessibilityRole:"button",accessibilityState:{selected:c.id===chosen.id},onPress:()=>{onSelect(c.id);setExpanded(false);}},h(Text,{style:textStyle},c.label+(c.key?" · Figuras en "+c.key:""))))):null);
+}
 function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong}){
   const items=Array.isArray(rep.items)?rep.items:[];
   const kind=repertoireType(rep);
-  const plan=StudioCollections.plan(items.map(item=>({...item,shift:transpose})),model.songs);
+  const [capos,setCapos]=useState({});
+  const practiceParts=items.map((item,index)=>{
+   const song=model.songs.find(s=>String(s.id)===String(item.song_id)),key=occurrenceKey(rep,index,item),selection=collectionCapo(song,item,capos[key]);
+   return {...item,shift:transpose+selection.offset,capo:selection.chosen.position,selection,key};
+  });
+  const plan=StudioCollections.plan(practiceParts,model.songs);
   return h(View,{style:S.multiReader},
    h(View,{style:S.songMetaRow},
     h(View,{style:S.songMetaIcon},h(Image,{source:HOME_IMAGES[kind==="misa"?"mass":"repertoires"],
@@ -31,6 +45,7 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
     const song=model.songs.find(s=>String(s.id)===String(item.song_id));
     const title=String(song?.title||item.song_title||"Canto no disponible");
     const moment=String(item.moment||"Canto "+(index+1));
+    const {selection,key,shift:scoreShift,capo:position}=practiceParts[index];
     const tone=song?.tone?transposeOne(song.tone,transpose):"";
     return h(View,{key:item.id||index,style:[S.multiPart,index>0&&S.multiPartDivider]},
      h(View,{style:S.multiPartHeading},
@@ -40,8 +55,9 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
        h(Text,{style:S.multiPartTitle},title),
        tone?label("Tono "+tone,S.multiPartDetail):null)),
      item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
-     renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose,"rep-"+index,undefined,song),
-     !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioPart(song,{shift:transpose})},label("♫ Practicar con guitarra",S.multiOriginalText)):null,
+     h(CollectionCapoControl,{song,selection,onSelect:id=>setCapos(v=>({...v,[key]:id})),style:S.multiTextAction,textStyle:S.multiTextActionLabel}),
+     renderMultiReadingScore(song?.lyrics||"Canto no disponible.",scoreShift,"rep-"+index,undefined,song,item.cue_override),
+     !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioPart(song,{shift:scoreShift,capo:position})},label("♫ Practicar con guitarra",S.multiOriginalText)):null,
      song?h(Pressable,{onPress:()=>selectSong(song),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+title+" como canto individual",style:S.multiOriginalLink},
        label("Ver canto individual  ›",S.multiOriginalText)):null
@@ -54,7 +70,11 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
 function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb}){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   const generalTone=String(medley.base_tone||"");
-  const practiceParts=parts.map(part=>({...part,shift:transpose+Number(part.shift||0)}));
+  const [capos,setCapos]=useState({});
+  const practiceParts=parts.map((part,index)=>{
+   const song=model.songs.find(s=>String(s.id)===String(part.song_id)),key=occurrenceKey(medley,index,part),selection=collectionCapo(song,part,capos[key]);
+   return {...part,shift:transpose+Number(part.shift||0)+selection.offset,capo:selection.chosen.position,selection,key};
+  });
   const plan=StudioCollections.plan(practiceParts,model.songs);
   const sequence=StudioCollections.sequencePlan(practiceParts,model.songs,medley.title);
   return h(View,{style:S.multiReader},
@@ -76,9 +96,7 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
     const shift=Number(part.shift||0);
     const delta=transpose+(Number.isFinite(shift)?shift:0);
     const tone=part.tone||original?.tone||"";
-    const capoPosition=Number(part.capo_position||original?.capo_position||0);
-    const capoKey=String(part.capo_key||original?.capo_key||"").trim();
-    const otherCapos=(original?._capos||[]).filter(v=>Number(v.capo_position)>0);
+    const {selection,key,shift:scoreShift}=practiceParts[index];
     const tutorials=[
      ...(original?._links||[]).map(x=>({title:x.title||"Video",url:x.url})),
      {title:"Tutorial guitarra",url:original?.tutorial_guitar},
@@ -89,12 +107,9 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
       h(View,{style:S.multiPartNumber},label(String(index+1),S.multiPartNumberText)),
       h(View,{style:{flex:1,minWidth:0}},
        h(Text,{style:S.multiPartTitle},fragmentTitle),
-       tone?label("Tono "+transposeOne(tone,delta),S.multiPartDetail):null,
-       capoPosition>0?label("Capo: traste "+capoPosition+
-        (capoKey?" · Figuras en "+capoKey:""),S.multiPartCapo):null,
-       otherCapos.length?label("Otros capos: "+otherCapos.map(c=>"traste "+c.capo_position+
-        (c.capo_key?" · "+c.capo_key:"")).join(" / "),S.multiPartCapo):null)),
-     renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta,"medley-"+index,undefined,original),
+       tone?label("Tono "+transposeOne(tone,delta),S.multiPartDetail):null)),
+     h(CollectionCapoControl,{song:original,selection,onSelect:id=>setCapos(v=>({...v,[key]:id})),style:S.multiTextAction,textStyle:S.multiTextActionLabel}),
+     renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",scoreShift,"medley-"+index,undefined,original,part.cue_override),
      h(View,{style:S.multiQuickLinks},
       !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(plan.entries[index].payload)}},label("♫ Practicar fragmento",S.multiOriginalText)):null,
       original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
@@ -162,4 +177,4 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
   );
  }
 
-module.exports={RepertoireReader,MedleyReader,SongReader};
+module.exports={RepertoireReader,MedleyReader,SongReader,CollectionCapoControl};

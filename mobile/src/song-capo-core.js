@@ -27,4 +27,10 @@ function capoSelection(song,selected="none"){
  }
  return {choices,chosen,offset};
 }
-module.exports=Object.freeze({capoChoices,capoSelection});
+// Collection preferences are keyed by occurrence, not song id.
+function occurrenceKey(collection,index,part){return JSON.stringify([collection?.id,collection?.updated_at||"",index,part?.id||"",part?.song_id||part?.songId||""]);}
+function collectionCapo(song,part,selected){
+ const value=selected??part?.capoId??part?.capo_id??"none";
+ return capoSelection(song,value);
+}
+module.exports=Object.freeze({capoChoices,capoSelection,occurrenceKey,collectionCapo});

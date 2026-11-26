@@ -52,3 +52,7 @@ const customCode=exportCode(customEntry);assert.match(customCode,/^SHALOM2-/);
 const customDecoded=importCode(customCode);
 assert.equal(customDecoded.parts[0].notes,"Solo coro");assert.deepEqual(customDecoded.parts[0].cueOverride,{v:1,mode:"hide",j:[]});
 assert.throws(()=>exportCode({...customEntry,parts:[{...piece,cueOverride:{v:1,mode:"bad",j:[]}}]}),/inválida/);
+
+const withCapo={...obj,parts:[{...piece,capoId:"main"}]};
+assert.equal(importCode(exportCode(withCapo)).parts[0].capoId,"main");
+assert.equal(parseStore(JSON.stringify({version:1,collections:[{...col,entries:[withCapo]}]})).collections[0].entries[0].parts[0].capoId,"main");
