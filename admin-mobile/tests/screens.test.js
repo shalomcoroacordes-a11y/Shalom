@@ -19,7 +19,7 @@ for(const [type,record] of [["songs",song],["artists",artist]]){
 }
 const Editor=load("EditorScreen");
 const editorProps={form:{...model.initial("songs"),title:"Canto",lyrics:"G\nLetra"},selectedType:"songs",section:"Letra",update:(...args)=>calls.push(args),adminBack:noop,setSection:noop,lists:{},localId:()=>"id",editing:{id:"song-id"},studioStatus:null,openStudio:noop,editorSaving:false,saveDraft:flag=>calls.push(["save",flag]),access,offline:false};
-let tree=Editor(editorProps);const field=nodes(tree).find(n=>n.type==="Field");assert.equal(field.props.spec[0],"lyrics");field.props.onChange("lyrics","Nueva letra");find(tree,"button","Enviar a publicación").action();assert.deepEqual(calls.splice(0),[["lyrics","Nueva letra"],["save",true]]);
+const openLyricCues=()=>calls.push(["cues"]);let tree=Editor({...editorProps,openLyricCues});const field=nodes(tree).find(n=>n.type==="Field");assert.equal(field.props.spec[0],"lyrics");assert.equal(field.props.onOpenCues,openLyricCues);field.props.onOpenCues();assert.deepEqual(calls.splice(0),[["cues"]]);field.props.onChange("lyrics","Nueva letra");find(tree,"button","Enviar a publicación").action();assert.deepEqual(calls.splice(0),[["lyrics","Nueva letra"],["save",true]]);
 tree=Editor({...editorProps,editorSaving:true});assert.equal(find(tree,"button","Enviar a publicación").disabled,true);assert.equal(find(tree,"button","Guardando…").disabled,true);
 const listHistory=()=>calls.push(["history-list"]),chooseHistory=(...args)=>calls.push(["history-choose",...args]);
 const historyProps={...editorProps,editing:{id:"song-id",expected:"r2"},historyOwner:"owner",listStudioHistory:listHistory,chooseStudioHistory:chooseHistory};

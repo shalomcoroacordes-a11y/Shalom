@@ -9,7 +9,8 @@ async function test(){
  const api={myAccess:async owner=>{assert.equal(owner,"a");return {authorized:true,owner:allowed}},find:async(table,id,owner)=>{assert.equal(owner,"a");return{updated_at:revision}},async raw(path,method,body,preference,owner){
   assert.equal(owner,"a");calls.push(method);
   if(method==="POST"){assert.ok(cache.get("a:studio:s").length,"Draft durable before POST");if(gate){start();await gate;}published=body.arrangement;return[{song_id:"s",song_revision:"r1"}];}
-  return published?[{song_revision:"r1",arrangement:wrong?updated:published}]:[];
+  if(method==="PATCH"){assert.match(path,/updated_at=eq\.t1/);assert.equal(preference,"return=representation");published=body.arrangement;return [{song_id:"s",song_revision:"r1"}];}
+  return published?[{song_revision:"r1",updated_at:"t1",arrangement:wrong?updated:published}]:[];
  }};
  const studio=createStudioPersistence({api,store,network:async()=>online});
  online=false;await assert.rejects(studio.publish("a",song,arrangement),/Sin conexión/);assert.deepEqual(cache.get("a:studio:s")[0].arrangement,arrangement);
@@ -27,6 +28,11 @@ async function test(){
  await assert.rejects(studio.saveDraft("a",song,{...arrangement,j:[]},{draft:null,arrangement}),/borrador cambió/);
  await studio.saveDraft("a",song,{...updated,j:[]},{draft:updated,arrangement});
  assert.deepEqual((await studio.read("a",song,true)).draft,{...updated,j:[]});
+ gate=null;await studio.saveDraft("a",song,arrangement);
+ const state=await studio.read("a",song,false),withCue={...arrangement,j:[[1,1,"source","repeat","all","2 veces"]]};
+ await studio.publish("a",song,withCue,state);assert.equal(calls.includes("PATCH"),true);assert.deepEqual((await studio.read("a",song,true)).arrangement,withCue);
+ const before=await studio.read("a",song,false);published={...withCue,n:99};const writes=calls.filter(x=>x==="PATCH").length;
+ await assert.rejects(studio.publish("a",song,{...withCue,j:[]},before),/publicado cambió/);assert.equal(calls.filter(x=>x==="PATCH").length,writes);assert.deepEqual((await studio.read("a",song,true)).draft,{...withCue,j:[]});
  console.log("Studio persistence: offline and denied writes, stale revisions, remote verification, atomic local confirmation, newer drafts preserved and focused cue isolation.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});

@@ -48,7 +48,9 @@ assert.doesNotMatch(styles,/position:"absolute",bottom:7/,"Prohibido solapar bar
 assert.match(styles,/minHeight:53/,"Objetivos táctiles grandes");
 const editorFields=fs.readFileSync("src/components/EditorFields.js","utf8");
 assert.match(editorFields,/categoryChoices/);
-assert.match(editorScreen,/h\(Field,\{key:spec\[0\],spec,form,onChange:update,lists,createId:localId\}\)/);
+assert.match(editorScreen,/h\(Field,\{key:spec\[0\],spec,form,onChange:update,lists,createId:localId,onOpenCues:openLyricCues\}\)/);
+assert.match(lyrics,/＋ Indicación/);
+assert.match(app,/openLyricCues:\(\)=>openStudio\(true\)/);
 assert.doesNotMatch(app,/function (?:Field|CompositeEditor|NestedEditor)\(/);
 assert.match(picker,/filterChoices/);
 assert.match(picker,/selectedNames/);
