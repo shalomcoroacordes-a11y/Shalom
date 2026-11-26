@@ -47,5 +47,6 @@ assert.doesNotMatch(ui,/anchoredTokens|token\.column|preserveColumns/,"Do not es
 assert.match(app,/return h\(AlignedScore,\{rows,fontSize,variant:keyPrefix,\s*onFontSizeChange:/,
  "Cantos, misas, repertorios y popurrís comparten tipografía web y zoom nativo");
 assert.match(fs.readFileSync("src/music-readers-ui.js","utf8"),/renderAlignedScoreRows\(showReaderCues\?cueRows:parsed,readerFont/);
-assert.match(app,/renderAlignedScoreRows\(rows,fontOverride,keyPrefix\)/);
+assert.match(app,/renderAlignedScoreRows\(collectionScoreRows\(lyrics,delta,song,override\),fontOverride,keyPrefix\)/,
+ "Collection reading must project canonical rows and occurrence cues before rendering");
 console.log("SHALOM: browser-based text alignment, original columns and native fallback verified.");
