@@ -119,6 +119,6 @@ jobs:
             echo "::error::La versión ya existe. No se sobrescribe una APK publicada."
             exit 1
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" "$APK" --title "SHALOM Android v${VERSION}" --notes "Versión de mantenimiento: arquitectura modular, intérprete musical compartido y mejoras de Studio. Firma, actualización y arranque Android verificados en emulador."
+            gh release create "$TAG" --target "$GITHUB_SHA" "$APK" --title "SHALOM Android v${VERSION}" --notes "Indicaciones en la letra normal, capos y opciones por canto en misas, repertorios y popurrís, personalizaciones locales, códigos SHALOM2 y respaldo. Firma, actualización y arranque Android verificados en emulador."
           fi
 
