@@ -123,3 +123,7 @@ Los dos archivos exactos quedaron incorporados en la rama candidata. Falta valid
 ### Publicadores históricos retirados
 
 Los workflows `publish-android-apk.yml`, `publish-shalom-icon.yml` y `publish-shalom-v2.yml` apuntaban a ejecuciones fijas de las versiones 0.1.0, 0.1.1 y 0.2.0. Se retiran de Actions porque son procesos de un solo uso, no rutas de mantenimiento. Se conserva su historial Git y no se modifica ninguna release, etiqueta, APK publicada ni enlace. Las dos rutas oficiales son `android-apk.yml` y `admin-apk.yml`; los demás workflows de compilación generan artefactos de prueba. El control de autorización rechaza reintroducir los publicadores históricos o comandos de publicación en otros workflows.
+
+## Cierre de lanzamiento
+
+Seguir [PROTOCOLO-LANZAMIENTO.md](PROTOCOLO-LANZAMIENTO.md). Las validaciones por rama no sustituyen la verificación del commit candidato exacto. La publicación web desde main y los APK oficiales son operaciones diferentes; antes de la fusión, confirmar compatibilidad del esquema, respaldo restaurable y pruebas de dispositivos. No publicar automáticamente desde una rama candidata.
