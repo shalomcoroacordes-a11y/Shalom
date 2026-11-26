@@ -30,9 +30,9 @@ const fs=require("node:fs"),vm=require("node:vm");
 const web={};web.window=web;vm.createContext(web);
 for(const file of ["song-chords.js","studio-core.js","studio-codec.js","studio-reader-cues.js"])vm.runInContext(fs.readFileSync(file,"utf8"),web);
 const markup=web.ShalomChords.render(source,{arrangement,transpose:()=>"D"});
-assert.match(markup,/song-reader-cue[^>]*>Iniciar · Solista · Suave/);
+assert.match(markup,/song-reader-cue[^>]*>.*Iniciar · Solista · Suave/);
 assert.match(markup,/Dos veces &lt;3/);
-assert.equal(markup.replace(/<span class="song-reader-cue">[^<]*<\/span>/g,""),web.ShalomChords.render(source,{transpose:()=>"D"}));
+assert.equal(markup.replace(/<span class="song-reader-cue"[^>]*><span[^>]*>[^<]*<\/span> [^<]*<\/span>/g,""),web.ShalomChords.render(source,{transpose:()=>"D"}));
 assert.doesNotMatch(web.ShalomChords.render(source,{arrangement:{...arrangement,s:"bad"}}),/song-reader-cue/);
 console.log("Browser public reader: cue order, safe escaping, unchanged chord markup and stale arrangement rejection.");
 
@@ -67,7 +67,7 @@ assert.throws(()=>codec.decode([],vocalRecord),/incompatible/);
 assert.throws(()=>codec.decodeLyricCues({...vocalRecord,c:[]}),/inválidas/);
 assert.deepEqual(reader.decorate(vocalRows,vocalRecord).map(r=>r.kind),["section","lyric","lyric","cue"]);
 assert.deepEqual(native.decorate(vocalRows,vocalRecord),reader.decorate(vocalRows,vocalRecord));
-assert.match(web.ShalomChords.render(aCapella,{arrangement:vocalRecord}),/Sin guitarra<\/span><span class="song-reader-cue">Repetir · 2 veces/);
+assert.match(web.ShalomChords.render(aCapella,{arrangement:vocalRecord}),/Sin guitarra<\/span><span class="song-reader-cue"[^>]*>.*Repetir · 2 veces/);
 assert.equal(require("../studio-collections").resolve({id:"v",updated_at:"r",lyrics:aCapella,_studio:vocalRecord}).ready,false);
 assert.equal(require("../mobile/src/studio-collections").resolve({id:"v",updated_at:"r",lyrics:aCapella,_studio:vocalRecord}).ready,false);
 assert.deepEqual(reader.decorate(vocalRows,{...vocalRecord,j:[["bad"]]}),vocalRows);
@@ -81,7 +81,7 @@ console.log("Lyric-only record: no invented musical accompaniment, public web an
   "./chords":require("../mobile/src/chords"),"./catalog":{names:()=>""},"./favorites":{hasFavorite:()=>false},
   "./song-capo-core":{capoSelection:()=>({choices:[{id:"none"}],chosen:{id:"none"},offset:0})},
   "./score-zoom":{clampReaderFont:x=>x},"./repertoire-ui":{},"./studio-collections":require("../mobile/src/studio-collections"),
-  "./studio-reader-cues":native
+  "./studio-reader-cues":native,"./section-reader-ui":"SectionReader"
  };
  const uiModule={exports:{}};
  new Function("require","module",sourceUI)(name=>{assert.ok(name in dependencies,name);return dependencies[name]},uiModule);
@@ -114,3 +114,7 @@ assert.deepEqual(M.normalizeParts([{song_id:id,lyrics:aCapella,cue_override:over
 assert.throws(()=>M.normalizeParts([{song_id:id,lyrics:"Letra nueva",cue_override:override}]),/letra cambió/);
 assert.deepEqual(reader.validateOverride(vocalRows,override),override);
 assert.throws(()=>reader.validateOverride([],override),/letra cambió/);
+
+const looks=Object.keys(C.cueActions).map(action=>C.cueAppearance(action));assert.equal(new Set(looks.map(x=>x.symbol)).size,8);assert.equal(new Set(looks.map(x=>x.dark)).size,8);assert.equal(new Set(looks.map(x=>x.light)).size,8);assert.deepEqual(C.cueAppearance("invalid"),C.cueAppearance("note"));assert.equal(decorated[2].action,"start");assert.equal(decorated[5].action,"repeat");assert.match(markup,/--cue-dark:#79c8ff;--cue-light:#145a94/);assert.match(html.scoreMarkup(decorated),/--cue-dark:#f5c36b/);assert.match(print.buildPrintableSong(song),/↻ Repetir/);console.log("Action colors and symbols agree across print, web and native.");
+
+const cueCSS=fs.readFileSync("song-reader-cues.css","utf8");assert.match(cueCSS,/\.song-reader-cue\{[^}]*color:var\(--cue-dark,#d1d5db\)!important/);assert.match(cueCSS,/body\.light-mode \.song-reader-cue\{color:var\(--cue-light,#4b5563\)!important/);assert.match(cueCSS,/\.song-reader-cue>span\{color:inherit!important\}/);assert.match(html.scoreHtml(decorated),/color:var\(--cue-dark,#d1d5db\)!important/);console.log("Cue line foreground is authoritative in light and dark modes, and symbols inherit it.");

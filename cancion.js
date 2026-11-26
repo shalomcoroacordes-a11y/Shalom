@@ -181,6 +181,7 @@ function renderChordLyrics() {
     target.textContent = lyrics;
   }
 
+  window.ShalomSectionReaderWeb?.mount(target,String(currentSong.id||""),{sticky:()=>document.body.classList.contains("song-reading-mode")?$("#songReaderToolbar"):null});
   const status = $("#transposeStatus");
   if (status) status.textContent = typeof renderer === "function"
     ? `${transpose === 0 ? "Tono original" : `Transposición ${transpose > 0 ? "+" : ""}${transpose}`} · ${capoLabel}`

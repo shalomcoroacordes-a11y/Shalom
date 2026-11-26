@@ -3,12 +3,12 @@
     "name": "SHALOM Admin",
     "slug": "shalom-admin",
     "scheme": "shalomadmin",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "android": {
       "package": "com.shalomcoroacordes.admin",
-      "versionCode": 8,
+      "versionCode": 9,
       "edgeToEdgeEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",

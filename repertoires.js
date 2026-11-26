@@ -54,7 +54,10 @@
     '<div class="rep-reader-lyrics">'+content+'</div></article>';
   }).join("");
   $("repPrintAll").innerHTML=html;
-  window.ShalomReaderCueControls?.mount($("repPrintAll"),cuesVisible,()=>{});
+  const container=$("repPrintAll");
+  const syncSections=()=>window.ShalomSectionReaderWeb?.mountCollection(container,String(rep.id),{articleSelector:".rep-continuous-song",scoreSelector:".rep-reader-lyrics"});
+  function toggle(value){cuesVisible=value;window.ShalomReaderCueControls?.mount(container,cuesVisible,toggle);syncSections();}
+  toggle(cuesVisible);
   $("repPrintAll").hidden=false;
   $("repPrintAll").setAttribute("aria-hidden","false");
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
@@ -68,8 +71,7 @@
   $("repCurrentLink").hidden=true;
   document.title=rep.title+" | SHALOM Repertorios";
   window.scrollTo({top:0,behavior:"instant"});
-  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;const container=$("repPrintAll");
-   function toggle(value){cuesVisible=value;window.ShalomReaderCueControls?.mount(container,cuesVisible,toggle)}
+  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;
    toggle(cuesVisible);
    window.ShalomStudioCollectionWeb.mountCapos({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind,onRendered:()=>toggle(cuesVisible)});}).catch(()=>{});
  }
@@ -110,6 +112,12 @@
  $("repType")?.addEventListener("change",catalog);
  $("repBack")?.addEventListener("click",back);
 
+ $("repSongOrder")?.addEventListener("click",event=>{
+  const link=event.target.closest(".rep-order-button");
+  if(!link)return;
+  const index=[...$("repSongOrder").querySelectorAll(".rep-order-button")].indexOf(link);
+  if(window.ShalomSectionReaderWeb?.selectEntry($("repPrintAll"),index))event.preventDefault();
+ });
  $("repPrint")?.addEventListener("click",()=>window.print());
  window.addEventListener("popstate",()=>{if(current)back();});
  init();

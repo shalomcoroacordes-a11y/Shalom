@@ -5,7 +5,7 @@ const header=source.slice(source.indexOf("let currentSong ="),source.indexOf("fu
 const start=source.indexOf("function renderChordLyrics("),end=source.indexOf("function renderControls(",start);
 assert.ok(start>=0&&end>start);
 assert.doesNotMatch(source,/const isChordToken|const isChordGroup|const chordGroup|let chordLine =/);
-assert.ok(page.indexOf('src="song-chords.js?v=3"')>=0&&page.indexOf('src="song-chords.js?v=3"')<page.indexOf('src="cancion.js'));
+assert.ok(page.indexOf('src="song-chords.js?v=5"')>=0&&page.indexOf('src="song-chords.js?v=5"')<page.indexOf('src="cancion.js'));
 const nodes={"#songLyrics":{},"#transposeStatus":{}},window={},context={window,$:q=>nodes[q]||null};
 vm.createContext(context);vm.runInContext(canonical,context);
 vm.runInContext(header+source.slice(start,end)+`

@@ -16,14 +16,19 @@ on:
   workflow_dispatch:
     inputs:
       publish_official:
-        description: Confirmar publicación oficial de APK desde main
+        description: Confirmar publicación oficial de APK sin desplegar la web
         type: boolean
         required: true
         default: false
+      approved_sha:
+        description: SHA completo del candidato aprobado (40 caracteres)
+        type: string
+        required: true
+        default: ""
 permissions:
   contents: read
 env:
-  OFFICIAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true }}
+  OFFICIAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha }}
 concurrency:
   group: shalom-admin-preview-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -121,21 +126,21 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           "$AAPT" dump badging android/app/build/outputs/apk/release/app-release.apk | grep -F "package: name='$EXPECTED'"
       - name: Verify official Admin upgrade identity
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true
+        if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release download admin-v0.1.6 --pattern "SHALOM-Admin-v0.1.6.apk" --dir "$RUNNER_TEMP/admin-baseline"
-          OLD="$RUNNER_TEMP/admin-baseline/SHALOM-Admin-v0.1.6.apk"
+          gh release download admin-v0.1.7 --pattern "SHALOM-Admin-v0.1.7.apk" --dir "$RUNNER_TEMP/admin-baseline"
+          OLD="$RUNNER_TEMP/admin-baseline/SHALOM-Admin-v0.1.7.apk"
           NEW=android/app/build/outputs/apk/release/app-release.apk
           SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           certificate(){ "$SIGNER" verify --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1; }
           OLD_SHA=$(certificate "$OLD"); NEW_SHA=$(certificate "$NEW")
           test -n "$OLD_SHA" && test "$OLD_SHA" = "$NEW_SHA"
-          "$AAPT" dump badging "$OLD" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='7'"
-          "$AAPT" dump badging "$NEW" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='8'"
+          "$AAPT" dump badging "$OLD" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='8'"
+          "$AAPT" dump badging "$NEW" | grep -F "package: name='com.shalomcoroacordes.admin' versionCode='9'"
       - name: Upload SHALOM Admin isolated APK
         uses: actions/upload-artifact@v4
         with:
@@ -183,7 +188,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   publish-official:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true
+    if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha
     needs: [test, apk, smoke]
     runs-on: ubuntu-latest
     permissions:
@@ -203,11 +208,17 @@ jobs:
           TAG="admin-v$VERSION"
           FILE="SHALOM-Admin-v$VERSION.apk"
           test -s apk/app-release.apk
+          # A pre-existing tag could point to a different build: reject it.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::El tag ya existe. No se reutiliza."; exit 1
+          else
+            test "$?" -eq 2 || exit 1
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "::error::El tag $TAG ya existe. No sobrescribir APK firmada."
             exit 1
           fi
           cp apk/app-release.apk "$FILE"
-          gh release create "$TAG" "$FILE" \
+          gh release create "$TAG" --target "$GITHUB_SHA" "$FILE" \
             --title "SHALOM Admin $VERSION" \
-            --notes "Versión oficial independiente de SHALOM público. Studio con edición independiente por secciones, copia completa, letra y acordes por compás, subdivisiones, reproductor compacto y zoom con pellizco en vista del músico. Acceso con cuenta autorizada. Firma y arranque Android verificados."
+            --notes "SHALOM Admin: indicaciones vinculadas a frases de la letra y edición por aparición en misas, repertorios y popurrís, con selección de capos. Acceso con cuenta autorizada. Firma y arranque Android verificados."

@@ -189,6 +189,7 @@
     }
 
     syncModeButtons();
+    window.ShalomSectionReaderWeb?.refresh($("#songLyrics"));
     requestProgressUpdate();
   };
 

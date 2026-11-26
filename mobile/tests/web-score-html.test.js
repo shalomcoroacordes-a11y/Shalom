@@ -3,7 +3,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
 const {parseSong,transposeOne}=require("../src/chords");
-const {scoreHtml,scoreMarkup,estimateScoreHeight}=require("../src/web-score-html");
+const {scoreHtml,scoreMarkup,estimateScoreHeight,wrapScoreColumns}=require("../src/web-score-html");
 
 const context={window:{}};
 vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,"../../song-chords.js"),"utf8"),context);
@@ -71,3 +71,21 @@ assert.match(bridge,/onError:\(\)=>setFailed\(true\)/,"Keep a fallback for devic
 assert.match(bridge,/LegacyScore/,"Keep readable native fallback");
 assert.match(bridge,/scoreHtml\(rows,safeFont\)/);
 console.log("SHALOM: native offline browser text matches web/admin chords and lyrics at all font sizes.");
+
+const longChords="A              Em A7                Dm        B7",longLyric="Rey coronado de amor, de justicia y de paz eterna";
+const wrapped=wrapScoreColumns(longChords,longLyric,20);
+assert.ok(wrapped.length>1);
+assert.equal(wrapped.map(p=>p.chords).join(""),longChords);
+assert.equal(wrapped.map(p=>p.lyric).join(""),longLyric);
+assert.ok(wrapped.every(p=>p.chords.length<=20&&p.lyric.length<=20));
+for(const [a,b] of [["G     Am7    D","Letra sin espacios"],["  F#maj7", "Un nombre"],["", "Una frase sin acordes"],["A", ""],["", ""]]){
+ const chunks=wrapScoreColumns(a,b,8);assert.equal(chunks.map(x=>x.chords).join(""),a);assert.equal(chunks.map(x=>x.lyric).join(""),b);
+}
+assert.deepEqual(wrapScoreColumns("A        Em A7","Emmanuel, Pan que das vida",15).map(p=>p.chords).join(""),"A        Em A7");
+const auto=scoreHtml([{kind:"chords",chordLine:longChords,lyricLine:longLyric}],15,{mode:"auto",height:400});
+assert.match(auto,/target.scrollWidth<=width\+1/);
+assert.match(auto,/target.scrollLeft=0/);
+assert.match(auto,/fitWrapped\(zoom\)/);
+assert.match(auto,/-webkit-text-size-adjust:none/);
+assert.match(bridge,/textZoom:100/);
+console.log("Aligned overflow projection preserves both original rows and measures the actual visible width.");

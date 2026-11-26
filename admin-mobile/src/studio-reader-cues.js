@@ -10,7 +10,7 @@
   try{
    const anchors=core.anchorsFromRows(sourceRows),config=arrangement.k==='lyrics'?{lyricCues:codec.decodeLyricCues(arrangement)}:codec.decode(anchors,arrangement);
    function add(line,cue){
-    const row={kind:"cue",text:core.cueText(cue)};
+    const row={kind:"cue",action:cue.action,text:core.cueText(cue)};
     if(!byLine.has(line))byLine.set(line,[]);
     byLine.get(line).push(row);
    }
@@ -49,5 +49,9 @@
   }
   return applyRows(combined,displayRows);
  }
- return Object.freeze({decorate,normalizeOverride,validateOverride,decorateCollection});
+ function cueMarkup(row,escape){
+  const style=core.cueAppearance(row.action);
+  return '<span class="song-reader-cue" style="--cue-dark:'+style.dark+';--cue-light:'+style.light+'"><span aria-hidden="true">'+escape(style.symbol)+'</span> '+escape(row.text)+'</span>';
+ }
+ return Object.freeze({decorate,normalizeOverride,validateOverride,decorateCollection,cueMarkup});
 });

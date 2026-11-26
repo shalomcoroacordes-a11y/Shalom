@@ -97,8 +97,10 @@ function sectionUpdate(g,patch,refresh=true){
  // Explicitly initialize every section to preserve the independent base and avoid a section leaking into the next.
  config=core.setSection(core.isolateSections(config,groups),g.indices[0],patch);renderReview();renderPattern();if(refresh)renderSections();
 }
-function cueLabel(c){return core.cueActions[c.action]+" · "+core.cueAudiences[c.audience]+(c.text?" · "+c.text:"")}
+function cueLabel(c){return core.cueAppearance(c.action).symbol+" "+core.cueText(c)}
+function timedCueNode(tag,c){const node=elem(tag,cueLabel(c));node.style.color=core.cueAppearance(c.action).dark;return node;}
 function lyricCueEditor(g){
+ function coloredCue(tag,c){const look=core.cueAppearance(c.action),node=elem(tag,look.symbol+" "+core.cueText(c));node.style.color=look.dark;return node;}
  const panel=elem("details");panel.className="advanced cue-editor";panel.append(elem("summary","Indicaciones musicales y litúrgicas"));
  const rows=window.ShalomChords.parseRows($("source").value);
  const first=g?g.heading+1:0,nextHeading=g?rows.findIndex((r,i)=>i>=first&&r.kind==="section"):-1,end=nextHeading<0?rows.length:nextHeading;
@@ -127,7 +129,7 @@ function lyricCueEditor(g){
   const b=elem("button");b.type="button";b.className="cue-phrase";if(p.chords)b.append(elem("small",p.chords));b.append(elem("span",p.text));
   b.onclick=()=>{if(!waiting){start=finish=p.i;waiting=true;}else{const a=start;start=Math.min(a,p.i);finish=Math.max(a,p.i);waiting=false;}refresh();};
   wrap.append(b);
-  for(const c of cueByLine.get(p.i)||[]){const saved=elem("div",core.cueText(c));saved.className="cue-inline-saved";wrap.append(saved);}
+  for(const c of cueByLine.get(p.i)||[]){const saved=coloredCue("div",c);saved.className="cue-inline-saved";wrap.append(saved);}
   phraseNodes.set(p.i,{wrap,b});score.append(wrap);
  }
  function refresh(){
@@ -136,7 +138,7 @@ function lyricCueEditor(g){
   if(start===null)return;
   const target=phraseNodes.get(finish);
   if(!target)return;
-  preview.replaceChildren(elem("small","Vista previa · debajo de la selección"),elem("strong",core.cueText({action:action.value,audience:audience.value,text:description.value.trim()})));
+  preview.replaceChildren(elem("small","Vista previa · debajo de la selección"),coloredCue("strong",{action:action.value,audience:audience.value,text:description.value.trim()}));
   target.wrap.append(preview);
  }
  function reset(){start=finish=null;editing=-1;waiting=false;save.textContent="Agregar indicación";cancel.hidden=true;description.value="";refresh();}
@@ -147,7 +149,7 @@ function lyricCueEditor(g){
  for(const [i,c] of cues.entries()){
   if(c.start<first||c.start>=end)continue;
   const row=elem("div");row.className="cue-item";const info=elem("div"),valid=core.validLyricCue(rows,c);
-  info.append(elem("small",valid?phrases.find(p=>p.i===c.end)?.text||"Selección":"Revisar ubicación"),elem("strong",core.cueText(c)));
+  info.append(elem("small",valid?phrases.find(p=>p.i===c.end)?.text||"Selección":"Revisar ubicación"),coloredCue("strong",c));
   const edit=elem("button","Editar");edit.type="button";edit.onclick=()=>{editing=i;start=valid?c.start:null;finish=valid?c.end:null;waiting=false;action.value=c.action;audience.value=c.audience;description.value=c.text;save.textContent="Guardar indicación";cancel.hidden=false;refresh();};
   const remove=elem("button","Quitar");remove.type="button";remove.onclick=safe(()=>{if(window.confirm("¿Quitar esta indicación?"))commit(cues.filter((_,j)=>i!==j));});row.append(info,edit,remove);list.append(row);
  }
@@ -174,7 +176,7 @@ function cueSectionEditor(g){
  for(const {c,i} of local){
   const row=elem("div");row.className="cue-item";const step=config.changes[c.index].step+c.ticks*division/24;
   const n=Math.floor((step-bounds.start)/size())+1;
-  const info=elem("div");info.append(elem("small","Compás "+n),elem("strong",cueLabel(c)));
+  const info=elem("div");info.append(elem("small","Compás "+n),timedCueNode("strong",c));
   const edit=elem("button","Editar");edit.type="button";edit.onclick=()=>{editing=i;bar.value=String(n);originalBar=bar.value;action.value=c.action;audience.value=c.audience;description.value=c.text;save.textContent="Guardar indicación";cancel.hidden=false;description.focus();};
   const remove=elem("button","Quitar");remove.type="button";remove.onclick=safe(()=>{if(window.confirm("¿Quitar esta indicación?"))commit(cues.filter((_,j)=>i!==j));});
   row.append(info,edit,remove);list.append(row);
@@ -185,7 +187,7 @@ function cueSectionEditor(g){
 }
 let cueTimeline=null,cueEvents=[],cueStep=0,cueRange=null;
 function renderCues(timeline,step,range=null){
- if(cueTimeline!==timeline){cueTimeline=timeline;cueEvents=core.cueEntries(timeline);const list=$("cueOverviewList");list.replaceChildren(...cueEvents.filter(x=>!range||x.step>=range.start&&x.step<range.end).flatMap(x=>x.cues.map(c=>{const row=elem("li",cueLabel(c));row.prepend(elem("small","Compás del canto "+(Math.floor(x.step/size())+1)+" · "));return row;})));$("cueOverview").hidden=!list.children.length;$("cueToggleLabel").hidden=!list.children.length;}
+ if(cueTimeline!==timeline){cueTimeline=timeline;cueEvents=core.cueEntries(timeline);const list=$("cueOverviewList");list.replaceChildren(...cueEvents.filter(x=>!range||x.step>=range.start&&x.step<range.end).flatMap(x=>x.cues.map(c=>{const row=timedCueNode("li",c);row.prepend(elem("small","Compás del canto "+(Math.floor(x.step/size())+1)+" · "));return row;})));$("cueOverview").hidden=!list.children.length;$("cueToggleLabel").hidden=!list.children.length;}
  cueStep=step;cueRange=range;
  const visible=$("cueVisible").checked;
  $("cueOverview").hidden=!visible||!$("cueOverviewList").children.length;
@@ -194,7 +196,8 @@ function renderCues(timeline,step,range=null){
  box.hidden=!visible||(!current&&!next);
  const a=current?current.cues.map(cueLabel).join(" · "):"",b=next?"Después: "+next.cues.map(cueLabel).join(" · "):"";
  const changed=now.textContent!==a||later.textContent!==b;
- if(now.textContent!==a)now.textContent=a;if(later.textContent!==b)later.textContent=b;
+ function paint(node,event,prefix){const pieces=[];if(event){if(prefix)pieces.push(document.createTextNode(prefix));event.cues.forEach((c,i)=>{if(i)pieces.push(document.createTextNode(" · "));pieces.push(timedCueNode("span",c));});}node.replaceChildren(...pieces);}
+ if(now.textContent!==a)paint(now,current,"");if(later.textContent!==b)paint(later,next,"Después: ");
  if(changed||prev!==box.hidden)syncTransportSpace();
 }
 $("cueVisible").onchange=()=>{if(cueTimeline)renderCues(cueTimeline,cueStep,cueRange);else $("cueOverview").hidden=!$("cueVisible").checked||!$("cueOverviewList").children.length;syncTransportSpace()};

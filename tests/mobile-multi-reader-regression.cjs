@@ -13,7 +13,7 @@ const rep=readers.slice(readers.indexOf("function RepertoireReader("),readers.in
 const medley=readers.slice(readers.indexOf("function MedleyReader("),readers.indexOf("function SongReader("));
 assert.match(app,/h\(RepertoireReader,\{/);
 assert.match(app,/h\(MedleyReader,\{/);
-const score=section("renderMultiReadingScore","renderRepertoireDetail");
+const score=section("collectionScoreRows","renderRepertoireDetail");
 const aligned=section("renderAlignedScoreRows","renderMultiReadingScore");
 const grid=fs.readFileSync("mobile/src/aligned-score-ui.js","utf8");
 const controls=section("renderMultiReadingControls","renderMultiReadingScore");
@@ -39,7 +39,7 @@ assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/#27c98b/,"U
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/Courier New/, "Use identical browser font for lyrics");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/overflow-x:auto/,"Support horizontal chord scrolling");
 assert.match(grid,/h\(WebView,\{/,"Browser score remains selectable");
-assert.match(score,/renderAlignedScoreRows\(rows,fontOverride,keyPrefix\)/,"Misa, repertorios and popurrís share exact chord columns");
+assert.match(score,/renderAlignedScoreRows\(collectionScoreRows\(lyrics,delta,song,override\),fontOverride,keyPrefix\)/,"Misa, repertorios and popurrís share exact chord columns");
 assert.match(aligned,/h\(AlignedScore,\{rows,fontSize,variant:keyPrefix,\s*onFontSizeChange:/,"Shared grid component renders every song with synchronized pinch zoom");
 assert.match(controls,/S\.songControls/,"Use same tone and font controls as Cantos");
 assert.match(controls,/setReaderFont/,"Text controls must be functional");

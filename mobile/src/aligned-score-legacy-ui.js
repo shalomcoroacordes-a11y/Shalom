@@ -1,6 +1,7 @@
 const React=require("react");
 const {View,Text,ScrollView,Platform,StyleSheet}=require("react-native");
 const {columnCount}=require("./chord-grid");
+const {cueAppearance}=require("./studio-core");
 const h=React.createElement;
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const C={green:"#27c98b",pale:"#b5ffe0",text:"#f4f7f7"};
@@ -31,7 +32,7 @@ function AlignedScore({rows=[],fontSize=16,variant="default"}){
   h(View,{style:[S.score,{width,minWidth:width}]},
    ...rows.map((row,i)=>{
     const key=variant+"-"+i;
-    if(row.kind==="cue")return h(Text,{key,style:{color:C.pale,fontSize:size*.85,fontStyle:"italic",maxWidth:width,marginVertical:3}},row.text);
+    if(row.kind==="cue"){const look=cueAppearance(row.action);return h(Text,{key,accessibilityLabel:row.text,style:{color:look.dark,fontSize:size*.85,fontStyle:"italic",maxWidth:width,marginVertical:3}},look.symbol+" "+row.text);}
     if(row.kind==="space")return h(View,{key,style:{height:size*1.45}});
     if(row.kind==="section"){
      const chorus=/coro|estribillo|refr[aá]n/i.test(row.text||"");

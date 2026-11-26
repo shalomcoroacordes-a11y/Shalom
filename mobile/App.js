@@ -12,6 +12,7 @@ const {createSyncController}=require("./src/sync-controller");
 const {parseSong}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {RepertoireReader,MedleyReader,SongReader}=require("./src/music-readers-ui");
+const {ReaderViewport,ReaderScroll}=require("./src/section-reader-ui");
 const ReaderCues=require("./src/studio-reader-cues");
 const {clampReaderFont}=require("./src/score-zoom");
 const {buildCatalog,names,safeWebUrl}=require("./src/catalog");
@@ -57,7 +58,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const {tabs,isSelectedTab,routeForTab,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,readerFullscreenAvailable,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
 const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
@@ -86,7 +87,11 @@ function AppScreen() {
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [immersive,setImmersive]=useState(false);
  const isReader=detail?.type==="song"||detail?.type==="medley"||detail?.type==="repertoire";
- const immersiveActive=Platform.OS==="android"&&isReader&&immersive;
+ const [personalReading,setPersonalReading]=useState(false);
+ const onPersonalReadingChange=useCallback(reading=>{setPersonalReading(reading);if(!reading)setImmersive(false);},[]);
+ const fullscreenAvailable=Platform.OS==="android"&&readerFullscreenAvailable(tab,detail,settingsOpen,personalReading);
+ const immersiveActive=fullscreenAvailable&&immersive;
+ const toggleFullscreen=fullscreenAvailable?()=>setImmersive(v=>!v):null;
  const [query,setQuery]=useState("");
  const [homeSearch,setHomeSearch]=useState("");
  const [typeFilter,setTypeFilter]=useState("");
@@ -103,6 +108,8 @@ function AppScreen() {
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
  const [readerFont,setReaderFont]=useState(15);
+ const [readerViewport,setReaderViewport]=useState(0);
+ const readerScrollRef=useRef(null);
  const [showReaderCues,setShowReaderCues]=useState(true);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
@@ -169,7 +176,7 @@ function AppScreen() {
    setCategoryId,setSectionSearchOpen,setOnlyLiked
   });
  }
- function openDetail(next){navigateDetail(next,{detail,detailHistoryRef},{setDetail});}
+ function openDetail(next){if(!detail&&personalReading)setImmersive(false);navigateDetail(next,{detail,detailHistoryRef},{setDetail});}
  function rememberRead(next){lastReadRef.current=next;setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  const personalEditsRef=useRef(null);
  if(!personalEditsRef.current)personalEditsRef.current=createPersonalEditController({
@@ -311,15 +318,15 @@ function AppScreen() {
    Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");
   }
  }
- function renderMultiReadingControls(){
+ function renderMultiReadingControls(nav=null){
   return h(View,{style:S.multiControlArea},
    h(View,{style:S.songControls},
     renderToneStepper(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos"),
     h(View,{style:S.songFontControl},
-     h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v-1)),
+     h(Pressable,{onPress:()=>nav?.enabled?nav.manualFont(nav.fitFont-1):setReaderFont(v=>clampReaderFont(v-1)),
       accessibilityRole:"button",accessibilityLabel:"Reducir letras",style:S.songFontButton},
       label("A−",S.songFontText)),
-     h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v+1)),
+     h(Pressable,{onPress:()=>nav?.enabled?nav.manualFont(nav.fitFont+1):setReaderFont(v=>clampReaderFont(v+1)),
       accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
       label("A+",S.songFontText)))),
    h(View,{style:S.multiControlFooter},
@@ -337,11 +344,14 @@ function AppScreen() {
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
-  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null,override=null){
+ function collectionScoreRows(lyrics,delta,song=null,override=null){
   const parsed=parseSong(lyrics,delta);
   const arrangement=song&&lyrics===song.lyrics?song._studio:null;
   const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(lyrics,0),arrangement,override,parsed):parsed;
-  return renderAlignedScoreRows(rows,fontOverride,keyPrefix);
+  return rows;
+ }
+ function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null,override=null){
+  return renderAlignedScoreRows(collectionScoreRows(lyrics,delta,song,override),fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){
   const selection=startStudioQueue(plan,index);
@@ -366,9 +376,9 @@ function AppScreen() {
   try{const result=copyOfficial(personalRef.current,collection,kind,model.songs);savePersonal(result.store,{notice:"Copia guardada en Mis creaciones"});}
   catch(error){Alert.alert("No se pudo copiar",error.message);}
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(rep,rep.kind==="misa"?"misa":"repertorio")});}
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{key:String(rep.id),rep,S,collectionScoreRows,readerFont,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(rep,rep.kind==="misa"?"misa":"repertorio")});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(medley,"popurri")});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{key:String(medley.id),medley,S,collectionScoreRows,readerFont,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(medley,"popurri")});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }
@@ -426,7 +436,7 @@ function AppScreen() {
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues});}
+ function renderSongDetail(song){return h(SongReader,{key:String(song.id),song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues,immersiveActive,onToggleFullscreen:toggleFullscreen});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,
@@ -444,8 +454,8 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
-    registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,collectionScoreRows,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+    registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;},onReadingChange:onPersonalReadingChange,immersiveActive,onToggleFullscreen:toggleFullscreen})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
       onOpenPersonal:(folderId,entryId,parts)=>goTab("Mis colecciones",{
@@ -513,10 +523,10 @@ function AppScreen() {
    section:"Solicitudes",onBack:back
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
-  h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
+  h(ScrollView,{ref:readerScrollRef,key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
-   keyboardShouldPersistTaps:"handled"},
-   settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
+   keyboardShouldPersistTaps:"handled",onLayout:e=>{const height=Math.floor(e.nativeEvent.layout.height);setReaderViewport(v=>v===height?v:height);}},
+   h(ReaderScroll.Provider,{value:readerScrollRef},h(ReaderViewport.Provider,{value:readerViewport},settingsOpen?renderSettings():page)),h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>{
     const selected=isSelectedTab(tab,name)&&!detail;

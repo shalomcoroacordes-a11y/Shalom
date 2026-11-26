@@ -1,13 +1,15 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const read=name=>fs.readFileSync(path.join(__dirname,"../.github/workflows",name),"utf8");
-const gate="github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true";
+const gate="github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha";
 const publicRelease=read("android-apk.yml"),admin=read("admin-apk.yml");
 for(const source of [publicRelease,admin]){
  assert.match(source,/workflow_dispatch:\s*\n\s*inputs:\s*\n\s*publish_official:/);
  assert.match(source,/type: boolean\s*\n\s*required: true\s*\n\s*default: false/);
  assert.ok(source.includes("if: "+gate));
- assert.ok(source.includes("gh release create"));
+ assert.ok(source.includes('gh release create "$TAG" --target "$GITHUB_SHA"'));
+ assert.ok(source.includes('git ls-remote --exit-code --tags origin "refs/tags/$TAG"'));
+ assert.match(source,/approved_sha:\s*\n\s*description:.*\n\s*type: string\s*\n\s*required: true/);
  assert.ok(!source.includes("github.event_name == 'push'"));
 }
 assert.ok(!/^  push:/m.test(publicRelease));
@@ -29,4 +31,4 @@ for(const name of fs.readdirSync(workflows).filter(n=>/\.ya?ml$/.test(n))){
  }
 }
 for(const name of ["publish-android-apk.yml","publish-shalom-v2.yml","publish-shalom-icon.yml"])assert.ok(!fs.existsSync(path.join(workflows,name)),"Retired workflow must not return: "+name);
-console.log("Android release authorization contracts: manual main confirmation, preview isolation, no automatic release.");
+console.log("Android release authorization contracts: manual confirmation, pinned SHA, isolated release branch, preview isolation, no automatic release.");
