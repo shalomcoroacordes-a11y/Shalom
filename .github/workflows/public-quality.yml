@@ -192,6 +192,9 @@ jobs:
       - name: Verify legacy admin cleanup and active dependencies
         run: node tests/legacy-admin-cleanup-regression.cjs
 
+      - name: Verify retirement of the historical Admin guard
+        run: node tests/obsolete-admin-guard.cjs
+
       - name: Verify reproducible public CSS bundles
         run: |
           node scripts/build-public-css-bundles.cjs --check

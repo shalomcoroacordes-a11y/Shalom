@@ -27,7 +27,7 @@ SHALOM tiene tres partes conectadas:
 | Almacenamiento sin conexión | `mobile/src/database.js`, `mobile/src/file-storage.js` |
 | Administración de repertorios | `admin-repertoires.js`, `admin.html` |
 | Administración de popurrís | `admin-medleys.js`, `admin.html` |
-| Acceso al administrador | `admin-auth-controller.js`, `admin-access-guard.js`, políticas SQL |
+| Acceso al administrador | `admin-auth-controller.js`, `admin-pro.js`, políticas SQL |
 | Tablas, permisos y cambios de BD | Archivos `*.sql` en la raíz (todavía sin historial unificado) |
 | Compilación y pruebas automáticas | `.github/workflows/` |
 
@@ -158,3 +158,7 @@ El refresco completo del editor calcula la huella canónica una vez y la pasa a 
 ## Generación reproducible de CSS público
 
 Los seis paquetes de estilos públicos conservan su orden de cascada y bytes originales. `scripts/build-public-css-bundles.cjs` declara explícitamente sus fuentes. `--check` (también por defecto) solo verifica; `--write` regenera las salidas estáticas. No se modifica ningún CSS ni HTML en esta migración. CI verifica inventario, diferencias y regeneración, además de mantener los controles independientes de cascada, imports y páginas.
+
+## Auditoría de cierre: módulos históricos
+
+El controlador de acceso histórico se retira por no estar conectado al HTML, a Offline ni a las apps; la autorización activa permanece en `admin-auth-controller.js`, `admin-pro.js` y las políticas SQL. No se modifica el flujo de autenticación. `artist-discovery.js` se conserva deliberadamente como funcionalidad histórica pendiente de decisión: no se carga en la página actual; sus dos hallazgos estructurales no representan ejecución activa. No se elimina ni se activa por el mero informe. Los seis paquetes CSS y las copias nativas generadas tienen comprobación de origen; los clones de esos archivos no implican múltiples fuentes manuales.
