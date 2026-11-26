@@ -67,6 +67,40 @@
       return {index,ticks,action:c.action,audience:c.audience,text,step};
     }).sort((a,b)=>a.step-b.step);
   }
+  // Visual lyric cues have a row range, not a guessed musical time.
+  function lyricCueAnchor(rows,start,end=start){
+    if(!Array.isArray(rows))throw Error("Letra inválida.");
+    requireInt(start,0,rows.length-1,"Inicio de selección");requireInt(end,start,rows.length-1,"Fin de selección");
+    const text=r=>r?.kind==="chords"?r.lyricLine:r?.kind==="lyric"?r.text:null;
+    if(!String(text(rows[start])||"").trim()||!String(text(rows[end])||"").trim())throw Error("Selecciona una frase de la letra.");
+    const heading=rows.slice(0,start+1).findLastIndex(r=>r.kind==="section");
+    const source=JSON.stringify([heading,heading<0?"":rows[heading].text,rows.slice(start,end+1).map(r=>[r.kind,text(r)??r.text??""])]);
+    if(source.length>12000)throw Error("Selecciona un fragmento más corto.");
+    return {start,end,source};
+  }
+  function normalizeLyricCues(value){
+    if(value===undefined)return [];
+    if(!Array.isArray(value)||value.length>120)throw Error("Máximo 120 indicaciones de letra.");
+    const seen=new Set();
+    return value.map(c=>{
+      if(!c||!Object.hasOwn(cueActions,c.action)||!Object.hasOwn(cueAudiences,c.audience)||typeof c.text!=="string"||c.text.trim().length>160||typeof c.source!=="string"||!c.source.length||c.source.length>12000)throw Error("Indicación de letra inválida.");
+      const start=requireInt(c.start,0,100000,"Inicio de selección"),end=requireInt(c.end,start,100000,"Fin de selección"),text=c.text.trim();
+      if(!text&&c.action==="note")throw Error("Escribe la indicación.");
+      const key=JSON.stringify([start,end,c.source,c.action,c.audience,text]);if(seen.has(key))throw Error("Indicación de letra duplicada.");seen.add(key);
+      return {start,end,source:c.source,action:c.action,audience:c.audience,text};
+    }).sort((a,b)=>a.end-b.end||a.start-b.start);
+  }
+  function validLyricCue(rows,c){
+    try{return lyricCueAnchor(rows,c.start,c.end).source===c.source;}catch{return false;}
+  }
+  function setLyricCues(config,rows,value){
+    const lyricCues=normalizeLyricCues(value);
+    if(lyricCues.some(c=>!validLyricCue(rows,c)))throw Error("La letra cambió. Revisa la selección de la indicación.");
+    return {...config,lyricCues};
+  }
+  function cueText(c){
+    return [cueActions[c.action],c.audience==="all"?"":cueAudiences[c.audience],c.text].filter(Boolean).join(" · ");
+  }
   function cuePosition(config,group,bar){
     const m=resolution(config.meter,config.division),bounds=groupBounds(config,group);
     const step=bounds.start+(requireInt(bar,1,sectionBarCount(config,group),"Compás de indicación")-1)*m.beats*m.division;
@@ -445,5 +479,5 @@
     });
     return index;
   }
-  return Object.freeze({cueActions,cueAudiences,normalizeCues,cuePosition,setCues,cueEntries,cueWindow,indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  return Object.freeze({cueActions,cueAudiences,lyricCueAnchor,normalizeLyricCues,validLyricCue,setLyricCues,cueText,normalizeCues,cuePosition,setCues,cueEntries,cueWindow,indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });

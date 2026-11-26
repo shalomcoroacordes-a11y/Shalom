@@ -23,6 +23,7 @@ function encode(anchors,config){
  const h=config.changes.map(c=>c.hold==="ring"?1:c.hold==="mute"?2:0);if(h.some(Boolean))value.h=h;
  const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
  const cues=core.normalizeCues(config.cues,config);if(cues.length)value.i=cues.map(c=>[c.index,c.ticks,c.action,c.audience,c.text]);
+ const lyricCues=core.normalizeLyricCues(config.lyricCues);if(lyricCues.length)value.j=lyricCues.map(c=>[c.start,c.end,c.source,c.action,c.audience,c.text]);
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
  return value;
 }
@@ -48,6 +49,7 @@ function decode(anchors,value){
  }
  config.fragments=ranges(value.f,config.totalSteps);
  if(value.i!==undefined){if(!Array.isArray(value.i)||value.i.some(c=>!Array.isArray(c)||c.length!==5))throw Error("Indicaciones inválidas.");config.cues=core.setCues(config,value.i.map(([index,ticks,action,audience,text])=>({index,ticks,action,audience,text}))).cues;}
+ if(value.j!==undefined){if(!Array.isArray(value.j)||value.j.some(c=>!Array.isArray(c)||c.length!==6))throw Error("Indicaciones de letra inválidas.");config.lyricCues=core.normalizeLyricCues(value.j.map(([start,end,source,action,audience,text])=>({start,end,source,action,audience,text})));}
  core.compile(anchors,config);return config;
 }
 return Object.freeze({encode,decode});

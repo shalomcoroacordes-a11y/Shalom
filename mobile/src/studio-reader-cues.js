@@ -5,18 +5,17 @@
 })(globalThis,function(core,codec){
  "use strict";
  function decorate(sourceRows,arrangement,displayRows=sourceRows){
-  if(!Array.isArray(arrangement?.i)||!arrangement.i.length||sourceRows.length!==displayRows.length)return displayRows;
+  if((!arrangement?.i?.length&&!arrangement?.j?.length)||sourceRows.length!==displayRows.length)return displayRows;
   try{
-   const anchors=core.anchorsFromRows(sourceRows),config=codec.decode(anchors,arrangement);
-   const byLine=new Map(),m=core.resolution(config.meter,config.division),size=m.beats*m.division;
-   for(const cue of core.normalizeCues(config.cues,config)){
-    const line=anchors[cue.index].line;
-    const label=[core.cueActions[cue.action],core.cueAudiences[cue.audience],cue.text].filter(Boolean).join(" · ");
-    const row={kind:"cue",text:"Compás "+(Math.floor(cue.step/size)+1)+" · "+label};
+   const anchors=core.anchorsFromRows(sourceRows),config=codec.decode(anchors,arrangement),byLine=new Map();
+   function add(line,cue){
+    const row={kind:"cue",text:core.cueText(cue)};
     if(!byLine.has(line))byLine.set(line,[]);
     byLine.get(line).push(row);
    }
-   return displayRows.flatMap((row,i)=>[...(byLine.get(i)||[]),row]);
+   for(const cue of core.normalizeCues(config.cues,config))add(anchors[cue.index].line,cue);
+   for(const cue of core.normalizeLyricCues(config.lyricCues))if(core.validLyricCue(sourceRows,cue))add(cue.end,cue);
+   return byLine.size?displayRows.flatMap((row,i)=>[row,...(byLine.get(i)||[])]):displayRows;
   }catch{return displayRows;}
  }
  return Object.freeze({decorate});
