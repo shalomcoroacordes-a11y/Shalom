@@ -66,7 +66,7 @@ function CompositeEditor({kind,value,onChange,songs,mode,createId}){
   txt("Los cantos originales no se modifican. Puedes reordenar y eliminar fragmentos sin alterar sus fuentes.",S.note)
  );
 }
-function Field({spec,form,onChange,lists,createId}){
+function Field({spec,form,onChange,lists,createId,onOpenCues}){
  const [key,label,kind]=spec,value=form[key];
  const set=v=>onChange(key,v);
  if(OPTIONS[kind])return h(View,{style:{gap:7}},txt(label,S.label),wrapChips(OPTIONS[kind],value,set));
@@ -84,7 +84,7 @@ function Field({spec,form,onChange,lists,createId}){
    hint:multiple?"Busca y selecciona sin mostrar toda la lista":"Toca para buscar o cambiar",
    placeholder:"Buscar "+label.toLowerCase()+"..."});
  }
- if(key==="lyrics")return h(LyricsEditor,{value:value||"",onChange:set});
+ if(key==="lyrics")return h(LyricsEditor,{value:value||"",onChange:set,onOpenCues});
  if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
  if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa",createId});
  return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});

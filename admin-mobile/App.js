@@ -221,11 +221,11 @@ function Main(){
  async function restoreSong(id){if(!isActive())return;try{const restored=await api.restoreSong(id,owner);if(restored!==true)throw Error("No se confirmó la restauración del canto.");if(!isActive())return;await loadUsers();await reloadCatalog();if(isActive())setMessage("Canto restaurado de la papelera.");}catch(e){if(isActive())Alert.alert("No se pudo restaurar",e.message);}}
  function usersPanel(){return h(UsersScreen,{access,showRoleEditor,setShowRoleEditor,newRole,setNewRole,roleDescription,setRoleDescription,rolePermissions,setRolePermissions,createRole,roles,setEditingRole,inviteEmail,setInviteEmail,inviteRoles,setInviteRoles,sendInvite,profiles,blockedUsers,assigned,onToggleRole:toggleRole,overrideUser,setOverrideUser,overrides,updateOverride,onBlock:blockUser,onUnblock:unblockUser,trash,onRestore:restoreSong});}
  function studioSong(saved){return {id:saved.id,title:saved.title,lyrics:saved.lyrics||"",revision:saved.updated_at};}
- const studioContext=useRef(null);
+ const studioContext=useRef(null),cueSession=useRef(null);
  studioContext.current={owner,token:activeSession,tab,selectedType,id:editing?.id,lyrics:form?.lyrics,revision:(lists.songs||[]).find(s=>s.id===editing?.id)?.updated_at};
  function getStudioState(saved){return studio.read(owner,studioSong(saved),offline);}
  useEffect(()=>{let active=true;const saved=(lists.songs||[]).find(s=>s.id===editing?.id);setStudioStatus(null);if(tab==="Editor"&&selectedType==="songs"&&owner&&saved?.updated_at)getStudioState(saved).then(s=>{if(active&&isActive())setStudioStatus(s)}).catch(()=>{if(active&&isActive())setStudioStatus({id:saved.id,error:true})});return()=>{active=false};},[owner,activeSession,editing?.id,tab,selectedType,offline,lists.songs,studioPayload===null]);
- async function openStudio(){
+ async function openStudio(cueOnly=false){
   if(!isActive())return;
   const saved=(lists.songs||[]).find(s=>s.id===editing?.id);
   if(!saved?.updated_at||String(form?.lyrics||"")!==String(saved.lyrics||""))return Alert.alert("SHALOM Studio","Publica primero la letra y los acordes del canto.");
@@ -233,8 +233,9 @@ function Main(){
   try{
    const state=await getStudioState(saved);
    if(!sameStudioContext(context))return;
-   setStudioStatus(state);
-   setStudioPayload({type:"shalom-studio-init",mode:"admin",song:studioSong(saved),arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
+   if(cueOnly&&!state.arrangement&&!state.draft)throw Error("Este canto todavía no tiene acompañamiento. La edición independiente sin acompañamiento se habilitará en una revisión posterior.");
+   setStudioStatus(state);cueSession.current=cueOnly?{context,state}:null;
+   setStudioPayload({type:"shalom-studio-init",mode:"admin",cueOnly,song:studioSong(saved),arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
   }catch(e){if(isActive())Alert.alert("SHALOM Studio",e.message);}
  }
  function sameStudioContext(context){
@@ -262,10 +263,12 @@ function Main(){
  }
  async function studioDraft(arrangement){
   if(!isActive()||!studioPayload)throw Error("Sesión no disponible.");
+  if(studioPayload.cueOnly){const s=cueSession.current;if(!s||!sameStudioContext(s.context))throw Error("El editor cambió.");await studio.saveDraft(owner,studioPayload.song,arrangement,s.state);s.state={...s.state,draft:arrangement};return;}
   return studio.saveDraft(owner,studioPayload.song,arrangement);
  }
  async function studioPublish(arrangement){
   if(!isActive()||!studioPayload)throw Error("Sesión no disponible.");
+  if(studioPayload.cueOnly){const s=cueSession.current;if(!s||!sameStudioContext(s.context))throw Error("El editor cambió.");await studio.publish(owner,studioPayload.song,arrangement,s.state);s.state={...s.state,arrangement,draft:null};return;}
   return studio.publish(owner,studioPayload.song,arrangement);
  }
 
@@ -279,7 +282,7 @@ function Main(){
   return false;
  }
  useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType]);
- function editorPanel(){return h(EditorScreen,{form,selectedType,section,update:editor.update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio,listStudioHistory,chooseStudioHistory,historyOwner:owner,editorSaving,saveDraft,access,offline});}
+ function editorPanel(){return h(EditorScreen,{form,selectedType,section,update:editor.update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio:()=>openStudio(false),openLyricCues:()=>openStudio(true),listStudioHistory,chooseStudioHistory,historyOwner:owner,editorSaving,saveDraft,access,offline});}
  function catalogPanel(type){return h(CatalogScreen,{type,lists,search,setSearch,begin,access,offline,confirmRemove});}
  async function transitionPending(d){if(!isActive())return;try{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(isActive()&&!changed)setMessage("El borrador cambió. Revisa la versión actual.");}catch(e){if(isActive())Alert.alert("No se pudo actualizar",e.message);}}
  async function deletePending(d){if(!isActive())return;try{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(isActive()&&!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}catch(e){if(isActive())Alert.alert("No se pudo borrar",e.message);}}

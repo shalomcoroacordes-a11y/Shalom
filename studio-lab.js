@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), core=window.ShalomStudio, guitar=window.ShalomGuitar;
 const {clampScoreFont,touchDistance,touchCenter,pinchFont,followTarget}=window.ShalomStudioReadingGeometry;
 const arrows={down:"↓",up:"↑",mute:"×",rest:"·"}, labKey="shalom.studio.lab.v1";
-let storageKey=labKey,embedded=window.parent!==window,mode="lab",baseRevision=null,initialized=!embedded;
+let storageKey=labKey,embedded=window.parent!==window,mode="lab",baseRevision=null,initialized=!embedded,cueOnly=false;
 let practiceRange=null,sequence=null,sequenceTitle="";
 let stage=0,anchorIndex=0,groups=[],selectedHit=0,taps=[],timingUndo=null,editorScroll=0;
 let audition=false,auditionPattern=null,baseline=null,pendingSave=null,backPending=false;
@@ -35,7 +35,7 @@ function finishSave(ok,message){
 function submitSave(kind){
  if(mode==="public"||pendingSave!==null)return;
  validate();
- if(kind==="publish"&&(mode!=="admin"||!window.confirm("¿Publicar este acompañamiento para todos los músicos?")))return;
+ if(kind==="publish"&&(mode!=="admin"||!window.confirm(cueOnly?"¿Publicar estas indicaciones en la letra del canto?":"¿Publicar este acompañamiento para todos los músicos?")))return;
  pendingSave=fingerprint();pendingKind=kind;saveError="";
  try{
   const arrangement=window.ShalomStudioCodec.encode(anchors,config);
@@ -97,7 +97,7 @@ function cueLabel(c){return core.cueActions[c.action]+" · "+core.cueAudiences[c
 function lyricCueEditor(g){
  const panel=elem("details");panel.className="advanced cue-editor";panel.append(elem("summary","Indicaciones musicales y litúrgicas"));
  const rows=window.ShalomChords.parseRows($("source").value);
- const first=g.heading+1,nextHeading=rows.findIndex((r,i)=>i>=first&&r.kind==="section"),end=nextHeading<0?rows.length:nextHeading;
+ const first=g?g.heading+1:0,nextHeading=g?rows.findIndex((r,i)=>i>=first&&r.kind==="section"):-1,end=nextHeading<0?rows.length:nextHeading;
  const phrases=rows.map((r,i)=>({i,text:r.kind==="chords"?r.lyricLine:r.kind==="lyric"?r.text:"",chords:r.kind==="chords"?r.chordLine:""})).filter(r=>r.i>=first&&r.i<end&&r.text.trim());
  const cues=config.lyricCues||[];
  const list=elem("div");list.className="cue-list";
@@ -121,7 +121,7 @@ function lyricCueEditor(g){
   const last=phrases.find(p=>p.i===finish);preview.append(elem("div",last?.text||""),elem("strong",core.cueText({action:action.value,audience:audience.value,text:description.value.trim()})));
  }
  function reset(){start=finish=null;editing=-1;waiting=false;save.textContent="Agregar indicación";cancel.hidden=true;description.value="";refresh();}
- function commit(next){const updated=core.setLyricCues(config,rows,next);core.compile(anchors,updated);stop();config=updated;renderReview();renderSections();$("sectionCards").querySelector('[data-open="true"] .cue-editor').open=true;note("Indicaciones actualizadas. Guarda o publica el acompañamiento.");}
+ function commit(next){const updated=core.setLyricCues(config,rows,next);core.compile(anchors,updated);stop();config=updated;renderReview();renderSections();$("sectionCards").querySelector(".cue-editor").open=true;note("Indicaciones actualizadas. Guarda el borrador o publica.");}
  clear.onclick=()=>{start=finish=null;waiting=false;refresh();};cancel.onclick=reset;
  for(const input of [action,audience,description])input.oninput=refresh;
  save.onclick=safe(()=>{if(start===null)return;const value={...core.lyricCueAnchor(rows,start,finish),action:action.value,audience:audience.value,text:description.value};const next=cues.slice();if(editing<0)next.push(value);else next[editing]=value;commit(next);});
@@ -132,8 +132,8 @@ function lyricCueEditor(g){
   const edit=elem("button","Editar");edit.type="button";edit.onclick=()=>{editing=i;start=valid?c.start:null;finish=valid?c.end:null;waiting=false;action.value=c.action;audience.value=c.audience;description.value=c.text;save.textContent="Guardar indicación";cancel.hidden=false;refresh();};
   const remove=elem("button","Quitar");remove.type="button";remove.onclick=safe(()=>{if(window.confirm("¿Quitar esta indicación?"))commit(cues.filter((_,j)=>i!==j));});row.append(info,edit,remove);list.append(row);
  }
- if(!phrases.length)hint.textContent="Esta sección es instrumental. Usa las indicaciones por compás.";
- panel.append(list,hint,score,clear,fields,preview,save,cancel,cueSectionEditor(g));refresh();return panel;
+ if(!phrases.length)hint.textContent="No hay frases disponibles para seleccionar.";
+ panel.append(list,hint,score,clear,fields,preview,save,cancel);if(g)panel.append(cueSectionEditor(g));refresh();return panel;
 }
 function cueSectionEditor(g){
  const panel=elem("details");panel.className="advanced cue-timing-editor";panel.append(elem("summary","Avanzado · indicaciones por compás"));
@@ -180,6 +180,7 @@ function renderCues(timeline,step,range=null){
 }
 $("cueVisible").onchange=()=>{if(cueTimeline)renderCues(cueTimeline,cueStep,cueRange);else $("cueOverview").hidden=!$("cueVisible").checked||!$("cueOverviewList").children.length;syncTransportSpace()};
 function renderSections(){
+ if(cueOnly&&config){const panel=lyricCueEditor(null);panel.open=true;$("sectionCards").replaceChildren(panel);return;}
  if(!config||!groups.length)return;
  $("structureSummary").textContent=groups.length+" secciones · "+anchors.length+" acordes";const root=$("sectionCards");root.replaceChildren(...groups.map((g,k)=>{
  const p=core.sectionConfig(config,g.indices[0]),hits=core.sectionBarHits(config,g,1),card=elem("article");card.className="section-card";card.dataset.open=String(openSection===k);
@@ -507,7 +508,7 @@ window.__shalomStudioBack=function(){
  stop();
  if(mode!=="public"&&config){
   if(!$("player").hidden){switchView(true);return false;}
-  if(stage>0){showStage(stage-1);return false;}
+  if(stage>0&&!cueOnly){showStage(stage-1);return false;}
   if(pendingSave!==null){note("Espera la confirmación del guardado.");return false;}
   if(baseline!==fingerprint()||(!publishedFingerprint&&!draftFingerprint&&mode==="admin")){backPending=true;const leave=window.confirm("Hay cambios sin guardar. ¿Salir y perder estos cambios?");backPending=false;if(!leave)return false;}
  }
@@ -519,7 +520,7 @@ showStage(0,false);baseline=fingerprint();renderSaveState();
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./offline-sw.js").catch(()=>note("No se pudo preparar la caché offline."));
 }else{
  $("studioMain").hidden=true;
- window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};if(d.type==="shalom-studio-result"&&mode==="admin"){finishSave(d.ok,d.message);return}if(d.type!=="shalom-studio-init"||initialized)return;initialized=true;try{mode=d.mode==="admin"?"admin":"public";practiceRange=mode==="public"?d.range||null:null;sequence=mode==="public"&&Array.isArray(d.sequence)&&d.sequence.length>=2?d.sequence:null;sequenceTitle=String(d.title||"Popurrí");baseRevision=d.song.revision;storageKey=labKey+"."+d.song.id;$("source").value=d.song.lyrics;$("source").readOnly=true;$("sourceLabel").hidden=true;$("labHeader").hidden=true;$("studioTitle").textContent=d.song.title+(practiceRange?.title?" · "+practiceRange.title:"");$("labNote").textContent=mode==="admin"?"Configura los acordes existentes. Los borradores no son públicos.":"Acompañamiento publicado · guitarra sintetizada";$("shift").value=Number(d.shift)||0;$("capo").value=Number(d.capo)||0;anchors=core.anchorsFromRows(readRows());let draft=null;if(mode==="admin"){try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved?.revision===baseRevision&&saved.config?.source===core.signature(anchors))draft=saved.config}catch{}}const published=d.arrangement?window.ShalomStudioCodec.decode(anchors,d.arrangement):null;publishedFingerprint=published?JSON.stringify(window.ShalomStudioCodec.encode(anchors,published)):null;draftFingerprint=draft?JSON.stringify(window.ShalomStudioCodec.encode(anchors,draft)):null;const recovered=mode==="admin"&&d.recoveryDraft?window.ShalomStudioCodec.decode(anchors,d.recoveryDraft):null;config=recovered||draft||published;if(!config){if(mode==="public")throw Error("No hay acompañamiento disponible.");divisions();generate()}else{$("meter").value=config.meter;divisions();$("division").value=String(config.division);$("bpm").value=config.bpm;validate();renderEditor()}if(practiceRange){if(!(config.fragments||[]).some(r=>r.start===practiceRange.start&&r.end===practiceRange.end))throw Error("Fragmento sin sincronización publicada.");$("loop").checked=false;}$("publish").hidden=mode!=="admin";$("studioNav").hidden=mode==="public";$("studioMain").hidden=false;switchView(mode==="admin");baseline=recovered?null:fingerprint();renderSaveState();if(recovered)note("Revisión histórica cargada para editar. Guarda un borrador o publica solo después de revisarla.");if(sequence){$("studioTitle").textContent=sequenceTitle;$("labNote").textContent="Popurrí continuo · "+sequence.length+" fragmentos";$("loop").checked=false;$("loop").closest("label").hidden=true;$("shift").closest("label").hidden=true;$("capo").closest("label").hidden=true;}}catch(err){$("studioMain").hidden=false;$("editor").hidden=true;$("player").hidden=true;$("studioNav").hidden=true;note(err.message)}});
+ window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};if(d.type==="shalom-studio-result"&&mode==="admin"){finishSave(d.ok,d.message);return}if(d.type!=="shalom-studio-init"||initialized)return;initialized=true;try{mode=d.mode==="admin"?"admin":"public";cueOnly=mode==="admin"&&d.cueOnly===true;document.body.classList.toggle("cue-only",cueOnly);practiceRange=mode==="public"?d.range||null:null;sequence=mode==="public"&&Array.isArray(d.sequence)&&d.sequence.length>=2?d.sequence:null;sequenceTitle=String(d.title||"Popurrí");baseRevision=d.song.revision;storageKey=labKey+"."+d.song.id;$("source").value=d.song.lyrics;$("source").readOnly=true;$("sourceLabel").hidden=true;$("labHeader").hidden=true;$("studioTitle").textContent=d.song.title+(practiceRange?.title?" · "+practiceRange.title:"");$("labNote").textContent=cueOnly?"Selecciona la letra y agrega indicaciones debajo de la última frase. No se modifican los acordes ni el rasgueo.":mode==="admin"?"Configura los acordes existentes. Los borradores no son públicos.":"Acompañamiento publicado · guitarra sintetizada";$("shift").value=Number(d.shift)||0;$("capo").value=Number(d.capo)||0;anchors=core.anchorsFromRows(readRows());let draft=null;if(mode==="admin"){try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(saved?.revision===baseRevision&&saved.config?.source===core.signature(anchors))draft=saved.config}catch{}}const published=d.arrangement?window.ShalomStudioCodec.decode(anchors,d.arrangement):null;publishedFingerprint=published?JSON.stringify(window.ShalomStudioCodec.encode(anchors,published)):null;draftFingerprint=draft?JSON.stringify(window.ShalomStudioCodec.encode(anchors,draft)):null;const recovered=mode==="admin"&&d.recoveryDraft?window.ShalomStudioCodec.decode(anchors,d.recoveryDraft):null;config=recovered||draft||published;if(!config){if(mode==="public")throw Error("No hay acompañamiento disponible.");divisions();generate()}else{$("meter").value=config.meter;divisions();$("division").value=String(config.division);$("bpm").value=config.bpm;validate();renderEditor()}if(practiceRange){if(!(config.fragments||[]).some(r=>r.start===practiceRange.start&&r.end===practiceRange.end))throw Error("Fragmento sin sincronización publicada.");$("loop").checked=false;}$("publish").hidden=mode!=="admin";$("studioNav").hidden=mode==="public"||cueOnly;$("studioMain").hidden=false;switchView(mode==="admin");baseline=recovered?null:fingerprint();renderSaveState();if(recovered)note("Revisión histórica cargada para editar. Guarda un borrador o publica solo después de revisarla.");if(sequence){$("studioTitle").textContent=sequenceTitle;$("labNote").textContent="Popurrí continuo · "+sequence.length+" fragmentos";$("loop").checked=false;$("loop").closest("label").hidden=true;$("shift").closest("label").hidden=true;$("capo").closest("label").hidden=true;}}catch(err){$("studioMain").hidden=false;$("editor").hidden=true;$("player").hidden=true;$("studioNav").hidden=true;note(err.message)}});
  window.parent.postMessage({type:"shalom-studio-ready"},location.origin);
 }
 })();

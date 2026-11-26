@@ -22,6 +22,11 @@ async function test(){
  const pending=studio.publish("a",song,arrangement);await began;const next=studio.saveDraft("a",song,updated);release();await pending;await next;
  assert.deepEqual((await studio.read("a",song,true)).draft,updated);assert.equal((await studio.read("b",song,true)).draft,null);
  assert.equal((await studio.read("a",{id:"s",revision:"r2"},true)).draft,null);
- console.log("Studio persistence: offline and denied writes, stale revisions, remote verification, atomic local confirmation and newer drafts preserved.");
+ await assert.rejects(studio.saveDraft("a",song,{...updated,n:999},{draft:updated,arrangement}),/no puede modificar/);
+ await assert.rejects(studio.publish("a",song,{...updated,j:[]},{draft:updated,arrangement}),/sin publicar/);
+ await assert.rejects(studio.saveDraft("a",song,{...arrangement,j:[]},{draft:null,arrangement}),/borrador cambió/);
+ await studio.saveDraft("a",song,{...updated,j:[]},{draft:updated,arrangement});
+ assert.deepEqual((await studio.read("a",song,true)).draft,{...updated,j:[]});
+ console.log("Studio persistence: offline and denied writes, stale revisions, remote verification, atomic local confirmation, newer drafts preserved and focused cue isolation.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});

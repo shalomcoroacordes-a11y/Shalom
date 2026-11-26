@@ -44,3 +44,6 @@
 
 /* Phrase selection uses the original lyric rows, with no changes to chord columns. */
 .cue-phrase-list{display:grid;gap:5px;margin:8px 0}.cue-phrase-list .cue-phrase{display:grid;gap:2px;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;padding:9px}.cue-phrase small{color:var(--accent);font-family:monospace;white-space:pre-wrap}.cue-phrase[aria-pressed=true]{border-color:var(--accent);background:rgba(110,180,145,.13)}.cue-selection-preview{display:grid;gap:5px;padding:10px;margin:8px 0;border-left:2px solid var(--accent);overflow-wrap:anywhere}.cue-selection-preview strong{color:var(--accent);font-size:13px}
+
+/* A focused lyric editor reuses the same phrase picker and save controls. */
+.cue-only #studioNav,.cue-only #editorSteps,.cue-only #baseSettings,.cue-only .section-footer,.cue-only #stage0>h2,.cue-only #structureSummary,.cue-only #editorDock .dock-heading,.cue-only #editorDock .button-row:last-child,.cue-only #editor>.eyebrow{display:none!important}.cue-only #editor{padding-bottom:120px}.cue-only .cue-editor{margin-top:0;border-top:0}.cue-only #studioTitle{font-size:22px}
