@@ -19,7 +19,11 @@ function CollectionCapoControl({song,selection,onSelect,style,textStyle}){
   h(Pressable,{style,onPress:()=>setExpanded(v=>!v),accessibilityRole:"button",accessibilityLabel:"Seleccionar capo de "+(song.title||"canto"),accessibilityState:{expanded}},h(Text,{style:textStyle},(chosen.id==="none"?"Sin capo":"Capo "+chosen.position+(chosen.key?" · "+chosen.key:""))+" ▾")),
   expanded?h(View,{style:{gap:5,flexDirection:"row",flexWrap:"wrap"}},...choices.map(c=>h(Pressable,{key:String(c.id),style:[style,c.id===chosen.id&&{borderWidth:1,borderColor:"#27c98b"}],accessibilityRole:"button",accessibilityState:{selected:c.id===chosen.id},onPress:()=>{onSelect(c.id);setExpanded(false);}},h(Text,{style:textStyle},c.label+(c.key?" · Figuras en "+c.key:""))))):null);
 }
-function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong}){
+function CollectionSongMenu({song,onPress,style,textStyle}){
+ if(!song||!onPress)return null;
+ return h(Pressable,{style,onPress,accessibilityRole:"button",accessibilityLabel:"Opciones de "+(song.title||"canto")},h(Text,{style:textStyle},"⋮"));
+}
+function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions,onCopy}){
   const items=Array.isArray(rep.items)?rep.items:[];
   const kind=repertoireType(rep);
   const [capos,setCapos]=useState({});
@@ -40,6 +44,7 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
       label(kind==="misa"?"Misa":kind==="ensayo"?"Ensayo":"Repertorio",S.songTypeText)))),
    (rep.location||rep.notes)?h(Text,{style:S.multiDescription},[rep.location,rep.notes].filter(Boolean).join(" · ")):null,
    renderMultiReadingControls(),
+   !immersiveActive&&onCopy?h(Pressable,{style:S.multiTextAction,onPress:onCopy,accessibilityRole:"button"},label("Copiar a Mis creaciones",S.multiTextActionLabel)):null,
    !immersiveActive&&kind!=="misa"?renderStudioCollectionAction(plan,"Ensayar con guitarra"):null,
    ...items.map((item,index)=>{
     const song=model.songs.find(s=>String(s.id)===String(item.song_id));
@@ -53,7 +58,8 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
       h(View,{style:{flex:1,minWidth:0}},
        h(View,{style:S.multiMomentPill},label(moment,S.multiMomentText)),
        h(Text,{style:S.multiPartTitle},title),
-       tone?label("Tono "+tone,S.multiPartDetail):null)),
+       tone?label("Tono "+tone,S.multiPartDetail):null),
+      h(CollectionSongMenu,{song,style:S.songTopMore,textStyle:S.songTopMoreText,onPress:onSongOptions?()=>onSongOptions(song,{lyrics:song.lyrics||"",shift:scoreShift,capo:position,override:item.cue_override,practiceReady:!!plan.entries[index]?.ready}):null})),
      item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
      h(CollectionCapoControl,{song,selection,onSelect:id=>setCapos(v=>({...v,[key]:id})),style:S.multiTextAction,textStyle:S.multiTextActionLabel}),
      renderMultiReadingScore(song?.lyrics||"Canto no disponible.",scoreShift,"rep-"+index,undefined,song,item.cue_override),
@@ -67,7 +73,7 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
   );
  }
 
-function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb}){
+function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions,onCopy}){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   const generalTone=String(medley.base_tone||"");
   const [capos,setCapos]=useState({});
@@ -88,6 +94,7 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
      h(View,{style:S.songTypeBadge},label(type(medley.song_type),S.songTypeText)))),
    medley.description?h(Text,{style:S.multiDescription},medley.description):null,
    renderMultiReadingControls(),
+   !immersiveActive&&onCopy?h(Pressable,{style:S.multiTextAction,onPress:onCopy,accessibilityRole:"button"},label("Copiar a Mis creaciones",S.multiTextActionLabel)):null,
    !immersiveActive&&sequence?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(sequence)}},label("▶ Practicar popurrí completo",S.multiOriginalText)):null,
    !immersiveActive?renderStudioCollectionAction(plan,"Practicar fragmentos disponibles"):null,
    ...parts.map((part,index)=>{
@@ -107,7 +114,8 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
       h(View,{style:S.multiPartNumber},label(String(index+1),S.multiPartNumberText)),
       h(View,{style:{flex:1,minWidth:0}},
        h(Text,{style:S.multiPartTitle},fragmentTitle),
-       tone?label("Tono "+transposeOne(tone,delta),S.multiPartDetail):null)),
+       tone?label("Tono "+transposeOne(tone,delta),S.multiPartDetail):null),
+      h(CollectionSongMenu,{song:original,style:S.songTopMore,textStyle:S.songTopMoreText,onPress:onSongOptions?()=>onSongOptions(original,{lyrics:part.lyrics||original.lyrics||"",shift:scoreShift,capo:selection.chosen.position,override:part.cue_override,practiceReady:!!plan.entries[index]?.ready}):null})),
      h(CollectionCapoControl,{song:original,selection,onSelect:id=>setCapos(v=>({...v,[key]:id})),style:S.multiTextAction,textStyle:S.multiTextActionLabel}),
      renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",scoreShift,"medley-"+index,undefined,original,part.cue_override),
      h(View,{style:S.multiQuickLinks},
@@ -177,4 +185,4 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
   );
  }
 
-module.exports={RepertoireReader,MedleyReader,SongReader,CollectionCapoControl};
+module.exports={RepertoireReader,MedleyReader,SongReader,CollectionCapoControl,CollectionSongMenu};

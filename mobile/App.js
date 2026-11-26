@@ -31,6 +31,8 @@ const {exportPersonalBackup,pickPersonalBackup,stageRestoredPhotos}=require("./s
 const {createPersonalBackupController}=require("./src/personal-backup-controller");
 const {createPersonalEditController}=require("./src/personal-edit-controller");
 const {addToPersonal}=require("./src/song-actions-core");
+const {copyOfficial}=require("./src/personal-workflows");
+const {buildPrintableSong}=require("./src/song-print");
 const {songPermalink,createSongReaderActions}=require("./src/song-reader-actions");
 const {capoSelection}=require("./src/song-capo-core");
 const Print=require("expo-print");
@@ -106,7 +108,10 @@ function AppScreen() {
  const [personal,setPersonal]=useState(emptyStore());
  const [personalFilter,setPersonalFilter]=useState(null);
  const [profile,setProfile]=useState(profileDefaults());
- const [actionSongId,setActionSongId]=useState(null);
+ const [actionSongId,setActionId]=useState(null);
+ const [actionContext,setActionContext]=useState(null);
+ function setActionSongId(id){setActionContext(null);setActionId(id);}
+ function openCollectionSong(song,context){setActionContext(context);setActionId(String(song.id));}
  const [studioPayload,setStudioPayload]=useState(null);
  const [studioQueue,setStudioQueue]=useState(null);
  const [notice,setNotice]=useState(null);
@@ -356,9 +361,13 @@ function AppScreen() {
   return h(View,{style:{paddingVertical:8}},h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioCollection(plan)},
    label("♫ "+caption+" · "+plan.ready.length+"/"+plan.total,S.multiOriginalText)));
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
+ function copyOfficialLocally(collection,kind){
+  try{const result=copyOfficial(personalRef.current,collection,kind,model.songs);savePersonal(result.store,{notice:"Copia guardada en Mis creaciones"});}
+  catch(error){Alert.alert("No se pudo copiar",error.message);}
+ }
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(rep,rep.kind==="misa"?"misa":"repertorio")});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(medley,"popurri")});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }
@@ -434,7 +443,7 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
@@ -522,14 +531,14 @@ function AppScreen() {
        adjustsFontSizeToFit:true,minimumFontScale:.78,allowFontScaling:false},name));})) : null,
   actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
-   store:personal,onDismiss:()=>setActionSongId(null),
+   store:personal,onDismiss:()=>setActionSongId(null),context:actionContext,onOpenOriginal:actionContext?()=>selectSong(actionSong):null,
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
    onOpenLink:url=>openWeb(url),
    onOpenSongPage:()=>openWeb(songPermalink(actionSong)),
    onVideo:()=>openSongVideo(actionSong),
-   onStudio:()=>{setStudioQueue(null);const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
-   onPrint:()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
-   onFullScreen:()=>setImmersive(true),onResetTone:resetTone,
+   onStudio:actionContext? (actionContext.practiceReady?()=>openStudioPart(actionSong,{lyrics:actionContext.lyrics,shift:actionContext.shift,capo:actionContext.capo}):null):()=>{setStudioQueue(null);const {chosen,offset}=capoSelection(actionSong,capo);setStudioPayload({type:"shalom-studio-init",mode:"public",song:{id:actionSong.id,title:actionSong.title,lyrics:actionSong.lyrics||"",revision:actionSong.updated_at},arrangement:actionSong._studio,shift:transpose+offset,capo:Number(chosen.position)||0})},
+   onPrint:actionContext?()=>Print.printAsync({html:buildPrintableSong({...actionSong,lyrics:actionContext.lyrics,_studio:actionContext.lyrics===actionSong.lyrics?actionSong._studio:null},actionContext.shift,showReaderCues,actionContext.override)}):()=>printSong(actionSong),onDownload:()=>checkSongOffline(actionSong),
+   onFullScreen:()=>setImmersive(true),onResetTone:actionContext?null:resetTone,
    onAdd:(kind,choice)=>addSongLocally(actionSong,kind,choice)}):null,
    studioPayload?h(require("./src/studio-screen"),{key:studioQueue?"studio-"+studioQueue.index:"studio-song",payload:studioPayload,onClose:closeStudio,queue:studioQueue,onNext:nextStudio}):null,
    !immersiveActive?h(LocalNotice,{notice,

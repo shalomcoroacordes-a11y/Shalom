@@ -7,13 +7,13 @@ const esc=value=>String(value==null?"":value).replace(/&/g,"&amp;").replace(/</g
 function readerShiftForPrint(song,transpose=0,capo="none"){
  return transpose+capoSelection(song,capo).offset;
 }
-function buildPrintableSong(song,shift=0,showReaderCues=true){
+function buildPrintableSong(song,shift=0,showReaderCues=true,override=null){
  if(!song||!song.id)throw new Error("Selecciona un canto guardado.");
  const title=esc(song.title||"Canto de SHALOM");
  const artists=esc((song._artists||[]).map(a=>a.name).filter(Boolean).join(" · ")||"");
  const tone=esc(song.tone?transposeOne(song.tone,shift):"");
  const parsed=parseSong(song.lyrics||"",shift);
- const rows=showReaderCues?ReaderCues.decorate(parseSong(song.lyrics||"",0),song._studio,parsed):parsed;
+ const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(song.lyrics||"",0),song._studio,override,parsed):parsed;
  const html=rows.map(row=>{
   if(row.kind==="cue")return '<div class="cue">'+esc(row.text)+'</div>';
   if(row.kind==="space")return '<div class="space"></div>';

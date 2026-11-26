@@ -7,7 +7,7 @@ const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const {readingRows}=require("./personal-reader-core");
-const {CollectionCapoControl}=require("./music-readers-ui");
+const {CollectionCapoControl,CollectionSongMenu}=require("./music-readers-ui");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
@@ -29,7 +29,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues}){
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -554,7 +554,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
       h(View,{style:{flex:1}},entry.kind==="misa"&&p.moment?label(p.moment,styles.tag):null,
        label(song?.title||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
-        (song?.tone?" · Tono "+tone:""),styles.meta))),
+        (song?.tone?" · Tono "+tone:""),styles.meta)),
+      h(CollectionSongMenu,{song,style:styles.chip,textStyle:styles.chipText,onPress:onSongOptions&&resolved.lyrics!==null?()=>onSongOptions(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position,override:p.cueOverride,practiceReady:!!plan.entries[index]?.ready}):null})),
      h(CollectionCapoControl,{song,selection,onSelect:id=>changePart(p.id,x=>({...x,capoId:id})),style:styles.chip,textStyle:styles.chipText}),
      p.notes?label(p.notes,styles.meta):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):
