@@ -49,7 +49,7 @@ function scoreHtml(rows,fontSize=15){
   '.lyric-line,.song-plain-line{font-weight:400;}',
   '.song-section-label{display:block;color:#27c98b!important;font-weight:850;margin:10px 0 3px;}',
   '.song-empty-line{display:block;height:1.45em;}',
-  '.song-reader-cue{display:block;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;color:var(--cue-dark,#d1d5db);white-space:normal;overflow-wrap:anywhere;max-width:100vw;margin:.35em 0 .15em;}'
+  '.song-reader-cue{display:block;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;color:var(--cue-dark,#d1d5db)!important;white-space:normal;overflow-wrap:anywhere;max-width:100vw;margin:.35em 0 .15em;}'
  ].join("");
  // Se informa únicamente la altura; el scroll vertical es de React Native.
  const measure=[

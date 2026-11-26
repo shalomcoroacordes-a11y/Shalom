@@ -1,7 +1,8 @@
-.song-reader-cue{display:block;color:var(--cue-dark,#d1d5db);font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;white-space:normal;overflow-wrap:anywhere;margin:.35em 0 .15em;break-after:avoid}
+.song-reader-cue{display:block;color:var(--cue-dark,#d1d5db)!important;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;white-space:normal;overflow-wrap:anywhere;margin:.35em 0 .15em;break-after:avoid}
 .song-reader-cues-hidden .song-reader-cue{display:none}
 .song-reader-cue-toggle{margin:.35em 0;color:inherit}
-@media print{.song-reader-cue-toggle{display:none!important}.song-reader-cue{color:#333;opacity:1}}
+@media print{.song-reader-cue-toggle{display:none!important}.song-reader-cue{opacity:1}}
 
-body.light-mode .song-reader-cue{color:var(--cue-light,#4b5563)}
-@media print{body .song-reader-cue{color:#333!important}}
+body.light-mode .song-reader-cue{color:var(--cue-light,#4b5563)!important}
+.song-reader-cue>span{color:inherit!important}
+@media print{body .song-reader-cue,body.light-mode .song-reader-cue{color:#333!important}}

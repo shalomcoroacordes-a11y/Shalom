@@ -29,7 +29,8 @@ assert.match(js,/value\.lyricOnly\?codec\.encodeLyricCues/);assert.match(js,/con
  const phraseRows=walk(panel).filter(n=>n.className==="cue-phrase-row");
  assert.deepEqual(phraseRows.map(n=>n.dataset.row),["1","2","4"]);
  assert.deepEqual(walk(panel).filter(n=>n.className==="cue-phrase-heading").map(n=>n.textContent),["Verso","Coro"]);
- assert.equal(phraseRows[2].children[1].textContent,"Indicación · Coro · Suave");
+ assert.equal(phraseRows[2].children[1].textContent,"◆ Indicación · Coro · Suave");
+ assert.equal(phraseRows[2].children[1].style.color,core.cueAppearance("note").dark);
  phraseRows[0].children[0].onclick();phraseRows[1].children[0].onclick();
  assert.equal(phraseRows[0].children[0].attrs["aria-pressed"],"true");
  assert.equal(phraseRows[1].children[0].attrs["aria-pressed"],"true");
@@ -38,6 +39,7 @@ assert.match(js,/value\.lyricOnly\?codec\.encodeLyricCues/);assert.match(js,/con
  const action=walk(panel).find(n=>n.tag==="select"),detail=walk(panel).find(n=>n.tag==="textarea");
  action.value="repeat";detail.value="2 veces";detail.oninput();
  assert.equal(find("cue-selection-preview").children[1].textContent,"↻ Repetir · 2 veces");
+ assert.equal(find("cue-selection-preview").children[1].style.color,core.cueAppearance("repeat").dark);
  assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
  walk(panel).find(n=>n.tag==="button"&&n.textContent==="Agregar indicación").onclick();
  assert.equal(scope.config.lyricCues.length,2);
