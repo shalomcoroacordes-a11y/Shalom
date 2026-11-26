@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # Works inside mobile/ in disposable GitHub Actions runner only.
 set -euo pipefail
+case "${1:-public}" in
+  public) PKG=com.shalomcoroacordes.cancionero; APK_PREFIX=SHALOM-Android; APP_DIR=mobile ;;
+  admin) PKG=com.shalomcoroacordes.admin; APK_PREFIX=SHALOM-Admin; APP_DIR=admin-mobile ;;
+  *) echo "Unknown SHALOM application" >&2; exit 1 ;;
+esac
 NEW="android/app/build/outputs/apk/release/app-release.apk"
-OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v${BASELINE_VERSION:-0.4.18}.apk"
+OLD="$RUNNER_TEMP/shalom-upgrade/${APK_PREFIX}-v${BASELINE_VERSION:?Set BASELINE_VERSION}.apk"
 SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
 AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
 test -s "$NEW"
@@ -26,9 +31,13 @@ OLD_CODE=$(extract_code "$OLD")
 NEW_CODE=$(extract_code "$NEW")
 echo "APK oficial: $OLD_PKG | versionCode=$OLD_CODE | SHA-256=$OLD_SHA"
 echo "APK candidata: $NEW_PKG | versionCode=$NEW_CODE | SHA-256=$NEW_SHA"
-if [[ "$OLD_PKG" != "com.shalomcoroacordes.cancionero" ||
-      "$NEW_PKG" != "$OLD_PKG" || "$OLD_CODE" != "${BASELINE_CODE:-41}" || "$NEW_CODE" != "${CANDIDATE_CODE:-42}" ]]; then
+if [[ "$OLD_PKG" != "$PKG" ||
+      "$NEW_PKG" != "$OLD_PKG" || "$OLD_CODE" != "${BASELINE_CODE:?Set BASELINE_CODE}" || "$NEW_CODE" != "${CANDIDATE_CODE:?Set CANDIDATE_CODE}" ]]; then
   echo "::error::Paquete o versión incorrecta. No distribuir APK ni probar actualización." >&2
+  exit 1
+fi
+if [[ ! "$OLD_CODE" =~ ^[0-9]+$ || ! "$NEW_CODE" =~ ^[0-9]+$ ]] || (( NEW_CODE <= OLD_CODE )); then
+  echo "::error::versionCode must increase" >&2
   exit 1
 fi
 if [[ -z "$OLD_SHA" || -z "$NEW_SHA" || "$OLD_SHA" != "$NEW_SHA" ]]; then

@@ -13,9 +13,9 @@ concurrency:
   group: shalom-android-apk
   cancel-in-progress: true
 env:
-  BASELINE_VERSION: "0.4.22"
-  BASELINE_CODE: "45"
-  CANDIDATE_CODE: "47"
+  BASELINE_VERSION: "0.4.24"
+  BASELINE_CODE: "47"
+  CANDIDATE_CODE: "48"
 jobs:
   build-apk:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true
@@ -74,7 +74,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/shalom-upgrade"
-          gh release download android-v0.4.22 --pattern "SHALOM-Android-v0.4.22.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
+          gh release download android-v0.4.24 --pattern "SHALOM-Android-v0.4.24.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
           bash scripts/verify-upgrade-candidate.sh
       - name: Enable emulator acceleration
         run: |
@@ -108,6 +108,6 @@ jobs:
             echo "::error::La versión ya existe. No se sobrescribe una APK publicada."
             exit 1
           else
-            gh release create "$TAG" "$APK" --title "SHALOM Android v${VERSION}" --notes "Versión oficial con secciones independientes, copia musical completa, contexto de letra, subdivisiones ampliables y reproductor compacto con seguimiento opcional y pellizco para ajustar letra y acordes. Firma, actualización y arranque Android verificados en emulador."
+            gh release create "$TAG" "$APK" --title "SHALOM Android v${VERSION}" --notes "Versión de mantenimiento: arquitectura modular, intérprete musical compartido y mejoras de Studio. Firma, actualización y arranque Android verificados en emulador."
           fi
 

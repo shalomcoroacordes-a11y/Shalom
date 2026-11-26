@@ -17,7 +17,7 @@ assert.ok(admin.includes("if: env.OFFICIAL_RELEASE != 'true'"));
 assert.equal(admin.split('if [ "$OFFICIAL_RELEASE" = true ]; then').length,3);
 assert.ok(admin.includes("OFFICIAL_RELEASE: ${{ "+gate+" }}"));
 assert.ok(admin.includes("com.shalomcoroacordes.admin.preview"));
-for(const name of ["android-preview.yml","android-upgrade-rehearsal.yml"]){
+for(const name of ["android-preview.yml","android-upgrade-rehearsal.yml","admin-upgrade-rehearsal.yml"]){
  const source=read(name);assert.ok(!source.includes("gh release create"));assert.ok(!source.includes("contents: write"));
 }
 // Every active release creator must belong to the explicitly gated workflows.
