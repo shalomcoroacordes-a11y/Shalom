@@ -8,7 +8,7 @@ async function test(){
  const store={cachedList:async(owner,type)=>cache.get(key(owner,type))||[],async cacheList(owner,type,rows){cache.set(key(owner,type),rows)},async cacheCatalog(owner,data,types){if(failCache)throw Error("disk");for(const type of types)cache.set(key(owner,type),data[type]);}};
  const api={myAccess:async owner=>{assert.equal(owner,"a");return {authorized:true,owner:allowed}},find:async(table,id,owner)=>{assert.equal(owner,"a");return{updated_at:revision}},async raw(path,method,body,preference,owner){
   assert.equal(owner,"a");calls.push(method);
-  if(method==="POST"){assert.ok(cache.get("a:studio:s").length,"Draft durable before POST");if(gate){start();await gate;}published=body.arrangement;return[{song_id:"s",song_revision:"r1"}];}
+  if(method==="POST"){assert.ok(cache.get("a:studio:s").length,"Draft durable before POST");if(preference==="return=representation"){assert.doesNotMatch(path,/on_conflict/);if(published)throw Error("conflicto");}if(gate){start();await gate;}published=body.arrangement;return[{song_id:"s",song_revision:"r1"}];}
   if(method==="PATCH"){assert.match(path,/updated_at=eq\.t1/);assert.equal(preference,"return=representation");published=body.arrangement;return [{song_id:"s",song_revision:"r1"}];}
   return published?[{song_revision:"r1",updated_at:"t1",arrangement:wrong?updated:published}]:[];
  }};
@@ -33,6 +33,14 @@ async function test(){
  await studio.publish("a",song,withCue,state);assert.equal(calls.includes("PATCH"),true);assert.deepEqual((await studio.read("a",song,true)).arrangement,withCue);
  const before=await studio.read("a",song,false);published={...withCue,n:99};const writes=calls.filter(x=>x==="PATCH").length;
  await assert.rejects(studio.publish("a",song,{...withCue,j:[]},before),/publicado cambió/);assert.equal(calls.filter(x=>x==="PATCH").length,writes);assert.deepEqual((await studio.read("a",song,true)).draft,{...withCue,j:[]});
+ published=null;cache.delete("a:studio:s");
+ const empty=await studio.read("a",song,false),only={v:1,k:"lyrics",j:[[1,1,"source","note","all","Pausa"]]};
+ await studio.saveDraft("a",song,only,empty);
+ const fresh=await studio.read("a",song,false);await studio.publish("a",song,only,fresh);
+ assert.deepEqual((await studio.read("a",song,true)).arrangement,only);
+ const beforeOnly=await studio.read("a",song,false);await studio.publish("a",song,{...only,j:[]},beforeOnly);
+ assert.deepEqual((await studio.read("a",song,true)).arrangement,{...only,j:[]});
+ await assert.rejects(studio.saveDraft("a",song,arrangement,await studio.read("a",song,false)),/no puede modificar/);
  console.log("Studio persistence: offline and denied writes, stale revisions, remote verification, atomic local confirmation, newer drafts preserved and focused cue isolation.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});

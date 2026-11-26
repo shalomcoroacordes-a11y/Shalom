@@ -233,7 +233,6 @@ function Main(){
   try{
    const state=await getStudioState(saved);
    if(!sameStudioContext(context))return;
-   if(cueOnly&&!state.arrangement&&!state.draft)throw Error("Este canto todavía no tiene acompañamiento. La edición independiente sin acompañamiento se habilitará en una revisión posterior.");
    setStudioStatus(state);cueSession.current=cueOnly?{context,state}:null;
    setStudioPayload({type:"shalom-studio-init",mode:"admin",cueOnly,song:studioSong(saved),arrangement:state.arrangement,draft:state.draft,shift:0,capo:0});
   }catch(e){if(isActive())Alert.alert("SHALOM Studio",e.message);}

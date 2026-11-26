@@ -12,9 +12,8 @@ async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangeme
  let {data,error}=arrangement&&!admin?{data:{arrangement},error:null}:await query(client,song,true);
  if(error)throw Error("Studio no está disponible: "+error.message);
  if(!admin&&(!data||data.arrangement?.k==="lyrics"))throw Error("Este canto no tiene acompañamiento vigente.");
- if(cueOnly&&!data?.arrangement)throw Error("Este canto todavía no tiene acompañamiento. La edición independiente se habilitará en una revisión posterior.");
  const canonical=v=>JSON.stringify(v,(_,x)=>x&&typeof x==="object"&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
- const musical=v=>{const {j,...rest}=v;return canonical(rest);};
+ const musical=v=>{if(!v||v.k==="lyrics")return null;const {j,...rest}=v;return canonical(rest);};
  const dialog=document.createElement("dialog"),frame=document.createElement("iframe"),close=document.createElement("button");
  const active=document.activeElement,top=window.scrollY,previousOverflow=document.body.style.overflow;
  dialog.setAttribute("aria-label",cueOnly?"Indicaciones de letra":"SHALOM Studio");
@@ -37,10 +36,13 @@ async function open({client,song,admin=false,shift=0,capo=0,range=null,arrangeme
    if(expectedOwner){const identity=await client.auth.getUser();if(identity.error||identity.data?.user?.id!==expectedOwner)throw Error("La sesión cambió. Vuelve a abrir Studio.");}
    let response;
    if(cueOnly){
-    if(musical(payload)!==musical(data.arrangement))throw Error("Hay cambios musicales sin publicar. Revísalos en Studio antes de publicar indicaciones.");
+    if(musical(payload)!==musical(data?.arrangement))throw Error("Hay cambios musicales sin publicar. Revísalos en Studio antes de publicar indicaciones.");
     const current=await query(client,song,true);
-    if(current.error||!current.data?.updated_at||canonical(current.data.arrangement)!==canonical(data.arrangement))throw Error("El acompañamiento publicado cambió. Guarda un borrador y vuelve a abrir las indicaciones.");
-    response=await client.from(table).update({arrangement:payload}).eq("song_id",song.id).eq("song_revision",song.updated_at).eq("updated_at",current.data.updated_at).select("song_id,song_revision").single();
+    if(current.error||canonical(current.data?.arrangement??null)!==canonical(data?.arrangement??null))throw Error("El acompañamiento publicado cambió. Guarda un borrador y vuelve a abrir las indicaciones.");
+    if(current.data){
+     if(!current.data.updated_at)throw Error("No se pudo verificar la revisión del acompañamiento.");
+     response=await client.from(table).update({arrangement:payload}).eq("song_id",song.id).eq("song_revision",song.updated_at).eq("updated_at",current.data.updated_at).select("song_id,song_revision").single();
+    }else response=await client.from(table).insert({song_id:song.id,song_revision:song.updated_at,arrangement:payload}).select("song_id,song_revision").single();
    }else response=await client.from(table).upsert({song_id:song.id,song_revision:song.updated_at,arrangement:payload},{onConflict:"song_id"}).select("song_id,song_revision").single();
    if(response.error)throw response.error;
    if(response.data?.song_id!==song.id)throw Error("No se confirmó la publicación en el servidor.");

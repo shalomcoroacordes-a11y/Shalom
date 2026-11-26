@@ -21,4 +21,4 @@ assert.match(lab,/baseline=recovered\?null:fingerprint\(\)/);
 assert.doesNotMatch(history,/\.upsert\(|\.insert\(|\.delete\(|\.update\(/);
 console.log("Studio history: exact revision, historical context, incompatible revision denial, review-only playback and explicit draft handoff.");
 
-assert.match(entry,/cueOnly&&\(!admin\|\|!expectedOwner\)/);assert.match(entry,/musical\(payload\)!==musical\(data.arrangement\)/);assert.match(entry,/\.eq\("updated_at",current.data.updated_at\)/);assert.match(fs.readFileSync("admin-pro.js","utf8"),/openArrangement\(true,cuesButton\)/);
+assert.match(entry,/cueOnly&&\(!admin\|\|!expectedOwner\)/);assert.match(entry,/musical\(payload\)!==musical\(data\?\.arrangement\)/);assert.match(entry,/\.eq\("updated_at",current.data.updated_at\)/);assert.match(fs.readFileSync("admin-pro.js","utf8"),/openArrangement\(true,cuesButton\)/);
