@@ -47,3 +47,6 @@
 
 /* A focused lyric editor reuses the same phrase picker and save controls. */
 .cue-only #studioNav,.cue-only #editorSteps,.cue-only #baseSettings,.cue-only .section-footer,.cue-only #stage0>h2,.cue-only #structureSummary,.cue-only #editorDock .dock-heading,.cue-only #editorDock .button-row:last-child,.cue-only #editor>.eyebrow{display:none!important}.cue-only #editor{padding-bottom:120px}.cue-only .cue-editor{margin-top:0;border-top:0}.cue-only #studioTitle{font-size:22px}
+
+/* Inline feedback is placed after the exact selected row, not below the form. */
+.cue-phrase-row{display:grid;gap:3px;min-width:0}.cue-phrase-row>.cue-phrase{width:100%}.cue-phrase-heading{color:var(--accent);font-size:12px;font-weight:700;margin:9px 0 3px}.cue-inline-saved{color:var(--accent);font-size:12px;padding:4px 8px;overflow-wrap:anywhere}.cue-phrase-row>.cue-selection-preview{margin:0 0 4px;padding:6px 9px;background:rgba(110,180,145,.08)}

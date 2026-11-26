@@ -9,3 +9,39 @@ const finer=core.redivide(cfg,4);assert.deepEqual(core.cueEntries(core.compile(a
 const html=fs.readFileSync("studio-lab.html","utf8"),js=fs.readFileSync("studio-lab.js","utf8");for(const id of ["cueVisible","cueOverview","liveCue","cueCurrent","cueNext"])assert.ok(html.includes('id="'+id+'"'));assert.ok(js.includes("panel.append(lyricCueEditor(g))"));assert.ok(js.includes("if(g)panel.append(cueSectionEditor(g))"));assert.ok(js.includes("lyricCueEditor(null)"));assert.ok(js.includes("core.lyricCueAnchor(rows,start,finish)"));assert.ok(js.includes("Vista previa · debajo de la selección"));assert.ok(js.includes("renderCues(timeline,i,practiceRange)"));console.log("Studio cues: legacy codec, roundtrip, timing, playback parity, ranges and validation passed.");
 
 assert.match(js,/value\.lyricOnly\?codec\.encodeLyricCues/);assert.match(js,/config=config\|\|\{lyricOnly:true/);assert.match(js,/if\(!updated\.lyricOnly\)core\.compile/);assert.match(js,/core\.setLyricCues\(core\.draft/);
+
+ // Exercise the actual phrase selector with a minimal DOM, including a repeated phrase.
+ const vm=require("node:vm"),parser=require("../song-chords");
+ function element(tag,text=""){
+  return {tag,textContent:text,children:[],dataset:{},attrs:{},value:"",parent:null,
+   append(...children){for(const child of children){child.remove?.();this.children.push(child);child.parent=this;if(this.tag==="select"&&!this.value)this.value=child.value;}},
+   replaceChildren(...children){for(const child of this.children)child.parent=null;this.children=[];this.append(...children);},
+   remove(){if(this.parent){this.parent.children=this.parent.children.filter(c=>c!==this);this.parent=null;}},
+   setAttribute(k,v){this.attrs[k]=v;}};
+ }
+ const lyrics="[Verso]\nC G\nCantemos juntos\nUna segunda frase\n[Coro]\nCantemos juntos";
+ const lyricRows=parser.parseRows(lyrics),savedCue={...core.lyricCueAnchor(lyricRows,4),action:"note",audience:"choir",text:"Suave"};
+ const host={querySelector:()=>({open:false})},notes=[];
+ const scope={core,window:{ShalomChords:parser,confirm:()=>true},config:{lyricOnly:true,lyricCues:[savedCue]},anchors:[],elem:element,Option:function(label,value){return Object.assign(element("option",label),{value});},$:id=>id==="source"?{value:lyrics}:host,safe:fn=>fn,stop(){},renderReview(){},renderSections(){},note:v=>notes.push(v)};
+ const begin=js.indexOf("function lyricCueEditor(g){"),finish=js.indexOf("function cueSectionEditor(g){",begin);
+ vm.runInNewContext(js.slice(begin,finish),scope);
+ const panel=scope.lyricCueEditor(null),walk=n=>[n,...n.children.flatMap(walk)],find=(cls)=>walk(panel).find(n=>n.className===cls);
+ const phraseRows=walk(panel).filter(n=>n.className==="cue-phrase-row");
+ assert.deepEqual(phraseRows.map(n=>n.dataset.row),["1","2","4"]);
+ assert.deepEqual(walk(panel).filter(n=>n.className==="cue-phrase-heading").map(n=>n.textContent),["Verso","Coro"]);
+ assert.equal(phraseRows[2].children[1].textContent,"Indicación · Coro · Suave");
+ phraseRows[0].children[0].onclick();phraseRows[1].children[0].onclick();
+ assert.equal(phraseRows[0].children[0].attrs["aria-pressed"],"true");
+ assert.equal(phraseRows[1].children[0].attrs["aria-pressed"],"true");
+ assert.equal(phraseRows[2].children[0].attrs["aria-pressed"],"false");
+ assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
+ const action=walk(panel).find(n=>n.tag==="select"),detail=walk(panel).find(n=>n.tag==="textarea");
+ action.value="repeat";detail.value="2 veces";detail.oninput();
+ assert.equal(find("cue-selection-preview").children[1].textContent,"Repetir · 2 veces");
+ assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
+ walk(panel).find(n=>n.tag==="button"&&n.textContent==="Agregar indicación").onclick();
+ assert.equal(scope.config.lyricCues.length,2);
+ assert.equal(scope.config.lyricCues[0].start,1);assert.equal(scope.config.lyricCues[0].end,2);
+ assert.equal(scope.config.lyricCues[1].end,4);
+ assert.equal(scope.config.lyricCues[0].text,"2 veces");
+ console.log("Phrase picker: section context, repeated lyric disambiguation, live inline placement, selection and persisted range verified.");

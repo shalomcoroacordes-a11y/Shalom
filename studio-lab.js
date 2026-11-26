@@ -23,7 +23,7 @@ function renderSaveState(fp=fingerprint()){
   fingerprint:fp,publishedFingerprint,draftFingerprint,pendingSave,pendingKind,saveError
  });
  $("saveState").dataset.state=state;
- $("saveStateTitle").textContent=title;
+ $("saveStateTitle").textContent=cueOnly&&state==="published"?"✓ Indicaciones publicadas":title;
  $("saveStateDetail").textContent=detail;
  $("save").disabled=disabled;
  $("publish").disabled=disabled;
@@ -106,7 +106,7 @@ function lyricCueEditor(g){
  const cues=config.lyricCues||[];
  const list=elem("div");list.className="cue-list";
  const score=elem("div");score.className="cue-phrase-list";
- const hint=elem("p","Toca la primera frase y, si quieres un fragmento, toca la última.");hint.className="note";
+ const hint=elem("p","Toca una frase. Para seleccionar varias, toca también la última.");hint.className="note";
  const action=elem("select");for(const [k,v] of Object.entries(core.cueActions))action.append(new Option(v,k));
  const audience=elem("select");for(const [k,v] of Object.entries(core.cueAudiences))audience.append(new Option(v,k));
  const description=elem("textarea");description.maxLength=160;description.rows=2;description.placeholder="Ej. 2 veces";
@@ -117,12 +117,27 @@ function lyricCueEditor(g){
  const clear=elem("button","Limpiar selección");clear.type="button";
  const cancel=elem("button","Cancelar edición");cancel.type="button";cancel.hidden=true;
  const preview=elem("div");preview.className="cue-selection-preview";preview.setAttribute("aria-live","polite");
+ const phraseNodes=new Map(),cueByLine=new Map();
+ for(const c of cues){if(!core.validLyricCue(rows,c))continue;if(!cueByLine.has(c.end))cueByLine.set(c.end,[]);cueByLine.get(c.end).push(c);}
+ let previousHeading=-2;
+ for(const p of phrases){
+  const heading=rows.slice(0,p.i+1).findLastIndex(r=>r.kind==="section");
+  if(!g&&heading!==previousHeading){const label=elem("div",heading<0?"Inicio":rows[heading].text);label.className="cue-phrase-heading";score.append(label);previousHeading=heading;}
+  const wrap=elem("div");wrap.className="cue-phrase-row";wrap.dataset.row=String(p.i);
+  const b=elem("button");b.type="button";b.className="cue-phrase";if(p.chords)b.append(elem("small",p.chords));b.append(elem("span",p.text));
+  b.onclick=()=>{if(!waiting){start=finish=p.i;waiting=true;}else{const a=start;start=Math.min(a,p.i);finish=Math.max(a,p.i);waiting=false;}refresh();};
+  wrap.append(b);
+  for(const c of cueByLine.get(p.i)||[]){const saved=elem("div",core.cueText(c));saved.className="cue-inline-saved";wrap.append(saved);}
+  phraseNodes.set(p.i,{wrap,b});score.append(wrap);
+ }
  function refresh(){
-  score.replaceChildren(...phrases.map(p=>{const b=elem("button");b.type="button";b.className="cue-phrase";const selected=start!==null&&p.i>=start&&p.i<=finish;b.setAttribute("aria-pressed",String(selected));if(p.chords)b.append(elem("small",p.chords));b.append(elem("span",p.text));b.onclick=()=>{if(!waiting){start=finish=p.i;waiting=true;}else{const a=start;start=Math.min(a,p.i);finish=Math.max(a,p.i);waiting=false;}refresh();};return b;}));
-  save.disabled=start===null;clear.disabled=start===null;
-  preview.replaceChildren(elem("small","Vista previa · debajo de la selección"));
-  if(start===null){preview.append(elem("p","Selecciona una frase."));return;}
-  const last=phrases.find(p=>p.i===finish);preview.append(elem("div",last?.text||""),elem("strong",core.cueText({action:action.value,audience:audience.value,text:description.value.trim()})));
+  for(const [i,{b}] of phraseNodes)b.setAttribute("aria-pressed",String(start!==null&&i>=start&&i<=finish));
+  save.disabled=start===null;clear.disabled=start===null;preview.remove();
+  if(start===null)return;
+  const target=phraseNodes.get(finish);
+  if(!target)return;
+  preview.replaceChildren(elem("small","Vista previa · debajo de la selección"),elem("strong",core.cueText({action:action.value,audience:audience.value,text:description.value.trim()})));
+  target.wrap.append(preview);
  }
  function reset(){start=finish=null;editing=-1;waiting=false;save.textContent="Agregar indicación";cancel.hidden=true;description.value="";refresh();}
  function commit(next){const updated=core.setLyricCues(config,rows,next);if(!updated.lyricOnly)core.compile(anchors,updated);stop();config=updated;renderReview();renderSections();$("sectionCards").querySelector(".cue-editor").open=true;note("Indicaciones actualizadas. Guarda el borrador o publica.");}
@@ -137,7 +152,7 @@ function lyricCueEditor(g){
   const remove=elem("button","Quitar");remove.type="button";remove.onclick=safe(()=>{if(window.confirm("¿Quitar esta indicación?"))commit(cues.filter((_,j)=>i!==j));});row.append(info,edit,remove);list.append(row);
  }
  if(!phrases.length)hint.textContent="No hay frases disponibles para seleccionar.";
- panel.append(list,hint,score,clear,fields,preview,save,cancel);if(g)panel.append(cueSectionEditor(g));refresh();return panel;
+ panel.append(list,hint,score,clear,fields,save,cancel);if(g)panel.append(cueSectionEditor(g));refresh();return panel;
 }
 function cueSectionEditor(g){
  const panel=elem("details");panel.className="advanced cue-timing-editor";panel.append(elem("summary","Avanzado · indicaciones por compás"));
