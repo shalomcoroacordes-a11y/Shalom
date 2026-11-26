@@ -89,6 +89,12 @@ begin
  return true;
 end;
 $$;
+-- Explicit capability for new clients; the legacy RPC remains compatible.
+create or replace function public.admin_restore_song_complete(p_trash_id uuid)
+returns boolean language sql security invoker set search_path=''
+as $delegate$ select public.admin_restore_song(p_trash_id); $delegate$;
+revoke all on function public.admin_restore_song_complete(uuid) from public,anon;
+grant execute on function public.admin_restore_song_complete(uuid) to authenticated;
 revoke all on function public.admin_delete_song_complete(uuid) from public,anon;
 revoke all on function public.admin_delete_song(uuid) from public,anon;
 revoke all on function public.admin_restore_song(uuid) from public,anon;

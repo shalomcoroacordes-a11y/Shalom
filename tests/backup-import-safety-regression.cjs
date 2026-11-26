@@ -133,7 +133,7 @@ function restoreFixture(snapshot,{kind="song",original="s",rpcResult={data:true}
 }
 async function nativeRecovery(){
  const snapshot={song:{id:"s"},song_versions:[{parent_song_id:"s",version_song_id:"v"}]};
- const ok=restoreFixture(snapshot);await ok.run();assert.equal(JSON.stringify(ok.calls),JSON.stringify([["rpc","admin_restore_song",{p_trash_id:"trash"}]]));assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
+ const ok=restoreFixture(snapshot);await ok.run();assert.equal(JSON.stringify(ok.calls),JSON.stringify([["rpc","admin_restore_song_complete",{p_trash_id:"trash"}]]));assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
  for(const response of [{error:{message:"Sin permiso"}},{error:{message:"CONFLICT"}},{error:{message:"Función no disponible",code:"PGRST202"}},{data:false}]){
   const failed=restoreFixture(snapshot,{rpcResult:response});await failed.run();assert.equal(failed.calls.length,1);assert.equal(failed.calls[0][0],"rpc");assert.equal(failed.refreshes.length,0);assert.match(failed.notes[0].message,/No se pudo restaurar/);assert.equal(failed.ctx.busy,false);
  }

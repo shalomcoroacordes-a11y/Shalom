@@ -121,7 +121,7 @@ set role authenticated;
 select set_config('test.blocked','no',false);
 do $check$
 begin
- if not public.admin_restore_song(current_setting('test.trash_id')::uuid) then raise exception 'restore failed';end if;
+ if not public.admin_restore_song_complete(current_setting('test.trash_id')::uuid) then raise exception 'restore failed';end if;
 end
 $check$;
 reset role;

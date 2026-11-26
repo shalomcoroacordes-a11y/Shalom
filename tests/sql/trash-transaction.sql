@@ -26,6 +26,7 @@ create table public.admin_audit_log(actor_id uuid,subject_id uuid,action text);
 \ir ../../sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql
 
 do $grants$begin
+ if has_function_privilege('anon','public.admin_restore_song_complete(uuid)','EXECUTE') or not has_function_privilege('authenticated','public.admin_restore_song_complete(uuid)','EXECUTE') then raise exception 'complete restore RPC grants incorrect';end if;
  if has_function_privilege('anon','public.admin_delete_song_complete(uuid)','EXECUTE') or not has_function_privilege('authenticated','public.admin_delete_song_complete(uuid)','EXECUTE') then raise exception 'complete RPC grants incorrect';end if;
 end$grants$;
 begin;
@@ -79,7 +80,7 @@ begin
  if exists(select 1 from public.songs where id=target_id) or exists(select 1 from public.song_versions v where v.parent_song_id=target_id) then raise exception 'partial restore escaped rollback';end if;
  if not exists(select 1 from public.admin_trash where id=trash_id) then raise exception 'backup lost after rollback';end if;
  update public.admin_trash set snapshot=saved where id=trash_id;
- if public.admin_restore_song(trash_id) is distinct from true then raise exception 'restore not confirmed';end if;
+ if public.admin_restore_song_complete(trash_id) is distinct from true then raise exception 'restore not confirmed';end if;
  if not exists(select 1 from public.song_studio_arrangements a where a.song_id=target_id and a.song_revision=rev and a.arrangement=original) then raise exception 'Studio roundtrip mismatch';end if;
  if not exists(select 1 from public.song_versions v where v.parent_song_id=target_id and v.version_song_id=other_id) then raise exception 'version missing';end if;
  if exists(select 1 from public.admin_trash where id=trash_id) then raise exception 'restored backup not consumed';end if;

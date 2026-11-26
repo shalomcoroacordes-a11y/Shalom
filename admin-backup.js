@@ -106,6 +106,7 @@
       if (kind === "song") {
         say("Enviando canto y acompañamiento a la papelera...");
         const { data, error } = await db.rpc("admin_delete_song_complete", { p_song_id: id });
+        if (error?.code === "PGRST202" || error?.code === "42883") throw new Error("La protección completa de cantos aún no está instalada. No se eliminó el canto.");
         if (error) throw error;
         if (data !== true) throw new Error("No se confirmó la eliminación del canto.");
         songConfirmed = true;
@@ -256,7 +257,8 @@
         if (!snapshot.song?.id || idOf(snapshot.song.id) !== idOf(row.original_id) || Object.hasOwn(snapshot, "record")) {
           throw new Error("El respaldo nativo no coincide con el canto original.");
         }
-        const { data, error } = await db.rpc("admin_restore_song", { p_trash_id: row.id });
+        const { data, error } = await db.rpc("admin_restore_song_complete", { p_trash_id: row.id });
+        if (error?.code === "PGRST202" || error?.code === "42883") throw new Error("La protección completa de cantos aún no está instalada. No se realizó la restauración.");
         if (error) throw error;
         if (data !== true) throw new Error("No se confirmó la restauración del canto.");
       } else {
