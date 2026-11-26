@@ -163,3 +163,7 @@ Studio nativo: `studio-native-screen.js` contiene la fábrica de pantalla compar
 ### Paquetes CSS públicos
 
 Editar las hojas fuente, no los archivos `*-bundle.css`. Ejecutar `node scripts/build-public-css-bundles.cjs --write` para regenerar y `node scripts/build-public-css-bundles.cjs --check` para verificar. No reorganizar las fuentes del manifiesto sin revisar la cascada. Las pruebas existentes mantienen el orden de carga HTML.
+
+### Resultado de auditoría de código (25 de noviembre de 2026)
+
+En la revisión `0885ac7` ESLint informó 0 errores y 0 advertencias; el grafo de arquitectura informó 0 hallazgos; Knip informó 0 archivos y dependencias sin uso en ambas aplicaciones, 0 referencias no resueltas y 4/2 paquetes no declarados que requieren revisión manual. JSCPD informó 26 clones, principalmente salidas generadas. AST detectó tres hallazgos en dos scripts no conectados. Se retira el guard histórico de Admin tras verificar los controladores actuales; se mantiene el módulo de descubrimiento de artistas hasta decidir su funcionalidad. No se ocultan hallazgos ni se cambian umbrales para aprobar auditorías.
