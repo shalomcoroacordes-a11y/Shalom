@@ -24,3 +24,14 @@ const html=require("../mobile/src/web-score-html");
 assert.match(html.scoreMarkup(decorated),/Dos veces &lt;3/);
 assert.doesNotMatch(html.scoreMarkup(shifted),/Dos veces/);
 console.log("Native cue projection, escaping and optional printing verified.");
+
+// Exercise the real browser renderer without starting Studio playback.
+const fs=require("node:fs"),vm=require("node:vm");
+const web={};web.window=web;vm.createContext(web);
+for(const file of ["song-chords.js","studio-core.js","studio-codec.js","studio-reader-cues.js"])vm.runInContext(fs.readFileSync(file,"utf8"),web);
+const markup=web.ShalomChords.render(source,{arrangement,transpose:()=>"D"});
+assert.match(markup,/song-reader-cue[^>]*>Compás 1 · Iniciar · Solista · Suave/);
+assert.match(markup,/Dos veces &lt;3/);
+assert.equal(markup.replace(/<span class="song-reader-cue">[^<]*<\/span>/g,""),web.ShalomChords.render(source,{transpose:()=>"D"}));
+assert.doesNotMatch(web.ShalomChords.render(source,{arrangement:{...arrangement,s:"bad"}}),/song-reader-cue/);
+console.log("Browser public reader: cue order, safe escaping, unchanged chord markup and stale arrangement rejection.");
