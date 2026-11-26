@@ -2,7 +2,7 @@
 (() => {
  const db=window.supabaseClient,M=window.ShalomMedleys;
  const $=id=>document.getElementById(id);
- let medleys=[],active=null,shift=0,capo=0,studioSongs=[],cuesVisible=true;
+ let medleys=[],active=null,shift=0,studioSongs=[],selections=new Map(),cuesVisible=true;
  function renderList(term="") {
   const q=String(term||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
   const rows=medleys.filter(m=>[m.title,m.description,m.song_type].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().includes(q));
@@ -17,7 +17,7 @@
  }
  function show(medley) {
   if(!medley)return;
-  active=medley;shift=0;capo=0;$("medleyCapo").value="0";
+  active=medley;shift=0;selections=new Map();
   $("medleyCatalog").hidden=true;$("medleyReader").hidden=false;
   $("medleyReaderTitle").textContent=medley.title;
   $("medleyReaderType").textContent=({catolico:"Católico",cristiano:"Cristiano",mixto:"Mixto"})[medley.song_type]||"SHALOM";
@@ -30,10 +30,10 @@
   if(!active)return;
   $("medleyCurrentTone").textContent=shift===0?"Tono original":(shift>0?"+":"")+shift+" semitonos";
   const container=$("medleyReaderParts"),byId=new Map(studioSongs.map(s=>[String(s.id),s]));
-  container.innerHTML=M.renderPartsHTML(active.parts||[],shift,capo,p=>{const song=byId.get(String(p.song_id));return song&&p.lyrics===song.lyrics?song._studio:null});
+  container.innerHTML=M.renderPartsHTML(active.parts||[],shift,0,p=>{const song=byId.get(String(p.song_id));return song&&p.lyrics===song.lyrics?song._studio:null});
   function toggle(value){cuesVisible=value;window.ShalomReaderCueControls?.mount(container,cuesVisible,toggle)}
   toggle(cuesVisible);
-  window.ShalomStudioCollectionWeb?.mount({client:db,container,articles:[...container.querySelectorAll(".medley-song")],parts:(active.parts||[]).map(p=>({...p,shift:shift+Number(p.shift||0)-capo,capo})),songs:studioSongs,kind:"popurri",title:active.title});
+  window.ShalomStudioCollectionWeb?.mountCapos({client:db,container,articles:[...container.querySelectorAll(".medley-song")],parts:active.parts||[],songs:studioSongs,kind:"popurri",title:active.title,shift,selections,onRendered:()=>toggle(cuesVisible)});
  }
  async function load(){
   if(!db){$("medleyCatalogStatus").textContent="No se pudo iniciar la conexión.";return;}
@@ -54,8 +54,7 @@
  $("medleySearch")?.addEventListener("input",event=>renderList(event.target.value));
  $("medleyUp")?.addEventListener("click",()=>{shift=Math.min(11,shift+1);renderReader();});
  $("medleyDown")?.addEventListener("click",()=>{shift=Math.max(-11,shift-1);renderReader();});
- $("medleyReset")?.addEventListener("click",()=>{shift=0;capo=0;$("medleyCapo").value="0";renderReader();});
- $("medleyCapo")?.addEventListener("change",event=>{capo=Number(event.target.value)||0;renderReader();});
+ $("medleyReset")?.addEventListener("click",()=>{shift=0;selections.clear();renderReader();});
  $("medleyPrint")?.addEventListener("click",()=>window.print());
  document.querySelector("#menuToggle")?.addEventListener("click",()=>{
   const menu=document.querySelector("#navMenu");menu?.classList.toggle("open");

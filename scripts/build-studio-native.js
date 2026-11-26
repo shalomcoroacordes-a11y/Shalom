@@ -35,6 +35,7 @@ function outputs(read){
  return {
   "mobile/src/studio-bundle.js":html,
   "admin-mobile/src/studio-bundle.js":html,
+  "mobile/src/song-capo-core.js":read("song-capo-core.js"),
   "mobile/src/studio-collections.js":read("studio-collections.js"),
   "mobile/src/studio-core.js":read("studio-core.js"),
   "mobile/src/studio-codec.js":read("studio-codec.js"),

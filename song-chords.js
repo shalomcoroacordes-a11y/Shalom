@@ -108,7 +108,7 @@ function createChordParser() {
   function render(source, options = {}) {
     const transpose = typeof options.transpose === "function" ? options.transpose : chord => chord;
     const displayRows=parseRows(source,transpose);
-    const rows=(options.arrangement?.i?.length||options.arrangement?.j?.length)&&typeof window!=="undefined"&&window.ShalomReaderCues?window.ShalomReaderCues.decorate(parseRows(source),options.arrangement,displayRows):displayRows;
+    const rows=typeof window!=="undefined"&&window.ShalomReaderCues&&(options.cueOverride||options.arrangement?.i?.length||options.arrangement?.j?.length)?window.ShalomReaderCues.decorateCollection(parseRows(source),options.arrangement,options.cueOverride,displayRows):displayRows;
     return rows.map(row=>{
       if(row.kind==="cue")return '<span class="song-reader-cue">'+escapeHTML(row.text)+'</span>';
       if(row.kind==="space")return '<span class="song-empty-line"></span>';

@@ -1,7 +1,10 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const moduleForTest={exports:{}};
 const h=(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity).filter(Boolean)});
-const calls=[];
+const calls=[];let hookState=[],hookIndex=0;
+const useState=initial=>{const i=hookIndex++;if(!(i in hookState))hookState[i]=initial;return [hookState[i],value=>{hookState[i]=typeof value==="function"?value(hookState[i]):value}]};
+const render=fn=>{hookIndex=0;return fn()};
+const reset=()=>{hookState=[];hookIndex=0};
 const chords=require("../src/chords"),core=require("../src/studio-core"),codec=require("../src/studio-codec"),readerCues=require("../src/studio-reader-cues");
 const song={id:"s",title:"Gloria",tone:"C",lyrics:"[Coro]\nC\nGloria",song_type:"catolico",capo_position:2,capo_key:"A",_links:[{title:"Video",url:"https://example.test"}]};
 const anchors=core.anchorsFromRows(chords.parseSong(song.lyrics));
@@ -10,23 +13,23 @@ const rep={id:"r",title:"Misa",items:[{song_id:"s",moment:"Entrada"}]};
 const medley={id:"m",title:"Alabanza",base_tone:"C",parts:[{song_id:"s",lyrics:"Fragmento",shift:2}]};
 const plan={entries:[{ready:true,payload:{id:"practice"}}],ready:[{}],total:1};
 vm.runInNewContext(fs.readFileSync("src/music-readers-ui.js","utf8"),{module:moduleForTest,require(name){
- if(name==="react")return{createElement:h};
+ if(name==="react")return{createElement:h,useState};
  if(name==="react-native")return {View:"View",Text:"Text",Pressable:"Pressable",Image:"Image",Alert:{alert:(...args)=>calls.push(["alert",...args])}};
  if(name==="./chords")return{parseSong:(lyrics,shift)=>{calls.push(["parse",lyrics,shift]);return chords.parseSong(lyrics,shift)},transposeOne:(tone,shift)=>tone+"+"+shift};
  if(name==="./catalog")return{names:()=>"Coro",safeWebUrl:url=>url};
  if(name==="./favorites")return{hasFavorite:()=>true};
- if(name==="./song-capo-core")return{capoSelection:()=>({choices:[{id:"none",label:"Sin capo"},{id:"main",label:"Capo 2"}],chosen:{id:"main",position:2,key:"A"},offset:-2})};
+ if(name==="./song-capo-core")return require("../src/song-capo-core");
  if(name==="./score-zoom")return{clampReaderFont:v=>v};
  if(name==="./repertoire-ui")return{repertoireType:()=>"misa"};
  if(name==="./studio-reader-cues")return readerCues;
  if(name==="./studio-collections")return{plan:()=>plan,sequencePlan:()=>({id:"sequence"})};
  throw Error(name);
 }});
-const {SongReader,RepertoireReader,MedleyReader}=moduleForTest.exports;
+const {SongReader,RepertoireReader,MedleyReader,CollectionCapoControl}=moduleForTest.exports;
 const props={S:{},HOME_IMAGES:{},label:text=>h("Label",{text}),type:x=>x||"General",Chip:"Chip",SectionEmpty:"SectionEmpty",song,rep,medley,model:{songs:[song]},transpose:3,capo:"main",likedIds:["s"],readerFont:15,capoExpanded:true,immersiveActive:false,renderMultiReadingControls:()=>h("Controls"),renderStudioCollectionAction:()=>h("Studio"),renderMultiReadingScore:(...args)=>{calls.push(["multi",...args]);return h("Score")},renderToneStepper:()=>h("Tone"),renderAlignedScoreRows:(...args)=>{calls.push(["aligned",...args]);return h("Score")}};
 for(const key of ["setShowReaderCues","toggleLike","setReaderFont","setCapoExpanded","setCapo","openStudioPart","selectSong","setStudioQueue","setStudioPayload","openWeb"])props[key]=(...args)=>calls.push([key,...args]);
 function find(node,predicate){if(!node||typeof node!=="object")return null;if(predicate(node))return node;for(const child of node.children||[]){const found=find(child,predicate);if(found)return found}return null}
-let tree=SongReader(props);assert.ok(calls.some(x=>x[0]==="parse"&&x[2]===1));assert.ok(calls.some(x=>x[0]==="aligned"&&x[2]===15));find(tree,n=>n.props.accessibilityLabel==="Quitar Me gusta").props.onPress();assert.equal(calls.at(-1)[0],"toggleLike");find(tree,n=>n.type==="Chip"&&n.props.text==="Sin capo").props.onPress();assert.equal(calls.at(-2)[1],"none");
+let tree=SongReader(props);assert.ok(calls.some(x=>x[0]==="parse"&&x[2]===0));assert.ok(calls.some(x=>x[0]==="aligned"&&x[2]===15));find(tree,n=>n.props.accessibilityLabel==="Quitar Me gusta").props.onPress();assert.equal(calls.at(-1)[0],"toggleLike");find(tree,n=>n.type==="Chip"&&n.props.text==="Sin capo").props.onPress();assert.equal(calls.at(-2)[1],"none");
 const visible=calls.filter(x=>x[0]==="aligned").at(-1)[1];
 assert.ok(visible.some(r=>r.kind==="cue"&&r.text.includes("Entrada del coro")));
 const cueButton=find(tree,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="Ocultar indicaciones"));
@@ -34,10 +37,14 @@ assert.ok(cueButton);cueButton.props.onPress();assert.equal(calls.at(-1)[0],"set
 SongReader({...props,showReaderCues:false});
 const hidden=calls.filter(x=>x[0]==="aligned").at(-1)[1];
 assert.deepEqual(hidden,visible.filter(r=>r.kind!=="cue"));
-assert.equal(hidden.find(r=>r.kind==="chords").chordLine,"C#");
+assert.equal(hidden.find(r=>r.kind==="chords").chordLine,"C");
 const plain=SongReader({...props,song:{...song,_studio:null}});
 assert.equal(find(plain,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="Ocultar indicaciones")),null);
-tree=RepertoireReader(props);assert.ok(calls.some(x=>x[0]==="multi"&&x[1]===song.lyrics&&x[2]===3));find(tree,n=>n.props.accessibilityLabel==="Abrir Gloria como canto individual").props.onPress();assert.equal(calls.at(-1)[0],"selectSong");
-tree=MedleyReader(props);assert.ok(calls.some(x=>x[0]==="multi"&&x[1]==="Fragmento"&&x[2]===5));find(tree,n=>n.props.accessibilityLabel==="Abrir Video").props.onPress();assert.equal(calls.at(-1)[1],"https://example.test");
-assert.ok(!find(MedleyReader({...props,immersiveActive:true}),n=>n.type==="Studio"));
+reset();tree=render(()=>RepertoireReader(props));assert.ok(calls.some(x=>x[0]==="multi"&&x[1]===song.lyrics&&x[2]===3));find(tree,n=>n.props.accessibilityLabel==="Abrir Gloria como canto individual").props.onPress();assert.equal(calls.at(-1)[0],"selectSong");
+reset();tree=render(()=>MedleyReader(props));assert.ok(calls.some(x=>x[0]==="multi"&&x[1]==="Fragmento"&&x[2]===5));find(tree,n=>n.props.accessibilityLabel==="Abrir Video").props.onPress();assert.equal(calls.at(-1)[1],"https://example.test");
+reset();assert.ok(!find(render(()=>MedleyReader({...props,immersiveActive:true})),n=>n.type==="Studio"));
 console.log("Music readers: canonical parser inputs, capo offset, fragment shifts, favorites, original links and immersive controls verified.");
+
+reset();const double={...rep,items:[{song_id:"s"},{song_id:"s"}]};
+const first=render(()=>RepertoireReader({...props,rep:double}));const controls=first.children.flatMap(function walk(n){return n&&typeof n==="object"?[n,...(n.children||[]).flatMap(walk)]:[]}).filter(n=>n.type===CollectionCapoControl);
+assert.equal(controls.length,2);controls[1].props.onSelect("main");calls.length=0;render(()=>RepertoireReader({...props,rep:double}));assert.deepEqual(calls.filter(x=>x[0]==="multi").map(x=>x[2]),[3,0]);assert.equal(double.items[1].capo_id,undefined);

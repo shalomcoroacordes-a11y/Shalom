@@ -12,7 +12,7 @@ for(const [page,bundle] of [["popurris.html","medleys.css?v=1"],["repertorios.ht
  assert.ok(html.includes(bundle));
  assert.ok(html.indexOf("collection-reader-bundle.css")<html.indexOf(bundle));
  assert.ok(html.indexOf(bundle)<html.indexOf("studio-collection-web.css"));
- assert.match(html,/src="studio-collection-web\.js\?v=2"/);
+ assert.match(html,/src="studio-collection-web\.js\?v=3"/);assert.match(html,/src="song-capo-core\.js\?v=1"/);
 }
 assert.match(sw,/shalom-offline-shell-v34-lyric-cues/);
 assert.match(sw,/"\.\/studio-collection-web\.css"/);

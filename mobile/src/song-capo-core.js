@@ -1,3 +1,5 @@
+/* Canonical capo calculation for web and native readers. */
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.ShalomSongCapo=api;})(globalThis,function(){
 // El capo se resuelve de forma identica en lectura e impresion.
 // Modulo puro, sin React Native, red o modificaciones del catalogo.
 const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -33,4 +35,6 @@ function collectionCapo(song,part,selected){
  const value=selected??part?.capoId??part?.capo_id??"none";
  return capoSelection(song,value);
 }
-module.exports=Object.freeze({capoChoices,capoSelection,occurrenceKey,collectionCapo});
+return Object.freeze({capoChoices,capoSelection,occurrenceKey,collectionCapo});
+
+});
