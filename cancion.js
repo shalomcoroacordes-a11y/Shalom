@@ -8,6 +8,8 @@ let currentSong = null;
 let transpose = 0;
 let capoShift = 0;
 let capoLabel = "Sin capo";
+let readerArrangement = null;
+let readerCuesVisible = true;
 
 const escapeHTML = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const N = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -171,7 +173,8 @@ function renderChordLyrics() {
   const renderer = window.ShalomChords?.render;
   if (typeof renderer === "function") {
     // The canonical renderer validates and unwraps each chord token.
-    target.innerHTML = renderer(lyrics, { transpose: (value) => chord(value, move) });
+    target.innerHTML = renderer(lyrics, { transpose: (value) => chord(value, move), arrangement: typeof readerArrangement==="undefined"?null:readerArrangement });
+    if(window.ShalomReaderCueControls)window.ShalomReaderCueControls.mount(target,readerCuesVisible,value=>{readerCuesVisible=value;renderChordLyrics();});
   } else {
     // Preserve the source as readable text if the shared script fails to load.
     // Never reinterpret or transpose it with a different parser.
@@ -332,6 +335,7 @@ function renderSongFeedback(title, subtitle) {
 function renderSong(song, relations) {
   if (!currentSong || currentSong.id !== song.id) transpose = window.ShalomSongPreferences?.readTranspose() ?? 0;
   currentSong = song;
+  readerArrangement = null;
   const title = song.title || song.name || "Canción sin título";
   const type = song.song_type || song.type || "Canción";
   const artistText = names(relations.artists) || song.artist || song.artist_name || "";
@@ -358,8 +362,10 @@ function renderSong(song, relations) {
   renderRelatedSongs(song, relations);
   // Only expose Studio for an available, current publication; never load audio here.
   if (window.ShalomStudioEntry && song.updated_at) {
-    window.ShalomStudioEntry.available(client, song).then(available => {
-      if (!available || currentSong?.id !== song.id || document.getElementById("songStudioAction")) return;
+    window.ShalomStudioEntry.publication(client, song).then(arrangement => {
+      if (!arrangement || currentSong?.id !== song.id || currentSong.updated_at !== song.updated_at) return;
+      readerArrangement=arrangement;renderChordLyrics();
+      if(document.getElementById("songStudioAction"))return;
       const actions = document.getElementById("songReaderActions") || prepareReaderToolbar();
       if (!actions) return;
       const b = document.createElement("button");

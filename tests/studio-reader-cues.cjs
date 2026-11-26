@@ -1,0 +1,15 @@
+"use strict";
+const assert=require("node:assert/strict"),C=require("../studio-core"),codec=require("../studio-codec"),reader=require("../studio-reader-cues"),parser=require("../song-chords");
+const source="[Verso]\nC    G\nHola mundo\n[Coro]\nAm    F\nOtra línea";
+const rows=parser.parseRows(source),anchors=C.anchorsFromRows(rows);
+const config=C.setCues(C.draft(anchors),[{index:0,ticks:0,action:"start",audience:"solo",text:"Suave"},{index:2,ticks:0,action:"repeat",audience:"choir",text:"Dos veces <3"}]);
+const arrangement=codec.encode(anchors,config),shifted=parser.parseRows(source,()=>"D");
+const decorated=reader.decorate(rows,arrangement,shifted);
+assert.deepEqual(decorated.filter(r=>r.kind!=="cue"),shifted);
+assert.deepEqual(decorated.map(r=>r.kind),["section","cue","chords","section","cue","chords"]);
+assert.match(decorated[1].text,/Iniciar · Solista · Suave/);
+assert.match(decorated[4].text,/Repetir · Coro · Dos veces <3/);
+assert.equal(reader.decorate(rows,{...arrangement,s:"bad"},shifted),shifted);
+assert.equal(reader.decorate(rows,{...arrangement,i:[]},shifted),shifted);
+assert.equal(reader.decorate(rows,{...arrangement,i:[[999,0,"start","solo",""]]},shifted),shifted);
+console.log("Static cues: canonical anchor mapping, transposition, stale and malformed rejection.");

@@ -33,6 +33,7 @@ assert.equal(builds,1);assert.equal(scope.nextPlaybackChord(a,1),undefined);
 assert.equal(scope.nextPlaybackChord(b,0),b[1]);assert.equal(builds,2);
 assert.equal(scope.nextPlaybackChord(a,0),a[1]);assert.equal(builds,3);
 assert.match(source,/const upcoming=nextPlaybackChord\(timeline,i\)/);
-assert.match(source,/function stop\(\)\{indexedTimeline=null;upcomingIndices=null;/);
+assert.match(source,/function stop\(\)\{[^\n]*?indexedTimeline=null;upcomingIndices=null;/);
+assert.match(source,/function stop\(\)\{[^\n]*?cueTimeline=null;cueEvents=\[\];/);
 assert.doesNotMatch(source,/timeline\.find\(\(x,j\)=>j>i/);
 console.log("Upcoming chords: reverse index matches previous search, including silence, repeated anchors and transposition; one index per active timeline.");

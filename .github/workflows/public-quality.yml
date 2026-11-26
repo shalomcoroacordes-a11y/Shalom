@@ -87,6 +87,8 @@ jobs:
 
       - name: Test shared musical and liturgical cues
         run: node tests/studio-cues.cjs
+      - name: Test static reader indications
+        run: node tests/studio-reader-cues.cjs
       - name: Test guided Studio editor and scoped rhythm controls
         run: node tests/studio-guided-editor.cjs
 

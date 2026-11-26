@@ -25,5 +25,5 @@ scope.anchors=b;assert.equal(scope.playbackAnchor(a[0].id).index,b.length-1);ass
 assert.equal(scope.playbackAnchor("absent"),undefined);
 assert.match(src,/active=playbackAnchor\(e.anchorId\),anchorIndex=active\?\.index\?\?-1/);
 assert.match(src,/const index=active.ordinal/);
-assert.match(src,/function stop\(\)\{indexedTimeline=null;upcomingIndices=null;indexedAnchors=null;activeAnchorIndex=null;/);
+assert.match(src,/function stop\(\)\{[^\n]*?indexedTimeline=null;upcomingIndices=null;indexedAnchors=null;activeAnchorIndex=null;/);
 console.log("Active anchor index: first ID, lyric column rank, missing anchors, unchanged input and one build per active source.");
