@@ -34,3 +34,7 @@ La rama de recuperación nativa añade consulta autorizada de las últimas 30 re
 ## Regresión conjunta
 
 `tests/sql/combined-recovery.sql` combina las tres protecciones sobre PostgreSQL desechable. No usa credenciales de producción. Valida que un fallo en la auditoría no deje ni historial ni papelera parciales y que el RPC anterior conserve la revisión original tras restauración. Complementa, no reemplaza, las pruebas independientes ni la verificación del esquema y permisos reales.
+
+## Compatibilidad con marcas de tiempo reales y bloqueo de propietario
+
+La restauración mantiene `song_revision` y la letra de origen. El trigger de producción `studio_touch` actualiza `updated_at` al insertar; ese valor indica la operación de restauración y no cambia la revisión musical. El historial guarda la marca anterior. La prueba conjunta reproduce los dos triggers de fechas observados. La restauración requiere propietario y la comprobación RBAC `songs.delete` (concedida a todo propietario activo por la función vigente, denegada a bloqueados). No modifica las funciones de identidad compartidas ni corrige por sí sola todas las rutas heredadas. CI y despliegue real pendientes.

@@ -74,3 +74,7 @@ El código puede estar listo antes de que el lanzamiento esté autorizado. Mante
 ### Prueba conjunta de recuperación
 
 El workflow de papelera ejecuta `tests/sql/combined-recovery.sql`, que reutiliza el fixture aislado original y aplica también privilegios RBAC e historial Studio. Comprueba rollback de las tres operaciones cuando falla el registro de auditoría, contrato RPC anterior, lectura de historial separada del permiso de borrado y restauración de letra, relaciones y arreglo exactos. Los permisos son simulados en el fixture; no certifican las políticas desplegadas ni un respaldo restaurado real. Pendiente verificar CI del SHA final.
+
+### Compatibilidad detectada en preflight
+
+La regresión conjunta comprueba también los triggers de fecha de producción y rechazo de restauración a propietario bloqueado, mediante la comprobación de permiso vigente. Mantener pendiente la matriz completa de roles y rutas heredadas, el respaldo restaurable y la autorización de despliegue. No afirmar que el SQL está instalado por aprobar esta prueba.

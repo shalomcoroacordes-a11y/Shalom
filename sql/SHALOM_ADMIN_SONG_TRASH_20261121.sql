@@ -48,7 +48,9 @@ returns boolean language plpgsql security definer set search_path=''
 as $$
 declare old public.admin_trash%rowtype; song jsonb; parts jsonb;
 begin
- if auth.uid() is null or not public.admin_is_owner() then raise exception 'Solo el superadministrador puede restaurar la papelera';end if;
+ -- Owner status alone does not check access blocks in the deployed RBAC helper.
+ -- Every active owner has songs.delete; this additional gate rejects blocked owners.
+ if auth.uid() is null or public.admin_is_owner() is not true or public.admin_has_permission('songs.delete') is not true then raise exception 'Solo el superadministrador puede restaurar la papelera';end if;
  select * into old from public.admin_trash where id=p_trash_id for update;
  if not found or old.item_type<>'song' then raise exception 'No existe este canto en papelera';end if;
  if exists(select 1 from public.songs where id=old.original_id) then
