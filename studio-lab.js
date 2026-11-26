@@ -341,7 +341,7 @@ function playbackAnchor(id){
  return activeAnchorIndex.get(id);
 }
 function showStep(timeline,i){
- const e=timeline[i];if(!e)return;renderCues(timeline,i,practiceRange);originalScore=null;const n=size(),active=playbackAnchor(e.anchorId),anchorIndex=active?.index??-1,parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
+ const e=timeline[i];if(!e)return;originalScore=null;renderCues(timeline,i,practiceRange);const n=size(),active=playbackAnchor(e.anchorId),anchorIndex=active?.index??-1,parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
  if($("chord").textContent!==(e.chord||"—")){$("chord").textContent=e.chord||"—";diagram(e.chord)}
  $("transportSection").textContent=anchors[anchorIndex]?.section||"Inicio";$("where").textContent="Compás "+(bar+1)+" · Pulso "+(beat+1)+(e.tempo?" · "+Math.round(e.tempo)+" BPM":"");
  const upcoming=nextPlaybackChord(timeline,i);
