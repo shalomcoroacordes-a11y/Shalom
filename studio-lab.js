@@ -133,10 +133,11 @@ function renderCues(timeline,step,range=null){
  const box=$("liveCue"),now=$("cueCurrent"),later=$("cueNext"),prev=box.hidden;
  box.hidden=!visible||(!current&&!next);
  const a=current?current.cues.map(cueLabel).join(" · "):"",b=next?"Después: "+next.cues.map(cueLabel).join(" · "):"";
+ const changed=now.textContent!==a||later.textContent!==b;
  if(now.textContent!==a)now.textContent=a;if(later.textContent!==b)later.textContent=b;
- if(prev!==box.hidden)syncTransportSpace();
+ if(changed||prev!==box.hidden)syncTransportSpace();
 }
-$("cueVisible").onchange=()=>{if(cueTimeline)renderCues(cueTimeline,cueStep,cueRange);syncTransportSpace()};
+$("cueVisible").onchange=()=>{if(cueTimeline)renderCues(cueTimeline,cueStep,cueRange);else $("cueOverview").hidden=!$("cueVisible").checked||!$("cueOverviewList").children.length;syncTransportSpace()};
 function renderSections(){
  if(!config||!groups.length)return;
  $("structureSummary").textContent=groups.length+" secciones · "+anchors.length+" acordes";const root=$("sectionCards");root.replaceChildren(...groups.map((g,k)=>{
@@ -371,7 +372,7 @@ function showStep(timeline,i){
  }
  if(playing)followLine(line);
 }
-function stop(){cueTimeline=null;cueEvents=[];$("liveCue").hidden=true;indexedTimeline=null;upcomingIndices=null;indexedAnchors=null;activeAnchorIndex=null;const wasInline=inlineSection;inlineSection=null;playing=false;audition=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop();$("hearBar").textContent="▶ Escuchar compás";$("auditionStatus").textContent="";$("grid").querySelector(".audition-active")?.classList.remove("audition-active");if(wasInline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="▶ Escuchar";const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Escucha detenida."}}
+function stop(){cueTimeline=null;cueEvents=[];$("liveCue").hidden=true;syncTransportSpace();indexedTimeline=null;upcomingIndices=null;indexedAnchors=null;activeAnchorIndex=null;const wasInline=inlineSection;inlineSection=null;playing=false;audition=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop();$("hearBar").textContent="▶ Escuchar compás";$("auditionStatus").textContent="";$("grid").querySelector(".audition-active")?.classList.remove("audition-active");if(wasInline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="▶ Escuchar";const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Escucha detenida."}}
 function prepareSequence(){
  const tracks=sequence.map(p=>{
   $("source").value=p.song.lyrics;const a=core.anchorsFromRows(readRows()),cfg=window.ShalomStudioCodec.decode(a,p.arrangement);
