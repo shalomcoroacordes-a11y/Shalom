@@ -28,7 +28,7 @@ assert.match(app,/onPress:\(\)=>active\?setActionSongId\(String\(active\.id\)\)/
  "The reader menu opens actions for the active song");
 assert.match(app,/onShare:\(\)=>shareSong\(actionSong\)/,
  "The actions panel preserves sharing without editing");
-assert.match(app,/onPrint:\(\)=>printSong\(actionSong\)/,
+assert.match(app,/onPrint:actionContext\?\(\)=>Print\.printAsync[\s\S]*?:\(\)=>printSong\(actionSong\)/,
  "The actions panel preserves native printing");
 assert.match(songActions,/Compartir canción/,"Sharing remains visible in the actions panel");
 assert.match(songActions,/Imprimir letra y acordes/,"Printing remains visible in the actions panel");

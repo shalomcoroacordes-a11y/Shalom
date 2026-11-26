@@ -555,7 +555,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
        label(song?.title||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
         (song?.tone?" · Tono "+tone:""),styles.meta)),
-      h(CollectionSongMenu,{song,style:styles.chip,textStyle:styles.chipText,onPress:onSongOptions&&resolved.lyrics!==null?()=>onSongOptions(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position,override:p.cueOverride,practiceReady:!!plan.entries[index]?.ready}):null})),
+      h(CollectionSongMenu,{song,style:styles.chip,textStyle:styles.chipText,onPress:onSongOptions&&resolved.lyrics!==null?()=>onSongOptions(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position,override:p.cueOverride,personalTarget:{folderId:folder.id,entryId:entry.id,partId:p.id},practiceReady:!!plan.entries[index]?.ready}):null})),
      h(CollectionCapoControl,{song,selection,onSelect:id=>changePart(p.id,x=>({...x,capoId:id})),style:styles.chip,textStyle:styles.chipText}),
      p.notes?label(p.notes,styles.meta):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):

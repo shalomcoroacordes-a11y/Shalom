@@ -16,7 +16,7 @@ assert.equal(nav.isSelectedTab("Popurrís","Cantos"),true);
 assert.match(readers,/renderToneStepper\(toned,true\)/);
 assert.match(readers,/label\("LETRA",S.songControlCaption\)/);
 assert.match(readers,/label\("CAPO",S.songControlCaption\)/);
-assert.match(app,/onResetTone:resetTone/,"Tone can be reset in the actions sheet");
+assert.match(app,/onResetTone:actionContext\?null:resetTone/,"Tone can be reset in the actions sheet");
 assert.match(styles,/songCompactControls:/);
 assert.match(personalStyles,/quickTile:\{width:"31%"/);
 assert.match(personal,/SHALOM → Mis creaciones → Recibir composición → Pegar mensaje/);

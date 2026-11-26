@@ -32,6 +32,7 @@ const {createPersonalBackupController}=require("./src/personal-backup-controller
 const {createPersonalEditController}=require("./src/personal-edit-controller");
 const {addToPersonal}=require("./src/song-actions-core");
 const {copyOfficial}=require("./src/personal-workflows");
+const {updateOccurrenceCues}=require("./src/personal-store");
 const {buildPrintableSong}=require("./src/song-print");
 const {songPermalink,createSongReaderActions}=require("./src/song-reader-actions");
 const {capoSelection}=require("./src/song-capo-core");
@@ -531,7 +532,7 @@ function AppScreen() {
        adjustsFontSizeToFit:true,minimumFontScale:.78,allowFontScaling:false},name));})) : null,
   actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
-   store:personal,onDismiss:()=>setActionSongId(null),context:actionContext,onOpenOriginal:actionContext?()=>selectSong(actionSong):null,
+   store:personal,onDismiss:()=>setActionSongId(null),context:actionContext,onSaveCues:actionContext?.personalTarget?value=>{const next=updateOccurrenceCues(personalRef.current,actionContext.personalTarget,actionSong,actionContext.lyrics,actionContext.override,value);savePersonal(next,{notice:"Indicaciones actualizadas solo en esta colección"});}:null,onOpenOriginal:actionContext?()=>selectSong(actionSong):null,
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
    onOpenLink:url=>openWeb(url),
    onOpenSongPage:()=>openWeb(songPermalink(actionSong)),
