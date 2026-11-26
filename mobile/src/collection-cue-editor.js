@@ -24,7 +24,7 @@ function CollectionCueEditor({lyrics,initial,onSave,styles,official=false}){
  }
  function save(){
   try{
-   if(mode!=="inherit"&&mode!=="hide"&&start!==null)throw Error("Agrega o cancela la indicación que estás editando.");
+   if(mode!=="inherit"&&mode!=="hide"&&(start!==null||editing!==null))throw Error("Agrega o cancela la indicación que estás editando.");
    if(mode!=="inherit"&&mode!=="hide"&&cues.some(c=>!core.validLyricCue(rows,c)))throw Error("Hay indicaciones con frases desactualizadas. Edítalas o quítalas.");
    const next=ReaderCues.validateOverride(rows,mode==="inherit"?null:{v:1,mode,j:codec.encodeLyricCues(mode==="hide"?[]:cues).j});
    onSave(next);

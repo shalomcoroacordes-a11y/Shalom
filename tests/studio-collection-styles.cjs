@@ -8,25 +8,26 @@ for(const [name,value] of Object.entries(expected))assert.ok(dialogRules.include
 assert.match(css,/\.studio-collection-dialog \.studio-collection-row\s*\{\s*padding: 6px 0;/);
 for(const [page,bundle] of [["popurris.html","medleys.css?v=1"],["repertorios.html","repertoires.css?v=1"]]){
  const html=fs.readFileSync(page,"utf8");
- assert.equal((html.match(/href="studio-collection-web\.css\?v=1"/g)||[]).length,1);
+ assert.equal((html.match(/href="studio-collection-web\.css\?v=2"/g)||[]).length,1);
  assert.ok(html.includes(bundle));
  assert.ok(html.indexOf("collection-reader-bundle.css")<html.indexOf(bundle));
  assert.ok(html.indexOf(bundle)<html.indexOf("studio-collection-web.css"));
- assert.match(html,/src="studio-collection-web\.js\?v=3"/);assert.match(html,/src="song-capo-core\.js\?v=1"/);
+ assert.match(html,/src="studio-collection-web\.js\?v=4"/);assert.match(html,/src="song-capo-core\.js\?v=1"/);
 }
 assert.match(sw,/shalom-offline-shell-v34-lyric-cues/);
 assert.match(sw,/"\.\/studio-collection-web\.css"/);
 const dialogs=[],opened=[];
 function element(tag){
  const events={};
- return {tag,children:[],className:"",textContent:"",append(...items){this.children.push(...items)},prepend(item){this.children.unshift(item)},addEventListener(k,fn){events[k]=fn},click(){return events.click?.()},showModal(){this.open=true},close(){this.open=false;events.close?.()},remove(){this.removed=true},querySelectorAll(){return []}};
+ const classes=new Set();return {tag,children:[],className:"",textContent:"",classList:{add:v=>classes.add(v),remove:v=>classes.delete(v),contains:v=>classes.has(v)},setAttribute(){},append(...items){this.children.push(...items)},prepend(item){this.children.unshift(item)},addEventListener(k,fn){events[k]=fn},click(){return events.click?.()},showModal(){this.open=true},close(){this.open=false;events.close?.()},remove(){this.removed=true},querySelectorAll(){return []}};
 }
-const document={createElement:element,body:{append(node){dialogs.push(node)}}};
+const document={createElement:element,body:element("body")};document.body.append=node=>dialogs.push(node);
 const payload={song:{id:"a",revision:"rev"},arrangement:{v:1},shift:0,capo:0};
 const item={index:0,title:"Canto A",ready:true,payload};
 const plan={ready:[item],entries:[item,{index:1,title:"Canto B",ready:false,reason:"Sin arreglo"}],total:2};
 const window={ShalomStudioCollections:{plan:()=>plan,sequencePlan:()=>null},ShalomStudioEntry:{open:async args=>opened.push(args)},alert(){throw Error("Unexpected alert")}};
-vm.runInNewContext(js,{window,document});
+const location={href:"https://example.test/Shalom/repertorios.html?id=1"};const navigator={clipboard:{writeText:async()=>{}}};let printed=0,afterPrint;window.addEventListener=(name,fn)=>{afterPrint=fn};window.removeEventListener=()=>{};window.print=()=>{printed++;assert.ok(document.body.classList.contains("collection-print-single"));assert.ok(article.classList.contains("collection-print-target"));afterPrint();};
+vm.runInNewContext(js,{window,document,location,navigator,URL});
 const container=element("section"),article=element("article"),client={};
 window.ShalomStudioCollectionWeb.mount({client,container,articles:[article],parts:[],songs:[],kind:"ensayo"});
 assert.equal(article.children.length,1);assert.equal(container.children.length,1);
@@ -37,3 +38,10 @@ for(const row of dialog.children[2].children)assert.equal(row.className,"studio-
 dialog.children[2].children[0].children[0].click();
 assert.equal(dialog.removed,true);assert.equal(opened.length,1);assert.equal(opened[0].song.updated_at,"rev");
 console.log("Studio collection: static CSS, exact declarations, print exclusion, cache and practice dialog verified.");
+
+window.ShalomStudioCollectionWeb.openSongOptions({song:{id:"a",title:"Canto A"},article,onCapo:()=>opened.push("capo")});
+const options=dialogs.at(-1);assert.equal(options.open,true);assert.equal(options.children[0].textContent,"Canto A");
+options.children.find(n=>n.textContent==="Cambiar capo").click();assert.equal(opened.at(-1),"capo");
+window.ShalomStudioCollectionWeb.openSongOptions({song:{id:"a",title:"Canto A"},article});
+dialogs.at(-1).children.find(n=>n.textContent==="Imprimir letra y acordes de este canto").click();assert.equal(printed,1);assert.equal(article.classList.contains("collection-print-target"),false);assert.equal(document.body.classList.contains("collection-print-single"),false);
+console.log("Context menu: per-occurrence capo and isolated print scope verified.");
