@@ -1,7 +1,7 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const {emptyStore,newCollection,newPart,parseStore,exportCode}=require("../src/personal-collections");
-const {items,createPersonal,receivePersonal,codePreview,kindName}=require("../src/personal-workflows");
+const {items,createPersonal,copyOfficial,receivePersonal,codePreview,kindName}=require("../src/personal-workflows");
 const initial=emptyStore();
 const created=createPersonal(initial,"misa","Misa del domingo");
 assert.equal(initial.collections.length,0,"No debe mutar las colecciones originales");
@@ -73,3 +73,30 @@ assert.match(screen,/if\(view==="folders"\)/,"Volver de carpeta avanzada al inic
 assert.doesNotMatch(fs.readFileSync("src/personal-workflows.js","utf8"),/fetch\s*\(|createClient|supabase\.(from|rpc)|https?:\/\//i,
  "El flujo nuevo no escribe en la nube");
 console.log("SHALOM: crear, editar, compartir y recibir localmente sin carpetas obligatorias verificado.");
+
+const officialSongs=[{id:"s",lyrics:"[Verso]\nPrimera frase\n[Coro]\nSegunda frase"}];
+const cueOverride={v:1,mode:"hide",j:[]};
+const official={title:"Misa oficial",is_published:true,items:[{song_id:"s",moment:"Entrada",notes:"Suave",cue_override:cueOverride},{song_id:"s",moment:"Salida"}]};
+const snapshot=JSON.stringify(official),copied=copyOfficial(initial,official,"misa",officialSongs);
+assert.equal(initial.collections.length,0);assert.equal(copied.entry.kind,"misa");assert.equal(copied.entry.parts.length,2);
+assert.notEqual(copied.entry.parts[0].id,copied.entry.parts[1].id);
+assert.deepEqual(copied.entry.parts[0].cueOverride,cueOverride);assert.equal(copied.entry.parts[0].notes,"Suave");
+copied.entry.parts[0].cueOverride.mode="replace";assert.equal(JSON.stringify(official),snapshot);
+assert.equal(parseStore(JSON.stringify(copied.store)).collections[0].entries[0].parts[0].cueOverride.mode,"replace");
+const medley={title:"Popurrí oficial",parts:[{song_id:"s",lyrics:"[Coro]\nSegunda frase",shift:2}]};
+const copiedMedley=copyOfficial(initial,medley,"popurri",officialSongs);
+assert.equal(copiedMedley.entry.parts[0].sectionIndex,1);assert.equal(copiedMedley.entry.parts[0].shift,2);
+const edited={...medley,parts:[{...medley.parts[0],title:"Mi fragmento",lyrics:"[Coro]\nC G\nFragmento editado",cue_override:cueOverride,capo_id:"main"}]};
+const editedBefore=JSON.stringify(edited),editedCopy=copyOfficial(initial,edited,"popurri",officialSongs);
+const copiedPart=editedCopy.entry.parts[0],{resolvePart,importCode}=require("../src/personal-collections");
+assert.equal(copiedPart.fragmentLyrics,edited.parts[0].lyrics);
+assert.equal(copiedPart.fragmentTitle,"Mi fragmento");
+assert.equal(copiedPart.capoId,"main");assert.deepEqual(copiedPart.cueOverride,cueOverride);
+assert.equal(resolvePart({...officialSongs[0],lyrics:"Letra actualizada"},copiedPart).lyrics,edited.parts[0].lyrics);
+assert.equal(resolvePart(null,copiedPart).lyrics,edited.parts[0].lyrics);
+assert.equal(importCode(exportCode(editedCopy.entry)).parts[0].fragmentLyrics,copiedPart.fragmentLyrics);
+assert.equal(parseStore(JSON.stringify(editedCopy.store)).collections[0].entries[0].parts[0].fragmentLyrics,copiedPart.fragmentLyrics);
+assert.equal(JSON.stringify(edited),editedBefore);
+assert.throws(()=>copyOfficial(initial,{...medley,parts:[{...medley.parts[0],lyrics:""}]},"popurri",officialSongs),/letra válida/);
+assert.throws(()=>copyOfficial(initial,official,"misa",[]),/Descarga/);
+console.log("Official copy: independent occurrences, notes and overrides preserved; modified fragments preserved, missing references rejected.");

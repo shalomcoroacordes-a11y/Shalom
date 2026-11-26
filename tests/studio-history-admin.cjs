@@ -1,0 +1,24 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
+const window={};vm.runInNewContext(fs.readFileSync("studio-history-admin.js","utf8"),{window});
+const {compatible,previewSong}=window.ShalomStudioHistory;
+const song={id:"song",updated_at:"r2",title:"Actual",lyrics:"G\nActual"};
+const row={song_id:"song",song_revision:"r1",arrangement:{v:1},song_context:{updated_at:"r1",title:"Anterior",lyrics:"C\nAnterior"}};
+assert.equal(compatible(row,song),false);assert.equal(previewSong(row,song).lyrics,row.song_context.lyrics);
+assert.equal(compatible({...row,song_revision:"r2"},song),true);
+assert.equal(previewSong({...row,song_revision:"r2"},song).lyrics,song.lyrics);
+assert.throws(()=>previewSong({...row,song_context:null},song),/letra exacta/);
+assert.throws(()=>previewSong({...row,song_id:"other"},song),/letra exacta/);
+assert.throws(()=>previewSong({...row,song_context:{...row.song_context,updated_at:"r2"}},song),/letra exacta/);
+assert.equal(compatible({...row,song_revision:"r2",arrangement:{v:2}},song),false);
+const entry=fs.readFileSync("studio-entry.js","utf8"),lab=fs.readFileSync("studio-lab.js","utf8"),history=fs.readFileSync("studio-history-admin.js","utf8");
+assert.match(history,/admin:false,arrangement:row.arrangement/);
+assert.match(history,/admin:true,recoveryDraft:row.arrangement,expectedOwner:owner/);
+assert.match(entry,/recoveryDraft&&\(!admin\|\|!expectedOwner\)/);
+assert.match(entry,/identity.data\?\.user\?\.id!==expectedOwner/);
+assert.match(lab,/config=recovered\|\|draft\|\|published/);
+assert.match(lab,/baseline=recovered\?null:fingerprint\(\)/);
+assert.doesNotMatch(history,/\.upsert\(|\.insert\(|\.delete\(|\.update\(/);
+console.log("Studio history: exact revision, historical context, incompatible revision denial, review-only playback and explicit draft handoff.");
+
+assert.match(entry,/cueOnly&&\(!admin\|\|!expectedOwner\)/);assert.match(entry,/musical\(payload\)!==musical\(data\?\.arrangement\)/);assert.match(entry,/\.eq\("updated_at",current.data.updated_at\)/);assert.match(fs.readFileSync("admin-pro.js","utf8"),/openArrangement\(true,cuesButton\)/);

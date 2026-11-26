@@ -1,0 +1,49 @@
+const assert=require("node:assert/strict"),fs=require("node:fs"),core=require("../studio-core"),codec=require("../studio-codec");
+const rows=[{kind:"section",text:"Verso"},{kind:"chords",chordLine:"C   G"},{kind:"section",text:"Coro"},{kind:"chords",chordLine:"Am  F"}],anchors=core.anchorsFromRows(rows),groups=core.groupAnchors(anchors,rows);
+const old=core.draft(anchors),legacy=codec.encode(anchors,old);assert.equal(legacy.i,undefined);assert.equal(codec.decode(anchors,legacy).cues,undefined);
+let cfg=core.setDuration(old,0,10);const a={...core.cuePosition(cfg,groups[0],2),action:"wait",audience:"liturgical",text:"Esperar señal"},b={...core.cuePosition(cfg,groups[1],1),action:"repeat",audience:"choir",text:"2 veces"};
+cfg=core.setCues(cfg,[b,a]);const value=codec.encode(anchors,cfg),decoded=codec.decode(anchors,value);assert.deepEqual(codec.encode(anchors,decoded),value);assert.equal(value.i.length,2);
+const original=core.compile(anchors,{...cfg,cues:[]}),timeline=core.compile(anchors,cfg);assert.deepEqual(timeline.map(({cues,...event})=>event),original);const entries=core.cueEntries(timeline);assert.equal(entries[0].step,8);assert.equal(entries[1].step,12);assert.equal(core.cueWindow(entries,8,8).current.cues[0].text,"Esperar señal");assert.equal(core.cueWindow(entries,8,8).next.cues[0].text,"2 veces");assert.equal(core.cueWindow(entries,12,8,{start:12,end:14}).current.cues[0].action,"repeat");assert.equal(core.cueWindow(entries,8,8,{start:0,end:10}).next,null);
+assert.throws(()=>core.setCues(cfg,[a,a]),/duplicada/);assert.throws(()=>core.setCues(cfg,[{...a,action:"bad"}]),/inválida/);assert.throws(()=>core.setCues(cfg,[{...a,text:"x".repeat(161)}]),/inválida/);assert.throws(()=>core.compile(anchors,core.setDuration(cfg,0,6)),/indicación/);assert.throws(()=>codec.decode(anchors,{...value,i:[[0,1,"note","all","x"]]}),/cuadrícula/);
+const finer=core.redivide(cfg,4);assert.deepEqual(core.cueEntries(core.compile(anchors,finer)).map(x=>x.step),entries.map(x=>x.step*2));assert.equal(codec.encode(anchors,core.setCues(cfg,[])).i,undefined);
+const html=fs.readFileSync("studio-lab.html","utf8"),js=fs.readFileSync("studio-lab.js","utf8");for(const id of ["cueVisible","cueOverview","liveCue","cueCurrent","cueNext"])assert.ok(html.includes('id="'+id+'"'));assert.ok(js.includes("panel.append(lyricCueEditor(g))"));assert.ok(js.includes("if(g)panel.append(cueSectionEditor(g))"));assert.ok(js.includes("lyricCueEditor(null)"));assert.ok(js.includes("core.lyricCueAnchor(rows,start,finish)"));assert.ok(js.includes("Vista previa · debajo de la selección"));assert.ok(js.includes("renderCues(timeline,i,practiceRange)"));console.log("Studio cues: legacy codec, roundtrip, timing, playback parity, ranges and validation passed.");
+
+assert.match(js,/value\.lyricOnly\?codec\.encodeLyricCues/);assert.match(js,/config=config\|\|\{lyricOnly:true/);assert.match(js,/if\(!updated\.lyricOnly\)core\.compile/);assert.match(js,/core\.setLyricCues\(core\.draft/);
+
+ // Exercise the actual phrase selector with a minimal DOM, including a repeated phrase.
+ const vm=require("node:vm"),parser=require("../song-chords");
+ function element(tag,text=""){
+  return {tag,textContent:text,children:[],style:{},dataset:{},attrs:{},value:"",parent:null,
+   append(...children){for(const child of children){child.remove?.();this.children.push(child);child.parent=this;if(this.tag==="select"&&!this.value)this.value=child.value;}},
+   replaceChildren(...children){for(const child of this.children)child.parent=null;this.children=[];this.append(...children);},
+   remove(){if(this.parent){this.parent.children=this.parent.children.filter(c=>c!==this);this.parent=null;}},
+   setAttribute(k,v){this.attrs[k]=v;}};
+ }
+ const lyrics="[Verso]\nC G\nCantemos juntos\nUna segunda frase\n[Coro]\nCantemos juntos";
+ const lyricRows=parser.parseRows(lyrics),savedCue={...core.lyricCueAnchor(lyricRows,4),action:"note",audience:"choir",text:"Suave"};
+ const host={querySelector:()=>({open:false})},notes=[];
+ const scope={core,window:{ShalomChords:parser,confirm:()=>true},config:{lyricOnly:true,lyricCues:[savedCue]},anchors:[],elem:element,Option:function(label,value){return Object.assign(element("option",label),{value});},$:id=>id==="source"?{value:lyrics}:host,safe:fn=>fn,stop(){},renderReview(){},renderSections(){},note:v=>notes.push(v)};
+ const begin=js.indexOf("function lyricCueEditor(g){"),finish=js.indexOf("function cueSectionEditor(g){",begin);
+ vm.runInNewContext(js.slice(begin,finish),scope);
+ const panel=scope.lyricCueEditor(null),walk=n=>[n,...n.children.flatMap(walk)],find=(cls)=>walk(panel).find(n=>n.className===cls);
+ const phraseRows=walk(panel).filter(n=>n.className==="cue-phrase-row");
+ assert.deepEqual(phraseRows.map(n=>n.dataset.row),["1","2","4"]);
+ assert.deepEqual(walk(panel).filter(n=>n.className==="cue-phrase-heading").map(n=>n.textContent),["Verso","Coro"]);
+ assert.equal(phraseRows[2].children[1].textContent,"◆ Indicación · Coro · Suave");
+ assert.equal(phraseRows[2].children[1].style.color,core.cueAppearance("note").dark);
+ phraseRows[0].children[0].onclick();phraseRows[1].children[0].onclick();
+ assert.equal(phraseRows[0].children[0].attrs["aria-pressed"],"true");
+ assert.equal(phraseRows[1].children[0].attrs["aria-pressed"],"true");
+ assert.equal(phraseRows[2].children[0].attrs["aria-pressed"],"false");
+ assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
+ const action=walk(panel).find(n=>n.tag==="select"),detail=walk(panel).find(n=>n.tag==="textarea");
+ action.value="repeat";detail.value="2 veces";detail.oninput();
+ assert.equal(find("cue-selection-preview").children[1].textContent,"↻ Repetir · 2 veces");
+ assert.equal(find("cue-selection-preview").children[1].style.color,core.cueAppearance("repeat").dark);
+ assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
+ walk(panel).find(n=>n.tag==="button"&&n.textContent==="Agregar indicación").onclick();
+ assert.equal(scope.config.lyricCues.length,2);
+ assert.equal(scope.config.lyricCues[0].start,1);assert.equal(scope.config.lyricCues[0].end,2);
+ assert.equal(scope.config.lyricCues[1].end,4);
+ assert.equal(scope.config.lyricCues[0].text,"2 veces");
+ console.log("Phrase picker: section context, repeated lyric disambiguation, live inline placement, selection and persisted range verified.");

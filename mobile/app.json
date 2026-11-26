@@ -3,7 +3,7 @@
     "name": "SHALOM",
     "slug": "shalom-offline",
     "scheme": "shalom",
-    "version": "0.4.24",
+    "version": "0.4.26",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -13,7 +13,7 @@
     "android": {
       "package": "com.shalomcoroacordes.cancionero",
       "edgeToEdgeEnabled": true,
-      "versionCode": 47,
+      "versionCode": 49,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#006D3B"

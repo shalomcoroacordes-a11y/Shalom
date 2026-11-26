@@ -3,7 +3,7 @@
  const db=window.supabaseClient,R=window.ShalomRepertoires;
  const $=id=>document.getElementById(id);
  const esc=R.html;
- let rows=[],current=null,songs=new Map(),loading=false;
+ let rows=[],current=null,songs=new Map(),loading=false,cuesVisible=true;
  const typeName=kind=>kind==="misa"?"Misa":"Ensayo";
  const friendlyDate=v=>R.formatDate(v);
  const menu=$("menuToggle"),nav=$("navMenu");
@@ -30,7 +30,7 @@
   const ids=[...new Set((rep.items||[]).map(x=>x.song_id))].filter(Boolean);
   songs=new Map();
   for(let i=0;i<ids.length;i+=100){
-   const {data,error}=await db.from("songs").select("id,title,lyrics,tone,song_type,updated_at").in("id",ids.slice(i,i+100));
+   const {data,error}=await db.from("songs").select("id,title,lyrics,tone,song_type,capo_position,capo_key,updated_at").in("id",ids.slice(i,i+100));
    if(error)throw error;
    for(const s of data||[])songs.set(s.id,s);
   }
@@ -54,6 +54,10 @@
     '<div class="rep-reader-lyrics">'+content+'</div></article>';
   }).join("");
   $("repPrintAll").innerHTML=html;
+  const container=$("repPrintAll");
+  const syncSections=()=>window.ShalomSectionReaderWeb?.mountCollection(container,String(rep.id),{articleSelector:".rep-continuous-song",scoreSelector:".rep-reader-lyrics"});
+  function toggle(value){cuesVisible=value;window.ShalomReaderCueControls?.mount(container,cuesVisible,toggle);syncSections();}
+  toggle(cuesVisible);
   $("repPrintAll").hidden=false;
   $("repPrintAll").setAttribute("aria-hidden","false");
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
@@ -67,7 +71,9 @@
   $("repCurrentLink").hidden=true;
   document.title=rep.title+" | SHALOM Repertorios";
   window.scrollTo({top:0,behavior:"instant"});
-  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;const container=$("repPrintAll");window.ShalomStudioCollectionWeb.mount({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind});}).catch(()=>{});
+  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;
+   toggle(cuesVisible);
+   window.ShalomStudioCollectionWeb.mountCapos({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind,onRendered:()=>toggle(cuesVisible)});}).catch(()=>{});
  }
  function back(){
   current=null;$("repCatalog").hidden=false;$("repReader").hidden=true;
@@ -106,6 +112,12 @@
  $("repType")?.addEventListener("change",catalog);
  $("repBack")?.addEventListener("click",back);
 
+ $("repSongOrder")?.addEventListener("click",event=>{
+  const link=event.target.closest(".rep-order-button");
+  if(!link)return;
+  const index=[...$("repSongOrder").querySelectorAll(".rep-order-button")].indexOf(link);
+  if(window.ShalomSectionReaderWeb?.selectEntry($("repPrintAll"),index))event.preventDefault();
+ });
  $("repPrint")?.addEventListener("click",()=>window.print());
  window.addEventListener("popstate",()=>{if(current)back();});
  init();

@@ -13,3 +13,11 @@ assert.deepEqual(summarize({files:["src/old.js"],issues:[{file:"package.json",de
 assert.deepEqual(summarize({files:[],issues:[]}),{files:0,dependencies:0,unlisted:0,unresolved:0});
 assert.throws(()=>summarize({}),/Invalid Knip/);
 console.log("Native Knip scope and report contract verified.");
+
+// The public lexical-scope regression imports Babel directly; do not rely on transitives.
+const publicPackage=JSON.parse(fs.readFileSync("mobile/package.json","utf8"));
+const publicLock=JSON.parse(fs.readFileSync("mobile/package-lock.json","utf8"));
+for(const name of ["@babel/parser","@babel/traverse"]){
+ assert.equal(publicPackage.devDependencies[name],publicLock.packages["node_modules/"+name].version);
+ assert.equal(publicLock.packages[""].devDependencies[name],publicPackage.devDependencies[name]);
+}

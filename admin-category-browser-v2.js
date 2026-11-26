@@ -14,21 +14,14 @@
   AP.categoryBrowser.orderDirty = Boolean(AP.categoryBrowser.orderDirty);
 
   const state = () => AP.categoryBrowser;
-  const byId = (id) => AP.categories.find((row) => idOf(row.id) === idOf(id));
-  const isRoot = (row) => !row?.parent_id;
-  const sorted = (rows) => [...rows].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0) || String(a.name || "").localeCompare(String(b.name || ""), "es"));
-  const directChildren = (parentId) => sorted(AP.categories.filter((row) => idOf(row.parent_id) === idOf(parentId)));
-  const descendantsCount = (id) => AP.categories.filter((row) => idOf(row.parent_id) === idOf(id)).length;
+  const tree = window.ShalomAdminCategoryHierarchy;
+  const byId = id => tree.byId(AP.categories, id);
+  const isRoot = row => !row?.parent_id;
+  const sorted = rows => tree.sorted(rows);
+  const directChildren = parentId => tree.children(AP.categories, parentId);
+  const descendantsCount = id => AP.categories.filter(row => idOf(row.parent_id) === idOf(id)).length;
   function pathTo(id) {
-    const path = [];
-    const seen = new Set();
-    let current = byId(id);
-    while (current && !seen.has(idOf(current.id))) {
-      seen.add(idOf(current.id));
-      path.unshift(current);
-      current = byId(current.parent_id);
-    }
-    return path;
+    return tree.path(AP.categories, byId(id));
   }
   function rootsForActiveType() {
     const active = state().type;
@@ -61,17 +54,7 @@
     const defaultType = editing ? String(source.song_type || "") : parentType(defaultParent);
     const siblingTotal = directChildren(defaultParent).length;
     const sort = editing ? Number(source.sort_order || 0) : (siblingTotal + 1) * 10;
-    const blocked = new Set();
-    if (editing) {
-      blocked.add(idOf(editing.id));
-      let changed = true;
-      while (changed) {
-        changed = false;
-        AP.categories.forEach((row) => {
-          if (blocked.has(idOf(row.parent_id)) && !blocked.has(idOf(row.id))) { blocked.add(idOf(row.id)); changed = true; }
-        });
-      }
-    }
+    const blocked = editing ? tree.descendants(AP.categories, editing.id) : new Set();
     const parents = apFlatCategories().filter((row) => !blocked.has(idOf(row.id)));
     const selectedParent = apOptions(parents, "id", (row) => apCategoryPath(row)).replace(`value=\"${apEsc(defaultParent)}\"`, `value=\"${apEsc(defaultParent)}\" selected`);
     const types = `<option value="" ${normType(defaultType) === "general" ? "selected" : ""}>General</option><option value="catolico" ${normType(defaultType) === "catolico" ? "selected" : ""}>Católico</option><option value="cristiano" ${normType(defaultType) === "cristiano" ? "selected" : ""}>Cristiano</option>`;

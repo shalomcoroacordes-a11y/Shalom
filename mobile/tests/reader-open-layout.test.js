@@ -8,7 +8,7 @@ const styles=fs.readFileSync("src/app-styles.js","utf8");
 const ui=fs.readFileSync("src/aligned-score-ui.js","utf8");
 const rows=parseSong("[Verso 1]\nG                  D\nAhí en la Eucaristía\n\n[Coro]\n C       Am      D\nMe da vida, Señor");
 const source=scoreHtml(rows,15);
-assert.match(readers,/h\(View,\{style:S\.songScorePlain\},\s*renderAlignedScoreRows/,"El canto utiliza lectura abierta");
+assert.match(readers,/h\(View,\{style:S\.songScorePlain\},\s*sectionMode\?h\(SectionReader,[^\n]+:renderAlignedScoreRows/,"Ambos modos conservan la lectura abierta");
 assert.doesNotMatch(styles,/songScoreCard:/,"No debe existir un recuadro azul de letras");
 assert.match(styles,/songScorePlain:\{width:"100%",marginTop:13,paddingBottom:10\}/,"Lectura ocupa todo el ancho disponible");
 assert.doesNotMatch(styles,/songScorePlain:\{[^}]*overflow:"hidden"/,"El área de letra no recorta el contenido");

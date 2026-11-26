@@ -27,7 +27,7 @@ SHALOM tiene tres partes conectadas:
 | Almacenamiento sin conexión | `mobile/src/database.js`, `mobile/src/file-storage.js` |
 | Administración de repertorios | `admin-repertoires.js`, `admin.html` |
 | Administración de popurrís | `admin-medleys.js`, `admin.html` |
-| Acceso al administrador | `admin-auth-controller.js`, `admin-access-guard.js`, políticas SQL |
+| Acceso al administrador | `admin-auth-controller.js`, `admin-pro.js`, políticas SQL |
 | Tablas, permisos y cambios de BD | Archivos `*.sql` en la raíz (todavía sin historial unificado) |
 | Compilación y pruebas automáticas | `.github/workflows/` |
 
@@ -78,3 +78,91 @@ El núcleo `admin-backup-core.js` define el formato, las 13 tablas, el orden de 
 
 
 Studio comparte `studio-native-screen.js` (fábrica de pantalla nativa), `studio-collections.js` (planificación de colecciones) y las fuentes web de Studio. `scripts/build-studio-native.js` genera las cinco salidas que usan las apps; la pantalla Admin recibe su mensaje de publicación específico y la pública su cola opcional desde el lector.
+
+## Presentación compartida de artistas y álbumes
+
+`catalog-list-view.js` es propietario de las tarjetas y el botón de paginación; `artistas.js` y `albumes.js` conservan sus consultas y filtros. Ambas páginas cargan `catalog-list-bundle.css` (copia concatenada y verificada de `catalog-cards.css` y `detalles.css`). Álbumes carga después `catalogo.css`, que también utiliza Categorías. No se modifica el orden de reglas ni los selectores. Si cambian los estilos fuente, actualizar el paquete y ejecutar `node tests/catalog-css-bundles-regression.cjs`. El bundle de detalle de canto conserva su propio contrato. Se elimina un paquete redundante a cambio de una hoja adicional en Álbumes, que puede aprovechar caché compartida; medir antes de afirmar una mejora de velocidad.
+
+## Estilos de lectores de colecciones
+
+Repertorios y Popurrís comparten `collection-reader-bundle.css` (concatenación exacta de `site-shell.css`, `public-accessibility.css` y `song-chords.css`). Cada página carga a continuación su hoja específica (`repertoires.css` o `medleys.css`) y después `studio-collection-web.css`. El orden de cascada y la importación inicial de `mobile-experience.css` se conservan. Admin sigue utilizando las hojas originales. Los controles `public-page-bundles-regression.cjs` y `studio-collection-styles.cjs` verifican el contrato. Se añade una solicitud CSS por página a cambio de reutilizar un paquete común en caché; el rendimiento debe medirse.
+
+## Base compartida del lector y páginas informativas
+
+`public-content-base-bundle.css` conserva, en este orden, `site-shell.css`, `public-cards.css` y `public-accessibility.css`. Canción carga a continuación `song-reader-bundle.css` con sus nueve fuentes específicas en orden original; Acerca de, Contacto y Solicitar canto cargan `public-info-pages.css`. Los dos paquetes anteriores se retiran. Las pruebas de equivalencia exacta y orden de hojas permanecen en `tests/song-detail-bundle-regression.cjs` y `tests/public-info-bundle-regression.cjs`. El lector conserva impresión, capo y preferencias. No se altera la caché de Offline. La separación agrega una petición CSS por página y permite reutilizar la base; se requiere medición y revisión visual antes de afirmar una mejora de rendimiento.
+
+## Consulta de cantos relacionados
+
+`song-related-catalog.js` contiene la consulta y clasificación por artista (3), categoría (2) y álbum (1), con desempate por título y límite de seis sugerencias. `cancion.js` conserva el montaje, los textos y la presentación de las tarjetas. El módulo no depende del DOM y recibe explícitamente cliente, canción y relaciones; `tests/song-related-catalog.cjs` prueba consultas simuladas y resultados. No cambia el algoritmo ni los permisos de lectura.
+
+## Intérprete del lector web
+
+`cancion.js` usa exclusivamente `song-chords.js` para interpretar las letras, acordes superiores, acordes entre paréntesis y secciones. El lector conserva su cálculo de transposición y capo; el intérprete compartido valida cada token y recibe una función para transponerlo. Se elimina el analizador alternativo anterior, que no soportaba todos los formatos. Si falta el script canónico, se muestra el texto fuente sin interpretar y un aviso de recarga; no se simula una transposición. `tests/song-reader-chords.cjs` verifica equivalencia de la ruta habitual y el modo degradado. No se cambia el motor nativo ni otros consumidores web.
+
+## Retiro del intérprete histórico y equivalencia musical
+
+`details.js` no tiene consumidores activos y se retira; su historial permanece en Git. El lector web utiliza `song-chords.js`, mientras las aplicaciones conservan las salidas generadas desde `native-chords.js`. `tests/chord-engine-parity.cjs` convierte el HTML web a filas semánticas y compara con el motor nativo para 20 ejemplos y 25 desplazamientos, incluidos espacios, secciones, acordes con bajo, formato mixto y caracteres HTML. Esta prueba comprueba equivalencia en las muestras, no una fusión de motores ni medición visual. También rechaza referencias al módulo retirado en archivos de código y configuración versionados.
+
+## Posición del editor de cantos (Admin web)
+
+`admin-editor-position.js` administra exclusivamente el cursor y desplazamiento horizontal/vertical por canto durante la sesión. Conserva la clave `shalom-admin-editor-positions-v1` y la estructura anterior; no guarda letras ni escribe en Supabase. `admin-pro.js` mantiene la propiedad de los eventos y del ciclo de montaje, y limpia únicamente la posición del borrador nuevo al reiniciarlo. El servicio tolera almacenamiento bloqueado o corrupto y conserva el estado en memoria. La prueba `tests/admin-editor-position.cjs` verifica restauración, límites del cursor y compatibilidad con registros anteriores.
+
+## Preparación de borradores de cantos (Admin web)
+
+`admin-song-draft.js` contiene las funciones puras `fromSong` y `capture`, que preparan el borrador, revisión original, relaciones, enlaces y capos, y fusionan valores del formulario sin cambiar la selección múltiple de categorías. `admin-pro.js` conserva los eventos, el estado AP y la publicación transaccional. No hay escritura de datos en el módulo nuevo. `tests/admin-song-draft.cjs` y la regresión de publicación verifican el contrato y la preservación de los cambios.
+
+## Preparación de publicaciones de cantos (Admin web)
+
+`admin-song-publication.js` contiene la validación de campos y la construcción pura del contrato `admin_publish_song`. No ejecuta solicitudes ni altera los borradores. `admin-pro.js` conserva la sesión autorizada, el identificador idempotente, la revisión original, el control de concurrencia, la llamada RPC y la confirmación de guardado. `tests/admin-song-publication.cjs` comprueba el contrato completo y `tests/admin-save-regression.cjs` mantiene la cobertura de errores, conflictos y cambios posteriores.
+
+## Resumen musical de Studio
+
+El cálculo de resumen pertenece a `studio-core.js` (`reviewSummary`); la interfaz `studio-lab.js` solamente presenta las filas. Se conserva duración, compás, número de acordes, secciones y patrones, incluidos tempos independientes. Las dos salidas nativas se mantienen idénticas y CI verifica su regeneración canónica. La caché Offline pasa a v22 para actualizar conjuntamente núcleo e interfaz y añadir `studio-save-state.js` y `studio-reading-geometry.js`, dependencias presentes en el HTML pero ausentes del inventario previo. No se modifican arreglos persistidos ni el protocolo de publicación.
+
+## Planificación de reproducción de Studio
+
+`studio-core.js` centraliza `playbackRange`, `liveSectionEvent` y `sequenceTrackTimeline`. Conserva prioridad de rangos, cálculo del reloj, límites de tono/capo, exigencia de fragmentos oficiales y aislamiento del rasgueo en escucha de sección, incluido el comportamiento de dejar sonar. El editor mantiene los temporizadores, audio, lectura, y validación de digitaciones. Se sincronizan las dos copias nativas y se renueva la caché Offline v23. Las pruebas comparan con la lógica anterior; no se cambia el formato de arreglos ni se modifica contenido persistido.
+
+## Controles musicales de Studio
+
+`studio-core.js` contiene las reglas puras de tempo, pausas, reconocimiento de patrones y cambios de golpe/acento. `studio-lab.js` conserva controles, confirmaciones, deshacer y actualización de cada sección. Los golpes se copian sin modificar el patrón anterior. Se preserva el orden abajo, arriba, apagado, silencio y la disponibilidad del patrón de alabanza en 4/4 con dos posiciones por pulso. Se actualizan las dos salidas nativas y caché Offline v24; pruebas de equivalencia e independencia de arrays.
+
+## Duración y sincronización de Studio
+
+`studio-core.js` centraliza las opciones de duración, conversión exacta de pulsos, cambios de resonancia, desplazamiento de acordes, rangos de escucha y sugerencias de fragmentos. Se conserva la protección de la entrada de sección, confirmación previa a cambios de tiempo, invalidación de fragmentos al desplazar acordes y validación por compilación antes de sustituir el arreglo. El guardado manual de rangos conserva su implementación previa. Ambas salidas nativas se sincronizan y la caché Offline pasa a v25. Pruebas de equivalencia y roundtrip del formato existente.
+
+## Seguridad al deshacer cambios en Studio
+
+Los snapshots de tiempo y rasgueo usan `undoSnapshot` y `canUndo` del núcleo musical. Antes, deshacer tiempo restauraba todo el arreglo aun tras cambios posteriores. Ahora ambas operaciones requieren coincidencia con la huella canónica de la revisión que produjo el cambio; una huella inválida no permite restaurar. Se reinician ambas memorias al generar otro arreglo y se actualizan los controles al editar fragmentos, resonancia, ritmo y tempo. No es un historial multinivel: se conserva un snapshot por tipo y solo se habilita si es seguro. El cambio detiene la reproducción al restaurar tiempo. No se modifican los arreglos persistidos. Caché v26 y copias nativas sincronizadas; pendiente verificación integral.
+
+## Huella compartida por refresco de Studio
+
+El refresco completo del editor calcula la huella canónica una vez y la pasa a las vistas de rasgueo, fragmentos y resumen. Los controles de guardar y deshacer comparten esa misma huella; las llamadas individuales la calculan de nuevo. No hay caché persistente ni invalidación manual. La asignación/eliminación de rangos también actualiza el estado de guardado. Se conserva la comprobación de huella al ejecutar deshacer; el resumen musical mantiene su compilación separada. La prueba mide llamadas de huella, no latencia real de dispositivos. Ambas salidas nativas y caché Offline v27 actualizadas.
+
+## Reutilización de la partitura de Studio
+
+`readRows` conserva únicamente la partitura original sin transposición ni resaltado para la misma fuente textual y nodo de destino. Los recorridos posteriores no reconstruyen el DOM ni recalculan filas. Un cambio de letra, nodo, reproducción transpuesta o resaltado invalida la reutilización. `renderPlaybackScore` concentra las escrituras de reproducción, y `showStep` invalida antes de modificar la partitura. La prueba cuenta renderizados y escrituras, no mide latencia de dispositivos. Copias nativas y caché Offline v28 sincronizadas. No se modifica el formato musical persistido.
+
+## Índice del próximo acorde durante reproducción
+
+`upcomingChordIndices` construye en una pasada inversa un índice de próximos acordes sonoros con identificador de ancla distinto. Preserva exactamente la búsqueda anterior, incluidos silencios y acordes repetidos. Studio conserva un índice para la línea temporal compilada activa y lo libera al detener reproducción; reconstruye si cambia la línea temporal. La búsqueda del próximo acorde pasa de un recorrido por cuadro a acceso por índice, con coste inicial lineal y memoria proporcional a los pasos. No se cambia el reloj, audio ni formato de arreglos. Pruebas de equivalencia y conteo; no se ha medido latencia real. Copias nativas y caché Offline v29 actualizadas.
+
+## Índice de anclas activas de Studio
+
+`indexAnchors` construye un mapa por identificador con posición de ancla y ordinal exacto dentro de la línea de letra. El reproductor reutiliza el mapa mientras se conserva la misma colección de anclas; cambia al cargar otra colección y libera referencias al detener. Sustituye las búsquedas repetidas para el acorde activo y su columna, conserva la primera coincidencia y el número de columnas estrictamente anteriores. No modifica el reloj musical, seguimiento ni orden visual. Pruebas de equivalencia y conteo; sin medición de latencia en dispositivo. Copias nativas y caché Offline v30 actualizadas.
+
+## Intérprete único de acordes
+
+`song-chords.js` es la única fuente del reconocimiento y combinación de filas, posiciones, espacios y etiquetas. `parseRows` conserva el tipo de presentación apilado/en línea para el renderizador web; `native-chords.js` adapta las filas sin ese campo, conserva transposición nativa y mediciones. El generador inserta la fábrica canónica en las dos copias Android autónomas; Studio incorpora el mismo script web mediante su generador existente. No hay dependencia de red ni cambio de formato de letra o arreglo. El HTML, clases CSS, normalización en Android y tono original web se conservan; se evita transponer anticipadamente una fila que no se consume. Se renueva la caché Offline v31 y se añaden pruebas de propiedad de fuente y markup exacto. Pendiente CI y revisión visual.
+
+## Generación reproducible de CSS público
+
+Los seis paquetes de estilos públicos conservan su orden de cascada y bytes originales. `scripts/build-public-css-bundles.cjs` declara explícitamente sus fuentes. `--check` (también por defecto) solo verifica; `--write` regenera las salidas estáticas. No se modifica ningún CSS ni HTML en esta migración. CI verifica inventario, diferencias y regeneración, además de mantener los controles independientes de cascada, imports y páginas.
+
+## Auditoría de cierre: módulos históricos
+
+El controlador de acceso histórico se retira por no estar conectado al HTML, a Offline ni a las apps; la autorización activa permanece en `admin-auth-controller.js`, `admin-pro.js` y las políticas SQL. No se modifica el flujo de autenticación. `artist-discovery.js` se conserva deliberadamente como funcionalidad histórica pendiente de decisión: no se carga en la página actual; sus dos hallazgos estructurales no representan ejecución activa. No se elimina ni se activa por el mero informe. Los seis paquetes CSS y las copias nativas generadas tienen comprobación de origen; los clones de esos archivos no implican múltiples fuentes manuales.
+
+## Dependencias explícitas de pruebas nativas
+
+Las herramientas Babel usadas directamente por la prueba de referencias léxicas de Pública se declaran como dependencias de desarrollo con las mismas versiones del árbol bloqueado. No se introducen módulos de ejecución ni se modifican las versiones resueltas; los avisos de paquetes Expo quedan documentados para revisión sin modificar funcionalidad nativa.

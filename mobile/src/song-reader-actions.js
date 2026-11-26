@@ -4,7 +4,7 @@ const {buildPrintableSong,readerShiftForPrint}=require("./song-print");
 function songPermalink(song){
   return "https://shalomcoroacordes-a11y.github.io/Shalom/cancion.html?id="+encodeURIComponent(String(song.id));
  }
-function createSongReaderActions({Share,Print,Alert,openWeb,manualSync,copy,model,network,transpose,capo}){
+function createSongReaderActions({Share,Print,Alert,openWeb,manualSync,copy,model,network,transpose,capo,showReaderCues=true}){
  async function shareSong(song){
   try{
    await Share.share({title:song.title||"Canto de SHALOM",
@@ -13,7 +13,7 @@ function createSongReaderActions({Share,Print,Alert,openWeb,manualSync,copy,mode
  }
  async function printSong(song){
   try{
-   await Print.printAsync({html:buildPrintableSong(song,readerShiftForPrint(song,transpose,capo))});
+   await Print.printAsync({html:buildPrintableSong(song,readerShiftForPrint(song,transpose,capo),showReaderCues)});
   }catch(e){
    Alert.alert("No se pudo abrir la impresión",e?.message||"Revisa el servicio de impresión del teléfono.");
   }

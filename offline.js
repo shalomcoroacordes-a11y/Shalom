@@ -389,18 +389,22 @@
     }
   }
 
+  let readerCuesVisible=true;
   function renderLyrics(song) {
     const target = $("#offlineLyrics");
     const capo = selectedCapo(song);
     const shift = state.shift + capo.offset;
     if (window.ShalomChords?.render) {
       target.innerHTML = window.ShalomChords.render(song.lyrics || "Sin letra.", {
+        arrangement:song._studio,
         transpose: (value) => String(value || "").split(/(\s+)/).map((token) =>
           /^[A-G](?:#|b)?/.test(token) ? transposeChord(token, shift) : token).join("")
       });
     } else {
       target.textContent = song.lyrics || "Sin letra.";
     }
+    window.ShalomReaderCueControls?.mount(target,readerCuesVisible,value=>{readerCuesVisible=value;renderLyrics(song);});
+    window.ShalomSectionReaderWeb?.mount(target,String(song.id),{sticky:()=>document.querySelector(".app-header")});
     const tone = state.shift === 0 ? "Tono original"
       : (state.shift > 0 ? "+" : "") + state.shift + " semitonos";
     $("#transposeLabel").textContent = ($("#capoPanel").hidden ? tone : tone + " · " + capo.label);

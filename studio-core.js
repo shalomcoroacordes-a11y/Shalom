@@ -47,6 +47,90 @@
     if(config.patterns.some(p=>p.start>=total)&&!(config.sections?.length&&config.sections.every(p=>p.hits)))throw Error("Quita primero los patrones de los compases que desaparecerían.");
     return {...config,totalSteps:total,endStep,patterns:config.patterns.filter(p=>p.start<total),changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
   }
+  // Cues are descriptive, never audio commands. 24 ticks per pulse fits every supported division.
+  const cueActions=Object.freeze({start:"Iniciar",stop:"Terminar",repeat:"Repetir",pause:"Pausa",wait:"Esperar señal",continue:"Continuar",hold:"Mantener acorde",note:"Indicación"});
+  const cueAudiences=Object.freeze({all:"Todos",guitar:"Guitarra",keys:"Teclado",percussion:"Percusión",solo:"Solista",choir:"Coro",assembly:"Asamblea",liturgical:"Liturgia",other:"Otro instrumento o voz"});
+  function normalizeCues(value,config){
+    if(value===undefined)return [];
+    if(!Array.isArray(value)||value.length>120)throw Error("Máximo 120 indicaciones por canto.");
+    const division=resolution(config.meter,config.division).division;
+    const seen=new Set();
+    return value.map(c=>{
+      if(!c||!Object.hasOwn(cueActions,c.action)||!Object.hasOwn(cueAudiences,c.audience)||typeof c.text!=="string"||c.text.trim().length>160)throw Error("Indicación inválida.");
+      const index=requireInt(c.index,0,config.changes.length-1,"Acorde de indicación");
+      const ticks=requireInt(c.ticks,0,2400000,"Posición de indicación");
+      const offset=ticks*division/24,step=config.changes[index].step+offset;
+      if(!Number.isInteger(offset)||offset>=durationSteps(config,index))throw Error("Una indicación quedaría fuera de su acorde o cuadrícula. Reubícala antes de cambiar el tiempo.");
+      const text=c.text.trim();if(!text&&c.action==="note")throw Error("Escribe la indicación.");
+      const key=JSON.stringify([index,ticks,c.action,c.audience,text]);
+      if(seen.has(key))throw Error("Indicación duplicada.");seen.add(key);
+      return {index,ticks,action:c.action,audience:c.audience,text,step};
+    }).sort((a,b)=>a.step-b.step);
+  }
+  // Visual lyric cues have a row range, not a guessed musical time.
+  function lyricCueAnchor(rows,start,end=start){
+    if(!Array.isArray(rows))throw Error("Letra inválida.");
+    requireInt(start,0,rows.length-1,"Inicio de selección");requireInt(end,start,rows.length-1,"Fin de selección");
+    const text=r=>r?.kind==="chords"?r.lyricLine:r?.kind==="lyric"?r.text:null;
+    if(!String(text(rows[start])||"").trim()||!String(text(rows[end])||"").trim())throw Error("Selecciona una frase de la letra.");
+    const heading=rows.slice(0,start+1).findLastIndex(r=>r.kind==="section");
+    const source=JSON.stringify([heading,heading<0?"":rows[heading].text,rows.slice(start,end+1).map(r=>[r.kind,text(r)??r.text??""])]);
+    if(source.length>12000)throw Error("Selecciona un fragmento más corto.");
+    return {start,end,source};
+  }
+  function normalizeLyricCues(value){
+    if(value===undefined)return [];
+    if(!Array.isArray(value)||value.length>120)throw Error("Máximo 120 indicaciones de letra.");
+    const seen=new Set();
+    return value.map(c=>{
+      if(!c||!Object.hasOwn(cueActions,c.action)||!Object.hasOwn(cueAudiences,c.audience)||typeof c.text!=="string"||c.text.trim().length>160||typeof c.source!=="string"||!c.source.length||c.source.length>12000)throw Error("Indicación de letra inválida.");
+      const start=requireInt(c.start,0,100000,"Inicio de selección"),end=requireInt(c.end,start,100000,"Fin de selección"),text=c.text.trim();
+      if(!text&&c.action==="note")throw Error("Escribe la indicación.");
+      const key=JSON.stringify([start,end,c.source,c.action,c.audience,text]);if(seen.has(key))throw Error("Indicación de letra duplicada.");seen.add(key);
+      return {start,end,source:c.source,action:c.action,audience:c.audience,text};
+    }).sort((a,b)=>a.end-b.end||a.start-b.start);
+  }
+  function validLyricCue(rows,c){
+    try{return lyricCueAnchor(rows,c.start,c.end).source===c.source;}catch{return false;}
+  }
+  function setLyricCues(config,rows,value){
+    const lyricCues=normalizeLyricCues(value);
+    if(lyricCues.some(c=>!validLyricCue(rows,c)))throw Error("La letra cambió. Revisa la selección de la indicación.");
+    return {...config,lyricCues};
+  }
+  // Presentation only: never changes stored cues or musical timing.
+  const cuePalette=Object.freeze({
+    start:Object.freeze({symbol:"▶",dark:"#79c8ff",light:"#145a94"}),
+    stop:Object.freeze({symbol:"■",dark:"#ff9b9b",light:"#a32632"}),
+    repeat:Object.freeze({symbol:"↻",dark:"#f5c36b",light:"#8a5100"}),
+    pause:Object.freeze({symbol:"Ⅱ",dark:"#c5adff",light:"#6040a1"}),
+    wait:Object.freeze({symbol:"◷",dark:"#f4a7d1",light:"#9b2869"}),
+    continue:Object.freeze({symbol:"→",dark:"#83e4dd",light:"#006e66"}),
+    hold:Object.freeze({symbol:"—",dark:"#a9bfff",light:"#364a91"}),
+    note:Object.freeze({symbol:"◆",dark:"#d1d5db",light:"#4b5563"})
+  });
+  function cueAppearance(action){return Object.hasOwn(cuePalette,action)?cuePalette[action]:cuePalette.note;}
+  function cueText(c){
+    return [cueActions[c.action],c.audience==="all"?"":cueAudiences[c.audience],c.text].filter(Boolean).join(" · ");
+  }
+  function cuePosition(config,group,bar){
+    const m=resolution(config.meter,config.division),bounds=groupBounds(config,group);
+    const step=bounds.start+(requireInt(bar,1,sectionBarCount(config,group),"Compás de indicación")-1)*m.beats*m.division;
+    const index=group.indices.findLast(i=>config.changes[i].step<=step);
+    return {index,ticks:(step-config.changes[index].step)*24/m.division};
+  }
+  function setCues(config,value){
+    return {...config,cues:normalizeCues(value,config).map(({step,...cue})=>cue)};
+  }
+  function cueEntries(timeline){
+    const result=[];for(const event of timeline)if(event.cues?.length)result.push({step:event.step,cues:event.cues});return result;
+  }
+  function cueWindow(entries,step,barSize,range){
+    const first=range?.start??0,end=range?.end??Infinity;
+    let lo=0,hi=entries.length;while(lo<hi){const mid=(lo+hi)>>1;if(entries[mid].step<=step)lo=mid+1;else hi=mid;}
+    const previous=entries[lo-1],next=entries[lo];
+    return {current:previous&&previous.step>=first&&step-previous.step<barSize?previous:null,next:next&&next.step>=first&&next.step<end?next:null};
+  }
   function compile(anchors,config,transpose=c=>c){
     if(!config||config.version!==1||!meters[config.meter])throw new Error("Configuración incompatible.");
     if(config.source!==signature(anchors))throw new Error("Los acordes cambiaron. Revisa la sincronización.");
@@ -73,6 +157,7 @@
     });
     if(patterns[0].start!==0)throw new Error("Falta el patrón inicial.");
     const parts=validateSections(config,anchors.length,size);
+    const cuesByStep=new Map();for(const {step,...cue} of normalizeCues(config.cues,config)){if(!cuesByStep.has(step))cuesByStep.set(step,[]);cuesByStep.get(step).push(cue);}
     let ci=0,pi=0,si=-1,li=0,active=null,time=0,part=null,previousTempo=bpm;
     const positioned=parts.map(p=>({...p,start:changes[p.index].step}));
 
@@ -90,7 +175,7 @@
       const seconds=60/tempo/m.division;
       while(part?.patterns&&li+1<part.patterns.length&&part.patterns[li+1].start<=phase)li++;const local=part?.patterns?.[li];const hit=local?local.hits[(phase-local.start)%size]:part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
-      const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};time+=seconds;return event;
+      const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};if(cuesByStep.has(step))event.cues=cuesByStep.get(step);time+=seconds;return event;
     });
   }
   function validateSections(config,length,size){
@@ -283,5 +368,128 @@
     if(scope==="one"&&start+n<config.totalSteps&&!patterns.some(p=>p.start===start+n))patterns.push({start:start+n,hits:copy(previous.hits)});
     patterns.push({start,hits:copy(hits)});patterns.sort((a,b)=>a.start-b.start);return {...config,patterns};
   }
-  return Object.freeze({meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  // Review data is derived without DOM or mutation.
+  function reviewSummary(anchors,config,groups){
+    const timeline=compile(anchors,config);
+    const seconds=Math.round(clockRange(timeline,0,config.endStep??config.totalSteps).duration);
+    return [
+      ["Velocidad",(config.sections||[]).length?"Por sección":config.bpm+" BPM"],
+      ["Compás",config.meter],
+      ["Acordes",anchors.length],
+      ["Secciones",groups.length],
+      ["Duración",Math.floor(seconds/60)+" min "+seconds%60+" s"],
+      ["Patrones",config.patterns.length+(config.sections||[]).reduce((n,p)=>n+(p.patterns?.length||0),0)]
+    ];
+  }
+  // Resolve explicit preview range first, then the saved practice range.
+  function playbackRange(timeline,config,range,practiceRange,speed){
+    const first=range?.start??practiceRange?.start??0,end=range?.end??practiceRange?.end??config.endStep??timeline.length;
+    return {first,end,clock:clockRange(timeline,first,end,speed)};
+  }
+  // Live edits affect only the selected section, never an authored ringing chord.
+  function liveSectionEvent(event,anchors,config,group){
+    const r=groupRange(config,group);
+    sectionConfig(config,group.indices[0]);
+    if(event.step>=r.start&&event.step<r.end&&event.chord){
+      const anchor=anchors.findIndex(a=>a.id===event.anchorId);
+      if(config.changes[anchor]?.hold!=="ring")return {...event,...sectionHit(config,group,event.step-r.start)};
+    }
+    return event;
+  }
+  function sequenceTrackTimeline(anchors,config,track,transpose){
+    if(track.range&&!(config.fragments||[]).some(r=>r.start===track.range.start&&r.end===track.range.end))throw Error("Hay un fragmento sin rango oficial.");
+    if(!Number.isInteger(track.shift)||Math.abs(track.shift)>12||!Number.isInteger(track.capo)||track.capo<0||track.capo>12)throw Error("Tono o capo inválido.");
+    return compile(anchors,config,chord=>transpose(chord,track.shift));
+  }
+  // Pure editing rules for web and native Studio.
+  function clampTempo(value){return Math.max(40,Math.min(240,Math.round(value)));}
+  function pauseMilliseconds(seconds){return Math.max(0,Math.min(10000,Math.round(Number(seconds)*1000)||0));}
+  function identifyPreset(config,sectionHits,hits){
+    if(!sectionHits)return "base";
+    return ["basic","all","worship","ring","empty"]
+      .filter(name=>name!=="worship"||config.meter==="4/4"&&config.division===2)
+      .find(name=>JSON.stringify(presetHits(config,name))===JSON.stringify(hits))||"custom";
+  }
+  function editHit(hits,index,value,toggleAccent){
+    return hits.map((h,i)=>i===index?{...h,...(value?{hit:value}:{}),...(toggleAccent?{accent:!h.accent}:{})}:{...h});
+  }
+  function cycleHit(hits,index){
+    const types=["down","up","mute","rest"];
+    return hits.map((h,i)=>i===index?{...h,hit:types[(types.indexOf(h.hit)+1)%types.length]}:{...h});
+  }
+  // Duration and synchronization rules. The UI owns confirmation and undo.
+  function durationLabel(config,n){
+    const m=resolution(config.meter,config.division),p=n/m.division;
+    return Number(p.toFixed(3))+" "+(p===1?"pulso":"pulsos")+(p===m.beats?" · 1 compás":p>m.beats&&p%m.beats===0?" · "+p/m.beats+" compases":"");
+  }
+  function durationChoices(config){
+    const m=resolution(config.meter,config.division),size=m.beats*m.division;
+    return [["Medio pulso",m.division/2],["1 pulso",m.division],["2 pulsos",m.division*2],["1 compás",size],["2 compases",size*2],["4 compases",size*4]];
+  }
+  function pulsesToSteps(config,input){
+    const m=resolution(config.meter,config.division),value=Number(input),n=Math.round(value*m.division);
+    if(!Number.isFinite(value)||Math.abs(value*m.division-n)>.0001)throw Error("Usa una duración compatible con el ritmo.");
+    return n;
+  }
+  function setAnchorHold(config,index,value){
+    return {...config,changes:config.changes.map((c,i)=>i===index?{...c,hold:value}:c)};
+  }
+  function moveAnchor(config,groups,index,step){
+    const group=groups.find(g=>g.indices.includes(index));
+    if(index===group.indices[0])throw Error("La entrada de la sección se ajusta con la transición o duración anterior.");
+    return {...isolateSections(config,groups),changes:config.changes.map((x,i)=>i===index?{...x,step}:x),fragments:[]};
+  }
+  function anchorRange(anchors,config,index){
+    return {start:config.changes[index].step,end:config.changes[index+1]?.step??config.endStep??config.totalSteps,title:anchors[index].chord};
+  }
+  function suggestFragmentRange(config,groups,section){
+    const matches=groups.filter(g=>g.title===section?.title);
+    if(matches.length!==1)throw Error("Sección repetida o sin acordes. Ajusta el rango manualmente.");
+    return groupRange(config,matches[0]);
+  }
+  // Undo snapshots may restore a full arrangement only if no subsequent edit
+  // changed its canonical fingerprint. Invalid fingerprints never authorize undo.
+  function undoSnapshot(config,selection={}){
+    return {...selection,config:JSON.parse(JSON.stringify(config)),after:null};
+  }
+  function canUndo(snapshot,fingerprint){
+    return !!snapshot&&typeof fingerprint==="string"&&fingerprint.length>0&&snapshot.after===fingerprint;
+  }
+  // For each step, find the next sounding chord belonging to a different anchor.
+  // A reverse pass retains the nearest two candidates with distinct anchor IDs.
+  function upcomingChordIndices(timeline){
+    const result=new Int32Array(timeline.length);
+    let nearest=-1,other=-1;
+    for(let i=timeline.length-1;i>=0;i--){
+      const event=timeline[i];
+      result[i]=nearest>=0&&timeline[nearest].anchorId!==event.anchorId?nearest:other;
+      if(event.chord){
+        if(nearest>=0&&timeline[nearest].anchorId!==event.anchorId)other=nearest;
+        nearest=i;
+      }
+    }
+    return result;
+  }
+  // Canonical anchors are ordered by lyric row and column. Preserve first ID
+  // lookup and the exact number of preceding columns, even for unsorted fixtures.
+  function indexAnchors(anchors){
+    const byLine=new Map(),index=new Map(),ordinals=new Array(anchors.length);
+    anchors.forEach((anchor,i)=>{
+      if(!byLine.has(anchor.line))byLine.set(anchor.line,[]);
+      byLine.get(anchor.line).push(i);
+    });
+    for(const indices of byLine.values()){
+      indices.sort((a,b)=>anchors[a].column-anchors[b].column);
+      let rank=0;
+      indices.forEach((i,j)=>{
+        if(j&&anchors[i].column!==anchors[indices[j-1]].column)rank=j;
+        ordinals[i]=rank;
+      });
+    }
+    anchors.forEach((anchor,i)=>{
+      if(!index.has(anchor.id))index.set(anchor.id,{anchor,index:i,ordinal:ordinals[i]});
+    });
+    return index;
+  }
+  return Object.freeze({cueActions,cueAudiences,lyricCueAnchor,normalizeLyricCues,validLyricCue,setLyricCues,cueText,cueAppearance,normalizeCues,cuePosition,setCues,cueEntries,cueWindow,indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });

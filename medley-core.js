@@ -38,7 +38,10 @@
       const lyrics=String(part.lyrics||"").replace(/^\\n+|\\n+$/g,"");
       const song_id=String(part.song_id||"");
       if(!lyrics.trim()||lyrics.length>25000||!song_id)throw new Error("El fragmento "+(index+1)+" debe tener un canto y una letra.");
+      if(part.capo_id!=null&&(typeof part.capo_id!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(part.capo_id)))throw Error("Capo del fragmento inválido.");
       return {
+        ...(part.capo_id&&part.capo_id!=="none"?{capo_id:part.capo_id}:{}),
+        ...(part.cue_override!=null?{cue_override:(typeof module==="object"&&module.exports?require("./studio-reader-cues"):window.ShalomReaderCues).validateOverride((typeof module==="object"&&module.exports?require("./song-chords"):window.ShalomChords).parseRows(lyrics),part.cue_override)}:{}),
         id:String(part.id||("parte-"+index)).slice(0,100),
         song_id,
         song_title:String(part.song_title||"Canto").slice(0,160),
@@ -50,12 +53,12 @@
       };
     });
   }
-  function renderPartsHTML(parts, globalShift, capo=0) {
+  function renderPartsHTML(parts, globalShift, capo=0, arrangementFor=()=>null) {
     if(!Array.isArray(parts))return "";
     return parts.map((p,i)=>'<section class="medley-song">'+
       '<div class="medley-song-head"><span class="medley-step">'+(i+1)+'</span><h3>'+html(p.title||p.song_title||"Canto")+'</h3><span class="medley-song-tone">'+html(p.tone||"")+'</span></div>'+
       '<div class="admin-preview-lyrics medley-lyrics">'+(typeof window!=="undefined" && window.ShalomChords
-        ? window.ShalomChords.render(p.lyrics||"",{transpose:chord=>transposeChord(chord,clampShift(p.shift)+clampShift(globalShift)-Math.max(0,Math.min(12,Number(capo)||0)))})
+        ? window.ShalomChords.render(p.lyrics||"",{arrangement:arrangementFor(p),cueOverride:p.cue_override,transpose:chord=>transposeChord(chord,clampShift(p.shift)+clampShift(globalShift)-Math.max(0,Math.min(12,Number(capo)||0)))})
         : html(p.lyrics||""))+'</div>'+
       (p.song_id?'<a class="medley-original-link" href="cancion.html?id='+encodeURIComponent(p.song_id)+'">Ver canto original</a>':"")+
       '</section>').join("");

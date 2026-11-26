@@ -1,5 +1,6 @@
 // Colecciones y partituras personales: siempre locales, sin escrituras a Supabase.
-// El código contiene referencias a cantos publicados, no letras ni acordes nuevos.
+// Las composiciones conservan referencias y personalizaciones propias, no reescriben el cancionero.
+const {normalizeOverride}=require("./studio-reader-cues");
 const STORE_KEY="shalom_personal_collections_v1";
 const COLORS=["#27c98b","#2e84d7","#a078e1","#dba13a","#e66b91","#58a7a0","#ec9952","#105c8f","#7e3d93","#c85262"];
 const COVER_PRESETS=["dove","sunrise","guitar","adoration","book","flowers","choir","music"];
@@ -18,11 +19,17 @@ function partFrom(input,forceId=false){
  const sectionIndex=input.sectionIndex==null?null:Number(input.sectionIndex);
  if(sectionIndex!==null&&(!Number.isInteger(sectionIndex)||sectionIndex<0||sectionIndex>250))
   throw new Error("La estrofa seleccionada no es válida.");
+ if(input.capoId!=null&&(typeof input.capoId!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(input.capoId)))throw Error("Capo de colección inválido.");
+ if(input.fragmentLyrics!=null&&(typeof input.fragmentLyrics!=="string"||!input.fragmentLyrics.trim()||input.fragmentLyrics.length>25000||sectionIndex!==null))throw Error("Fragmento personalizado inválido.");
  const shift=Number(input.shift||0);
  if(!Number.isInteger(shift)||shift< -11||shift>11)throw new Error("El tono está fuera del rango permitido.");
  return {id:forceId?makeId():text(input.id,80)||makeId(),songId,
   sectionIndex,sectionTitle:sectionIndex===null?"":text(input.sectionTitle,100),
-  shift,moment:text(input.moment,60)};
+  shift,moment:text(input.moment,60),
+  ...(input.capoId!=null&&input.capoId!=="none"?{capoId:text(input.capoId,128)}:{}),
+  ...(input.notes?{notes:text(input.notes,500)}:{}),
+  ...(input.fragmentLyrics!=null?{fragmentLyrics:input.fragmentLyrics,fragmentTitle:text(input.fragmentTitle,160)||"Fragmento personalizado"}:{}),
+  ...(input.cueOverride!=null?{cueOverride:normalizeOverride(input.cueOverride)}:{})};
 }
 function entryFrom(input,forceId=false){
  if(!input||!["misa","popurri","repertorio"].includes(input.kind))throw new Error("Tipo de composición no válido.");
@@ -72,6 +79,7 @@ function songSections(lyrics){
  return sections.length?sections:[{index:0,title:"Canto completo",text:String(lyrics||"").trim()}];
 }
 function resolvePart(song,part){
+ if(part.fragmentLyrics!=null)return {lyrics:part.fragmentLyrics,section:part.fragmentTitle||"Fragmento personalizado"};
  if(!song)return {lyrics:null,error:"Este canto no se encuentra en la biblioteca descargada."};
  if(part.sectionIndex==null)return {lyrics:song.lyrics||"",section:"Canto completo"};
  const sections=songSections(song.lyrics);
@@ -122,30 +130,34 @@ function signature(bytes){
 function exportCode(entry){
  const valid=entryFrom(entry);
  if(!valid.parts.length)throw new Error("Agrega al menos un canto antes de compartir.");
- const data=["SHALOM",1,valid.kind,valid.title,
-  valid.parts.map(p=>[p.songId,p.sectionIndex==null?-1:p.sectionIndex,p.sectionTitle,p.shift,p.moment])];
+ const custom=valid.parts.some(p=>p.notes||p.cueOverride||p.capoId||p.fragmentLyrics);
+ const version=custom?2:1;
+ const data=["SHALOM",version,valid.kind,valid.title,
+  valid.parts.map(p=>[p.songId,p.sectionIndex==null?-1:p.sectionIndex,p.sectionTitle,p.shift,p.moment,...(custom?[{notes:p.notes||"",cueOverride:p.cueOverride||null,...(p.capoId?{capoId:p.capoId}:{}),...(p.fragmentLyrics!=null?{fragmentLyrics:p.fragmentLyrics,fragmentTitle:p.fragmentTitle}:{})}]:[])])];
  const bytes=toBytes(JSON.stringify(data));
  if(bytes.length>9000)throw new Error("La composición es demasiado grande para compartir por código.");
- return PREFIX+encode64(bytes)+"-"+signature(bytes);
+ return (version===1?PREFIX:"SHALOM2-")+encode64(bytes)+"-"+signature(bytes);
 }
 function importCode(message){
  const raw=String(message||"");
  if(raw.length>20000)throw new Error("El mensaje es demasiado largo.");
- const match=raw.match(/SHALOM1-([A-Za-z0-9_-]+)-([a-fA-F0-9]{8})/);
+ const match=raw.match(/SHALOM([12])-([A-Za-z0-9_-]+)-([a-fA-F0-9]{8})/);
  if(!match)throw new Error("No se encontró un código de SHALOM válido.");
- if(match[1].length>12000)throw new Error("El código supera el tamaño permitido.");
- const bytes=decode64(match[1]);
- if(signature(bytes)!==match[2].toLowerCase())throw new Error("El código está incompleto o fue modificado.");
+ if(match[2].length>12000)throw new Error("El código supera el tamaño permitido.");
+ const bytes=decode64(match[2]);
+ if(signature(bytes)!==match[3].toLowerCase())throw new Error("El código está incompleto o fue modificado.");
  let data;
  try{data=JSON.parse(fromBytes(bytes));}catch(_){throw new Error("No se pudo leer este código.");}
- if(!Array.isArray(data)||data.length!==5||data[0]!=="SHALOM"||data[1]!==1)
+ if(!Array.isArray(data)||data.length!==5||data[0]!=="SHALOM"||data[1]!==Number(match[1]))
   throw new Error("Código de otra aplicación o versión incompatible.");
  if(!Array.isArray(data[4])||!data[4].length||data[4].length>LIMIT_PARTS)
   throw new Error("La composición no tiene una cantidad válida de fragmentos.");
  const parts=data[4].map(p=>{
-  if(!Array.isArray(p)||p.length!==5)throw new Error("El código contiene un fragmento incorrecto.");
+  if(!Array.isArray(p)||p.length!==(data[1]===1?5:6))throw new Error("El código contiene un fragmento incorrecto.");
+  const meta=data[1]===2?p[5]:{};
+  if(!meta||typeof meta!=="object"||Array.isArray(meta)||Object.keys(meta).some(k=>!["notes","cueOverride","capoId","fragmentLyrics","fragmentTitle"].includes(k)))throw Error("Personalización no válida.");
   return partFrom({songId:p[0],sectionIndex:p[1]===-1?null:p[1],
-   sectionTitle:p[2],shift:p[3],moment:p[4]},true);
+   sectionTitle:p[2],shift:p[3],moment:p[4],notes:meta.notes,cueOverride:meta.cueOverride,capoId:meta.capoId,fragmentLyrics:meta.fragmentLyrics,fragmentTitle:meta.fragmentTitle},true);
  });
  return entryFrom({kind:data[2],title:data[3],parts},true);
 }

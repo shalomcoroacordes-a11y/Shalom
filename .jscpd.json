@@ -25,6 +25,10 @@
     "**/*.min.css",
     "**/*.test.js",
     "**/*.spec.js",
-    "**/studio-bundle.js"
+    "**/studio-bundle.js",
+    "admin-mobile/src/studio-core.js",
+    "admin-mobile/src/studio-codec.js",
+    "admin-mobile/src/studio-reader-cues.js",
+    "admin-mobile/src/collection-cue-editor.js"
   ]
 }

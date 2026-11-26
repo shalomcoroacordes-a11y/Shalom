@@ -1,0 +1,85 @@
+const {createElement:h,useState,useContext,createContext,useRef,useEffect}=require("react");
+const {View,Text,Pressable}=require("react-native");
+const AlignedScore=require("./aligned-score-ui");
+const {sectionsOf,moveIndex,navigation,sectionFitHeight,SECTION_GAP}=require("./section-reader-core");
+const {clampReaderFont}=require("./score-zoom");
+const ReaderViewport=createContext(0);
+const ReaderScroll=createContext(null);
+// The native ScrollView owns vertical position; measure the actual section against
+// its inner content rather than guessing offsets from the song metadata.
+function useSectionAnchor(index,navigationKey,viewport){
+ const scrollRef=useContext(ReaderScroll),anchor=useRef(null);
+ const [request,setRequest]=useState(0);
+ useEffect(()=>{
+  if(!scrollRef||viewport<=0)return;
+  let active=true;
+  const frame=requestAnimationFrame(()=>{
+   const scroll=scrollRef.current,view=anchor.current,content=scroll?.getInnerViewRef?.();
+   if(!active||!view||!content)return;
+   view.measureLayout(content,(_x,y)=>{
+    if(active&&scrollRef.current===scroll&&anchor.current===view&&Number.isFinite(y))scroll.scrollTo({y:Math.max(0,y),animated:false});
+   },()=>{});
+  });
+  return ()=>{active=false;cancelAnimationFrame(frame);};
+ },[scrollRef,index,navigationKey,viewport,request]);
+ return {anchor,reposition:()=>setRequest(value=>value+1)};
+}
+function SectionReader({rows,sectionIndex,setSectionIndex,fitMode,setFitMode,fontSize,fitFont,onFitFont,onManualFont,S,onPreviousEntry,onNextEntry,navigationKey}){
+ const viewport=useContext(ReaderViewport);
+ const [headerHeight,setHeaderHeight]=useState(null),[footerHeight,setFooterHeight]=useState(null);
+ const sections=sectionsOf(rows),index=moveIndex(sectionIndex,0,sections.length),current=sections[index];
+ const available=sectionFitHeight(viewport,headerHeight,footerHeight);
+ const measure=set=>e=>{const height=e.nativeEvent.layout.height;if(Number.isFinite(height)&&height>=0)set(v=>v===height?v:height);};
+ const button=(text,selected,onPress,disabled=false)=>h(Pressable,{key:text,accessibilityRole:"button",accessibilityState:{selected,disabled},disabled,onPress,style:{paddingVertical:9,paddingHorizontal:12,borderRadius:8,backgroundColor:selected?"#174b35":"#20262e",opacity:disabled?.45:1}},h(Text,{style:{color:selected?"#83e4b2":"#e1e6e8",fontSize:13}},text));
+ const {anchor,reposition}=useSectionAnchor(index,navigationKey,viewport);
+ const select=i=>{if(i===index)reposition();else setSectionIndex(i);};
+ const change=next=>select(moveIndex(index,next,sections.length));
+ // A short section must still be able to align to the top of the viewport.
+ // The original metadata remains accessible by scrolling back up.
+ return h(View,{ref:anchor,collapsable:false,style:{gap:SECTION_GAP,minHeight:viewport||undefined}},
+  h(View,{style:{gap:SECTION_GAP},onLayout:measure(setHeaderHeight)},
+  h(Text,{style:S.songReaderHint},"Estructura del canto"),
+  h(View,{style:{flexDirection:"row",flexWrap:"wrap",gap:6}},...sections.map((section,i)=>h(View,{key:i},button(section.title,i===index,()=>select(i))))),
+  h(View,{style:{flexDirection:"row",flexWrap:"wrap",gap:6}},
+   button("Automático",fitMode==="auto",()=>setFitMode("auto")),
+   button("Al ancho",fitMode==="width",()=>setFitMode("width")),
+   button("Manual",fitMode==="manual",()=>{onManualFont(fitFont);setFitMode("manual");}))),
+  h(AlignedScore,{key:"section-"+index,rows:current.rows,fontSize:fitMode==="manual"?fitFont:fontSize,fitMode,fitHeight:available,onFitFont,onFontSizeChange:onManualFont}),
+  h(View,{style:{gap:SECTION_GAP},onLayout:measure(setFooterHeight)},
+  h(Text,{style:[S.songReaderHint,{textAlign:"center"}]},"Sección "+(index+1)+" de "+sections.length),
+  h(View,{style:{flexDirection:"row",justifyContent:"space-between",gap:6}},
+   button(index===0&&onPreviousEntry?"‹ Canto anterior":"‹ Anterior",false,()=>index===0&&onPreviousEntry?onPreviousEntry():change(-1),index===0&&!onPreviousEntry),
+   button(index===sections.length-1&&onNextEntry?"Siguiente canto ›":"Siguiente ›",false,()=>index===sections.length-1&&onNextEntry?onNextEntry():change(1),index===sections.length-1&&!onNextEntry))));
+}
+// Per-reader local state, indexed by occurrence, not by song id.
+function useCollectionSections(entries,fontSize){
+ const [enabled,setEnabled]=useState(false);
+ const [position,setPosition]=useState(0);
+ const [fitMode,setFitMode]=useState("auto");
+ const [fitFont,setFitFont]=useState(fontSize);
+ const sequence=enabled?navigation(entries):[];
+ const at=moveIndex(position,0,sequence.length),current=sequence[at];
+ function selectEntry(i){const next=sequence.findIndex(s=>s.entryIndex===i);if(next>=0)setPosition(next);}
+ function selectSection(i){const next=sequence.findIndex(s=>s.entryIndex===current?.entryIndex&&s.sectionIndex===i);if(next>=0)setPosition(next);}
+ function manualFont(value){setFitFont(clampReaderFont(value));setFitMode("manual");}
+ return {enabled,setEnabled,reset:()=>{setEnabled(false);setPosition(0);setFitMode("auto");setFitFont(fontSize);},current,entries,selectEntry,selectSection,fitMode,setFitMode,fitFont,setFitFont,manualFont,
+  onPreviousEntry:at>0?()=>setPosition(at-1):null,onNextEntry:at<sequence.length-1?()=>setPosition(at+1):null};
+}
+function CollectionSectionControls({nav}){
+ const [expanded,setExpanded]=useState(false);
+ const button=(text,onPress,selected=false)=>h(Pressable,{onPress,accessibilityRole:"button",accessibilityState:{selected},style:{padding:10,borderRadius:8,backgroundColor:selected?"#174b35":"#20262e"}},h(Text,{style:{color:selected?"#83e4b2":"#e1e6e8"}},text));
+ return h(View,{style:{gap:6}},
+  button(nav.enabled?"Lectura normal":"Lectura por secciones",()=>{nav.setEnabled(v=>!v);setExpanded(false)},nav.enabled),
+  nav.enabled&&nav.current?button("Canto "+(nav.current.entryIndex+1)+" de "+nav.entries.length+" · "+nav.entries[nav.current.entryIndex].title+" ▾",()=>setExpanded(v=>!v)):null,
+  nav.enabled&&expanded?h(View,{style:{gap:4}},...nav.entries.map((entry,i)=>h(View,{key:i},button((i+1)+". "+entry.title,()=>{nav.selectEntry(i);setExpanded(false)},i===nav.current?.entryIndex)))):null);
+}
+function CollectionSectionScore({nav,fontSize,immersiveActive,S}){
+ if(!nav.current)return null;
+ return h(SectionReader,{rows:nav.entries[nav.current.entryIndex].rows,sectionIndex:nav.current.sectionIndex,setSectionIndex:nav.selectSection,fitMode:nav.fitMode,setFitMode:nav.setFitMode,fontSize,fitFont:nav.fitFont,onFitFont:nav.setFitFont,onManualFont:nav.manualFont,navigationKey:nav.current.key,immersiveActive,S,onPreviousEntry:nav.onPreviousEntry,onNextEntry:nav.onNextEntry});
+}
+module.exports=SectionReader;
+module.exports.ReaderViewport=ReaderViewport;
+module.exports.ReaderScroll=ReaderScroll;
+module.exports.useCollectionSections=useCollectionSections;
+module.exports.CollectionSectionControls=CollectionSectionControls;
+module.exports.CollectionSectionScore=CollectionSectionScore;

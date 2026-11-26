@@ -13,7 +13,7 @@ function validRange(range,total){
 }
 function resolve(song,part={}){
  const arrangement=song?._studio;
- if(!song||!song.updated_at||arrangement?.v!==1)return {ready:false,reason:"Sin acompañamiento publicado"};
+ if(!song||!song.updated_at||(arrangement?.v!==1||arrangement.k==='lyrics'))return {ready:false,reason:"Sin acompañamiento publicado"};
  const lyrics=normalized(song.lyrics);
  if(!lyrics)return {ready:false,reason:"Sin letra disponible"};
  if(part.lyrics===null)return {ready:false,reason:"Fragmento no disponible"};

@@ -13,7 +13,7 @@ function bundle(read){
    code=code.replace('localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));finishSave(true,"Borrador guardado en este dispositivo; no publicado.");','window.ReactNativeWebView.postMessage(JSON.stringify({type:"shalom-studio-draft",arrangement}));note("Guardando borrador…");');
    code=code.replace('window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};','function receive(d){d=d||{};');
    code=code.replace('note(err.message)}});\n window.parent.postMessage({type:"shalom-studio-ready"},location.origin);','note(err.message)}}\n window.__shalomStudioReceive=receive;receive(window.__shalomStudioInit);');
-   code=code.replace('const published=d.arrangement?','if(d.draft)draft=window.ShalomStudioCodec.decode(anchors,d.draft);const published=d.arrangement?');
+   code=code.replace('const published=d.arrangement?','if(d.draft)draft=decodeConfig(d.draft);const published=d.arrangement?');
    if(!code.includes("receive(window.__shalomStudioInit)")||!code.includes("shalom-studio-draft"))throw Error("Studio bridge changed; update bundle adapter.");
   }
   return '<script>'+code.replace(/<\/script/gi,"<\\/script")+'</script>';
@@ -35,8 +35,17 @@ function outputs(read){
  return {
   "mobile/src/studio-bundle.js":html,
   "admin-mobile/src/studio-bundle.js":html,
+  "mobile/src/song-capo-core.js":read("song-capo-core.js"),
   "mobile/src/studio-collections.js":read("studio-collections.js"),
+  "mobile/src/studio-core.js":read("studio-core.js"),
+  "mobile/src/studio-codec.js":read("studio-codec.js"),
+  "mobile/src/studio-reader-cues.js":read("studio-reader-cues.js"),
   "mobile/src/studio-screen.js":screen(read),
+  "admin-mobile/src/collection-capo-options.js":read("collection-capo-options.js"),
+  "admin-mobile/src/studio-core.js":read("studio-core.js"),
+  "admin-mobile/src/studio-codec.js":read("studio-codec.js"),
+  "admin-mobile/src/studio-reader-cues.js":read("studio-reader-cues.js"),
+  "admin-mobile/src/collection-cue-editor.js":read("mobile/src/collection-cue-editor.js"),
   "admin-mobile/src/studio-screen.js":screen(read,true)
  };
 }

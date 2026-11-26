@@ -3,9 +3,10 @@ const {useState}=React;
 const {Modal,View,Text,TextInput,Pressable,ScrollView,StyleSheet,KeyboardAvoidingView,Platform,Alert}=require("react-native");
 const {InitialCover}=require("./visual-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
+const CollectionCueEditor=require("./collection-cue-editor");
 const h=React.createElement;
 const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
-function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
+function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,context,onSaveCues,onOpenOriginal,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -17,7 +18,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const back=()=>{
   if(busy)return;
   if(phase==="create"){setPhase("targets");return}
-  if(phase==="targets"||phase==="reading"||phase==="links"){setPhase("menu");return}
+  if(phase==="targets"||phase==="reading"||phase==="links"||phase==="cues"){setPhase("menu");return}
   close();
  };
  const button=(icon,title,action,subtitle=null,disabled=false,keyValue=title)=>
@@ -79,26 +80,29 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
     h(View,{style:S.rule}),
     phase==="menu"?h(ScrollView,{keyboardShouldPersistTaps:"handled",showsVerticalScrollIndicator:false,
       contentContainerStyle:S.menu},
+     context&&onOpenOriginal?button("♫","Abrir canto original",()=>run(onOpenOriginal,true),"Sin modificar esta colección"):null,
+     onSaveCues?button("✎","Editar indicaciones de este canto",()=>setPhase("cues"),"Solo en esta colección personal"):null,
      button(liked?"♥":"♡",liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta",
       ()=>run(onLike)),
      button("▣","Agregar a repertorio",()=>go("repertorio"),"Repertorio personal · en este teléfono"),
      button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
      button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
-     song._studio&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
+     song._studio&&song._studio.k!=="lyrics"&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
      button("↗","Ver enlaces y tutoriales",()=>setPhase("links"),
       links.length+" enlace(s) registrado(s)"),
      youtubeAvailable?button("▶","Abrir YouTube",()=>run(onVideo,true)):null,
-     button("↗","Compartir canción",()=>run(onShare,true)),
-     button("▤","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
+     button("↗",context?"Compartir canto original":"Compartir canción",()=>run(onShare,true)),
+     button("▤","Imprimir letra y acordes",()=>run(onPrint,true),context?"Imprimir como aparece en esta colección":"Impresión nativa desde el teléfono"),
      button("↓","Descargar sin conexión",()=>run(onDownload,true),
       offline?"Este canto ya está disponible sin conexión":"Actualizar biblioteca local"),
      h(View,{style:S.rule}),
      button("⛶","Opciones de lectura",()=>setPhase("reading"),"Pantalla completa y tono original")
-    ):phase==="reading"?h(View,{style:S.menu},
+    ):phase==="cues"?h(ScrollView,{keyboardShouldPersistTaps:"handled",contentContainerStyle:S.menu},h(CollectionCueEditor,{lyrics:context.lyrics,initial:context.override,styles:S,onSave:value=>{onSaveCues(value);onDismiss();}})):
+    phase==="reading"?h(View,{style:S.menu},
      lbl("Opciones de lectura",S.sectionTitle),
      button("⛶","Pantalla completa",()=>run(onFullScreen)),
-     button("↺","Restablecer tono original",()=>run(onResetTone)),
+     onResetTone?button("↺","Restablecer tono original",()=>run(onResetTone)):null,
      h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
       lbl("← Volver al panel",S.createLabel))
     ):phase==="links"?h(ScrollView,{keyboardShouldPersistTaps:"handled",

@@ -46,3 +46,34 @@ assert.equal(parseStore(JSON.stringify({version:1,collections:[{...col,coverPhot
 assert.ok(!exportCode(obj).includes("cover-a1b2"),"El código compartido nunca debe incluir fotos");
 assert.equal(parseStore("not-json").collections.length,0);
 console.log("SHALOM: colecciones, fragmentos, misa/popurrí y códigos offline correctos.");
+
+const customEntry={...obj,parts:[{...piece,notes:"Solo coro",cueOverride:{v:1,mode:"hide",j:[]}}]};
+const customCode=exportCode(customEntry);assert.match(customCode,/^SHALOM2-/);
+const customDecoded=importCode(customCode);
+assert.equal(customDecoded.parts[0].notes,"Solo coro");assert.deepEqual(customDecoded.parts[0].cueOverride,{v:1,mode:"hide",j:[]});
+assert.throws(()=>exportCode({...customEntry,parts:[{...piece,cueOverride:{v:1,mode:"bad",j:[]}}]}),/inválida/);
+
+const withCapo={...obj,parts:[{...piece,capoId:"main"}]};
+assert.equal(importCode(exportCode(withCapo)).parts[0].capoId,"main");
+assert.equal(parseStore(JSON.stringify({version:1,collections:[{...col,entries:[withCapo]}]})).collections[0].entries[0].parts[0].capoId,"main");
+
+const {parseSong}=require("../src/chords"),core=require("../src/studio-core"),codec=require("../src/studio-codec");
+const localRows=parseSong(song.lyrics,0),cue={...core.lyricCueAnchor(localRows,1),action:"repeat",audience:"choir",text:"Dos veces"};
+const customized={...piece,sectionIndex:null,sectionTitle:"",capoId:"main",notes:"Esperar",cueOverride:{v:1,mode:"append",j:codec.encodeLyricCues([cue]).j}};
+for(const kind of ["misa","repertorio","popurri"]){
+ const entry={...newEntry(kind,"Prueba"),parts:[customized,{...newPart(piece.songId),cueOverride:{v:1,mode:"hide",j:[]}}]};
+ const imported=importCode(exportCode(entry));
+ assert.notEqual(imported.parts[0].id,customized.id);
+ assert.notEqual(imported.parts[0].id,imported.parts[1].id);
+ const stripId=({id,...rest})=>rest;
+ assert.deepEqual(imported.parts.map(stripId),entry.parts.map(stripId));
+}
+const longParts=Array.from({length:30},(_,i)=>({...newPart("s"+i),notes:"x".repeat(500)}));
+assert.throws(()=>exportCode({...obj,parts:longParts}),/demasiado grande/);
+
+const snapshotPart={...newPart("s1"),fragmentLyrics:"[Coro]\nC G\nTexto de prueba",fragmentTitle:"Fragmento de prueba"};
+const snapshotEntry={...obj,parts:[snapshotPart]};
+assert.equal(importCode(exportCode(snapshotEntry)).parts[0].fragmentLyrics,snapshotPart.fragmentLyrics);
+assert.equal(resolvePart(song,snapshotPart).lyrics,snapshotPart.fragmentLyrics);
+assert.throws(()=>exportCode({...snapshotEntry,parts:[{...snapshotPart,fragmentLyrics:"x".repeat(25001)}]}),/personalizado inválido/);
+assert.throws(()=>exportCode({...snapshotEntry,parts:[{...snapshotPart,sectionIndex:1}]}),/personalizado inválido/);

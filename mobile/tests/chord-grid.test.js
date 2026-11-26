@@ -46,6 +46,7 @@ assert.match(web,/song-stacked-chords/,"Keep chords paired with their original l
 assert.doesNotMatch(ui,/anchoredTokens|token\.column|preserveColumns/,"Do not estimate glyph spacing in native Text");
 assert.match(app,/return h\(AlignedScore,\{rows,fontSize,variant:keyPrefix,\s*onFontSizeChange:/,
  "Cantos, misas, repertorios y popurrís comparten tipografía web y zoom nativo");
-assert.match(fs.readFileSync("src/music-readers-ui.js","utf8"),/renderAlignedScoreRows\(parsed,readerFont/);
-assert.match(app,/renderAlignedScoreRows\(parsed,fontOverride,keyPrefix\)/);
+assert.match(fs.readFileSync("src/music-readers-ui.js","utf8"),/renderAlignedScoreRows\(showReaderCues\?cueRows:parsed,readerFont/);
+assert.match(app,/renderAlignedScoreRows\(collectionScoreRows\(lyrics,delta,song,override\),fontOverride,keyPrefix\)/,
+ "Collection reading must project canonical rows and occurrence cues before rendering");
 console.log("SHALOM: browser-based text alignment, original columns and native fallback verified.");

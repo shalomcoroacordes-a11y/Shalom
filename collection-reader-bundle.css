@@ -392,65 +392,12 @@ body.song-detail-page #songLyrics .song-empty-line {
 }
 
 
-/* ===== repertoires.css (original order) ===== */
-/* SHALOM repertorios · interfaz consistente con el cancionero. */
-.rep-public-page{max-width:1180px;margin:0 auto;padding:32px 20px 80px;min-height:60vh}
-.rep-hero{border:1px solid rgba(61,177,120,.29);border-radius:24px;padding:clamp(24px,5vw,55px);background:linear-gradient(120deg,#0e3e29,#10202d 75%);margin-bottom:24px}
-.rep-hero h1{margin:.2rem 0 .8rem;font-size:clamp(2rem,5vw,3.5rem);color:#fff}
-.rep-hero p{max-width:780px;line-height:1.7}
-.rep-filters{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 22px}
-.rep-filters label{display:flex;flex-direction:column;gap:6px;min-width:min(100%,240px);flex:1;color:#dae7e4;font-weight:650}
-.rep-filters input,.rep-filters select,.rep-admin-layout input,.rep-admin-layout textarea,.rep-admin-layout select{width:100%;min-height:42px;padding:10px 12px;border:1px solid #3f5b55;border-radius:10px;background:#1b2830;color:#fff;font:inherit}
-.rep-public-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin:22px 0}
-.rep-public-card{display:block;padding:24px;border-radius:18px;text-decoration:none!important;color:#f8fffc!important;background:#192932;border:1px solid #385548;transition:transform .15s,border-color .15s}
-.rep-public-card:hover,.rep-public-card:focus-visible{border-color:#36d58e;transform:translateY(-2px)}
-.rep-public-card h2{font-size:1.3rem;margin:14px 0;color:#fff}
-.rep-card-pill{display:inline-block;border-radius:100px;background:#196b48;color:#e7ffef;padding:5px 12px;font-size:.82rem;font-weight:700}
-.rep-open{display:block;margin-top:14px;color:#70efb5;font-weight:750}
-.rep-reader{max-width:930px;margin:auto;color:#f4f9f7}
-.rep-reader-header{background:#182e2c;border:1px solid #376152;padding:22px;border-radius:18px;margin:15px 0}
-.rep-reader-header h2{font-size:clamp(1.6rem,4vw,2.4rem);margin:6px 0 12px;color:#fff}
-.rep-song-order{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin:18px 0 24px}
-.rep-order-button{text-align:left;border:1px solid #3b5e54;border-radius:12px;background:#1a3032;color:#f5fffa;min-height:65px;padding:12px;cursor:pointer}
-.rep-order-button strong{display:block;color:#a8edc2;font-size:.83rem;margin-bottom:5px}
-.rep-order-button span{display:block;font-size:.92rem}
-.rep-order-button.active{border-color:#69efab;box-shadow:0 0 0 2px rgba(44,202,117,.17);background:#154b39}
-.rep-now-playing{background:#101d24;border:1px solid #385d51;border-radius:18px;padding:clamp(16px,4vw,30px)}
-.rep-now-playing h3{font-size:1.6rem;color:#fff}
-.rep-reader-lyrics{margin:20px 0;padding:15px;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;line-height:1.65;overflow-x:auto;border-top:1px solid #315045;border-bottom:1px solid #315045;color:#f4f8f6}
-.rep-reader-lyrics .song-section-label{display:block;font-family:system-ui,sans-serif;font-weight:800;color:#73edb3;margin:14px 0 6px}
-.rep-reader-lyrics .song-line{display:block}
-.rep-reader-lyrics .chord-line{display:block;white-space:pre;color:#55dc93}
-.rep-reader-lyrics .lyric-line{display:block;white-space:pre-wrap;color:#fff}
-.rep-reader-lyrics .song-empty-line{display:block;min-height:1.4em}
-.rep-player-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0}
-.rep-player-actions button{min-width:120px}
-.rep-player-actions button:disabled{opacity:.45;cursor:not-allowed}
-.rep-admin-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,.8fr);gap:18px}
-.rep-part{padding:14px;margin:10px 0;background:rgba(28,60,52,.6);border:1px solid #42675a;border-radius:12px}
-.rep-part-title{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px}
-.rep-part-title span{display:flex;gap:6px}
-.rep-part-title button{border:1px solid #557569;border-radius:7px;background:#233e38;color:#fff;padding:6px 9px;cursor:pointer}
-.rep-part label,.rep-select-row label{display:block;margin:8px 0}
-.rep-select-row{border-top:1px solid #36584d;margin-top:15px;padding-top:15px}
-.rep-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.rep-published{display:flex!important;gap:10px;align-items:center;margin:16px 0;font-weight:700}
-.rep-published input{width:auto!important;min-height:0!important}
-.rep-saved{display:block;text-align:left;width:100%;margin:8px 0;padding:12px;border-radius:10px;color:#fff;background:#1c302e;border:1px solid #436457;cursor:pointer}
-.rep-saved strong,.rep-saved small{display:block}
-.rep-saved small{margin-top:5px;color:#b6d3c4}
-@media(max-width:850px){.rep-admin-layout{grid-template-columns:1fr}}
-@media(max-width:520px){.rep-public-page{padding:20px 12px 65px}.rep-player-actions button{min-width:90px}.rep-filters{flex-direction:column}.rep-part-title{flex-wrap:wrap}}
-.rep-print-all{display:block}
-.rep-continuous-song{background:#101d24;border:1px solid #385d51;border-radius:16px;padding:20px;margin:18px 0;scroll-margin-top:90px}
-.rep-continuous-song h3{font-size:1.25rem;color:#f4f9f7;margin:0 0 8px}
-.rep-continuous-song .rep-reader-lyrics{margin:10px 0 0}
-.rep-order-button{display:block;text-decoration:none!important}
-.rep-now-playing[hidden],.rep-player-actions[hidden]{display:none!important}
-@media print{
- header,footer,.rep-hero,.rep-filters,#repCatalog,.rep-back,.rep-song-order,.rep-player-actions,#repPrint,#repCurrentLink{display:none!important}
- #repReader{display:block!important}.rep-public-page{padding:0;margin:0;max-width:none}.rep-now-playing,.rep-reader-header{border:0;background:#fff;color:#000;box-shadow:none}
- .rep-print-all{display:block!important}.rep-now-playing{display:none!important}.rep-print-song{break-inside:avoid-page;margin:12px 0 20px}.rep-print-song h3{color:#000!important;font-size:15pt}
- .rep-reader-lyrics,.rep-reader-lyrics .lyric-line,.rep-reader-lyrics .song-section-label{color:#000!important}
- .rep-reader-lyrics .chord-line{color:#333!important}
-}
+/* ===== song-reader-cues.css (original order) ===== */
+.song-reader-cue{display:block;color:var(--cue-dark,#d1d5db)!important;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;white-space:normal;overflow-wrap:anywhere;margin:.35em 0 .15em;break-after:avoid}
+.song-reader-cues-hidden .song-reader-cue{display:none}
+.song-reader-cue-toggle{margin:.35em 0;color:inherit}
+@media print{.song-reader-cue-toggle{display:none!important}.song-reader-cue{opacity:1}}
+
+body.light-mode .song-reader-cue{color:var(--cue-light,#4b5563)!important}
+.song-reader-cue>span{color:inherit!important}
+@media print{body .song-reader-cue,body.light-mode .song-reader-cue{color:#333!important}}
