@@ -3,7 +3,7 @@ const React=require("react");
 const {View,Text,Pressable,TextInput}=require("react-native");
 const {parseSong}=require("./chords"),core=require("./studio-core"),codec=require("./studio-codec"),ReaderCues=require("./studio-reader-cues");
 const h=React.createElement;
-function CollectionCueEditor({lyrics,initial,onSave,styles}){
+function CollectionCueEditor({lyrics,initial,onSave,styles,official=false}){
  const rows=parseSong(lyrics||"",0);
  const [mode,setMode]=React.useState(initial?.mode||"inherit");
  const [cues,setCues]=React.useState(()=>initial?codec.decodeLyricCues({v:1,k:"lyrics",j:initial.j}):[]);
@@ -26,13 +26,13 @@ function CollectionCueEditor({lyrics,initial,onSave,styles}){
   try{
    if(mode!=="inherit"&&mode!=="hide"&&start!==null)throw Error("Agrega o cancela la indicación que estás editando.");
    if(mode!=="inherit"&&mode!=="hide"&&cues.some(c=>!core.validLyricCue(rows,c)))throw Error("Hay indicaciones con frases desactualizadas. Edítalas o quítalas.");
-   const next=mode==="inherit"?null:ReaderCues.normalizeOverride({v:1,mode,j:codec.encodeLyricCues(mode==="hide"?[]:cues).j});
+   const next=ReaderCues.validateOverride(rows,mode==="inherit"?null:{v:1,mode,j:codec.encodeLyricCues(mode==="hide"?[]:cues).j});
    onSave(next);
   }catch(e){setError(e.message);}
  }
  return h(View,{style:{gap:8}},
   text("Indicaciones de este canto",styles.sectionTitle),
-  text("Los cambios se aplican solo a esta aparición en tu colección.",styles.hint),
+  text(official?"Los cambios se aplican a esta aparición en la colección oficial al guardarla. El canto original no se modifica.":"Los cambios se aplican solo a esta aparición en tu colección.",styles.hint),
   ...[["inherit","Usar originales"],["append","Agregar propias"],["replace","Reemplazar"],["hide","Ocultar"]].map(([id,title])=>h(View,{key:id},button(title,()=>{setMode(id);reset()},mode===id))),
   mode==="append"||mode==="replace"?h(View,{style:{gap:6}},
    text("Toca una frase o dos para seleccionar un fragmento.",styles.hint),

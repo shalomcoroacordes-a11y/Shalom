@@ -31,6 +31,11 @@
   if(value.mode==="hide"&&cues.length)throw Error("Ocultar no admite indicaciones adicionales.");
   return {v:1,mode:value.mode,j:codec.encodeLyricCues(cues).j};
  }
+ function validateOverride(sourceRows,value){
+  const local=normalizeOverride(value);
+  if(local&&codec.decodeLyricCues({v:1,k:"lyrics",j:local.j}).some(c=>!core.validLyricCue(sourceRows,c)))throw Error("La letra cambió. Revisa las frases de las indicaciones.");
+  return local;
+ }
  function decorateCollection(sourceRows,arrangement,override,displayRows=sourceRows){
   if(sourceRows.length!==displayRows.length)return displayRows;
   let local;
@@ -44,5 +49,5 @@
   }
   return applyRows(combined,displayRows);
  }
- return Object.freeze({decorate,normalizeOverride,decorateCollection});
+ return Object.freeze({decorate,normalizeOverride,validateOverride,decorateCollection});
 });

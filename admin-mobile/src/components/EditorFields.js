@@ -8,27 +8,29 @@ const {categoryChoices}=require("../selector");
 const {options:collectionCapoOptions}=require("../collection-capo-options");
 const Picker=require("./Picker");
 const LyricsEditor=require("./LyricsEditor");
+const CollectionCueEditor=require("../collection-cue-editor");
 const {txt,heading,button,chip,input,wrapChips}=require("./Controls");
 const h=React.createElement;
 function CompositeEditor({kind,value,onChange,songs,mode,createId}){
  const [query,setQuery]=useState("");
+ const [cueIndex,setCueIndex]=useState(null);
  let entries;
  try{entries=JSON.parse(String(value||"[]"));}catch(_){return input("Corrige los datos JSON",value,onChange,{multi:true});}
  if(!Array.isArray(entries))return input("Se requiere una lista JSON",value,onChange,{multi:true});
  const medley=kind==="parts",limit=medley?30:45;
  const save=a=>onChange(JSON.stringify(a,null,2));
  const change=(index,key,value)=>save(entries.map((x,i)=>i===index?{...x,[key]:value}:x));
- const remove=index=>save(entries.filter((_,i)=>i!==index));
+ const remove=index=>{setCueIndex(null);save(entries.filter((_,i)=>i!==index));};
  const move=(index,delta)=>{
   const to=index+delta;if(to<0||to>=entries.length)return;
-  const list=entries.slice();[list[index],list[to]]=[list[to],list[index]];save(list);
+  const list=entries.slice();[list[index],list[to]]=[list[to],list[index]];setCueIndex(null);save(list);
  };
  const add=song=>{
   if(entries.length>=limit)return Alert.alert("Límite alcanzado","Máximo "+limit+" cantos.");
   const entry=medley?
    {id:createId(),song_id:song.id,song_title:song.title,title:song.title,tone:song.tone||"",lyrics:song.lyrics||"",shift:0}:
    {song_id:song.id,moment:mode==="misa"?"Entrada":"Ensayo",notes:""};
-  save([...entries,entry]);setQuery("");
+  setCueIndex(null);save([...entries,entry]);setQuery("");
  };
  const filtered=songs.filter(x=>String(x.title||"").toLowerCase().includes(query.toLowerCase())).slice(0,16);
  function chooseSection(index,label){
@@ -43,7 +45,7 @@ function CompositeEditor({kind,value,onChange,songs,mode,createId}){
  }
  return h(View,{style:{gap:11}},
   txt(medley?"Fragmentos del popurrí ("+entries.length+"/"+limit+")":"Cantos del repertorio ("+entries.length+"/"+limit+")",S.section),
-  entries.map((e,i)=>h(View,{key:(e.id||e.song_id||"item")+"_"+i,style:S.card},
+  entries.map((e,i)=>{const lyrics=medley?e.lyrics:songs.find(x=>x.id===e.song_id)?.lyrics;return h(View,{key:(e.id||e.song_id||"item")+"_"+i,style:S.card},
    h(View,{style:S.apart},txt((i+1)+". "+(e.title||e.song_title||songs.find(x=>x.id===e.song_id)?.title||"Canto"),S.itemTitle),
     h(View,{style:S.row},button("↑",()=>move(i,-1),"secondary",i===0),button("↓",()=>move(i,1),"secondary",i===entries.length-1),button("Quitar",()=>remove(i),"danger"))),
    txt("Capo de este canto",S.label),
@@ -59,8 +61,10 @@ function CompositeEditor({kind,value,onChange,songs,mode,createId}){
     h(View,{style:{gap:7}},
      txt("Momento de la celebración",S.label),
      wrapChips((mode==="misa"?["Entrada","Señor ten piedad","Gloria","Salmo","Aleluya","Ofertorio","Santo","Cordero de Dios","Comunión","Salida"]:["Ensayo","Repaso","Nuevo canto","Inicio","Final"]).map(x=>[x,x]),e.moment||"",v=>change(i,"moment",v)),
-     input("Indicaciones para el coro",e.notes||"",v=>change(i,"notes",v)))
-  )),
+     input("Indicaciones para el coro",e.notes||"",v=>change(i,"notes",v))),
+   lyrics?button(cueIndex===i?"Cerrar editor de indicaciones":"Editar indicaciones de este canto",()=>setCueIndex(cueIndex===i?null:i),"secondary"):null,
+   cueIndex===i&&lyrics?h(CollectionCueEditor,{key:i+"-"+lyrics,lyrics,initial:e.cue_override,official:true,styles:{sectionTitle:S.section,hint:S.note,action:S.item,actionTitle:S.itemTitle,createButton:S.btn,createLabel:S.btnText,input:S.input},onSave:next=>{change(i,"cue_override",next);setCueIndex(null);}}):null
+  );}),
   txt("Agregar un canto existente",S.label),
   input("Buscar título",query,setQuery),
   h(View,{style:{gap:4}},filtered.map(song=>h(Pressable,{key:song.id,style:S.item,onPress:()=>add(song)},

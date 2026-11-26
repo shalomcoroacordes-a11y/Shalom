@@ -19,7 +19,7 @@
    '<div class="medley-part-tools"><select data-section="'+i+'">'+opts+'</select>'+
    '<button type="button" data-action="only" data-i="'+i+'">Usar sección</button>'+
    '<button type="button" data-action="append" data-i="'+i+'">Añadir sección</button></div>'+
-   '<label>Fragmento de letra y acordes<textarea rows="7" data-lyrics="'+i+'">'+esc(p.lyrics||"")+'</textarea></label></article>';
+   '<label>Fragmento de letra y acordes<textarea rows="7" data-lyrics="'+i+'">'+esc(p.lyrics||"")+'</textarea></label><button type="button" class="song-btn secondary" data-cue-part="'+i+'">Editar indicaciones de este fragmento</button></article>';
  };
  const songOptions=()=>state.songs.filter(x=>[x.title,x.tone,(x._artists||[]).map(a=>a.name).join(" ")].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(state.query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""))).slice(0,120);
  const options=()=>songOptions().map(x=>'<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+esc(x.tone||"Sin tono")+'</option>').join("");
@@ -108,6 +108,10 @@
      tone:song.tone||"",lyrics:song.lyrics||"",shift:0});
     state.message="";render();
   });
+  state.root.querySelectorAll("[data-cue-part]").forEach(btn=>btn.addEventListener("click",()=>{
+   if(state.saving)return;capture();const part=state.active.parts[Number(btn.dataset.cuePart)];if(!part?.lyrics)return;
+   window.ShalomCollectionCueEditor.open({lyrics:part.lyrics,initial:part.cue_override,onSave:value=>{if(value)part.cue_override=value;else delete part.cue_override;render();}});
+  }));
   state.root.querySelectorAll("[data-action]").forEach(button=>button.addEventListener("click",()=>{
     capture();const i=Number(button.dataset.i),a=state.active.parts,kind=button.dataset.action;
     if(kind==="remove")a.splice(i,1);

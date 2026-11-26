@@ -1,4 +1,5 @@
 "use strict";
+const ReaderCues=require("./studio-reader-cues"),{parseSong}=require("./chords");
 const FIELDS=Object.freeze({
  songs:[["title","Título","text",true],["song_type","Tipo","type"],["tone","Tonalidad","text"],["difficulty","Dificultad","difficulty"],["artist_id","Artista principal","artist"],["lyrics","Letra y acordes","multiline",true],["capo_position","Capo principal (0-12)","number"],["capo_key","Figuras con capo","text"],["category_ids","Categorías","categories"],["collaborator_ids","Artistas colaboradores","artists"],["album_id","Álbum","album"],["links","Tutoriales y enlaces","links"],["capos","Versiones de capo","capos"]],
  artists:[["name","Nombre","text",true],["artist_type","Tipo","type"],["description","Descripción","multiline"],["bio","Biografía","multiline"],["avatar_url","Fotografía URL","url"],["cover_url","Portada URL","url"],["youtube_url","YouTube","url"],["spotify_url","Spotify","url"],["instagram_url","Instagram","url"],["facebook_url","Facebook","url"],["featured_song_ids","Canciones destacadas (máx. 3)","featured"]],
@@ -45,6 +46,7 @@ function baseRecord(table,form,id) {
   for(const x of out.capos){if(!(Number(x.capo_position)>0&&Number(x.capo_position)<=12)||!String(x.capo_key||"").trim())throw Error("Versión de capo inválida");}
  }
  if(["medleys","repertoires"].includes(table)){const parts=table==="medleys"?out.parts:out.items;if(Array.isArray(parts))for(const part of parts)if(part.capo_id!=null&&(typeof part.capo_id!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(part.capo_id)))throw Error("Capo de colección inválido.");}
+ if(["medleys","repertoires"].includes(table)){const list=table==="medleys"?out.parts:out.items;if(Array.isArray(list))for(const part of list)if(part.cue_override!=null){part.cue_override=table==="medleys"?ReaderCues.validateOverride(parseSong(part.lyrics||"",0),part.cue_override):ReaderCues.normalizeOverride(part.cue_override);}}
  if(table==="medleys"&&Array.isArray(out.parts))for(const part of out.parts){if(part.studio_gap_ms!=null&&(!Number.isInteger(part.studio_gap_ms)||part.studio_gap_ms<0||part.studio_gap_ms>10000))throw Error("Pausa de Studio inválida (0–10000 ms)");}
  if(table==="artists"&&out.featured_song_ids.length>3)throw Error("Máximo tres canciones destacadas");
  if(table==="categories"&&out.song_type==="mixto")throw Error("Categoría mixta no compatible con la base actual");

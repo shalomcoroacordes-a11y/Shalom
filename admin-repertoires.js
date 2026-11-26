@@ -43,7 +43,7 @@
      (item.moment&&!options.some(x=>x[1]===item.moment)?'<option selected>'+esc(item.moment)+'</option>':"")+
     '</select></label>'+
     '<label>Capo de este canto<select data-item-capo="'+i+'">'+window.ShalomCollectionCapoOptions.options(song,item.capo_id||"none").map(c=>'<option value="'+esc(c.id)+'" '+(c.id===(item.capo_id||"none")?"selected":"")+'>'+esc(c.label)+'</option>').join("")+'</select></label>'+
-    '<label>Indicaciones para el coro<input maxlength="500" data-item-notes="'+i+'" value="'+esc(item.notes||"")+'" placeholder="Ej. Intro dos veces, entrar después del salmo"></label></article>';
+    '<label>Indicaciones para el coro<input maxlength="500" data-item-notes="'+i+'" value="'+esc(item.notes||"")+'" placeholder="Ej. Intro dos veces, entrar después del salmo"></label>'+(song?.lyrics?'<button type="button" class="song-btn secondary" data-cue-item="'+i+'">Editar indicaciones de este canto</button>':"")+'</article>';
   }).join("");
   const saved=state.rows.map(rep=>'<button type="button" class="rep-saved" data-edit="'+esc(rep.id)+'">'+
     '<strong>'+esc(rep.title)+'</strong><small>'+esc(rep.kind==="misa"?"Misa":"Ensayo")+' · '+(rep.items||[]).length+
@@ -111,6 +111,10 @@
    if(state.active.items.length>=45)return notice("Máximo de 45 cantos.",true);
    capture();state.active.items.push({song_id:id,moment:state.active.kind==="misa"?"Entrada":"Ensayo",notes:""});render();
   });
+  state.root.querySelectorAll("[data-cue-item]").forEach(btn=>btn.addEventListener("click",()=>{
+   if(busy())return;capture();const item=state.active.items[Number(btn.dataset.cueItem)],song=songBy(item?.song_id);if(!song?.lyrics)return;
+   window.ShalomCollectionCueEditor.open({lyrics:song.lyrics,initial:item.cue_override,onSave:value=>{if(value)item.cue_override=value;else delete item.cue_override;render();}});
+  }));
   state.root.querySelectorAll("[data-move]").forEach(btn=>btn.addEventListener("click",()=>{
    if(busy())return;
    capture();const i=Number(btn.dataset.move),j=i+Number(btn.dataset.dir);
@@ -132,7 +136,7 @@
   $("#repForm")?.addEventListener("submit",async e=>{
    e.preventDefault();if(state.saving||state.deleting)return;
    capture();let payload;
-   try{payload=R.validate(state.active);}catch(err){notice(err.message,true);return;}
+   try{for(const item of state.active.items)if(item.cue_override!=null){const song=songBy(item.song_id);if(!song)throw Error("No se puede verificar la letra de un canto.");window.ShalomReaderCues.validateOverride(window.ShalomChords.parseRows(song.lyrics||""),item.cue_override);}payload=R.validate(state.active);}catch(err){notice(err.message,true);return;}
    state.saving=true;render();
    let saved=false;
    try{

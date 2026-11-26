@@ -9,7 +9,7 @@ const native={View:"View",Text:"Text",TextInput:"TextInput",Pressable:"Pressable
 function load(file,dependencies){const m={exports:{}};new Function("require","module",fs.readFileSync(file,"utf8"))(n=>{assert.ok(n in dependencies,"Missing dependency "+n);return dependencies[n]},m);return m.exports;}
 const shared={react:React,"react-native":native,"../styles":{S,C}};
 const controls=load("src/components/Controls.js",shared);
-const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"../collection-capo-options":require("../src/collection-capo-options"),"./Picker":"Picker","./LyricsEditor":"LyricsEditor","./Controls":controls});
+const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"../collection-capo-options":require("../src/collection-capo-options"),"../collection-cue-editor":"CollectionCueEditor","./Picker":"Picker","./LyricsEditor":"LyricsEditor","./Controls":controls});
 const calls=[];const props={form:{lyrics:"G",category_ids:["c"],parts:"[]",kind:"misa"},lists:{categories:[{id:"c",name:"Coro",song_type:"catolico"}],songs:[{id:"s",title:"Canto",tone:"G",lyrics:"[Coro]\nG\nTexto"}]},onChange:(...v)=>calls.push(v),createId:()=>"part-id"};
 const openCues=()=>calls.push(["cues"]);
 const lyrics=Field({...props,spec:["lyrics","Letra","multiline"],onOpenCues:openCues});assert.equal(lyrics.props.onOpenCues,openCues);lyrics.props.onOpenCues();assert.deepEqual(calls.pop(),["cues"]);assert.equal(lyrics.type,"LyricsEditor");lyrics.props.onChange("D");assert.deepEqual(calls.pop(),["lyrics","D"]);

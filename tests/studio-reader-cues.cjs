@@ -107,3 +107,10 @@ assert.deepEqual(reader.decorateCollection(vocalRows,vocalRecord,{v:1,mode:"bad"
 assert.equal(JSON.stringify(vocalRecord),originalSnapshot);
 assert.deepEqual(native.decorateCollection(vocalRows,vocalRecord,override),reader.decorateCollection(vocalRows,vocalRecord,override));
 console.log("Collection overrides: inherit, append, replace and hide without modifying the original.");
+
+const R=require("../repertoires-core"),M=require("../medley-core"),id="11111111-1111-1111-1111-111111111111";
+assert.deepEqual(R.normalizeItems([{song_id:id,cue_override:override}])[0].cue_override,override);
+assert.deepEqual(M.normalizeParts([{song_id:id,lyrics:aCapella,cue_override:override}])[0].cue_override,override);
+assert.throws(()=>M.normalizeParts([{song_id:id,lyrics:"Letra nueva",cue_override:override}]),/letra cambió/);
+assert.deepEqual(reader.validateOverride(vocalRows,override),override);
+assert.throws(()=>reader.validateOverride([],override),/letra cambió/);

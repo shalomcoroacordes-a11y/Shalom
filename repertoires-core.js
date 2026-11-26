@@ -25,6 +25,7 @@
    const notes=clean(it.notes).slice(0,500);
    if(it.capo_id!=null&&(typeof it.capo_id!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(it.capo_id)))throw Error("Capo del canto inválido.");
    const item={song_id:String(it.song_id),moment,notes,...(it.capo_id&&it.capo_id!=="none"?{capo_id:it.capo_id}:{})};
+   if(it.cue_override!=null)item.cue_override=(typeof module==="object"&&module.exports?require("./studio-reader-cues"):globalThis.ShalomReaderCues).normalizeOverride(it.cue_override);
    return item;
   });
  }
