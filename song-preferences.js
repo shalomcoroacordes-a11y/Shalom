@@ -68,12 +68,14 @@
     toolbar.append(preferences);
 
     document.getElementById("songFontDecrease")?.addEventListener("click", () => {
+      if(window.ShalomSectionReaderWeb?.adjust(lyrics,-1))return;
       scale = Math.max(MIN_SCALE, Math.round((scale - STEP) * 100) / 100);
       prefs.fontScale = scale;
       savePrefs(prefs);
       apply();
     });
     document.getElementById("songFontIncrease")?.addEventListener("click", () => {
+      if(window.ShalomSectionReaderWeb?.adjust(lyrics,1))return;
       scale = Math.min(MAX_SCALE, Math.round((scale + STEP) * 100) / 100);
       prefs.fontScale = scale;
       savePrefs(prefs);
@@ -83,6 +85,7 @@
       prefs.hideChords = !prefs.hideChords;
       savePrefs(prefs);
       apply();
+      window.ShalomSectionReaderWeb?.refresh(lyrics);
     });
 
     apply();

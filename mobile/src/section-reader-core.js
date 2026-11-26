@@ -35,4 +35,6 @@ function sectionFitHeight(viewport,header,footer){
  if(!Number.isFinite(viewport)||viewport<=0||!Number.isFinite(header)||header<0||!Number.isFinite(footer)||footer<0)return 0;
  return Math.max(1,Math.floor(viewport-header-footer-2*SECTION_GAP));
 }
-module.exports=Object.freeze({sectionsOf,navigation,moveIndex,chooseFitFont,sectionFitHeight,SECTION_GAP});
+const sectionReaderCore=Object.freeze({sectionsOf,navigation,moveIndex,chooseFitFont,sectionFitHeight,SECTION_GAP});
+if(typeof module==="object"&&module.exports)module.exports=sectionReaderCore;
+else globalThis.ShalomSectionReaderCore=sectionReaderCore;

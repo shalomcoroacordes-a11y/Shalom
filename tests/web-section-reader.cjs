@@ -1,0 +1,25 @@
+const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
+const env={};vm.createContext(env);vm.runInContext(fs.readFileSync("mobile/src/section-reader-core.js","utf8"),env);
+const core=env.ShalomSectionReaderCore;assert.ok(core);
+assert.equal(core.sectionsOf([{kind:"section",text:"Coro"},{kind:"content"},{kind:"section",text:"Verso"},{kind:"content"}]).length,2);
+assert.equal(core.chooseFitFont(10,46,n=>n<=23.7),23.7);
+assert.equal(core.chooseFitFont(10,46,()=>false),10);
+const classes=()=>({toggle(){},contains(){return false;}});
+function control(){return {classList:classes(),style:{},addEventListener(){},setAttribute(){},replaceChildren(){},getBoundingClientRect(){return {height:100};}};}
+const controls=control(),nodes=new Map();controls.querySelector=s=>{if(!nodes.has(s))nodes.set(s,control());return nodes.get(s);};
+const document={createElement:tag=>tag==="div"?controls:control(),fonts:null};
+let font=16;const callbacks=[];const row=(text,section)=>({textContent:text,hidden:false,classList:{contains:name=>section&&name==="song-section-label",toggle(name,value){this.excluded=value;}}});
+const children=[row("Coro",true),row("A"),row("Verso",true),row("B")];
+const target={children,clientWidth:320,style:{setProperty(k,v){font=parseFloat(v);},removeProperty(){font=16;}},classList:classes(),before(){},get scrollWidth(){return font*16;},getBoundingClientRect(){return {height:font*20};}};
+let click;controls.addEventListener=(name,fn)=>{if(name==="click")click=fn;};controls.scrollIntoView=()=>{};
+Object.assign(env,{document,window:{innerHeight:500,addEventListener(){}},requestAnimationFrame:fn=>{callbacks.push(fn);return callbacks.length;}});
+vm.runInContext(fs.readFileSync("section-reader-web.js","utf8"),env);
+const reader=env.ShalomSectionReaderWeb,run=action=>click({target:{closest:()=>({dataset:{action}})}}),flush=()=>{while(callbacks.length)callbacks.shift()();};
+reader.mount(target,"one");run("toggle");flush();assert.equal(font,19);assert.equal(children[2].classList.excluded,true);
+run("next");flush();assert.equal(children[0].classList.excluded,true);assert.equal(children[2].classList.excluded,false);
+assert.equal(reader.adjust(target,1),true);flush();assert.equal(font,20);
+reader.mount(target,"one");flush();assert.equal(children[0].classList.excluded,true);assert.equal(font,20);
+reader.mount(target,"two");flush();assert.equal(children[0].classList.excluded,false);assert.equal(reader.adjust(target,1),false);
+const css=fs.readFileSync("section-reader-web.css","utf8");assert.match(css,/@media screen\s*\{/);assert.match(css,/@media print/);
+const sw=fs.readFileSync("offline-sw.js","utf8");for(const path of ["section-reader-web.js","section-reader-web.css","mobile/src/section-reader-core.js"])assert.ok(sw.includes("./"+path));
+console.log("Shared web reader: fit, navigation, manual override, song identity and offline assets verified.");

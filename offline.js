@@ -404,6 +404,7 @@
       target.textContent = song.lyrics || "Sin letra.";
     }
     window.ShalomReaderCueControls?.mount(target,readerCuesVisible,value=>{readerCuesVisible=value;renderLyrics(song);});
+    window.ShalomSectionReaderWeb?.mount(target,String(song.id),{sticky:()=>document.querySelector(".app-header")});
     const tone = state.shift === 0 ? "Tono original"
       : (state.shift > 0 ? "+" : "") + state.shift + " semitonos";
     $("#transposeLabel").textContent = ($("#capoPanel").hidden ? tone : tone + " · " + capo.label);
