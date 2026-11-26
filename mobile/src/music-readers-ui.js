@@ -140,7 +140,7 @@ function MedleyReader({medley,S,collectionScoreRows,readerFont=15,HOME_IMAGES,la
   );
  }
 
-function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues=true,setShowReaderCues,immersiveActive=false}){
+function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues=true,setShowReaderCues,immersiveActive=false,onToggleFullscreen}){
   const [sectionMode,setSectionMode]=useState(false);
   const [sectionIndex,setSectionIndex]=useState(0);
   const [fitMode,setFitMode]=useState("auto");
@@ -193,6 +193,7 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
    hasCues?h(Pressable,{style:S.multiTextAction,accessibilityRole:"button",accessibilityState:{selected:showReaderCues},onPress:()=>setShowReaderCues(v=>!v)},label(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",S.multiTextActionLabel)):null,
+   onToggleFullscreen?h(Pressable,{style:S.multiTextAction,accessibilityRole:"button",accessibilityState:{selected:immersiveActive},onPress:onToggleFullscreen},label(immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",S.multiTextActionLabel)):null,
    h(Pressable,{style:S.multiTextAction,accessibilityRole:"button",accessibilityState:{selected:sectionMode},onPress:()=>setSectionMode(v=>!v)},label(sectionMode?"Lectura normal":"Lectura por secciones",S.multiTextActionLabel)),
    h(View,{style:S.songScorePlain},
     sectionMode?h(SectionReader,{rows:showReaderCues?cueRows:parsed,sectionIndex,setSectionIndex,fitMode,setFitMode,fontSize:readerFont,fitFont,onFitFont:setFitFont,onManualFont:manualFont,immersiveActive,S}):renderAlignedScoreRows(showReaderCues?cueRows:parsed,readerFont,"song-"+song.id))

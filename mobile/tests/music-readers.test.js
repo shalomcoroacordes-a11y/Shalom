@@ -51,3 +51,10 @@ const first=render(()=>RepertoireReader({...props,rep:double}));const controls=f
 assert.equal(controls.length,2);controls[1].props.onSelect("main");calls.length=0;render(()=>RepertoireReader({...props,rep:double}));assert.deepEqual(calls.filter(x=>x[0]==="multi").map(x=>x[2]),[3,0]);assert.equal(double.items[1].capo_id,undefined);
 
 reset();tree=render(()=>SongReader(props));find(tree,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="Lectura por secciones")).props.onPress();tree=render(()=>SongReader(props));const sectionReader=find(tree,n=>n.type?.name==="SectionReader");assert.ok(sectionReader);assert.equal(sectionReader.props.fitMode,"auto");assert.ok(sectionReader.props.rows.some(r=>r.kind==="cue"));sectionReader.props.onManualFont(21);tree=render(()=>SongReader(props));assert.equal(find(tree,n=>n.type?.name==="SectionReader").props.fitMode,"manual");assert.equal(find(tree,n=>n.type?.name==="SectionReader").props.fitFont,21);
+
+reset();let fullscreenCalls=0;const fullscreenProps={...props,onToggleFullscreen:()=>fullscreenCalls++};
+tree=render(()=>SongReader(fullscreenProps));find(tree,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="Lectura por secciones")).props.onPress();
+tree=render(()=>SongReader(fullscreenProps));let fitted=find(tree,n=>n.type?.name==="SectionReader");fitted.props.setSectionIndex(1);fitted.props.onManualFont(21);
+tree=render(()=>SongReader(fullscreenProps));find(tree,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="⛶ Pantalla completa")).props.onPress();assert.equal(fullscreenCalls,1);
+tree=render(()=>SongReader({...fullscreenProps,immersiveActive:true}));fitted=find(tree,n=>n.type?.name==="SectionReader");assert.equal(fitted.props.sectionIndex,1);assert.equal(fitted.props.fitFont,21);assert.equal(fitted.props.fitMode,"manual");
+find(tree,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="Salir de pantalla completa")).props.onPress();assert.equal(fullscreenCalls,2);

@@ -58,7 +58,7 @@ const HOME_IMAGES={
  calendar:require("./assets/home-calendar.png"),
  search:require("./assets/home-search.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const {tabs,isSelectedTab,routeForTab,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
+const {tabs,isSelectedTab,routeForTab,readerFullscreenAvailable,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
 const {startStudioQueue,advanceStudioQueue}=require("./src/studio-queue");
 async function openWeb(value) {
@@ -87,7 +87,11 @@ function AppScreen() {
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [immersive,setImmersive]=useState(false);
  const isReader=detail?.type==="song"||detail?.type==="medley"||detail?.type==="repertoire";
- const immersiveActive=Platform.OS==="android"&&isReader&&immersive;
+ const [personalReading,setPersonalReading]=useState(false);
+ const onPersonalReadingChange=useCallback(reading=>{setPersonalReading(reading);if(!reading)setImmersive(false);},[]);
+ const fullscreenAvailable=Platform.OS==="android"&&readerFullscreenAvailable(tab,detail,settingsOpen,personalReading);
+ const immersiveActive=fullscreenAvailable&&immersive;
+ const toggleFullscreen=fullscreenAvailable?()=>setImmersive(v=>!v):null;
  const [query,setQuery]=useState("");
  const [homeSearch,setHomeSearch]=useState("");
  const [typeFilter,setTypeFilter]=useState("");
@@ -171,7 +175,7 @@ function AppScreen() {
    setCategoryId,setSectionSearchOpen,setOnlyLiked
   });
  }
- function openDetail(next){navigateDetail(next,{detail,detailHistoryRef},{setDetail});}
+ function openDetail(next){if(!detail&&personalReading)setImmersive(false);navigateDetail(next,{detail,detailHistoryRef},{setDetail});}
  function rememberRead(next){lastReadRef.current=next;setLastRead(next);setMetadata("last_read",JSON.stringify(next)).catch(()=>{});}
  const personalEditsRef=useRef(null);
  if(!personalEditsRef.current)personalEditsRef.current=createPersonalEditController({
@@ -431,7 +435,7 @@ function AppScreen() {
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{key:String(song.id),song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues,immersiveActive});}
+ function renderSongDetail(song){return h(SongReader,{key:String(song.id),song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues,immersiveActive,onToggleFullscreen:toggleFullscreen});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,
@@ -450,7 +454,7 @@ function AppScreen() {
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
   :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,collectionScoreRows,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
-    registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
+    registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;},onReadingChange:onPersonalReadingChange,immersiveActive,onToggleFullscreen:toggleFullscreen})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
       onOpenPersonal:(folderId,entryId,parts)=>goTab("Mis colecciones",{

@@ -25,6 +25,12 @@ function matchesSearch(values,term){
  const haystack=normalize(fields.filter(value=>value!==null&&value!==undefined).join(" "));
  return haystack.includes(normalize(String(term??"").trim()));
 }
+// Fullscreen belongs to an active reader, not to a collection list or editor.
+function readerFullscreenAvailable(tab,detail,settingsOpen,personalReading){
+ if(settingsOpen)return false;
+ if(detail)return ["song","medley","repertoire"].includes(detail.type);
+ return tab==="Mis colecciones"&&personalReading===true;
+}
 // Forward and backward transitions belong to the same navigation owner.
 function navigateTab(next,options,state,controls){
  const {tab,tabHistoryRef,detailHistoryRef,personalNavRef}=state;
@@ -92,4 +98,4 @@ function handleBack(state,controls){
   if(tab!=="Inicio"){const previous=tabHistoryRef.current.pop();goTab(previous||"Inicio",{replace:true});return true;}
   return false;
  }
-module.exports=Object.freeze({tabs,isSelectedTab,routeForTab,matchesSearch,navigateTab,navigateDetail,navigateRequest,handleBack});
+module.exports=Object.freeze({tabs,isSelectedTab,routeForTab,matchesSearch,readerFullscreenAvailable,navigateTab,navigateDetail,navigateRequest,handleBack});

@@ -82,3 +82,19 @@ navigateRequest(f.state,f.controls);assert.equal(f.state.previousTabRef.current,
 f.state.tab="Solicitar";navigateRequest(f.state,f.controls);assert.equal(f.state.previousTabRef.current,"Artistas");
 assert.match(source,/onPress:\(\)=>openDetail\(\{type:"album",id:al.id\}\)/);
 console.log("Navigation forward transitions, deep links, filters, album history and repeated request verified.");
+
+const {readerFullscreenAvailable}=require("../src/navigation-core");
+for(const type of ["song","medley","repertoire"])assert.equal(readerFullscreenAvailable("Inicio",{type},false,false),true);
+assert.equal(readerFullscreenAvailable("Mis colecciones",null,false,true),true);
+assert.equal(readerFullscreenAvailable("Mis colecciones",null,false,false),false);
+assert.equal(readerFullscreenAvailable("Mis colecciones",null,true,true),false);
+assert.equal(readerFullscreenAvailable("Perfil",null,false,true),false);
+assert.equal(readerFullscreenAvailable("Mis colecciones",{type:"artist"},false,true),false);
+assert.deepEqual(runBack({tab:"Mis colecciones",immersiveActive:true},true).calls,[["setImmersive",false]]);
+assert.deepEqual(runBack({tab:"Mis colecciones",immersiveActive:false},true).calls,[["nested"]]);
+const personalUi=require("node:fs").readFileSync("src/personal-ui.js","utf8");
+assert.match(personalUi,/onReadingChange\?\.\(readingActive\)/);
+assert.match(personalUi,/if\(readingActive\)onReadingChange\?\.\(false\)/);
+assert.match(personalUi,/onToggleFullscreen\?action\(immersiveActive\?"Salir de pantalla completa"/);
+assert.match(source,/readerFullscreenAvailable\(tab,detail,settingsOpen,personalReading\)/);
+console.log("Fullscreen eligibility and native back preserve the current personal reader.");

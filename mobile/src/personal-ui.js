@@ -30,7 +30,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionScoreRows,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues}){
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionScoreRows,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues,onReadingChange,immersiveActive=false,onToggleFullscreen}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -65,6 +65,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
  },[registerBack,view,showFolderForm,customize,adding,filterKind,editReturn,shareReturn]);
  const folder=store.collections.find(c=>c.id===folderId);
  const entry=folder?.entries.find(e=>e.id===entryId);
+ const readingActive=view==="reading"&&Boolean(folder&&entry);
+ useEffect(()=>{onReadingChange?.(readingActive);return()=>{if(readingActive)onReadingChange?.(false);};},[onReadingChange,readingActive]);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
  const personalReadingRows=view==="reading"&&entry?readingRows(entry,catalog,readerShift):[];
  const nav=useCollectionSections(personalReadingRows.map(({part,song,resolved,scoreShift,index})=>({title:[part.moment,song?.title||part.fragmentTitle||"Fragmento "+(index+1)].filter(Boolean).join(" · "),rows:collectionScoreRows(resolved.lyrics||resolved.error||"Este canto no tiene letra descargada.",scoreShift,song,part.cueOverride)})),readerFont);
@@ -548,9 +550,10 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
   const rows=personalReadingRows;
   const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,scoreShift,selection})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position})),songs);
   return h(View,{style:styles.container},
-   action("← Editar "+kindName(entry.kind),back,true),
-   label(entry.title,styles.pageTitle),
-   label((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description),
+   !immersiveActive?action("← Editar "+kindName(entry.kind),back,true):null,
+   label(entry.title,immersiveActive?styles.cardTitle:styles.pageTitle),
+   !immersiveActive?label((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description):null,
+   onToggleFullscreen?action(immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",onToggleFullscreen,true):null,
    h(View,{style:styles.toneRow},
     action("T−",()=>setReaderShift(v=>Math.max(-11,v-1)),true,readerShift<=-11),
     label(readerShift===0?"Tono original":(readerShift>0?"+":"")+readerShift+" semitonos",styles.meta),
@@ -559,7 +562,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
     action("A+",()=>nav.enabled?nav.manualFont(nav.fitFont+1):setReaderFont(v=>Math.min(22,v+1)),true,!nav.enabled&&readerFont>=22)),
    h(CollectionSectionControls,{nav}),
    setShowReaderCues?action(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",()=>setShowReaderCues(v=>!v),true):null,
-   entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
+   !immersiveActive&&entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
    ...rows.map(({part:p,index,song,resolved,scoreShift,selection,tone})=>{
     if(nav.enabled&&nav.current?.entryIndex!==index)return null;
     return h(View,{key:p.id,style:styles.readerPart},
@@ -572,13 +575,13 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
       h(CollectionSongMenu,{song,style:styles.chip,textStyle:styles.chipText,onPress:onSongOptions&&resolved.lyrics!==null?()=>onSongOptions(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position,override:p.cueOverride,personalTarget:{folderId:folder.id,entryId:entry.id,partId:p.id},practiceReady:!!plan.entries[index]?.ready}):null})),
      h(CollectionCapoControl,{song,selection,onSelect:id=>changePart(p.id,x=>({...x,capoId:id})),style:styles.chip,textStyle:styles.chipText}),
      p.notes?label(p.notes,styles.meta):null,
-     nav.enabled?h(CollectionSectionScore,{nav,fontSize:readerFont,S:{songReaderHint:styles.meta},immersiveActive:false}):resolved.lyrics===null?label(resolved.error,styles.warning):
+     nav.enabled?h(CollectionSectionScore,{nav,fontSize:readerFont,S:{songReaderHint:styles.meta},immersiveActive}):resolved.lyrics===null?label(resolved.error,styles.warning):
       resolved.lyrics?renderScore(resolved.lyrics,scoreShift,"local-"+p.id,readerFont,song,p.cueOverride):
        label("Este canto no tiene letra descargada.",styles.warning),
-     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position}),true):null,
-     song?action("Ver canto original",()=>onSelectSong(song),true):null);
+     !immersiveActive&&plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position}),true):null,
+     !immersiveActive&&song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
-   action("Compartir",()=>showShare(entry,folder,"reading"),true));
+   !immersiveActive?action("Compartir",()=>showShare(entry,folder,"reading"),true):null);
  }
  if(view==="reading")return readingView();
  if(view==="editing")return editView();
