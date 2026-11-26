@@ -70,3 +70,7 @@ Detener ante pérdida de cantos, acceso incorrecto, divergencia del esquema, fal
 | Autorización de despliegue SQL, fusión y publicación | Pendiente |
 
 El código puede estar listo antes de que el lanzamiento esté autorizado. Mantener separados ambos estados.
+
+### Prueba conjunta de recuperación
+
+El workflow de papelera ejecuta `tests/sql/combined-recovery.sql`, que reutiliza el fixture aislado original y aplica también privilegios RBAC e historial Studio. Comprueba rollback de las tres operaciones cuando falla el registro de auditoría, contrato RPC anterior, lectura de historial separada del permiso de borrado y restauración de letra, relaciones y arreglo exactos. Los permisos son simulados en el fixture; no certifican las políticas desplegadas ni un respaldo restaurado real. Pendiente verificar CI del SHA final.

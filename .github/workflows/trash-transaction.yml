@@ -4,6 +4,9 @@ on:
     paths:
       - 'sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql'
       - 'tests/sql/trash-transaction.sql'
+      - 'tests/sql/combined-recovery.sql'
+      - 'sql/SHALOM_ADMIN_ROLE_PRIVILEGES.sql'
+      - 'sql/SHALOM_STUDIO_HISTORY.sql'
       - '.github/workflows/trash-transaction.yml'
   workflow_dispatch:
 permissions:
@@ -27,11 +30,11 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - name: Run synthetic PostgreSQL roundtrip (no production credentials)
+      - name: Run standalone and combined PostgreSQL recovery (no production credentials)
         env:
           PGHOST: 127.0.0.1
           PGPORT: ${{ job.services.postgres.ports[5432] }}
           PGUSER: postgres
           PGPASSWORD: disposable-test-only
           PGDATABASE: shalom_trash_test
-        run: psql -X -v ON_ERROR_STOP=1 -f tests/sql/trash-transaction.sql
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/sql/combined-recovery.sql
