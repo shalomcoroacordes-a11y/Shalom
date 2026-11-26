@@ -28,6 +28,14 @@ jobs:
 
       - name: Verify explicit Android release authorization
         run: node tests/android-release-authorization.cjs
+      - name: Verify next release manifests and upgrade identities
+        run: |
+          node tests/next-release-identity.cjs
+          node tests/android-upgrade-rehearsal-regression.cjs
+          bash -n mobile/scripts/verify-upgrade-candidate.sh
+          bash -n mobile/scripts/verify-upgrade-on-emulator.sh
+          bash -n admin-mobile/scripts/verify-upgrade-candidate.sh
+          bash -n admin-mobile/scripts/verify-upgrade-on-emulator.sh
 
       - name: Test home search source rendering
         run: node tests/home-search-render-regression.cjs

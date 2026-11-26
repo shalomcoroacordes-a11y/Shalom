@@ -78,3 +78,7 @@ El workflow de papelera ejecuta `tests/sql/combined-recovery.sql`, que reutiliza
 ### Compatibilidad detectada en preflight
 
 La regresión conjunta comprueba también los triggers de fecha de producción y rechazo de restauración a propietario bloqueado, mediante la comprobación de permiso vigente. Mantener pendiente la matriz completa de roles y rutas heredadas, el respaldo restaurable y la autorización de despliegue. No afirmar que el SQL está instalado por aprobar esta prueba.
+
+### Próxima entrega preparada
+
+Pública 0.4.25/48 y Admin 0.1.7/8, sobre las releases oficiales 0.4.24/47 y 0.1.6/7. Los manifiestos y locks cambian únicamente su versión propia. El ensayo de Pública parte de la última oficial; el nuevo ensayo Admin usa el paquete oficial únicamente en emulador desechable, sin publicar. Los dos requieren certificado y UID conservados, código creciente y apertura. Las APK de ensayo con identidad oficial no se distribuyen como previews paralelas. Verificar CI de la revisión y pruebas físicas; no constituye autorización de publicación.
