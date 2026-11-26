@@ -94,8 +94,49 @@ function sectionUpdate(g,patch,refresh=true){
  config=core.setSection(core.isolateSections(config,groups),g.indices[0],patch);renderReview();renderPattern();if(refresh)renderSections();
 }
 function cueLabel(c){return core.cueActions[c.action]+" · "+core.cueAudiences[c.audience]+(c.text?" · "+c.text:"")}
-function cueSectionEditor(g){
+function lyricCueEditor(g){
  const panel=elem("details");panel.className="advanced cue-editor";panel.append(elem("summary","Indicaciones musicales y litúrgicas"));
+ const rows=window.ShalomChords.parseRows($("source").value);
+ const first=g.heading+1,nextHeading=rows.findIndex((r,i)=>i>=first&&r.kind==="section"),end=nextHeading<0?rows.length:nextHeading;
+ const phrases=rows.map((r,i)=>({i,text:r.kind==="chords"?r.lyricLine:r.kind==="lyric"?r.text:"",chords:r.kind==="chords"?r.chordLine:""})).filter(r=>r.i>=first&&r.i<end&&r.text.trim());
+ const cues=config.lyricCues||[];
+ const list=elem("div");list.className="cue-list";
+ const score=elem("div");score.className="cue-phrase-list";
+ const hint=elem("p","Toca la primera frase y, si quieres un fragmento, toca la última.");hint.className="note";
+ const action=elem("select");for(const [k,v] of Object.entries(core.cueActions))action.append(new Option(v,k));
+ const audience=elem("select");for(const [k,v] of Object.entries(core.cueAudiences))audience.append(new Option(v,k));
+ const description=elem("textarea");description.maxLength=160;description.rows=2;description.placeholder="Ej. 2 veces";
+ const fields=elem("div");fields.className="fields";
+ for(const [title,input] of [["Acción",action],["Destinatario",audience],["Detalle",description]]){const label=elem("label",title);label.append(input);fields.append(label);}
+ let start=null,finish=null,editing=-1,waiting=false;
+ const save=elem("button","Agregar indicación");save.type="button";
+ const clear=elem("button","Limpiar selección");clear.type="button";
+ const cancel=elem("button","Cancelar edición");cancel.type="button";cancel.hidden=true;
+ const preview=elem("div");preview.className="cue-selection-preview";preview.setAttribute("aria-live","polite");
+ function refresh(){
+  score.replaceChildren(...phrases.map(p=>{const b=elem("button");b.type="button";b.className="cue-phrase";const selected=start!==null&&p.i>=start&&p.i<=finish;b.setAttribute("aria-pressed",String(selected));if(p.chords)b.append(elem("small",p.chords));b.append(elem("span",p.text));b.onclick=()=>{if(!waiting){start=finish=p.i;waiting=true;}else{const a=start;start=Math.min(a,p.i);finish=Math.max(a,p.i);waiting=false;}refresh();};return b;}));
+  save.disabled=start===null;clear.disabled=start===null;
+  preview.replaceChildren(elem("small","Vista previa · debajo de la selección"));
+  if(start===null){preview.append(elem("p","Selecciona una frase."));return;}
+  const last=phrases.find(p=>p.i===finish);preview.append(elem("div",last?.text||""),elem("strong",core.cueText({action:action.value,audience:audience.value,text:description.value.trim()})));
+ }
+ function reset(){start=finish=null;editing=-1;waiting=false;save.textContent="Agregar indicación";cancel.hidden=true;description.value="";refresh();}
+ function commit(next){const updated=core.setLyricCues(config,rows,next);core.compile(anchors,updated);stop();config=updated;renderReview();renderSections();$("sectionCards").querySelector('[data-open="true"] .cue-editor').open=true;note("Indicaciones actualizadas. Guarda o publica el acompañamiento.");}
+ clear.onclick=()=>{start=finish=null;waiting=false;refresh();};cancel.onclick=reset;
+ for(const input of [action,audience,description])input.oninput=refresh;
+ save.onclick=safe(()=>{if(start===null)return;const value={...core.lyricCueAnchor(rows,start,finish),action:action.value,audience:audience.value,text:description.value};const next=cues.slice();if(editing<0)next.push(value);else next[editing]=value;commit(next);});
+ for(const [i,c] of cues.entries()){
+  if(c.start<first||c.start>=end)continue;
+  const row=elem("div");row.className="cue-item";const info=elem("div"),valid=core.validLyricCue(rows,c);
+  info.append(elem("small",valid?phrases.find(p=>p.i===c.end)?.text||"Selección":"Revisar ubicación"),elem("strong",core.cueText(c)));
+  const edit=elem("button","Editar");edit.type="button";edit.onclick=()=>{editing=i;start=valid?c.start:null;finish=valid?c.end:null;waiting=false;action.value=c.action;audience.value=c.audience;description.value=c.text;save.textContent="Guardar indicación";cancel.hidden=false;refresh();};
+  const remove=elem("button","Quitar");remove.type="button";remove.onclick=safe(()=>{if(window.confirm("¿Quitar esta indicación?"))commit(cues.filter((_,j)=>i!==j));});row.append(info,edit,remove);list.append(row);
+ }
+ if(!phrases.length)hint.textContent="Esta sección es instrumental. Usa las indicaciones por compás.";
+ panel.append(list,hint,score,clear,fields,preview,save,cancel,cueSectionEditor(g));refresh();return panel;
+}
+function cueSectionEditor(g){
+ const panel=elem("details");panel.className="advanced cue-timing-editor";panel.append(elem("summary","Avanzado · indicaciones por compás"));
  const cues=config.cues||[],local=cues.map((c,i)=>({c,i})).filter(({c})=>g.indices.includes(c.index));
  const list=elem("div");list.className="cue-list";
  const bar=elem("select");for(let i=1;i<=core.sectionBarCount(config,g);i++)bar.append(new Option("Compás "+i,String(i)));
@@ -157,7 +198,7 @@ function renderSections(){
  if(k>0){const l=elem("label","Cómo entrar desde la sección anterior"),s=elem("select");s.replaceChildren(new Option("Cambio directo","immediate"),new Option("Cambio gradual de velocidad","gradual"),new Option("Pausa antes de entrar","pause"));s.value=p.transition;s.onchange=()=>sectionUpdate(g,{transition:s.value,pauseMs:s.value==="pause"?(p.pauseMs||1000):0});l.append(s);panel.append(l);if(p.transition==="pause"){const pause=elem("label","Pausa (segundos)"),n=elem("input");n.type="number";n.min=0;n.max=10;n.step=.5;n.value=p.pauseMs/1000;n.onchange=()=>sectionUpdate(g,{pauseMs:core.pauseMilliseconds(n.value)});pause.append(n);panel.append(pause)}}
  const actions=elem("div");actions.className="section-quick-actions";const hear=elem("button",inlineSection===k?"■ Detener":"▶ Escuchar");hear.className="section-hear";hear.onclick=safe(async()=>{if(inlineSection===k){stop();return;}await play(core.groupRange(config,g),k)});const chords=elem("button","♫ Acordes");chords.onclick=()=>{chooseAnchor(g.indices[0]);showStage(1)};const advanced=elem("button","↕ Rasgueo");advanced.onclick=()=>{rhythmIndex=k;$("barEdit").value=1;renderPattern();showStage(2)};actions.append(hear,chords,advanced);panel.append(actions);if(k>0){const transition=elem("button","▶ Escuchar entrada desde "+groups[k-1].title);transition.onclick=safe(async()=>{if(inlineSection===k){stop();return;}await play(core.sectionTransitionRange(config,groups[k-1],g),k)});panel.append(transition)}
  if(groups.length>1){const copyPanel=elem("details");copyPanel.className="advanced section-copy-panel";copyPanel.append(elem("summary","Copiar configuración a otra sección"));const l=elem("label","Destino"),target=elem("select");target.replaceChildren(...groups.map((x,i)=>i===k?null:new Option((i+1)+". "+x.title,String(i))).filter(Boolean));l.append(target);const copy=elem("button","Copiar configuración completa");copy.onclick=safe(()=>{const destIndex=Number(target.value),dest=groups[destIndex];if(!dest)return;const same=g.indices.length===dest.indices.length;const question=same?"¿Copiar tempo, todos los rasgueos, transición, duraciones y resonancia a "+dest.title+"?":"Las secciones tienen diferente cantidad de acordes. ¿Copiar tempo, rasgueos y transición conservando las duraciones de destino?";if(!window.confirm(question))return;if(same&&!confirmTiming())return;stop();const next=core.copySection(config,groups,g,dest,same);core.compile(anchors,next);rememberTiming(next);openSection=destIndex;rhythmIndex=destIndex;anchorIndex=dest.indices[0];$("barEdit").value=1;renderEditor();note(same?"Configuración completa copiada a "+dest.title+".":"Ritmo copiado a "+dest.title+". Se conservaron sus duraciones.");});copyPanel.append(l,copy);panel.append(copyPanel);const quickCopy=elem("button","▣ Copiar");quickCopy.onclick=()=>{copyPanel.open=!copyPanel.open;if(copyPanel.open)copyPanel.scrollIntoView({block:"nearest",behavior:"smooth"});};actions.append(quickCopy)}
- panel.append(cueSectionEditor(g));const status=elem("p","");status.className="note section-listen-status";panel.append(status);card.append(panel);return card;
+ panel.append(lyricCueEditor(g));const status=elem("p","");status.className="note section-listen-status";panel.append(status);card.append(panel);return card;
  }));
 }
 $("sectionPlayAll").onclick=safe(()=>preview());
