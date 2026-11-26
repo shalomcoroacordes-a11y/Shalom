@@ -6,7 +6,7 @@
     const lyrics = document.querySelector("#songLyrics");
     if (!lyrics) return;
 
-    const blocks = Array.from(lyrics.children);
+    const blocks = Array.from(lyrics.children).filter(block=>!lyrics.classList.contains("song-reader-cues-hidden")||!block.classList.contains("song-reader-cue"));
     let weightedLines = 0;
     let longestLine = 0;
 

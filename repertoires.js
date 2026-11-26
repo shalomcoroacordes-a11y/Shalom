@@ -3,7 +3,7 @@
  const db=window.supabaseClient,R=window.ShalomRepertoires;
  const $=id=>document.getElementById(id);
  const esc=R.html;
- let rows=[],current=null,songs=new Map(),loading=false;
+ let rows=[],current=null,songs=new Map(),loading=false,cuesVisible=true;
  const typeName=kind=>kind==="misa"?"Misa":"Ensayo";
  const friendlyDate=v=>R.formatDate(v);
  const menu=$("menuToggle"),nav=$("navMenu");
@@ -54,6 +54,7 @@
     '<div class="rep-reader-lyrics">'+content+'</div></article>';
   }).join("");
   $("repPrintAll").innerHTML=html;
+  window.ShalomReaderCueControls?.mount($("repPrintAll"),cuesVisible,()=>{});
   $("repPrintAll").hidden=false;
   $("repPrintAll").setAttribute("aria-hidden","false");
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
@@ -67,7 +68,11 @@
   $("repCurrentLink").hidden=true;
   document.title=rep.title+" | SHALOM Repertorios";
   window.scrollTo({top:0,behavior:"instant"});
-  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;const container=$("repPrintAll");window.ShalomStudioCollectionWeb.mount({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind});}).catch(()=>{});
+  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;const container=$("repPrintAll"),byId=new Map(rows.map(s=>[String(s.id),s]));
+   container.querySelectorAll(".rep-reader-lyrics").forEach((node,i)=>{const s=byId.get(String(rep.items[i]?.song_id));if(s&&window.ShalomChords?.render)node.innerHTML=window.ShalomChords.render(s.lyrics||"",{arrangement:s._studio});});
+   function toggle(value){cuesVisible=value;window.ShalomReaderCueControls?.mount(container,cuesVisible,toggle)}
+   toggle(cuesVisible);
+   window.ShalomStudioCollectionWeb.mount({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind});}).catch(()=>{});
  }
  function back(){
   current=null;$("repCatalog").hidden=false;$("repReader").hidden=true;

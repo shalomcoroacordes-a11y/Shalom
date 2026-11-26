@@ -50,12 +50,12 @@
       };
     });
   }
-  function renderPartsHTML(parts, globalShift, capo=0) {
+  function renderPartsHTML(parts, globalShift, capo=0, arrangementFor=()=>null) {
     if(!Array.isArray(parts))return "";
     return parts.map((p,i)=>'<section class="medley-song">'+
       '<div class="medley-song-head"><span class="medley-step">'+(i+1)+'</span><h3>'+html(p.title||p.song_title||"Canto")+'</h3><span class="medley-song-tone">'+html(p.tone||"")+'</span></div>'+
       '<div class="admin-preview-lyrics medley-lyrics">'+(typeof window!=="undefined" && window.ShalomChords
-        ? window.ShalomChords.render(p.lyrics||"",{transpose:chord=>transposeChord(chord,clampShift(p.shift)+clampShift(globalShift)-Math.max(0,Math.min(12,Number(capo)||0)))})
+        ? window.ShalomChords.render(p.lyrics||"",{arrangement:arrangementFor(p),transpose:chord=>transposeChord(chord,clampShift(p.shift)+clampShift(globalShift)-Math.max(0,Math.min(12,Number(capo)||0)))})
         : html(p.lyrics||""))+'</div>'+
       (p.song_id?'<a class="medley-original-link" href="cancion.html?id='+encodeURIComponent(p.song_id)+'">Ver canto original</a>':"")+
       '</section>').join("");

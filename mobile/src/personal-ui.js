@@ -28,7 +28,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
+function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -544,6 +544,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
     action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
     action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
+   setShowReaderCues?action(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",()=>setShowReaderCues(v=>!v),true):null,
    entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
    ...rows.map(({part:p,index,song,resolved,shift,tone})=>{
     return h(View,{key:p.id,style:styles.readerPart},
@@ -554,7 +555,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
        label((resolved.section||p.sectionTitle||"")+
         (song?.tone?" · Tono "+tone:""),styles.meta))),
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
+      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont,song):
        label("Este canto no tiene letra descargada.",styles.warning),
      plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);

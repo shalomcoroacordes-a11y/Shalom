@@ -3,7 +3,7 @@
  function mount(target,visible,onChange){
   const id=target.id+"CueToggle";
   let button=document.getElementById(id);
-  if(!target.querySelector(".song-reader-cue")){button?.remove();return;}
+  if(!target.querySelector(".song-reader-cue")){button?.remove();target.classList.remove("song-reader-cues-hidden");return;}
   if(!button){
    button=document.createElement("button");
    button.id=id;button.type="button";button.className="song-reader-cue-toggle small-btn";
