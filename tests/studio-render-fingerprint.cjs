@@ -4,7 +4,7 @@ const source=fs.readFileSync("studio-lab.js","utf8"),start=source.indexOf("funct
 assert.ok(start>=0&&end>start);
 let count=0,current="v1";
 const els=Object.fromEntries(["undoTiming","undoRhythm","saveState","saveStateTitle","saveStateDetail","save","publish"].map(id=>[id,{dataset:{}}]));
-const scope={core:C,window:{ShalomStudioSaveState:model},$:id=>els[id],fingerprint:()=>{count++;return current},timingUndo:{after:"v1"},rhythmUndo:{after:"v2"},publishedFingerprint:"v1",draftFingerprint:null,pendingSave:null,pendingKind:null,saveError:""};
+const scope={cueOnly:false,core:C,window:{ShalomStudioSaveState:model},$:id=>els[id],fingerprint:()=>{count++;return current},timingUndo:{after:"v1"},rhythmUndo:{after:"v2"},publishedFingerprint:"v1",draftFingerprint:null,pendingSave:null,pendingKind:null,saveError:""};
 vm.createContext(scope);vm.runInContext(source.slice(start,end),scope);
 scope.renderEditingState();
 assert.equal(count,1);assert.equal(els.saveState.dataset.state,"published");assert.equal(els.undoTiming.disabled,false);assert.equal(els.undoRhythm.disabled,true);
@@ -15,6 +15,7 @@ scope.renderEditingState("v1");assert.equal(count,2);assert.equal(els.saveState.
 const calls=[],refreshScope={fingerprint:()=>{count++;return current},renderPattern:fp=>calls.push(["pattern",fp]),renderFragments:fp=>calls.push(["fragments",fp]),renderReview:fp=>calls.push(["review",fp]),renderSections:()=>calls.push(["sections"])};
 const refresh=source.match(/const fp=fingerprint\(\);renderPattern\(fp\);renderFragments\(fp\);renderReview\(fp\);renderSections\(\);/);
 assert.ok(refresh);vm.runInNewContext(refresh[0],refreshScope);assert.equal(count,3);assert.deepEqual(calls,[["pattern","v2"],["fragments","v2"],["review","v2"],["sections"]]);
+scope.cueOnly=true;scope.renderEditingState("v1");assert.equal(els.saveStateTitle.textContent,"✓ Indicaciones publicadas");assert.equal(els.saveState.dataset.state,"published");scope.cueOnly=false;scope.renderEditingState("v1");assert.equal(els.saveStateTitle.textContent,"✓ Acompañamiento publicado");assert.equal(count,3);
 assert.match(source,/function renderPattern\(fp=fingerprint\(\)\)/);
 assert.match(source,/function renderFragments\(fp=fingerprint\(\)\)/);
 assert.match(source,/function renderReview\(fp=fingerprint\(\)\)/);

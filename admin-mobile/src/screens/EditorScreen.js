@@ -17,6 +17,7 @@ function EditorScreen({form,selectedType,section,update,adminBack,setSection,lis
     song&&section==="Letra"?specs.filter(x=>x[0]==="lyrics"):
     song&&section==="Capos"?specs.filter(x=>x[0]==="capos"):
     song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:specs;
+  const lyricPublication=studioStatus?.arrangement?.k==="lyrics",musicalArrangement=(studioStatus?.draft||studioStatus?.arrangement),hasMusic=!!musicalArrangement&&musicalArrangement.k!=="lyrics";
   return h(View,{style:{gap:14}},
    h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",adminBack,"secondary")),
    song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):null,
@@ -29,7 +30,7 @@ function EditorScreen({form,selectedType,section,update,adminBack,setSection,lis
        style:[r.type==="chords"?S.chords:r.type==="section"?S.kicker:S.lyrics,
         {fontSize:r.type==="section"?12:15,lineHeight:24,marginTop:r.type==="section"?12:0}]},r.text))))
    ):h(View,{style:{gap:12}},available.map(spec=>h(Field,{key:spec[0],spec,form,onChange:update,lists,createId:localId,onOpenCues:openLyricCues}))),
-   song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión"):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&(studioStatus.arrangement||studioStatus.draft)?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
+   song&&editing?.expected?h(View,{style:{gap:6}},txt("SHALOM Studio",S.kicker),txt(studioStatus?.id!==editing.id?"Consultando acompañamiento…":studioStatus.error?"No se pudo consultar el estado":studioStatus.draft?(studioStatus.arrangement?"Borrador local · hay una versión publicada":"Borrador local · todavía no publicado"):studioStatus.arrangement?(lyricPublication?(studioStatus.checked?"✓ Indicaciones publicadas · sin acompañamiento":"Indicaciones guardadas en caché · sin conexión"):(studioStatus.checked?"✓ Acompañamiento publicado":"Acompañamiento guardado en caché · sin conexión")):(studioStatus.checked?"Sin acompañamiento publicado":"Sin información local · sin conexión"),S.note),button(studioStatus?.id===editing.id&&hasMusic?"Abrir acompañamiento de guitarra":"Configurar acompañamiento de guitarra",openStudio,"secondary")):null,
    song&&editing?.expected&&!offline&&canPublish(access,"songs")?h(StudioHistory,{key:JSON.stringify([historyOwner,editing.id,editing.expected]),revision:editing.expected,onList:listStudioHistory,onChoose:chooseStudioHistory}):null,
    h(View,{style:S.divider}),
    h(View,{style:{gap:9}},button(editorSaving?"Guardando…":"Guardar borrador local",()=>saveDraft(false),"secondary",editorSaving),
