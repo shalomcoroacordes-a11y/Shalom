@@ -11,5 +11,5 @@ assert.match(html,/src="admin-auth-controller\.js\?v=\d+"/);
 assert.match(html,/src="admin-pro\.js\?v=\d+"/);
 assert.match(auth,/db\.rpc\("jhd_is_admin"\)/);
 assert.match(admin,/AdminPro\.rpc\("jhd_is_admin"\)/);
-assert.match(auth,/if\(!authorized\)/);
+assert.match(auth,/if\s*\(\s*!authorized\s*\)\s*\{\s*await db\.auth\.signOut\(\)/);
 console.log("Obsolete guard retired; active authorization controllers remain connected.");
