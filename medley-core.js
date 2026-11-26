@@ -38,7 +38,9 @@
       const lyrics=String(part.lyrics||"").replace(/^\\n+|\\n+$/g,"");
       const song_id=String(part.song_id||"");
       if(!lyrics.trim()||lyrics.length>25000||!song_id)throw new Error("El fragmento "+(index+1)+" debe tener un canto y una letra.");
+      if(part.capo_id!=null&&(typeof part.capo_id!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(part.capo_id)))throw Error("Capo del fragmento inválido.");
       return {
+        ...(part.capo_id&&part.capo_id!=="none"?{capo_id:part.capo_id}:{}),
         id:String(part.id||("parte-"+index)).slice(0,100),
         song_id,
         song_title:String(part.song_title||"Canto").slice(0,160),

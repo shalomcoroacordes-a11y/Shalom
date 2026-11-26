@@ -13,6 +13,7 @@
    '<button type="button" data-action="down" data-i="'+i+'" '+(i===state.active.parts.length-1?"disabled":"")+'>↓</button>'+
    '<button type="button" data-action="remove" data-i="'+i+'">Quitar</button></span></div>'+
    '<label>Nombre del fragmento<input data-title="'+i+'" maxlength="160" value="'+esc(p.title)+'"></label>'+
+   '<label>Capo de este fragmento<select data-capo="'+i+'">'+window.ShalomCollectionCapoOptions.options(source(p),p.capo_id||"none").map(c=>'<option value="'+esc(c.id)+'" '+(c.id===(p.capo_id||"none")?"selected":"")+'>'+esc(c.label)+'</option>').join("")+'</select></label>'+
    '<label>Transponer semitonos<input type="number" min="-11" max="11" step="1" data-shift="'+i+'" value="'+esc(p.shift||0)+'"></label>'+
    (i<state.active.parts.length-1?'<label>Studio: pausa hasta el siguiente fragmento (ms; vacío = sin configurar)<input type="number" min="0" max="10000" step="1" data-studio-gap="'+i+'" value="'+esc(p.studio_gap_ms??"")+'"></label>':"")+
    '<div class="medley-part-tools"><select data-section="'+i+'">'+opts+'</select>'+
@@ -32,6 +33,7 @@
   d.parts.forEach((p,i)=>{
    p.title=get('[data-title="'+i+'"]')?.value??p.title;
    p.shift=Number(get('[data-shift="'+i+'"]')?.value??p.shift);
+   const capo=get('[data-capo="'+i+'"]');if(capo){if(capo.value==="none")delete p.capo_id;else p.capo_id=capo.value;}
    p.lyrics=get('[data-lyrics="'+i+'"]')?.value??p.lyrics;
    const gap=get('[data-studio-gap="'+i+'"]');if(gap){if(gap.value==="")delete p.studio_gap_ms;else p.studio_gap_ms=Number(gap.value);}
   });

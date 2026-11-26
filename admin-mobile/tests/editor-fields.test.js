@@ -9,7 +9,7 @@ const native={View:"View",Text:"Text",TextInput:"TextInput",Pressable:"Pressable
 function load(file,dependencies){const m={exports:{}};new Function("require","module",fs.readFileSync(file,"utf8"))(n=>{assert.ok(n in dependencies,"Missing dependency "+n);return dependencies[n]},m);return m.exports;}
 const shared={react:React,"react-native":native,"../styles":{S,C}};
 const controls=load("src/components/Controls.js",shared);
-const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"./Picker":"Picker","./LyricsEditor":"LyricsEditor","./Controls":controls});
+const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"../collection-capo-options":require("../src/collection-capo-options"),"./Picker":"Picker","./LyricsEditor":"LyricsEditor","./Controls":controls});
 const calls=[];const props={form:{lyrics:"G",category_ids:["c"],parts:"[]",kind:"misa"},lists:{categories:[{id:"c",name:"Coro",song_type:"catolico"}],songs:[{id:"s",title:"Canto",tone:"G",lyrics:"[Coro]\nG\nTexto"}]},onChange:(...v)=>calls.push(v),createId:()=>"part-id"};
 const openCues=()=>calls.push(["cues"]);
 const lyrics=Field({...props,spec:["lyrics","Letra","multiline"],onOpenCues:openCues});assert.equal(lyrics.props.onOpenCues,openCues);lyrics.props.onOpenCues();assert.deepEqual(calls.pop(),["cues"]);assert.equal(lyrics.type,"LyricsEditor");lyrics.props.onChange("D");assert.deepEqual(calls.pop(),["lyrics","D"]);
@@ -29,3 +29,7 @@ cursor=0;action(CompositeEditor({...cp,value:JSON.stringify(Array.from({length:3
 state=["Tutorial","https://example.com","YouTube","Tutorial","","2","G"];cursor=0;action(NestedEditor({kind:"links",value:[],onChange:v=>updates.push(v)}),"+ Agregar enlace").props.onPress();assert.equal(updates.pop()[0].url,"https://example.com");
 state=["","","YouTube","Tutorial","","4","D"];cursor=0;action(NestedEditor({kind:"capos",value:[],onChange:v=>updates.push(v)}),"+ Agregar capo").props.onPress();assert.deepEqual(updates.pop(),[{label:"Capo 4 · D",capo_position:4,capo_key:"D",sort_order:0}]);
 console.log("Admin: reusable controls, editor fields, relationships, medleys, links and capos verified.");
+
+const capoSong={...cp.songs[0],capo_position:2,capo_key:"F",_capos:[{id:"alt",capo_position:3,capo_key:"E"}]};
+cursor=0;const capoTree=CompositeEditor({...cp,songs:[capoSong],value:JSON.stringify([{song_id:"s",title:"A"},{song_id:"s",title:"B"}])});
+const capoActions=flat(capoTree).filter(n=>n.type==="Pressable"&&hasText(n,"Capo 2 · F"));assert.equal(capoActions.length,2);capoActions[1].props.onPress();assert.equal(updates.at(-1)[0].capo_id,undefined);assert.equal(updates.pop()[1].capo_id,"main");

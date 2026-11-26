@@ -18,6 +18,7 @@
   state.root.querySelectorAll("[data-item-moment]").forEach(el=>{
    const i=Number(el.dataset.itemMoment);if(d.items[i])d.items[i].moment=el.value;
   });
+  state.root.querySelectorAll("[data-item-capo]").forEach(el=>{const item=d.items[Number(el.dataset.itemCapo)];if(item){if(el.value==="none")delete item.capo_id;else item.capo_id=el.value;}});
   state.root.querySelectorAll("[data-item-notes]").forEach(el=>{
    const i=Number(el.dataset.itemNotes);if(d.items[i])d.items[i].notes=el.value;
   });
@@ -41,6 +42,7 @@
      options.map(([value,title])=>'<option value="'+esc(title)+'" '+(item.moment===title?"selected":"")+'>'+esc(title)+'</option>').join("")+
      (item.moment&&!options.some(x=>x[1]===item.moment)?'<option selected>'+esc(item.moment)+'</option>':"")+
     '</select></label>'+
+    '<label>Capo de este canto<select data-item-capo="'+i+'">'+window.ShalomCollectionCapoOptions.options(song,item.capo_id||"none").map(c=>'<option value="'+esc(c.id)+'" '+(c.id===(item.capo_id||"none")?"selected":"")+'>'+esc(c.label)+'</option>').join("")+'</select></label>'+
     '<label>Indicaciones para el coro<input maxlength="500" data-item-notes="'+i+'" value="'+esc(item.notes||"")+'" placeholder="Ej. Intro dos veces, entrar después del salmo"></label></article>';
   }).join("");
   const saved=state.rows.map(rep=>'<button type="button" class="rep-saved" data-edit="'+esc(rep.id)+'">'+

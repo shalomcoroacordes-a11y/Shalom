@@ -40,6 +40,7 @@ function outputs(read){
   "mobile/src/studio-codec.js":read("studio-codec.js"),
   "mobile/src/studio-reader-cues.js":read("studio-reader-cues.js"),
   "mobile/src/studio-screen.js":screen(read),
+  "admin-mobile/src/collection-capo-options.js":read("collection-capo-options.js"),
   "admin-mobile/src/studio-screen.js":screen(read,true)
  };
 }

@@ -23,7 +23,8 @@
     throw Error("El canto "+(i+1)+" no tiene un identificador válido.");
    const moment=clean(it.moment).slice(0,90);
    const notes=clean(it.notes).slice(0,500);
-   const item={song_id:String(it.song_id),moment,notes};
+   if(it.capo_id!=null&&(typeof it.capo_id!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(it.capo_id)))throw Error("Capo del canto inválido.");
+   const item={song_id:String(it.song_id),moment,notes,...(it.capo_id&&it.capo_id!=="none"?{capo_id:it.capo_id}:{})};
    return item;
   });
  }

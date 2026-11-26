@@ -5,6 +5,7 @@ const {View,Pressable,Alert}=require("react-native");
 const {S,C}=require("../styles");
 const {OPTIONS,displayTitle}=require("../model");
 const {categoryChoices}=require("../selector");
+const {options:collectionCapoOptions}=require("../collection-capo-options");
 const Picker=require("./Picker");
 const LyricsEditor=require("./LyricsEditor");
 const {txt,heading,button,chip,input,wrapChips}=require("./Controls");
@@ -45,6 +46,8 @@ function CompositeEditor({kind,value,onChange,songs,mode,createId}){
   entries.map((e,i)=>h(View,{key:(e.id||e.song_id||"item")+"_"+i,style:S.card},
    h(View,{style:S.apart},txt((i+1)+". "+(e.title||e.song_title||songs.find(x=>x.id===e.song_id)?.title||"Canto"),S.itemTitle),
     h(View,{style:S.row},button("↑",()=>move(i,-1),"secondary",i===0),button("↓",()=>move(i,1),"secondary",i===entries.length-1),button("Quitar",()=>remove(i),"danger"))),
+   txt("Capo de este canto",S.label),
+   wrapChips(collectionCapoOptions(songs.find(x=>x.id===e.song_id),e.capo_id||"none").map(c=>[c.id,c.label]),e.capo_id||"none",id=>change(i,"capo_id",id)),
    medley?
     h(View,{style:{gap:7}},
      input("Nombre del fragmento",e.title||"",v=>change(i,"title",v)),
@@ -86,7 +89,7 @@ function Field({spec,form,onChange,lists,createId,onOpenCues}){
  }
  if(key==="lyrics")return h(LyricsEditor,{value:value||"",onChange:set,onOpenCues});
  if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
- if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa",createId});
+ if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:(lists.songs||[]).map(song=>({...song,_capos:(lists.song_capo_versions||[]).filter(c=>c.song_id===song.id)})),mode:form.kind||"misa",createId});
  return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});
 }
 function NestedEditor({kind,value,onChange}){

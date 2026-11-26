@@ -22,15 +22,17 @@ assert.doesNotMatch(medley,/h\(Card,|S\.lyricsArea|S\.listRow/,"No boxed lyrical
 assert.match(rep,/song\?\.lyrics/,"Repertoire reads saved original song lyrics");
 assert.match(rep,/item\.moment/,"Mass moments must be distinguished");
 assert.match(rep,/song\?\.tone\?transposeOne\(song\.tone,transpose\)/,"Repertoire song tone is transposed");
-assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",transpose/);
+assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",scoreShift/);
 assert.match(medley,/part\.lyrics\|\|original\?\.lyrics/,"Retain fragment-only lyrics when available");
 assert.match(medley,/const delta=transpose\+/,"Keep original per-fragment pitch shifts");
-assert.match(medley,/capoPosition/,"Retain capo instructions per fragment");
-assert.match(medley,/otherCapos/,"Retain variant capo choices");
+assert.match(medley,/collectionCapo\(song,part,capos\[key\]\)/,"Resolve each fragment capo");
+assert.match(medley,/h\(CollectionCapoControl,\{song:original,selection/,"Selectable capo variants");
+assert.match(rep,/h\(CollectionCapoControl,\{song,selection/);
 assert.match(medley,/tutorials\.map/,"Preserve YouTube/tutorial links");
 assert.doesNotMatch(medley,/\.slice\(0,3\)/,"Every tutorial should remain available");
 assert.match(score,/parseSong\(lyrics,delta\)/,"Use the same parser as Cantos");
-assert.match(score,/showReaderCues&&song&&lyrics===song\.lyrics\?ReaderCues\.decorate\(parseSong\(lyrics,0\),song\._studio,parsed\):parsed/,"Collections use canonical cue projection only for the exact original lyrics");
+assert.match(score,/song&&lyrics===song\.lyrics\?song\._studio:null/,"Only inherit exact original lyrics");
+assert.match(score,/showReaderCues\?ReaderCues\.decorateCollection\(parseSong\(lyrics,0\),arrangement,override,parsed\):parsed/,"Collection-specific cues remain independent");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Use saved section labels in all readers");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/song-section-label/,"Use green chorus and verse labels");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/#27c98b/,"Use SHALOM green for chords");
@@ -55,3 +57,10 @@ assert.doesNotMatch(app,/style:S\.songActionBar/,
 assert.match(app,/shareMultiReading/);
 assert.match(styles,/multiPage:\{paddingHorizontal:18/,"Keep comfortable side margins");
 console.log("SHALOM medley and misa readers match Cantos styling, preserve content, and have usable controls.");
+
+const C=require("../collection-capo-options"),R=require("../repertoires-core"),M=require("../medley-core");
+assert.equal(fs.readFileSync("collection-capo-options.js","utf8"),fs.readFileSync("admin-mobile/src/collection-capo-options.js","utf8"));
+const song={id:"11111111-1111-1111-1111-111111111111",capo_position:2,capo_key:"F",_capos:[{id:"alt",capo_position:3,capo_key:"E"}]};
+assert.deepEqual(C.options(song).map(c=>c.id),["none","main","alt"]);assert.equal(C.options(song,"missing").at(-1).id,"missing");
+assert.equal(R.normalizeItems([{song_id:song.id,capo_id:"alt"}])[0].capo_id,"alt");assert.equal(M.normalizeParts([{song_id:song.id,lyrics:"C",capo_id:"main"}])[0].capo_id,"main");
+assert.throws(()=>R.normalizeItems([{song_id:song.id,capo_id:{}}]),/Capo/);assert.throws(()=>M.normalizeParts([{song_id:song.id,lyrics:"C",capo_id:{}}]),/Capo/);
