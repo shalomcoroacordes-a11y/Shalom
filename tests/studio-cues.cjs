@@ -13,7 +13,7 @@ assert.match(js,/value\.lyricOnly\?codec\.encodeLyricCues/);assert.match(js,/con
  // Exercise the actual phrase selector with a minimal DOM, including a repeated phrase.
  const vm=require("node:vm"),parser=require("../song-chords");
  function element(tag,text=""){
-  return {tag,textContent:text,children:[],dataset:{},attrs:{},value:"",parent:null,
+  return {tag,textContent:text,children:[],style:{},dataset:{},attrs:{},value:"",parent:null,
    append(...children){for(const child of children){child.remove?.();this.children.push(child);child.parent=this;if(this.tag==="select"&&!this.value)this.value=child.value;}},
    replaceChildren(...children){for(const child of this.children)child.parent=null;this.children=[];this.append(...children);},
    remove(){if(this.parent){this.parent.children=this.parent.children.filter(c=>c!==this);this.parent=null;}},

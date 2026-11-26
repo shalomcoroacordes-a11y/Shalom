@@ -11,7 +11,7 @@ const reader=read("song-reader-bundle.css");
 assert.equal(reader,join(names),"Preserve all reader rules byte-for-byte");
 assert.doesNotMatch(reader,/@import/);
 const styles=[...read("cancion.html").matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(m=>m[1]);
-assert.deepEqual(styles,["style.css?v=5","public-content-base-bundle.css?v=1","song-reader-bundle.css?v=2"]);
+assert.deepEqual(styles,["style.css?v=5","public-content-base-bundle.css?v=1","song-reader-bundle.css?v=3"]);
 assert.equal(fs.existsSync("song-detail-bundle.css"),false);
 assert.doesNotMatch(read("offline-sw.js"),/song-detail-bundle\.css/);
 console.log("Song reader: exact base and reader CSS, original cascade and print order.");
