@@ -311,15 +311,15 @@ function AppScreen() {
    Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");
   }
  }
- function renderMultiReadingControls(){
+ function renderMultiReadingControls(nav=null){
   return h(View,{style:S.multiControlArea},
    h(View,{style:S.songControls},
     renderToneStepper(transpose===0?"Original":(transpose>0?"+":"")+transpose+" semitonos"),
     h(View,{style:S.songFontControl},
-     h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v-1)),
+     h(Pressable,{onPress:()=>nav?.enabled?nav.manualFont(nav.fitFont-1):setReaderFont(v=>clampReaderFont(v-1)),
       accessibilityRole:"button",accessibilityLabel:"Reducir letras",style:S.songFontButton},
       label("A−",S.songFontText)),
-     h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v+1)),
+     h(Pressable,{onPress:()=>nav?.enabled?nav.manualFont(nav.fitFont+1):setReaderFont(v=>clampReaderFont(v+1)),
       accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
       label("A+",S.songFontText)))),
    h(View,{style:S.multiControlFooter},
@@ -337,11 +337,14 @@ function AppScreen() {
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
-  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null,override=null){
+ function collectionScoreRows(lyrics,delta,song=null,override=null){
   const parsed=parseSong(lyrics,delta);
   const arrangement=song&&lyrics===song.lyrics?song._studio:null;
   const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(lyrics,0),arrangement,override,parsed):parsed;
-  return renderAlignedScoreRows(rows,fontOverride,keyPrefix);
+  return rows;
+ }
+ function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null,override=null){
+  return renderAlignedScoreRows(collectionScoreRows(lyrics,delta,song,override),fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){
   const selection=startStudioQueue(plan,index);
@@ -366,9 +369,9 @@ function AppScreen() {
   try{const result=copyOfficial(personalRef.current,collection,kind,model.songs);savePersonal(result.store,{notice:"Copia guardada en Mis creaciones"});}
   catch(error){Alert.alert("No se pudo copiar",error.message);}
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(rep,rep.kind==="misa"?"misa":"repertorio")});}
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{key:String(rep.id),rep,S,collectionScoreRows,readerFont,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(rep,rep.kind==="misa"?"misa":"repertorio")});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(medley,"popurri")});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{key:String(medley.id),medley,S,collectionScoreRows,readerFont,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb,onSongOptions:openCollectionSong,onCopy:()=>copyOfficialLocally(medley,"popurri")});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }

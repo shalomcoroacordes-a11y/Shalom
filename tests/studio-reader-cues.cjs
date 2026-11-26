@@ -81,7 +81,7 @@ console.log("Lyric-only record: no invented musical accompaniment, public web an
   "./chords":require("../mobile/src/chords"),"./catalog":{names:()=>""},"./favorites":{hasFavorite:()=>false},
   "./song-capo-core":{capoSelection:()=>({choices:[{id:"none"}],chosen:{id:"none"},offset:0})},
   "./score-zoom":{clampReaderFont:x=>x},"./repertoire-ui":{},"./studio-collections":require("../mobile/src/studio-collections"),
-  "./studio-reader-cues":native
+  "./studio-reader-cues":native,"./section-reader-ui":"SectionReader"
  };
  const uiModule={exports:{}};
  new Function("require","module",sourceUI)(name=>{assert.ok(name in dependencies,name);return dependencies[name]},uiModule);
