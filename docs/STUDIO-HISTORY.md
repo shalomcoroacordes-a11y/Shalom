@@ -30,3 +30,7 @@ En el editor de un canto, Historial Studio muestra las últimas 30 revisiones. L
 ## Android Admin
 
 La rama de recuperación nativa añade consulta autorizada de las últimas 30 revisiones y apertura en el reproductor compartido sin escritura. Solo permite cargar para editar si coincide la revisión y la letra vigente. Usa el borrador y la publicación existentes; no escribe desde el historial ni cambia la app pública. Requiere conexión y el despliegue previo del SQL. El candidato anterior al cierre aprobó CI y el ensayo de Android. Falta verificar recuperación en dispositivo y entorno de pruebas conectado al esquema real. No se ha desplegado el SQL en producción como parte de este candidato.
+
+## Regresión conjunta
+
+`tests/sql/combined-recovery.sql` combina las tres protecciones sobre PostgreSQL desechable. No usa credenciales de producción. Valida que un fallo en la auditoría no deje ni historial ni papelera parciales y que el RPC anterior conserve la revisión original tras restauración. Complementa, no reemplaza, las pruebas independientes ni la verificación del esquema y permisos reales.
