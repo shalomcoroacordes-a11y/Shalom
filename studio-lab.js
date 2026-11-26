@@ -93,6 +93,50 @@ function sectionUpdate(g,patch,refresh=true){
  // Explicitly initialize every section to preserve the independent base and avoid a section leaking into the next.
  config=core.setSection(core.isolateSections(config,groups),g.indices[0],patch);renderReview();renderPattern();if(refresh)renderSections();
 }
+function cueLabel(c){return core.cueActions[c.action]+" · "+core.cueAudiences[c.audience]+(c.text?" · "+c.text:"")}
+function cueSectionEditor(g){
+ const panel=elem("details");panel.className="advanced cue-editor";panel.append(elem("summary","Indicaciones musicales y litúrgicas"));
+ const cues=config.cues||[],local=cues.map((c,i)=>({c,i})).filter(({c})=>g.indices.includes(c.index));
+ const list=elem("div");list.className="cue-list";
+ const bar=elem("select");for(let i=1;i<=core.sectionBarCount(config,g);i++)bar.append(new Option("Compás "+i,String(i)));
+ const action=elem("select");for(const [k,v] of Object.entries(core.cueActions))action.append(new Option(v,k));
+ const audience=elem("select");for(const [k,v] of Object.entries(core.cueAudiences))audience.append(new Option(v,k));
+ const description=elem("textarea");description.maxLength=160;description.rows=2;description.placeholder="Ej. Esperar al sacerdote o repetir dos veces";
+ const fields=elem("div");fields.className="fields";
+ for(const [title,input] of [["Ubicación",bar],["Acción",action],["Destinatario",audience],["Detalle",description]]){const label=elem("label",title);label.append(input);fields.append(label);}
+ let editing=-1,originalBar="";
+ const save=elem("button","Agregar indicación");save.type="button";
+ const cancel=elem("button","Cancelar edición");cancel.type="button";cancel.hidden=true;
+ function commit(next){const updated=core.setCues(config,next);core.compile(anchors,updated);stop();config=updated;renderReview();renderSections();$("sectionCards").querySelector('[data-open="true"] .cue-editor').open=true;note("Indicaciones actualizadas. Guarda o publica el acompañamiento.");}
+ cancel.onclick=()=>{editing=-1;save.textContent="Agregar indicación";cancel.hidden=true;description.value="";};
+ save.onclick=safe(()=>{const pos=editing>=0&&bar.value===originalBar?{index:cues[editing].index,ticks:cues[editing].ticks}:core.cuePosition(config,g,Number(bar.value));const value={...pos,action:action.value,audience:audience.value,text:description.value};const next=cues.slice();if(editing<0)next.push(value);else next[editing]=value;commit(next);});
+ const bounds=core.groupBounds(config,g),division=config.division;
+ for(const {c,i} of local){
+  const row=elem("div");row.className="cue-item";const step=config.changes[c.index].step+c.ticks*division/24;
+  const n=Math.floor((step-bounds.start)/size())+1;
+  const info=elem("div");info.append(elem("small","Compás "+n),elem("strong",cueLabel(c)));
+  const edit=elem("button","Editar");edit.type="button";edit.onclick=()=>{editing=i;bar.value=String(n);originalBar=bar.value;action.value=c.action;audience.value=c.audience;description.value=c.text;save.textContent="Guardar indicación";cancel.hidden=false;description.focus();};
+  const remove=elem("button","Quitar");remove.type="button";remove.onclick=safe(()=>{if(window.confirm("¿Quitar esta indicación?"))commit(cues.filter((_,j)=>i!==j));});
+  row.append(info,edit,remove);list.append(row);
+ }
+ if(!local.length)list.append(elem("small","Sin indicaciones en esta sección."));
+ panel.append(list,fields,save,cancel,elem("small","Son instrucciones visuales: no cambian el rasgueo ni ejecutan repeticiones automáticamente."));
+ return panel;
+}
+let cueTimeline=null,cueEvents=[],cueStep=0,cueRange=null;
+function renderCues(timeline,step,range=null){
+ if(cueTimeline!==timeline){cueTimeline=timeline;cueEvents=core.cueEntries(timeline);const list=$("cueOverviewList");list.replaceChildren(...cueEvents.filter(x=>!range||x.step>=range.start&&x.step<range.end).flatMap(x=>x.cues.map(c=>{const row=elem("li",cueLabel(c));row.prepend(elem("small","Compás del canto "+(Math.floor(x.step/size())+1)+" · "));return row;})));$("cueOverview").hidden=!list.children.length;$("cueToggleLabel").hidden=!list.children.length;}
+ cueStep=step;cueRange=range;
+ const visible=$("cueVisible").checked;
+ $("cueOverview").hidden=!visible||!$("cueOverviewList").children.length;
+ const {current,next}=core.cueWindow(cueEvents,step,size(),range);
+ const box=$("liveCue"),now=$("cueCurrent"),later=$("cueNext"),prev=box.hidden;
+ box.hidden=!visible||(!current&&!next);
+ const a=current?current.cues.map(cueLabel).join(" · "):"",b=next?"Después: "+next.cues.map(cueLabel).join(" · "):"";
+ if(now.textContent!==a)now.textContent=a;if(later.textContent!==b)later.textContent=b;
+ if(prev!==box.hidden)syncTransportSpace();
+}
+$("cueVisible").onchange=()=>{if(cueTimeline)renderCues(cueTimeline,cueStep,cueRange);syncTransportSpace()};
 function renderSections(){
  if(!config||!groups.length)return;
  $("structureSummary").textContent=groups.length+" secciones · "+anchors.length+" acordes";const root=$("sectionCards");root.replaceChildren(...groups.map((g,k)=>{
@@ -112,7 +156,7 @@ function renderSections(){
  if(k>0){const l=elem("label","Cómo entrar desde la sección anterior"),s=elem("select");s.replaceChildren(new Option("Cambio directo","immediate"),new Option("Cambio gradual de velocidad","gradual"),new Option("Pausa antes de entrar","pause"));s.value=p.transition;s.onchange=()=>sectionUpdate(g,{transition:s.value,pauseMs:s.value==="pause"?(p.pauseMs||1000):0});l.append(s);panel.append(l);if(p.transition==="pause"){const pause=elem("label","Pausa (segundos)"),n=elem("input");n.type="number";n.min=0;n.max=10;n.step=.5;n.value=p.pauseMs/1000;n.onchange=()=>sectionUpdate(g,{pauseMs:core.pauseMilliseconds(n.value)});pause.append(n);panel.append(pause)}}
  const actions=elem("div");actions.className="section-quick-actions";const hear=elem("button",inlineSection===k?"■ Detener":"▶ Escuchar");hear.className="section-hear";hear.onclick=safe(async()=>{if(inlineSection===k){stop();return;}await play(core.groupRange(config,g),k)});const chords=elem("button","♫ Acordes");chords.onclick=()=>{chooseAnchor(g.indices[0]);showStage(1)};const advanced=elem("button","↕ Rasgueo");advanced.onclick=()=>{rhythmIndex=k;$("barEdit").value=1;renderPattern();showStage(2)};actions.append(hear,chords,advanced);panel.append(actions);if(k>0){const transition=elem("button","▶ Escuchar entrada desde "+groups[k-1].title);transition.onclick=safe(async()=>{if(inlineSection===k){stop();return;}await play(core.sectionTransitionRange(config,groups[k-1],g),k)});panel.append(transition)}
  if(groups.length>1){const copyPanel=elem("details");copyPanel.className="advanced section-copy-panel";copyPanel.append(elem("summary","Copiar configuración a otra sección"));const l=elem("label","Destino"),target=elem("select");target.replaceChildren(...groups.map((x,i)=>i===k?null:new Option((i+1)+". "+x.title,String(i))).filter(Boolean));l.append(target);const copy=elem("button","Copiar configuración completa");copy.onclick=safe(()=>{const destIndex=Number(target.value),dest=groups[destIndex];if(!dest)return;const same=g.indices.length===dest.indices.length;const question=same?"¿Copiar tempo, todos los rasgueos, transición, duraciones y resonancia a "+dest.title+"?":"Las secciones tienen diferente cantidad de acordes. ¿Copiar tempo, rasgueos y transición conservando las duraciones de destino?";if(!window.confirm(question))return;if(same&&!confirmTiming())return;stop();const next=core.copySection(config,groups,g,dest,same);core.compile(anchors,next);rememberTiming(next);openSection=destIndex;rhythmIndex=destIndex;anchorIndex=dest.indices[0];$("barEdit").value=1;renderEditor();note(same?"Configuración completa copiada a "+dest.title+".":"Ritmo copiado a "+dest.title+". Se conservaron sus duraciones.");});copyPanel.append(l,copy);panel.append(copyPanel);const quickCopy=elem("button","▣ Copiar");quickCopy.onclick=()=>{copyPanel.open=!copyPanel.open;if(copyPanel.open)copyPanel.scrollIntoView({block:"nearest",behavior:"smooth"});};actions.append(quickCopy)}
- const status=elem("p","");status.className="note section-listen-status";panel.append(status);card.append(panel);return card;
+ panel.append(cueSectionEditor(g));const status=elem("p","");status.className="note section-listen-status";panel.append(status);card.append(panel);return card;
  }));
 }
 $("sectionPlayAll").onclick=safe(()=>preview());
@@ -296,7 +340,7 @@ function playbackAnchor(id){
  return activeAnchorIndex.get(id);
 }
 function showStep(timeline,i){
- const e=timeline[i];if(!e)return;originalScore=null;const n=size(),active=playbackAnchor(e.anchorId),anchorIndex=active?.index??-1,parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
+ const e=timeline[i];if(!e)return;renderCues(timeline,i,practiceRange);originalScore=null;const n=size(),active=playbackAnchor(e.anchorId),anchorIndex=active?.index??-1,parts=config.sections||[],part=anchorIndex<0?null:parts.filter(p=>p.index<=anchorIndex).at(-1),sectionStart=part?config.changes[part.index].step:0,sectionEnd=part?(config.changes[parts.find(p=>p.index>part.index)?.index]?.step??config.endStep??timeline.length):timeline.length,local=e.step-sectionStart,bar=Math.floor(local/n),beat=Math.floor(local%n/config.division),start=sectionStart+bar*n;
  if($("chord").textContent!==(e.chord||"—")){$("chord").textContent=e.chord||"—";diagram(e.chord)}
  $("transportSection").textContent=anchors[anchorIndex]?.section||"Inicio";$("where").textContent="Compás "+(bar+1)+" · Pulso "+(beat+1)+(e.tempo?" · "+Math.round(e.tempo)+" BPM":"");
  const upcoming=nextPlaybackChord(timeline,i);
@@ -327,7 +371,7 @@ function showStep(timeline,i){
  }
  if(playing)followLine(line);
 }
-function stop(){indexedTimeline=null;upcomingIndices=null;indexedAnchors=null;activeAnchorIndex=null;const wasInline=inlineSection;inlineSection=null;playing=false;audition=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop();$("hearBar").textContent="▶ Escuchar compás";$("auditionStatus").textContent="";$("grid").querySelector(".audition-active")?.classList.remove("audition-active");if(wasInline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="▶ Escuchar";const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Escucha detenida."}}
+function stop(){cueTimeline=null;cueEvents=[];$("liveCue").hidden=true;indexedTimeline=null;upcomingIndices=null;indexedAnchors=null;activeAnchorIndex=null;const wasInline=inlineSection;inlineSection=null;playing=false;audition=false;epoch++;clearInterval(timer);cancelAnimationFrame(frame);engine?.stop();$("hearBar").textContent="▶ Escuchar compás";$("auditionStatus").textContent="";$("grid").querySelector(".audition-active")?.classList.remove("audition-active");if(wasInline!==null){const b=$("sectionCards").querySelector(".section-hear");if(b)b.textContent="▶ Escuchar";const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Escucha detenida."}}
 function prepareSequence(){
  const tracks=sequence.map(p=>{
   $("source").value=p.song.lyrics;const a=core.anchorsFromRows(readRows()),cfg=window.ShalomStudioCodec.decode(a,p.arrangement);
@@ -371,7 +415,7 @@ async function playSequence(){
   if(position.finished){stop();note("Popurrí finalizado.");return}
   const index=position.track,track=tracks[index];
   if(index!==activeTrack){displayTrack(track,index);activeTrack=index;lastStep=-1}
-  if(position.transition){$("where").textContent="Transición · "+position.remaining.toFixed(1)+" s";$("transportWhere").textContent=$("where").textContent;$("live").querySelector(".active")?.classList.remove("active");}
+  if(position.transition){$("liveCue").hidden=true;syncTransportSpace();$("where").textContent="Transición · "+position.remaining.toFixed(1)+" s";$("transportWhere").textContent=$("where").textContent;$("live").querySelector(".active")?.classList.remove("active");}
   else{const i=position.step;if(i!==lastStep){showStep(track.timeline,i);lastStep=i}}
   frame=requestAnimationFrame(animate);
  }
@@ -393,7 +437,7 @@ async function play(range=null,inline=null){
    if(t>=ctx.currentTime+.12)break;next++;if(t<ctx.currentTime-.03)continue;const sound=inline===null?e:core.liveSectionEvent(e,anchors,config,groups[inline]);engine.strum({...sound,duration:e.duration/speed},Math.max(t,ctx.currentTime),{tone:$("tone").value,capo});if(e.release)engine.releaseAt(Math.max(t+e.duration/speed,ctx.currentTime));if($("metro").checked&&e.step%config.division===0)engine.click(Math.max(t,ctx.currentTime),e.beat===0);
  }}catch(e){stop();note(e.message)}};
  let lastGap=-1;
- function animate(){if(!playing)return;const elapsed=Math.max(0,ctx.currentTime-start),position=core.playbackFrame(timeline,first,end,clock,speed,elapsed,loop());if(position.finished){stop();note("Práctica finalizada.");return}const {index:i,paused}=position;if(paused){if(inline===null){$("where").textContent="Pausa entre secciones";$("transportWhere").textContent="Pausa entre secciones";}else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Pausa entre secciones";}last=-1;}else if(i!==last){if(inline===null)showStep(timeline,i);else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent=(timeline[i].chord||"Silencio")+" · "+Math.round(timeline[i].tempo)+" BPM";}last=i}frame=requestAnimationFrame(animate)}
+ function animate(){if(!playing)return;const elapsed=Math.max(0,ctx.currentTime-start),position=core.playbackFrame(timeline,first,end,clock,speed,elapsed,loop());if(position.finished){stop();note("Práctica finalizada.");return}const {index:i,paused}=position;if(paused){if(inline===null){$("liveCue").hidden=true;syncTransportSpace();$("where").textContent="Pausa entre secciones";$("transportWhere").textContent="Pausa entre secciones";}else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Pausa entre secciones";}last=-1;}else if(i!==last){if(inline===null)showStep(timeline,i);else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent=(timeline[i].chord||"Silencio")+" · "+Math.round(timeline[i].tempo)+" BPM";}last=i}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.");
 }
 function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){validate();const move=Number($("shift").value)||0;renderPlaybackScore($("source").value,move);$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;showStep(core.compile(anchors,config,c=>shifted(c,move)),practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0);if(!edit){playerPanel();syncTransportSpace();}}
@@ -408,8 +452,8 @@ function changeDivision(division){
  }catch(e){$("division").value=String(config.division);$("rhythmDivision").value=String(config.division);throw e;}
 }
 $("rhythmDivision").onchange=safe(()=>changeDivision(Number($("rhythmDivision").value)));
-function changeResolution(){if(!config){divisions();return;}const meter=$("meter").value,division=Number($("division").value);if(meter===config.meter){changeDivision(division);return;}if(!window.confirm("Cambiar el compás reinicia la duración y el rasgueo. ¿Continuar?")){$("meter").value=config.meter;divisions();$("division").value=config.division;return;}divisions();generate()}
-$("meter").onchange=safe(changeResolution);$("division").onchange=safe(changeResolution);$("generate").onclick=safe(()=>{if(!config||window.confirm("¿Reemplazar la preparación musical actual?"))generate()});$("barEdit").onchange=safe(()=>{stop();renderPattern()});
+function changeResolution(){if(!config){divisions();return;}const meter=$("meter").value,division=Number($("division").value);if(meter===config.meter){changeDivision(division);return;}if(!window.confirm("Cambiar el compás reinicia duración, rasgueo e indicaciones. ¿Continuar?")){$("meter").value=config.meter;divisions();$("division").value=config.division;return;}divisions();generate()}
+$("meter").onchange=safe(changeResolution);$("division").onchange=safe(changeResolution);$("generate").onclick=safe(()=>{if(!config||window.confirm("¿Reemplazar la preparación musical actual, incluidas sus indicaciones?"))generate()});$("barEdit").onchange=safe(()=>{stop();renderPattern()});
 $("total").onchange=safe(()=>{const n=Number($("total").value);if(!Number.isInteger(n)||n<1||n>512)throw Error("Número de compases inválido.");const total=n*size();if((config.endStep!==undefined&&config.endStep>total)||config.changes.some(c=>c.step>=total)||config.patterns.some(p=>p.start>=total)||(config.fragments||[]).some(r=>r.end>total))throw Error("Hay acordes o patrones fuera de la duración elegida.");changeTiming({...config,totalSteps:total})});
 $("applyPreset").onclick=safe(()=>{const choice=$("preset").value,scope=$("patternScope").value,g=rhythmGroup();if(scope!=="one"&&!window.confirm("¿Aplicar el patrón al rango elegido de "+g.title+"?"))return;config=core.applySectionPattern(config,groups,g,Number($("barEdit").value),core.presetHits(config,choice),scope);renderPattern();renderReview();note("Patrón aplicado solo a "+g.title+".")});
 $("save").onclick=safe(()=>submitSave("draft"));

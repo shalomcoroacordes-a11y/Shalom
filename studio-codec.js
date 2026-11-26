@@ -22,6 +22,7 @@ function encode(anchors,config){
  const local=(config.sections||[]).filter(p=>p.patterns?.length).map(p=>[p.index,p.patterns.map(r=>[r.start,r.hits.map(h=>h.accent?symbols[h.hit].toUpperCase():symbols[h.hit]).join("")])]);if(local.length)value.z=local;
  const h=config.changes.map(c=>c.hold==="ring"?1:c.hold==="mute"?2:0);if(h.some(Boolean))value.h=h;
  const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
+ const cues=core.normalizeCues(config.cues,config);if(cues.length)value.i=cues.map(c=>[c.index,c.ticks,c.action,c.audience,c.text]);
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
  return value;
 }
@@ -45,7 +46,9 @@ function decode(anchors,value){
    if(!Array.isArray(value.z)||!config.sections)throw Error("Patrones locales inválidos.");
    const seen=new Set();for(const pair of value.z){const p=config.sections.find(s=>s.index===pair?.[0]);if(!Array.isArray(pair)||pair.length!==2||!p||seen.has(p.index)||!Array.isArray(pair[1]))throw Error("Referencia local inválida.");seen.add(p.index);p.patterns=pair[1].map(r=>{if(!Array.isArray(r)||r.length!==2||typeof r[1]!=="string"||r[1].length!==size||!/^[durmDURM]+$/.test(r[1]))throw Error("Patrón local inválido.");return {start:r[0],hits:[...r[1]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()}))}});}
  }
- config.fragments=ranges(value.f,config.totalSteps);core.compile(anchors,config);return config;
+ config.fragments=ranges(value.f,config.totalSteps);
+ if(value.i!==undefined){if(!Array.isArray(value.i)||value.i.some(c=>!Array.isArray(c)||c.length!==5))throw Error("Indicaciones inválidas.");config.cues=core.setCues(config,value.i.map(([index,ticks,action,audience,text])=>({index,ticks,action,audience,text}))).cues;}
+ core.compile(anchors,config);return config;
 }
 return Object.freeze({encode,decode});
 });

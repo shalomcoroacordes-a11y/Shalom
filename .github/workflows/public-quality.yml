@@ -85,6 +85,8 @@ jobs:
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
+      - name: Test shared musical and liturgical cues
+        run: node tests/studio-cues.cjs
       - name: Test guided Studio editor and scoped rhythm controls
         run: node tests/studio-guided-editor.cjs
 

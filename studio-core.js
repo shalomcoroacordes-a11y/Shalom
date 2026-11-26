@@ -47,6 +47,44 @@
     if(config.patterns.some(p=>p.start>=total)&&!(config.sections?.length&&config.sections.every(p=>p.hits)))throw Error("Quita primero los patrones de los compases que desaparecerían.");
     return {...config,totalSteps:total,endStep,patterns:config.patterns.filter(p=>p.start<total),changes:config.changes.map((c,i)=>({...c,step:c.step+(i>index?delta:0)})),fragments:[]};
   }
+  // Cues are descriptive, never audio commands. 24 ticks per pulse fits every supported division.
+  const cueActions=Object.freeze({start:"Iniciar",stop:"Terminar",repeat:"Repetir",pause:"Pausa",wait:"Esperar señal",continue:"Continuar",hold:"Mantener acorde",note:"Indicación"});
+  const cueAudiences=Object.freeze({all:"Todos",guitar:"Guitarra",keys:"Teclado",percussion:"Percusión",solo:"Solista",choir:"Coro",assembly:"Asamblea",liturgical:"Liturgia",other:"Otro instrumento o voz"});
+  function normalizeCues(value,config){
+    if(value===undefined)return [];
+    if(!Array.isArray(value)||value.length>120)throw Error("Máximo 120 indicaciones por canto.");
+    const division=resolution(config.meter,config.division).division;
+    const seen=new Set();
+    return value.map(c=>{
+      if(!c||!Object.hasOwn(cueActions,c.action)||!Object.hasOwn(cueAudiences,c.audience)||typeof c.text!=="string"||c.text.trim().length>160)throw Error("Indicación inválida.");
+      const index=requireInt(c.index,0,config.changes.length-1,"Acorde de indicación");
+      const ticks=requireInt(c.ticks,0,2400000,"Posición de indicación");
+      const offset=ticks*division/24,step=config.changes[index].step+offset;
+      if(!Number.isInteger(offset)||offset>=durationSteps(config,index))throw Error("Una indicación quedaría fuera de su acorde o cuadrícula. Reubícala antes de cambiar el tiempo.");
+      const text=c.text.trim();if(!text&&c.action==="note")throw Error("Escribe la indicación.");
+      const key=JSON.stringify([index,ticks,c.action,c.audience,text]);
+      if(seen.has(key))throw Error("Indicación duplicada.");seen.add(key);
+      return {index,ticks,action:c.action,audience:c.audience,text,step};
+    }).sort((a,b)=>a.step-b.step);
+  }
+  function cuePosition(config,group,bar){
+    const m=resolution(config.meter,config.division),bounds=groupBounds(config,group);
+    const step=bounds.start+(requireInt(bar,1,sectionBarCount(config,group),"Compás de indicación")-1)*m.beats*m.division;
+    const index=group.indices.findLast(i=>config.changes[i].step<=step);
+    return {index,ticks:(step-config.changes[index].step)*24/m.division};
+  }
+  function setCues(config,value){
+    return {...config,cues:normalizeCues(value,config).map(({step,...cue})=>cue)};
+  }
+  function cueEntries(timeline){
+    const result=[];for(const event of timeline)if(event.cues?.length)result.push({step:event.step,cues:event.cues});return result;
+  }
+  function cueWindow(entries,step,barSize,range){
+    const first=range?.start??0,end=range?.end??Infinity;
+    let lo=0,hi=entries.length;while(lo<hi){const mid=(lo+hi)>>1;if(entries[mid].step<=step)lo=mid+1;else hi=mid;}
+    const previous=entries[lo-1],next=entries[lo];
+    return {current:previous&&previous.step>=first&&step-previous.step<barSize?previous:null,next:next&&next.step>=first&&next.step<end?next:null};
+  }
   function compile(anchors,config,transpose=c=>c){
     if(!config||config.version!==1||!meters[config.meter])throw new Error("Configuración incompatible.");
     if(config.source!==signature(anchors))throw new Error("Los acordes cambiaron. Revisa la sincronización.");
@@ -73,6 +111,7 @@
     });
     if(patterns[0].start!==0)throw new Error("Falta el patrón inicial.");
     const parts=validateSections(config,anchors.length,size);
+    const cuesByStep=new Map();for(const {step,...cue} of normalizeCues(config.cues,config)){if(!cuesByStep.has(step))cuesByStep.set(step,[]);cuesByStep.get(step).push(cue);}
     let ci=0,pi=0,si=-1,li=0,active=null,time=0,part=null,previousTempo=bpm;
     const positioned=parts.map(p=>({...p,start:changes[p.index].step}));
 
@@ -90,7 +129,7 @@
       const seconds=60/tempo/m.division;
       while(part?.patterns&&li+1<part.patterns.length&&part.patterns[li+1].start<=phase)li++;const local=part?.patterns?.[li];const hit=local?local.hits[(phase-local.start)%size]:part?.hits?part.hits[phase%size]:patterns[pi].hits[(step-patterns[pi].start)%size];
       const attack=active?.hold==="ring"?(step===active.step?"down":"rest"):hit.hit;
-      const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};time+=seconds;return event;
+      const event={step,time,duration:seconds,bar:Math.floor(step/size),beat:Math.floor(step%size/m.division),anchorId:active?.anchor.id??null,chord:active?transpose(active.anchor.chord):null,hit:active?attack:"rest",accent:hit.accent,tempo,...(gap?{gapBefore:gap}:{}),...(active?.hold==="mute"&&(changes[ci]?.step??musicalEnd)===step+1?{release:true}:{})};if(cuesByStep.has(step))event.cues=cuesByStep.get(step);time+=seconds;return event;
     });
   }
   function validateSections(config,length,size){
@@ -406,5 +445,5 @@
     });
     return index;
   }
-  return Object.freeze({indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  return Object.freeze({cueActions,cueAudiences,normalizeCues,cuePosition,setCues,cueEntries,cueWindow,indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });
