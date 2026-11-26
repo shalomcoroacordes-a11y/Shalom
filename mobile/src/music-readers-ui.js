@@ -9,6 +9,7 @@ const {clampReaderFont}=require("./score-zoom");
 const {repertoireType}=require("./repertoire-ui");
 const StudioCollections=require("./studio-collections");
 const ReaderCues=require("./studio-reader-cues");
+const SectionReader=require("./section-reader-ui");
 
 // One compact control, reused by both official and personal readers.
 function CollectionCapoControl({song,selection,onSelect,style,textStyle}){
@@ -132,7 +133,12 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
   );
  }
 
-function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues=true,setShowReaderCues}){
+function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues=true,setShowReaderCues,immersiveActive=false}){
+  const [sectionMode,setSectionMode]=useState(false);
+  const [sectionIndex,setSectionIndex]=useState(0);
+  const [fitMode,setFitMode]=useState("auto");
+  const [fitFont,setFitFont]=useState(readerFont);
+  function manualFont(value){setFitFont(clampReaderFont(value));setFitMode("manual");}
   const {choices,chosen,offset:capoOffset}=capoSelection(song,capo);
   const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
   const liked=hasFavorite(likedIds,song.id);
@@ -161,10 +167,10 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
      h(View,{style:[S.songControlColumn,S.songControlFont]},
       label("LETRA",S.songControlCaption),
       h(View,{style:[S.songFontControl,S.songFontCompact]},
-       h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v-1)),
+       h(Pressable,{onPress:()=>sectionMode?manualFont(fitFont-1):setReaderFont(v=>clampReaderFont(v-1)),
         accessibilityRole:"button",accessibilityLabel:"Reducir tamaño de letra",style:S.songFontButton},
         label("A−",S.songFontText)),
-       h(Pressable,{onPress:()=>setReaderFont(v=>clampReaderFont(v+1)),
+       h(Pressable,{onPress:()=>sectionMode?manualFont(fitFont+1):setReaderFont(v=>clampReaderFont(v+1)),
         accessibilityRole:"button",accessibilityLabel:"Aumentar tamaño de letra",style:S.songFontButton},
         label("A+",S.songFontText)))),
      h(View,{style:[S.songControlColumn,S.songControlCapo]},
@@ -180,8 +186,9 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
    hasCues?h(Pressable,{style:S.multiTextAction,accessibilityRole:"button",accessibilityState:{selected:showReaderCues},onPress:()=>setShowReaderCues(v=>!v)},label(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",S.multiTextActionLabel)):null,
+   h(Pressable,{style:S.multiTextAction,accessibilityRole:"button",accessibilityState:{selected:sectionMode},onPress:()=>setSectionMode(v=>!v)},label(sectionMode?"Lectura normal":"Lectura por secciones",S.multiTextActionLabel)),
    h(View,{style:S.songScorePlain},
-    renderAlignedScoreRows(showReaderCues?cueRows:parsed,readerFont,"song-"+song.id))
+    sectionMode?h(SectionReader,{rows:showReaderCues?cueRows:parsed,sectionIndex,setSectionIndex,fitMode,setFitMode,fontSize:readerFont,fitFont,onFitFont:setFitFont,onManualFont:manualFont,immersiveActive,S}):renderAlignedScoreRows(showReaderCues?cueRows:parsed,readerFont,"song-"+song.id))
   );
  }
 

@@ -426,7 +426,7 @@ function AppScreen() {
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues});}
+ function renderSongDetail(song){return h(SongReader,{key:String(song.id),song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues,immersiveActive});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,

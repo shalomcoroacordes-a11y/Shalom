@@ -22,6 +22,7 @@ vm.runInNewContext(fs.readFileSync("src/music-readers-ui.js","utf8"),{module:mod
  if(name==="./score-zoom")return{clampReaderFont:v=>v};
  if(name==="./repertoire-ui")return{repertoireType:()=>"misa"};
  if(name==="./studio-reader-cues")return readerCues;
+ if(name==="./section-reader-ui")return "SectionReader";
  if(name==="./studio-collections")return{plan:()=>plan,sequencePlan:()=>({id:"sequence"})};
  throw Error(name);
 }});
@@ -48,3 +49,5 @@ console.log("Music readers: canonical parser inputs, capo offset, fragment shift
 reset();const double={...rep,items:[{song_id:"s"},{song_id:"s"}]};
 const first=render(()=>RepertoireReader({...props,rep:double}));const controls=first.children.flatMap(function walk(n){return n&&typeof n==="object"?[n,...(n.children||[]).flatMap(walk)]:[]}).filter(n=>n.type===CollectionCapoControl);
 assert.equal(controls.length,2);controls[1].props.onSelect("main");calls.length=0;render(()=>RepertoireReader({...props,rep:double}));assert.deepEqual(calls.filter(x=>x[0]==="multi").map(x=>x[2]),[3,0]);assert.equal(double.items[1].capo_id,undefined);
+
+reset();tree=render(()=>SongReader(props));find(tree,n=>n.type==="Pressable"&&n.children.some(c=>c.props?.text==="Lectura por secciones")).props.onPress();tree=render(()=>SongReader(props));const sectionReader=find(tree,n=>n.type==="SectionReader");assert.ok(sectionReader);assert.equal(sectionReader.props.fitMode,"auto");assert.ok(sectionReader.props.rows.some(r=>r.kind==="cue"));sectionReader.props.onManualFont(21);tree=render(()=>SongReader(props));assert.equal(find(tree,n=>n.type==="SectionReader").props.fitMode,"manual");assert.equal(find(tree,n=>n.type==="SectionReader").props.fitFont,21);

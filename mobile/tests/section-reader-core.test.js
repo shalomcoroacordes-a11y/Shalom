@@ -8,6 +8,7 @@ assert.deepEqual(sections.map(x=>x.title),["Coro","Verso 1","Coro"]);
 assert.deepEqual(sections.flatMap(x=>x.rows),rows);
 assert.equal(sections[0].rows.find(x=>x.kind==="cue").action,"repeat");
 assert.equal(sectionsOf(parseSong("Sin título"))[0].title,"Canto");
+const leading=parseSong("\n\n[Coro]\nG\nTexto");assert.deepEqual(sectionsOf(leading).flatMap(x=>x.rows),leading);
 const seq=navigation([{rows},{rows}]);
 assert.deepEqual(seq.map(x=>x.key),["0:0","0:1","0:2","1:0","1:1","1:2"]);
 assert.equal(moveIndex(2,1,seq.length),3);

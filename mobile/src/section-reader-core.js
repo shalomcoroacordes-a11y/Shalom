@@ -4,9 +4,9 @@ function sectionsOf(rows){
  let current={title:"Canto",rows:[]};
  for(const row of rows||[]){
   if(row.kind==="section"){
+   const prefix=current.rows.every(r=>r.kind==="space")?current.rows:[];
    if(current.rows.some(r=>r.kind!=="space"))sections.push(current);
-   else if(current.rows.length&&sections.length)sections[sections.length-1].rows.push(...current.rows);
-   current={title:row.text||"Sección",rows:[row]};
+   current={title:row.text||"Sección",rows:[...prefix,row]};
   }else current.rows.push(row);
  }
  if(current.rows.length||!sections.length)sections.push(current);
