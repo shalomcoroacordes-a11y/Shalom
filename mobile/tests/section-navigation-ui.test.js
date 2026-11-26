@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
+const {parseSong}=require("../src/chords");
+const states=[];let hook=0;
+const react={createElement:(type,props,...children)=>({type,props,children}),useState:initial=>{const i=hook++;if(!(i in states))states[i]=initial;return [states[i],next=>{states[i]=typeof next==="function"?next(states[i]):next}]}};
+const moduleStub={exports:{}};
+vm.runInNewContext(fs.readFileSync("src/section-reader-ui.js","utf8"),{module:moduleStub,require(name){if(name==="react")return react;if(name==="react-native")return{View:"View",Text:"Text",Pressable:"Pressable",useWindowDimensions:()=>({height:800})};if(name==="./aligned-score-ui")return "Score";return require("../src/"+name.slice(2));}});
+const entries=[{title:"Entrada",rows:parseSong("[Coro]\nG\nPrimero\n[Verso]\nC\nSegundo")},{title:"Entrada repetida",rows:parseSong("[Coro]\nA\nPrimero")},{title:"Fragmento",rows:parseSong("Solo letra")}];
+const render=()=>{hook=0;return moduleStub.exports.useCollectionSections(entries,15)};
+let nav=render();assert.equal(nav.enabled,false);nav.setEnabled(true);nav=render();assert.equal(nav.current.key,"0:0");
+nav.selectSection(1);nav=render();assert.equal(nav.current.key,"0:1");
+nav.onNextEntry();nav=render();assert.equal(nav.current.key,"1:0");assert.equal(nav.current.rows[1].chordLine,"A");
+nav.selectEntry(2);nav=render();assert.equal(nav.current.key,"2:0");assert.equal(nav.onNextEntry,null);
+nav.onPreviousEntry();nav=render();assert.equal(nav.current.key,"1:0");
+nav.manualFont(20);nav=render();assert.equal(nav.fitMode,"manual");assert.equal(nav.fitFont,20);
+nav.reset();nav=render();assert.equal(nav.enabled,false);assert.equal(nav.fitMode,"auto");
+console.log("Collection navigation traverses repeated occurrences and fragments without conflating chords.");

@@ -35,7 +35,7 @@ function useCollectionSections(entries,fontSize){
  function selectEntry(i){const next=sequence.findIndex(s=>s.entryIndex===i);if(next>=0)setPosition(next);}
  function selectSection(i){const next=sequence.findIndex(s=>s.entryIndex===current?.entryIndex&&s.sectionIndex===i);if(next>=0)setPosition(next);}
  function manualFont(value){setFitFont(clampReaderFont(value));setFitMode("manual");}
- return {enabled,setEnabled,current,entries,selectEntry,selectSection,fitMode,setFitMode,fitFont,setFitFont,manualFont,
+ return {enabled,setEnabled,reset:()=>{setEnabled(false);setPosition(0);setFitMode("auto");setFitFont(fontSize);},current,entries,selectEntry,selectSection,fitMode,setFitMode,fitFont,setFitFont,manualFont,
   onPreviousEntry:at>0?()=>setPosition(at-1):null,onNextEntry:at<sequence.length-1?()=>setPosition(at+1):null};
 }
 function CollectionSectionControls({nav}){
