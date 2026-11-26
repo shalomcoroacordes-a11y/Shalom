@@ -17,12 +17,11 @@ function reorderParts(entry,index,delta){
 }
 // Reject stale or missing occurrences instead of overwriting another part.
 function updateOccurrenceCues(store,target,song,expectedLyrics,expectedOverride,value){
- const {resolvePart}=require("./personal-collections"),{normalizeOverride}=require("./studio-reader-cues"),core=require("./studio-core"),codec=require("./studio-codec"),{parseSong}=require("./chords");
+ const {resolvePart}=require("./personal-collections"),{validateOverride}=require("./studio-reader-cues"),{parseSong}=require("./chords");
  const entry=store.collections.find(f=>f.id===target.folderId)?.entries.find(e=>e.id===target.entryId);
  const part=entry?.parts.find(p=>p.id===target.partId);
  if(!part||String(part.songId)!==String(song.id)||resolvePart(song,part).lyrics!==expectedLyrics||JSON.stringify(part.cueOverride??null)!==JSON.stringify(expectedOverride??null))throw Error("La composición cambió. Abre de nuevo las indicaciones.");
- const next=normalizeOverride(value);
- if(next&&codec.decodeLyricCues({v:1,k:"lyrics",j:next.j}).some(c=>!core.validLyricCue(parseSong(expectedLyrics,0),c)))throw Error("Revisa las frases seleccionadas: la letra cambió.");
+ const next=validateOverride(parseSong(expectedLyrics,0),value);
  return updateComposition(store,target.folderId,target.entryId,e=>({...e,parts:e.parts.map(p=>{
   if(p.id!==target.partId)return p;
   const copy={...p};if(next)copy.cueOverride=next;else delete copy.cueOverride;return copy;

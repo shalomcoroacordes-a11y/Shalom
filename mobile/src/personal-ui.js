@@ -338,19 +338,19 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function shareView(){
   if(!folder||!entry)return homeView();
-  let code="";
-  try{code=exportCode(entry);}catch(_){}
+  let code="",shareError="";
+  try{code=exportCode(entry);}catch(error){shareError=error.message||"No se pudo preparar el código.";}
   const shareMessage="🕊️ SHALOM · "+kindName(entry.kind)+"\n"+entry.title+
    "\n\n"+code+"\n\nPara guardarlo: abre SHALOM → Mis creaciones → Recibir composición → Pegar mensaje.";
   async function shareNative(){
    try{
-    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    if(!code)throw new Error(shareError);
     await Share.share({title:"SHALOM · "+entry.title,message:shareMessage});
    }catch(e){Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");}
   }
   async function copyCode(){
    try{
-    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    if(!code)throw new Error(shareError);
     await Clipboard.setStringAsync(shareMessage);
     Alert.alert("Mensaje copiado","Ya puedes pegarlo en WhatsApp o en otra conversación.");
    }catch(e){Alert.alert("No se pudo copiar",e?.message||"Inténtalo de nuevo.");}
@@ -362,11 +362,13 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    label(entry.title,styles.cardTitle),
    label(entry.parts.length+" cantos · "+kindName(entry.kind),styles.meta),
    label("La otra persona podrá guardarla en su SHALOM, sin que ninguno de los dos tenga que iniciar sesión.",styles.description),
+   shareError?label(shareError+" Puedes conservar la composición completa mediante Respaldo y restauración.",styles.warning):null,
    action("↗  Enviar por WhatsApp u otra app",shareNative,false,!code),
    action("▣  Copiar mensaje",copyCode,true,!code),
    h(View,{style:styles.infoCard},
     label("¿Qué recibe la otra persona?",styles.cardTitle),
-    label("El orden de los cantos, los fragmentos y sus tonos. No se envían tus fotos ni las letras completas.",styles.description),
+    label("El orden de los cantos, los fragmentos, tonos, capos y notas personalizadas. Las indicaciones pueden incluir las frases seleccionadas. No se envían tus fotografías.",styles.description),
+    code.startsWith("SHALOM2-")?label("Quien lo reciba necesita una versión compatible con las indicaciones y capos personalizados.",styles.meta):null,
     label("Solo tiene que abrir Mis creaciones → Recibir composición y pegar el mensaje.",styles.meta)),
    action(showRawCode?"Ocultar código":"Ver código de SHALOM",()=>setShowRawCode(v=>!v),true),
    showRawCode?h(Text,{selectable:true,style:styles.codePreview},code):null);

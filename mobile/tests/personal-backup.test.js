@@ -83,3 +83,28 @@ console.log("SHALOM v0.4.2 personal backup, images, validation, undo notices and
 assert.match(app,/commitMetadata:setMetadataBatch/,"Personal restore uses local batch storage");
 assert.match(fs.readFileSync("src/personal-backup-controller.js","utf8"),/await commitMetadata\(metadataFor\(next\)\)/,"Personal restore commits one batch");
 assert.match(app,/getMetadataBatch\(\{wifi_only:/,"Startup reads one reconciled preference snapshot");
+
+const {parseSong}=require("../src/chords"),core=require("../src/studio-core"),codec=require("../src/studio-codec"),reader=require("../src/studio-reader-cues"),{readingRows}=require("../src/personal-reader-core"),{buildPrintableSong}=require("../src/song-print");
+const localSong={id:"song-1",tone:"G",capo_position:2,capo_key:"F",lyrics:"[Coro]\nG     D\nCantemos juntos"};
+const lyricRows=parseSong(localSong.lyrics,0),cue={...core.lyricCueAnchor(lyricRows,1),action:"note",audience:"choir",text:"Entrar suave"};
+const customized={...newPart(localSong.id),capoId:"main",notes:"Entrada suave",cueOverride:{v:1,mode:"append",j:codec.encodeLyricCues([cue]).j}};
+const repeat={...newPart(localSong.id),cueOverride:{v:1,mode:"hide",j:[]}};
+const customFolder=newCollection("Prueba de respaldo");
+customFolder.entries=["misa","repertorio","popurri"].map(kind=>({...newEntry(kind,"Prueba "+kind),parts:[{...customized,id:kind+"-first"},{...repeat,id:kind+"-second"}]}));
+const customSource={profile:defaults(),personal:{version:1,collections:[customFolder]},likedIds:[],lastRead:null};
+const restoredCustom=readBackup(buildBackup(customSource,[]));
+assert.deepEqual(restoredCustom.personal,customSource.personal);
+for(const entry of restoredCustom.personal.collections[0].entries){
+ const rows=readingRows(entry,new Map([[localSong.id,localSong]]));
+ assert.deepEqual(rows.map(r=>r.scoreShift),[-2,0]);
+ assert.deepEqual(rows.map(r=>r.selection.chosen.position),[2,0]);
+ const first=rows[0],second=rows[1];
+ assert.ok(reader.decorateCollection(lyricRows,null,first.part.cueOverride).some(r=>r.kind==="cue"&&r.text.includes("Entrar suave")));
+ assert.ok(!reader.decorateCollection(lyricRows,null,second.part.cueOverride).some(r=>r.kind==="cue"));
+ const printed=buildPrintableSong(localSong,first.scoreShift,true,first.part.cueOverride);
+ assert.match(printed,/Entrar suave/);assert.match(printed,/<pre class="chords">F/);
+}
+const invalidCustom=JSON.parse(JSON.stringify(customSource));invalidCustom.personal.collections[0].entries[0].parts[0].cueOverride.mode="invalid";
+assert.throws(()=>buildBackup(invalidCustom,[]),/no se puede recuperar/);
+assert.deepEqual(readBackup(buildBackup(source,[{name:photo1,base64:jpg},{name:photo2,base64:jpg}])).personal,parsed.personal);
+console.log("Backup round trip preserves occurrence-specific capos, notes and cues across all composition types; offline projection and print verified.");

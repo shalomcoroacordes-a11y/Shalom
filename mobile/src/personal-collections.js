@@ -19,6 +19,7 @@ function partFrom(input,forceId=false){
  const sectionIndex=input.sectionIndex==null?null:Number(input.sectionIndex);
  if(sectionIndex!==null&&(!Number.isInteger(sectionIndex)||sectionIndex<0||sectionIndex>250))
   throw new Error("La estrofa seleccionada no es válida.");
+ if(input.capoId!=null&&(typeof input.capoId!=="string"||!/^[a-zA-Z0-9_-]{1,128}$/.test(input.capoId)))throw Error("Capo de colección inválido.");
  const shift=Number(input.shift||0);
  if(!Number.isInteger(shift)||shift< -11||shift>11)throw new Error("El tono está fuera del rango permitido.");
  return {id:forceId?makeId():text(input.id,80)||makeId(),songId,
