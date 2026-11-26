@@ -122,7 +122,9 @@ relationRecovery().catch(error=>{console.error(error);process.exitCode=1});
 
 // Native snapshot restoration uses the exact same RPC as native Admin.
 const nativeApi=fs.readFileSync("admin-mobile/src/api.js","utf8");
-assert.match(nativeApi,/rpc\/admin_restore_song/);
+assert.match(nativeApi,/recoveryRpc\("admin_restore_song_complete",\{p_trash_id:trashId\},owner\)/);
+assert.match(nativeApi,/recoveryRpc\("admin_delete_song_complete",\{p_song_id:id\},owner\)/);
+assert.doesNotMatch(nativeApi,/rpc\/admin_(?:delete|restore)_song["']/);
 const restoreStart=backup.indexOf("  async function restoreTrash("),restoreEnd=backup.indexOf("  async function purgeTrash(",restoreStart);
 assert.ok(restoreStart>=0&&restoreEnd>restoreStart);
 function restoreFixture(snapshot,{kind="song",original="s",rpcResult={data:true},accepted=true}={}){
