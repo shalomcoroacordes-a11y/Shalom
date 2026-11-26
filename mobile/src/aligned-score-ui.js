@@ -11,10 +11,10 @@ const h=React.createElement;
 // El contenido no procede de una URL: sigue disponible sin internet.
 // En Android, RN Text aplica tratamientos de espacios/fuentes distintos de
 // los de la vista del editor web, incluso con 'monospace' y espaciado cero.
-function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
+function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,fitMode="manual",fitHeight=0,onFitFont}){
  const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
- const html=useMemo(()=>scoreHtml(rows,safeFont),[serialized,safeFont]);
+ const html=useMemo(()=>fitMode==="manual"?scoreHtml(rows,safeFont):scoreHtml(rows,safeFont,{mode:fitMode,height:fitHeight}),[serialized,safeFont,fitMode,fitHeight]);
  // Native height events must not construct a new document source.
  const source=useMemo(()=>({html}),[html]);
  const [height,setHeight]=useState(()=>estimateScoreHeight(rows,safeFont));
@@ -22,15 +22,19 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
  useEffect(()=>{
   setHeight(estimateScoreHeight(rows,safeFont));
   setFailed(false);
- },[serialized,safeFont]);
+ },[serialized,safeFont,fitMode,fitHeight]);
  const onHeight=e=>{
   let value;
   try{value=JSON.parse(e.nativeEvent.data);}catch(_){return;}
   // La WebView avisa solo al terminar el pellizco: no se reinicia en cada movimiento.
+  if(value?.type==="score-fit"){
+   if(Number.isFinite(value.fontSize)&&onFitFont)onFitFont(clampReaderFont(value.fontSize));
+   return;
+  }
   if(value?.type==="score-zoom"){
    if(Number.isFinite(value.fontSize)&&onFontSizeChange){
     const next=clampReaderFont(value.fontSize);
-    if(Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
+    if(fitMode!=="manual"||Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
    }
    return;
   }

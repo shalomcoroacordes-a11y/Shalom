@@ -3,6 +3,7 @@
 // con acentos y espacios; Chromium utiliza las mismas reglas que el administrador.
 const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT}=require("./score-zoom");
 const {cueMarkup}=require("./studio-reader-cues");
+const {chooseFitFont}=require("./section-reader-core");
 const escapeHTML=value=>String(value??"")
  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
@@ -30,8 +31,10 @@ function estimateScoreHeight(rows,fontSize){
  }
  return Math.max(80,Math.ceil(units+16));
 }
-function scoreHtml(rows,fontSize=15){
+function scoreHtml(rows,fontSize=15,fit={}){
  const size=clampReaderFont(fontSize);
+ const fitMode=fit.mode==="auto"||fit.mode==="width"?fit.mode:"manual";
+ const fitHeight=fitMode==="auto"&&Number.isFinite(fit.height)&&fit.height>0?Math.floor(fit.height):0;
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
   'html,body{margin:0;padding:0;border:0;background:#0e1219;color:#f4f7f7;}',
@@ -70,6 +73,13 @@ function scoreHtml(rows,fontSize=15){
   'var lyrics=target&&target.querySelector(".song-lyrics");',
   'var zoom='+size+';var reportedZoom=zoom;var startZoom=zoom;var startDistance=0;var pinching=false;',
   'function clampZoom(v){return Math.min('+MAX_READER_FONT+',Math.max('+MIN_READER_FONT+',Math.round(v*10)/10));}',
+  'var fitMode='+JSON.stringify(fitMode)+';var fitHeight='+fitHeight+';',
+  'var chooseFitFont='+chooseFitFont.toString()+';',
+  'function fitScore(){if(fitMode==="manual"||!lyrics||!target||!target.clientWidth||pinching)return;',
+  'zoom=chooseFitFont('+MIN_READER_FONT+','+MAX_READER_FONT+',function(n){lyrics.style.fontSize=n+"px";var rect=lyrics.getBoundingClientRect();return rect.width<=target.clientWidth+0.5&&(!fitHeight||rect.height+2<=fitHeight);});',
+  'lyrics.style.fontSize=zoom+"px";reportedZoom=zoom;send();',
+  'if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:"score-fit",fontSize:zoom}));}',
+  'if(fitMode!=="manual"){window.addEventListener("resize",fitScore);window.addEventListener("load",fitScore);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitScore);fitScore();}',
   "function dist(a,b){var x=a.clientX-b.clientX;var y=a.clientY-b.clientY;return Math.sqrt(x*x+y*y);}",
   "function pinchBegin(e){",
   "if(!lyrics||e.touches.length!==2)return;",
@@ -83,7 +93,7 @@ function scoreHtml(rows,fontSize=15){
   "var d=dist(e.touches[0],e.touches[1]);",
   "var next=clampZoom(startZoom*d/startDistance);",
   "if(Math.abs(next-zoom)<0.05)return;",
-  "zoom=next;lyrics.style.fontSize=next+\"px\";scheduleMeasure();",
+  "fitMode=\"manual\";zoom=next;lyrics.style.fontSize=next+\"px\";scheduleMeasure();",
   "}",
   "function pinchEnd(e){",
   "if(!pinching)return;",
