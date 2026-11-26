@@ -45,7 +45,7 @@ assert.doesNotMatch(app,/style:S.songActionBar/,
 assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Supabase calls");
 assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
 assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
-assert.match(reader,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is applied to every aligned column");
+assert.match(reader,/renderAlignedScoreRows\(showReaderCues\?cueRows:parsed,readerFont/,"Font size is applied to every aligned column");
 assert.doesNotMatch(grid,/anchoredTokens\(|token\.column\*cell/,"Do not approximate character positions in native Text");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.chordLine\|\|" "\)/,"One complete chord line with no word fragmentation");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.lyricLine\|\|" "\)/,"One complete continuous lyric line");

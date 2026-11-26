@@ -13,3 +13,14 @@ assert.equal(reader.decorate(rows,{...arrangement,s:"bad"},shifted),shifted);
 assert.equal(reader.decorate(rows,{...arrangement,i:[]},shifted),shifted);
 assert.equal(reader.decorate(rows,{...arrangement,i:[[999,0,"start","solo",""]]},shifted),shifted);
 console.log("Static cues: canonical anchor mapping, transposition, stale and malformed rejection.");
+
+const native=require("../mobile/src/studio-reader-cues");
+assert.deepEqual(native.decorate(rows,arrangement,shifted),decorated);
+const print=require("../mobile/src/song-print");
+const song={id:1,lyrics:source,_studio:arrangement};
+assert.match(print.buildPrintableSong(song),/Dos veces &lt;3/);
+assert.doesNotMatch(print.buildPrintableSong(song,0,false),/Dos veces/);
+const html=require("../mobile/src/web-score-html");
+assert.match(html.scoreMarkup(decorated),/Dos veces &lt;3/);
+assert.doesNotMatch(html.scoreMarkup(shifted),/Dos veces/);
+console.log("Native cue projection, escaping and optional printing verified.");

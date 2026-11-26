@@ -12,6 +12,7 @@ const {createSyncController}=require("./src/sync-controller");
 const {parseSong}=require("./src/chords");
 const AlignedScore=require("./src/aligned-score-ui");
 const {RepertoireReader,MedleyReader,SongReader}=require("./src/music-readers-ui");
+const ReaderCues=require("./src/studio-reader-cues");
 const {clampReaderFont}=require("./src/score-zoom");
 const {buildCatalog,names,safeWebUrl}=require("./src/catalog");
 const {sendRequest}=require("./src/requests");
@@ -99,6 +100,7 @@ function AppScreen() {
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
  const [readerFont,setReaderFont]=useState(15);
+ const [showReaderCues,setShowReaderCues]=useState(true);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
@@ -315,6 +317,7 @@ function AppScreen() {
       accessibilityRole:"button",accessibilityLabel:"Aumentar letras",style:S.songFontButton},
       label("A+",S.songFontText)))),
    h(View,{style:S.multiControlFooter},
+    h(Pressable,{onPress:()=>setShowReaderCues(v=>!v),accessibilityRole:"button",accessibilityState:{selected:showReaderCues},style:S.multiTextAction},label(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",S.multiTextActionLabel)),
     h(Pressable,{onPress:resetTone,accessibilityRole:"button",
      accessibilityLabel:"Restablecer transposición",style:S.multiTextAction},
      label("Restablecer tono",S.multiTextActionLabel)),
@@ -328,9 +331,10 @@ function AppScreen() {
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
-  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
+  function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont,song=null){
   const parsed=parseSong(lyrics,delta);
-  return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
+  const rows=showReaderCues&&song&&lyrics===song.lyrics?ReaderCues.decorate(parseSong(lyrics,0),song._studio,parsed):parsed;
+  return renderAlignedScoreRows(rows,fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){
   const selection=startStudioQueue(plan,index);
@@ -404,14 +408,14 @@ function AppScreen() {
   );
  }
  const {shareSong,printSong,checkSongOffline,openSongVideo}=createSongReaderActions({
-  Share,Print,Alert,openWeb,manualSync,copy,model,network,transpose,capo
+  Share,Print,Alert,openWeb,manualSync,copy,model,network,transpose,capo,showReaderCues
  });
  function addSongLocally(song,kind,choice){
   const result=addToPersonal(personal,String(song.id),kind,choice);
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont});}
+ function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues,setShowReaderCues});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,

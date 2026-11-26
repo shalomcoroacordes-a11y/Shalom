@@ -8,6 +8,7 @@ const {capoSelection}=require("./song-capo-core");
 const {clampReaderFont}=require("./score-zoom");
 const {repertoireType}=require("./repertoire-ui");
 const StudioCollections=require("./studio-collections");
+const ReaderCues=require("./studio-reader-cues");
 
 function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong}){
   const items=Array.isArray(rep.items)?rep.items:[];
@@ -39,7 +40,7 @@ function RepertoireReader({rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,
        h(Text,{style:S.multiPartTitle},title),
        tone?label("Tono "+tone,S.multiPartDetail):null)),
      item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
-     renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose,"rep-"+index),
+     renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose,"rep-"+index,undefined,song),
      !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioPart(song,{shift:transpose})},label("♫ Practicar con guitarra",S.multiOriginalText)):null,
      song?h(Pressable,{onPress:()=>selectSong(song),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+title+" como canto individual",style:S.multiOriginalLink},
@@ -93,7 +94,7 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
         (capoKey?" · Figuras en "+capoKey:""),S.multiPartCapo):null,
        otherCapos.length?label("Otros capos: "+otherCapos.map(c=>"traste "+c.capo_position+
         (c.capo_key?" · "+c.capo_key:"")).join(" / "),S.multiPartCapo):null)),
-     renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta,"medley-"+index),
+     renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta,"medley-"+index,undefined,original),
      h(View,{style:S.multiQuickLinks},
       !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(plan.entries[index].payload)}},label("♫ Practicar fragmento",S.multiOriginalText)):null,
       original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
@@ -108,11 +109,13 @@ function MedleyReader({medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transp
   );
  }
 
-function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont}){
+function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont,showReaderCues=true,setShowReaderCues}){
   const {choices,chosen,offset:capoOffset}=capoSelection(song,capo);
   const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
   const liked=hasFavorite(likedIds,song.id);
   const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset);
+  const cueRows=ReaderCues.decorate(parseSong(song.lyrics||"",0),song._studio,parsed);
+  const hasCues=cueRows!==parsed;
   return h(View,{style:S.songReader},
    h(View,{style:S.songReaderIntro},
     label(type(song.song_type).toUpperCase(),S.songReaderKicker),
@@ -153,8 +156,9 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
     ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
+   hasCues?h(Pressable,{style:S.multiTextAction,accessibilityRole:"button",accessibilityState:{selected:showReaderCues},onPress:()=>setShowReaderCues(v=>!v)},label(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",S.multiTextActionLabel)):null,
    h(View,{style:S.songScorePlain},
-    renderAlignedScoreRows(parsed,readerFont,"song-"+song.id))
+    renderAlignedScoreRows(showReaderCues?cueRows:parsed,readerFont,"song-"+song.id))
   );
  }
 

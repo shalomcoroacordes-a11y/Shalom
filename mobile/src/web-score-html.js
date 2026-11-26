@@ -7,6 +7,7 @@ const escapeHTML=value=>String(value??"")
  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 function scoreMarkup(rows){
  return (rows||[]).map(row=>{
+  if(row.kind==="cue")return '<span class="song-reader-cue">'+escapeHTML(row.text)+'</span>';
   if(row.kind==="space")return '<span class="song-empty-line"></span>';
   if(row.kind==="section")return '<span class="song-section-label">'+escapeHTML(row.text)+'</span>';
   if(row.kind==="chords")return '<span class="song-line song-stacked-chords"><span class="chord-line">'+
@@ -21,6 +22,7 @@ function estimateScoreHeight(rows,fontSize){
  let units=0;
  for(const row of rows||[]){
   if(row.kind==="chords")units+=2*font*1.22+3;
+  else if(row.kind==="cue")units+=font*1.5;
   else if(row.kind==="space")units+=font*1.45;
   else if(row.kind==="section")units+=font*1.22+13;
   else units+=font*1.22;
@@ -45,7 +47,8 @@ function scoreHtml(rows,fontSize=15){
   '.chord-line,.song-standalone-chords{color:#27c98b!important;font-weight:850;}',
   '.lyric-line,.song-plain-line{font-weight:400;}',
   '.song-section-label{display:block;color:#27c98b!important;font-weight:850;margin:10px 0 3px;}',
-  '.song-empty-line{display:block;height:1.45em;}'
+  '.song-empty-line{display:block;height:1.45em;}',
+  '.song-reader-cue{display:block;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;opacity:.85;white-space:normal;overflow-wrap:anywhere;max-width:100vw;margin:.35em 0 .15em;}'
  ].join("");
  // Se informa únicamente la altura; el scroll vertical es de React Native.
  const measure=[

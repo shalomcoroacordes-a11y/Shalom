@@ -16,3 +16,5 @@ Se editan en cada sección, eligiendo compás, acción, destinatario y detalle. 
 
 ### Lectura normal
 La proyección estática utiliza el codec canónico, valida la firma de los acordes originales y coloca las indicaciones antes del renglón anclado, incluyendo su compás del canto. No altera ni transpone las indicaciones. La web pública y Offline web usan el mismo modelo. El control de visibilidad afecta la impresión web. No se cargan motores de audio. No requiere SQL; validar la presentación en dispositivos antes de publicar.
+
+Android individual, repertorios y misas completas usan la misma proyección generada. Los fragmentos cuya letra difiere de la original no reciben indicaciones especulativas. El control de visibilidad individual afecta la impresión nativa. Las colecciones personales con letras parciales requieren una proyección específica posterior; validar los modos de lectura en dispositivos.

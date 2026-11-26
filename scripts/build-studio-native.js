@@ -36,6 +36,9 @@ function outputs(read){
   "mobile/src/studio-bundle.js":html,
   "admin-mobile/src/studio-bundle.js":html,
   "mobile/src/studio-collections.js":read("studio-collections.js"),
+  "mobile/src/studio-core.js":read("studio-core.js"),
+  "mobile/src/studio-codec.js":read("studio-codec.js"),
+  "mobile/src/studio-reader-cues.js":read("studio-reader-cues.js"),
   "mobile/src/studio-screen.js":screen(read),
   "admin-mobile/src/studio-screen.js":screen(read,true)
  };
