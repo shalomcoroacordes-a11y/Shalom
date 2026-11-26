@@ -11,6 +11,7 @@ function CollectionCueEditor({lyrics,initial,onSave,styles,official=false}){
  const [action,setAction]=React.useState("note"),[audience,setAudience]=React.useState("all"),[detail,setDetail]=React.useState("");
  const [editing,setEditing]=React.useState(null),[error,setError]=React.useState("");
  const text=(v,s=styles.actionTitle)=>h(Text,{style:s},v);
+ const cueText=c=>{const look=core.cueAppearance(c.action);return h(Text,{accessibilityLabel:core.cueText(c),style:[styles.actionTitle,{color:look.dark,fontStyle:"italic"}]},look.symbol+" "+core.cueText(c));};
  const button=(title,fn,selected=false)=>h(Pressable,{style:[styles.createButton,selected&&{borderWidth:2,borderColor:"#b5ffe0"}],onPress:fn,accessibilityRole:"button",accessibilityState:{selected}},text(title,styles.createLabel));
  const reset=()=>{setStart(null);setEnd(null);setEditing(null);setDetail("");setError("");};
  function select(i){if(start===null||end!==null){setStart(i);setEnd(null);}else{setStart(Math.min(start,i));setEnd(Math.max(start,i));}}
@@ -42,7 +43,7 @@ function CollectionCueEditor({lyrics,initial,onSave,styles,official=false}){
     return h(View,{key:String(i),style:{gap:3}},
      r.kind==="section"?text(r.text,styles.sectionTitle):null,
      phrase.trim()?h(Pressable,{style:[styles.action,selected&&{backgroundColor:"#145a43"}],accessibilityRole:"button",accessibilityState:{selected},onPress:()=>select(i)},text(phrase)):null,
-     ...cues.flatMap((c,k)=>c.end===i&&core.validLyricCue(rows,c)?[h(View,{key:"cue-"+k},text(core.cueText(c),{color:"#b5ffe0",fontStyle:"italic"}))]:[]));
+     ...cues.flatMap((c,k)=>c.end===i&&core.validLyricCue(rows,c)?[h(View,{key:"cue-"+k},cueText(c))]:[]));
    }),
    text("Acción",styles.hint),
    h(View,{style:{flexDirection:"row",flexWrap:"wrap",gap:5}},...Object.entries(core.cueActions).map(([id,title])=>h(View,{key:id},button(title,()=>setAction(id),action===id)))),
@@ -52,7 +53,7 @@ function CollectionCueEditor({lyrics,initial,onSave,styles,official=false}){
    button(editing===null?"+ Agregar indicación":"Actualizar indicación",add),
    start!==null?button("Cancelar selección",reset):null,
    ...cues.map((c,i)=>h(View,{key:"saved-"+i,style:{gap:4}},
-    text((core.validLyricCue(rows,c)?"":"Revisar frase · ")+core.cueText(c)),
+    !core.validLyricCue(rows,c)?text("Revisar frase",styles.hint):null,cueText(c),
     button("Editar indicación "+(i+1),()=>{setEditing(i);setStart(core.validLyricCue(rows,c)?c.start:null);setEnd(core.validLyricCue(rows,c)?c.end:null);setAction(c.action);setAudience(c.audience);setDetail(c.text);}),
     button("Quitar indicación "+(i+1),()=>{setCues(v=>v.filter((_,k)=>k!==i));reset();})))
   ):null,

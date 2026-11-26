@@ -37,7 +37,7 @@ assert.match(js,/value\.lyricOnly\?codec\.encodeLyricCues/);assert.match(js,/con
  assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
  const action=walk(panel).find(n=>n.tag==="select"),detail=walk(panel).find(n=>n.tag==="textarea");
  action.value="repeat";detail.value="2 veces";detail.oninput();
- assert.equal(find("cue-selection-preview").children[1].textContent,"Repetir · 2 veces");
+ assert.equal(find("cue-selection-preview").children[1].textContent,"↻ Repetir · 2 veces");
  assert.equal(find("cue-selection-preview").parent,phraseRows[1]);
  walk(panel).find(n=>n.tag==="button"&&n.textContent==="Agregar indicación").onclick();
  assert.equal(scope.config.lyricCues.length,2);

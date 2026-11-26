@@ -98,6 +98,18 @@
     if(lyricCues.some(c=>!validLyricCue(rows,c)))throw Error("La letra cambió. Revisa la selección de la indicación.");
     return {...config,lyricCues};
   }
+  // Presentation only: never changes stored cues or musical timing.
+  const cuePalette=Object.freeze({
+    start:Object.freeze({symbol:"▶",dark:"#79c8ff",light:"#145a94"}),
+    stop:Object.freeze({symbol:"■",dark:"#ff9b9b",light:"#a32632"}),
+    repeat:Object.freeze({symbol:"↻",dark:"#f5c36b",light:"#8a5100"}),
+    pause:Object.freeze({symbol:"Ⅱ",dark:"#c5adff",light:"#6040a1"}),
+    wait:Object.freeze({symbol:"◷",dark:"#f4a7d1",light:"#9b2869"}),
+    continue:Object.freeze({symbol:"→",dark:"#83e4dd",light:"#006e66"}),
+    hold:Object.freeze({symbol:"—",dark:"#a9bfff",light:"#364a91"}),
+    note:Object.freeze({symbol:"◆",dark:"#d1d5db",light:"#4b5563"})
+  });
+  function cueAppearance(action){return Object.hasOwn(cuePalette,action)?cuePalette[action]:cuePalette.note;}
   function cueText(c){
     return [cueActions[c.action],c.audience==="all"?"":cueAudiences[c.audience],c.text].filter(Boolean).join(" · ");
   }
@@ -479,5 +491,5 @@
     });
     return index;
   }
-  return Object.freeze({cueActions,cueAudiences,lyricCueAnchor,normalizeLyricCues,validLyricCue,setLyricCues,cueText,normalizeCues,cuePosition,setCues,cueEntries,cueWindow,indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
+  return Object.freeze({cueActions,cueAudiences,lyricCueAnchor,normalizeLyricCues,validLyricCue,setLyricCues,cueText,cueAppearance,normalizeCues,cuePosition,setCues,cueEntries,cueWindow,indexAnchors,upcomingChordIndices,undoSnapshot,canUndo,durationLabel,durationChoices,pulsesToSteps,setAnchorHold,moveAnchor,anchorRange,suggestFragmentRange,clampTempo,pauseMilliseconds,identifyPreset,editHit,cycleHit,playbackRange,liveSectionEvent,sequenceTrackTimeline,reviewSummary,meters,divisions,resolution,anchorsFromRows,signature,draft,compile,durationSteps,setDuration,groupAnchors,applyPattern,sectionConfig,setSection,clockRange,clockIndex,playbackSpeed,playbackEvent,playbackFrame,sequenceFrame,groupBounds,groupRange,sectionBarCount,sectionBarSelection,sectionTransitionRange,isolateSections,sectionHit,sectionBarHits,presetHits,decodeRhythmCode,applySectionPattern,copySection,barContext,redivide});
 });

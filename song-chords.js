@@ -111,7 +111,7 @@ function createChordParser() {
     const cues=typeof window!=="undefined"?window.ShalomReaderCues:null;
     const rows=options.cueOverride&&cues?.decorateCollection?cues.decorateCollection(parseRows(source),options.arrangement,options.cueOverride,displayRows):(options.arrangement?.i?.length||options.arrangement?.j?.length)&&cues?cues.decorate(parseRows(source),options.arrangement,displayRows):displayRows;
     return rows.map(row=>{
-      if(row.kind==="cue")return '<span class="song-reader-cue">'+escapeHTML(row.text)+'</span>';
+      if(row.kind==="cue")return cues.cueMarkup?cues.cueMarkup(row,escapeHTML):'<span class="song-reader-cue">'+escapeHTML(row.text)+'</span>';
       if(row.kind==="space")return '<span class="song-empty-line"></span>';
       if(row.kind==="section")return '<span class="song-section-label">'+escapeHTML(row.text)+'</span>';
       if(row.kind==="chords")return pair(row.chordLine,row.lyricLine,"song-"+row.layout+"-chords");

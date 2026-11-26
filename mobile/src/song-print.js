@@ -2,6 +2,7 @@
 const {parseSong,transposeOne}=require("./chords");
 const {capoSelection}=require("./song-capo-core");
 const ReaderCues=require("./studio-reader-cues");
+const {cueAppearance}=require("./studio-core");
 const esc=value=>String(value==null?"":value).replace(/&/g,"&amp;").replace(/</g,"&lt;")
  .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 function readerShiftForPrint(song,transpose=0,capo="none"){
@@ -15,7 +16,7 @@ function buildPrintableSong(song,shift=0,showReaderCues=true,override=null){
  const parsed=parseSong(song.lyrics||"",shift);
  const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(song.lyrics||"",0),song._studio,override,parsed):parsed;
  const html=rows.map(row=>{
-  if(row.kind==="cue")return '<div class="cue">'+esc(row.text)+'</div>';
+  if(row.kind==="cue")return '<div class="cue">'+esc(cueAppearance(row.action).symbol+" "+row.text)+'</div>';
   if(row.kind==="space")return '<div class="space"></div>';
   if(row.kind==="section")return '<div class="section">'+esc(row.text)+'</div>';
   if(row.kind==="chords")return '<div class="pair"><pre class="chords">'+esc(row.chordLine)+'</pre><pre>'+esc(row.lyricLine)+'</pre></div>';

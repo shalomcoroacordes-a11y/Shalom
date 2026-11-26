@@ -2,12 +2,13 @@
 // React Native Text no reproduce de manera consistente las columnas de Courier New
 // con acentos y espacios; Chromium utiliza las mismas reglas que el administrador.
 const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT}=require("./score-zoom");
+const {cueMarkup}=require("./studio-reader-cues");
 const escapeHTML=value=>String(value??"")
  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 function scoreMarkup(rows){
  return (rows||[]).map(row=>{
-  if(row.kind==="cue")return '<span class="song-reader-cue">'+escapeHTML(row.text)+'</span>';
+  if(row.kind==="cue")return cueMarkup(row,escapeHTML);
   if(row.kind==="space")return '<span class="song-empty-line"></span>';
   if(row.kind==="section")return '<span class="song-section-label">'+escapeHTML(row.text)+'</span>';
   if(row.kind==="chords")return '<span class="song-line song-stacked-chords"><span class="chord-line">'+
@@ -48,7 +49,7 @@ function scoreHtml(rows,fontSize=15){
   '.lyric-line,.song-plain-line{font-weight:400;}',
   '.song-section-label{display:block;color:#27c98b!important;font-weight:850;margin:10px 0 3px;}',
   '.song-empty-line{display:block;height:1.45em;}',
-  '.song-reader-cue{display:block;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;opacity:.85;white-space:normal;overflow-wrap:anywhere;max-width:100vw;margin:.35em 0 .15em;}'
+  '.song-reader-cue{display:block;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;color:var(--cue-dark,#d1d5db);white-space:normal;overflow-wrap:anywhere;max-width:100vw;margin:.35em 0 .15em;}'
  ].join("");
  // Se informa únicamente la altura; el scroll vertical es de React Native.
  const measure=[

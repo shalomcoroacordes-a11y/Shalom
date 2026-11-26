@@ -543,7 +543,10 @@ body.song-detail-page #songLyrics .song-empty-line {
 
 
 /* ===== song-reader-cues.css (original order) ===== */
-.song-reader-cue{display:block;color:inherit;font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;opacity:.85;white-space:normal;overflow-wrap:anywhere;margin:.35em 0 .15em;break-after:avoid}
+.song-reader-cue{display:block;color:var(--cue-dark,#d1d5db);font-family:system-ui,sans-serif;font-size:.85em;font-style:italic;white-space:normal;overflow-wrap:anywhere;margin:.35em 0 .15em;break-after:avoid}
 .song-reader-cues-hidden .song-reader-cue{display:none}
 .song-reader-cue-toggle{margin:.35em 0;color:inherit}
 @media print{.song-reader-cue-toggle{display:none!important}.song-reader-cue{color:#333;opacity:1}}
+
+body.light-mode .song-reader-cue{color:var(--cue-light,#4b5563)}
+@media print{body .song-reader-cue{color:#333!important}}
