@@ -72,3 +72,26 @@ assert.equal(require("../studio-collections").resolve({id:"v",updated_at:"r",lyr
 assert.equal(require("../mobile/src/studio-collections").resolve({id:"v",updated_at:"r",lyrics:aCapella,_studio:vocalRecord}).ready,false);
 assert.deepEqual(reader.decorate(vocalRows,{...vocalRecord,j:[["bad"]]}),vocalRows);
 console.log("Lyric-only record: no invented musical accompaniment, public web and native projection, malformed record rejection, no guitar practice.");
+
+ // Verify the actual native public song screen (not Studio) with a lyric-only record.
+ const sourceUI=fs.readFileSync("mobile/src/music-readers-ui.js","utf8");
+ const dependencies={
+  react:{createElement:(type,props,...children)=>({type,props,children})},
+  "react-native":{View:"View",Text:"Text",Pressable:"Pressable",Image:"Image",Alert:{alert(){}}},
+  "./chords":require("../mobile/src/chords"),"./catalog":{names:()=>""},"./favorites":{hasFavorite:()=>false},
+  "./song-capo-core":{capoSelection:()=>({choices:[{id:"none"}],chosen:{id:"none"},offset:0})},
+  "./score-zoom":{clampReaderFont:x=>x},"./repertoire-ui":{},"./studio-collections":require("../mobile/src/studio-collections"),
+  "./studio-reader-cues":native
+ };
+ const uiModule={exports:{}};
+ new Function("require","module",sourceUI)(name=>{assert.ok(name in dependencies,name);return dependencies[name]},uiModule);
+ let displayed,visibility=true;
+ const publicProps={song:{id:"v",title:"Canto",lyrics:aCapella,_studio:vocalRecord},S:{},label:(text)=>text,type:()=>"católico",Chip:"Chip",capo:"none",transpose:0,likedIds:[],toggleLike(){},renderToneStepper(){},setReaderFont(){},capoExpanded:false,setCapoExpanded(){},setCapo(){},renderAlignedScoreRows(rows){displayed=rows;return null},readerFont:16,setShowReaderCues(fn){visibility=fn(visibility);}};
+ const tree=uiModule.exports.SongReader(publicProps);
+ assert.equal(displayed.at(-1).text,"Repetir · 2 veces");
+ const flatten=n=>n&&typeof n==="object"&&n.children?[n,...n.children.flatMap(flatten)]:[];
+ const toggle=flatten(tree).find(n=>n.children.includes("Ocultar indicaciones"));
+ assert.ok(toggle);toggle.props.onPress();assert.equal(visibility,false);
+ uiModule.exports.SongReader({...publicProps,showReaderCues:visibility});
+ assert.equal(displayed.some(r=>r.kind==="cue"),false);
+ console.log("Normal native public song reader: lyric-only cue visible by default, hide control works without opening Studio.");
