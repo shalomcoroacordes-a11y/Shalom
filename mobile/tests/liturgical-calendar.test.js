@@ -25,7 +25,7 @@ assert.equal(c.homeContext(model,new Date(2026,10,28,20)).next.id,"ensayo");
 assert.equal(c.homeContext({},new Date(2026,10,28,20)).greeting,"Buenas noches");
 const {readingsForDay,readingOptions}=require("../src/liturgical-readings");
 const adv=readingsForDay("2026-11-29");assert.equal(adv.gospel,"Mc 13, 33-37");assert.equal(adv.gloria,false);assert.match(adv.url,/arquidiocesistoluca\.org\.mx\/.*#page=160$/);
-const andres=readingsForDay("2026-11-30");assert.equal(andres.color,"rojo");assert.equal(andres.second,null);assert.equal(andres.gloria,true);assert.equal(readingsForDay("2027-11-29"),null);assert.equal(readingsForDay("constructor"),null);
+const andres=readingsForDay("2026-11-30");assert.equal(andres.color,"rojo");assert.equal(andres.second,null);assert.equal(andres.gloria,true);assert.equal(readingsForDay("2027-11-29").provisional,true);assert.equal(readingsForDay("2028-11-29"),null);assert.equal(readingsForDay("constructor"),null);
 console.log("Liturgical calendar: civil dates, major seasons, dated reading references, published choir events and contextual greeting verified.");
 
 assert.equal(readingsForDay("2026-12-06").gospel,"Mc 1, 1-8");
@@ -38,3 +38,13 @@ const song=(id,song_type,category)=>({id,title:id,song_type,_categories:[{name:c
 const songs=[song("a","catolico","Adviento"),song("b","cristiano","Adviento"),song("c","catolico","Navidad"),song("d","catolico","Guadalupe")];
 assert.deepEqual(seasonalSongs(songs,c.liturgicalDay("2026-12-06"),readingsForDay("2026-12-06")).map(s=>s.id),["a"]);
 assert.deepEqual(seasonalSongs(songs,c.liturgicalDay("2026-12-12"),readingsForDay("2026-12-12")).map(s=>s.id),["d"]);
+
+const annual=require("../src/liturgical-year-data");
+assert.equal(annual.dates().filter(d=>d.startsWith("2027-")).length,356);
+assert.equal(c.liturgicalDay("2027-05-27").title,"Corpus Christi");
+assert.equal(readingsForDay("2027-05-27").title,"Corpus Christi");assert.equal(readingsForDay("2027-05-27").gloria,null);
+assert.equal(readingsForDay("2027-05-30"),null);assert.equal(readingsForDay("2027-12-12"),null);
+assert.equal(readingsForDay("2027-03-27"),null);assert.equal(readingsForDay("2027-12-25"),null);
+for(const date of annual.dates()){const value=annual.annualReading(date);assert.equal(value.date,date);assert.equal(value.provisional,true);assert.equal(value.gloria,null);assert.ok(value.gospel);assert.ok(c.parseDay(date)!==null);}
+assert.equal(readingsForDay("2026-12-12").gloria,true);assert.equal(readingsForDay("2026-12-25","dia").gloria,true);
+console.log("Annual provisional readings: provenance, exact dates, Mexican Corpus Christi correction, exceptions and priority of reviewed records verified.");

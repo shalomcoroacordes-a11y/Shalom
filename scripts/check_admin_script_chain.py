@@ -48,7 +48,7 @@ def main():
     chains = [
         ("supabase-js", "Supabase.js", "admin-auth-controller.js"),
         ("song-chords.js", "medley-core.js", "admin-medleys.js"),
-        ("repertoires-core.js", "liturgical-dates.js", "liturgical-readings.js", "calendar-web-core.js", "admin-calendar.js", "admin-repertoires.js"),
+        ("repertoires-core.js", "liturgical-dates.js", "liturgical-year-data.js", "liturgical-readings.js", "calendar-web-core.js", "admin-calendar.js", "admin-repertoires.js"),
         ("admin-backup.js", "admin-backup-import.js"),
         ("admin-pro.js", "admin-category-browser-v2.js", "admin-song-category-picker.js"),
     ]

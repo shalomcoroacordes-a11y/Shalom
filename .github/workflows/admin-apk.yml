@@ -5,6 +5,7 @@ on:
     paths:
       - "admin-mobile/**"
       - "mobile/src/liturgical-dates.js"
+      - "mobile/src/liturgical-year-data.js"
       - "mobile/src/liturgical-readings.js"
       - "sql/SHALOM_ADMIN_ROLES_20261121.sql"
       - "sql/SHALOM_ADMIN_HARDENING_20261121.sql"
@@ -13,6 +14,7 @@ on:
     paths:
       - "admin-mobile/**"
       - "mobile/src/liturgical-dates.js"
+      - "mobile/src/liturgical-year-data.js"
       - "mobile/src/liturgical-readings.js"
       - "sql/SHALOM_ADMIN_ROLES_20261121.sql"
       - "sql/SHALOM_ADMIN_HARDENING_20261121.sql"

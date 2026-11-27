@@ -32,7 +32,7 @@ function liturgicalDay(date){
  [y+"-01-01","Santa María, Madre de Dios"],[epiphany(y),"Epifanía del Señor"],[baptism(y),"Bautismo del Señor"],
  [ash,"Miércoles de Ceniza"],[shift(pascha,-7),"Domingo de Ramos"],[holyThursday,"Jueves Santo"],
  [shift(pascha,-2),"Viernes Santo"],[shift(pascha,-1),"Sábado Santo"],[pascha,"Domingo de Pascua"],
- [shift(pascha,42),"Ascensión del Señor"],[pentecost,"Pentecostés"],[shift(pentecost,7),"Santísima Trinidad"],[shift(pentecost,19),"Sagrado Corazón de Jesús"],[shift(adv,-7),"Jesucristo, Rey del Universo"],[y+"-12-25","Natividad del Señor"]
+ [shift(pascha,42),"Ascensión del Señor"],[pentecost,"Pentecostés"],[shift(pentecost,7),"Santísima Trinidad"],[shift(pentecost,11),"Corpus Christi"],[shift(pentecost,19),"Sagrado Corazón de Jesús"],[shift(adv,-7),"Jesucristo, Rey del Universo"],[y+"-12-25","Natividad del Señor"]
  ];
  title=principal.find(row=>row[0]===date)?.[1]||null;
  if(!title&&weekday(date)===0&&season==="advent")title=ROMAN[(parseDay(date)-parseDay(adv))/(7*DAY)]+" Domingo de Adviento";

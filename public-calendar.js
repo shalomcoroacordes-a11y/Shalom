@@ -19,7 +19,7 @@
    '<h3>Lecturas de la misa</h3>'+
    (options.length?'<div class="rep-calendar-variants">'+options.map(o=>'<button type="button" data-calendar-variant="'+esc(o.id)+'" aria-pressed="'+(variant===o.id)+'">'+esc(o.label)+'</button>').join("")+'</div>':"")+
    (reading?'<p class="muted-text">'+esc(reading.rank+" · Color: "+reading.color)+'</p>'+[["Primera lectura",reading.first],["Salmo responsorial",reading.psalm],["Segunda lectura",reading.second],["Evangelio",reading.gospel]].filter(x=>x[1]).map(([name,value])=>'<div class="rep-calendar-reading"><span>'+esc(name)+'</span><strong>'+esc(value)+'</strong></div>').join("")+
-    '<p>'+esc(reading.gloria?"Se dice Gloria.":"No se dice Gloria.")+'</p><a class="text-link" href="'+esc(reading.url)+'" target="_blank" rel="noopener noreferrer">'+esc(reading.source)+' ↗</a>':
+    '<p>'+esc(reading.gloria===true?"Se dice Gloria.":reading.gloria===false?"No se dice Gloria.":"Gloria: confirmar en el misal.")+'</p>'+(reading.provisional?'<p class="muted-text">'+esc(reading.note)+'</p>':"")+'<a class="text-link" href="'+esc(reading.url)+'" target="_blank" rel="noopener noreferrer">'+esc(reading.source)+' ↗</a>':
     '<p class="muted-text">'+(options.length?"Selecciona el formulario de la celebración.":"Lecturas aún no verificadas para esta fecha.")+'</p>')+'</section>';
  }
  function mount(root,rows,status="ready",initialDay=W.today()){

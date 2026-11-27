@@ -1,5 +1,5 @@
 // Shared browser/CommonJS module. Single source of truth for web and Android.
-(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.ShalomLiturgicalReadings=api;})(typeof window!=="undefined"?window:globalThis,function(){
+(function(root,factory){const api=factory(typeof module==="object"&&module.exports?require("./liturgical-year-data"):root.ShalomLiturgicalYearData);if(typeof module==="object"&&module.exports)module.exports=api;else root.ShalomLiturgicalReadings=api;})(typeof window!=="undefined"?window:globalThis,function(annual){
 // Dated lectionary references only. No copied liturgical translation.
 // Sources are recorded per date: Toluca monthly missal, FDLC seasonal guide, Mexican Guadalupe missal.
 // Never substitute another year's or date's reading, even when offline.
@@ -193,7 +193,8 @@ function readingsForDay(date,variant){
   const row=RECORDS[date];return {...row,date,source:"Misal noviembre 2026 · publicado por Arquidiócesis de Toluca",url:SOURCE+"#page="+row.page};
  }
  const row=EXTRA.find(x=>x.date===date)||VARIANTS.find(x=>x.date===date&&x.id===variant);
- return row?{...row}:null;
+ if(!row&&(variant||VARIANTS.some(x=>x.date===date)))return null;
+ return row?{...row}:annual?.annualReading(date)||null;
 }
 function readingOptions(date){return VARIANTS.filter(x=>x.date===date).map(({id,variant})=>({id,label:variant}));}
 

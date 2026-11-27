@@ -39,7 +39,8 @@ function CalendarPanel({context,onOpen,openWeb,songs,onSong}){
   reading?h(View,{style:S.readings},
    h(Text,{style:S.muted},reading.rank+" · Color de la celebración: "+reading.color),
    ...[["Primera lectura",reading.first],["Salmo responsorial",reading.psalm],["Segunda lectura",reading.second],["Evangelio",reading.gospel]].filter(([,value])=>value).map(([name,value])=>h(View,{key:name,style:S.readingRow},h(Text,{style:S.muted},name),h(Text,{style:S.text},value))),
-   h(Text,{style:S.muted},reading.gloria?"Se dice Gloria.":"No se dice Gloria."),
+   h(Text,{style:S.muted},reading.gloria===true?"Se dice Gloria.":reading.gloria===false?"No se dice Gloria.":"Gloria: confirmar en el misal."),
+   reading.provisional?h(Text,{style:S.muted},reading.note):null,
    h(Text,{style:S.muted},reading.source+(reading.page?" · p. "+reading.page:"")),
    openWeb?h(Pressable,{style:S.source,onPress:()=>openWeb(reading.url),accessibilityRole:"link",accessibilityLabel:"Consultar misal original"},h(Text,{style:S.sourceText},"Consultar misal original ↗")):null
   ):h(Text,{style:S.muted},options.length?"Elige la celebración para consultar sus lecturas.":"Aún no tenemos lecturas verificadas para esta fecha. Consulta el misal correspondiente. No se muestran lecturas de otro día."),
