@@ -4,12 +4,16 @@ on:
     branches: [main, "feature/shalom-admin-android-v1"]
     paths:
       - "admin-mobile/**"
+      - "mobile/src/liturgical-dates.js"
+      - "mobile/src/liturgical-readings.js"
       - "sql/SHALOM_ADMIN_ROLES_20261121.sql"
       - "sql/SHALOM_ADMIN_HARDENING_20261121.sql"
       - ".github/workflows/admin-apk.yml"
   pull_request:
     paths:
       - "admin-mobile/**"
+      - "mobile/src/liturgical-dates.js"
+      - "mobile/src/liturgical-readings.js"
       - "sql/SHALOM_ADMIN_ROLES_20261121.sql"
       - "sql/SHALOM_ADMIN_HARDENING_20261121.sql"
       - ".github/workflows/admin-apk.yml"

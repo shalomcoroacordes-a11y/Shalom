@@ -10,13 +10,15 @@ const NetInfo=require("@react-native-community/netinfo").default;
 const {S,C}=require("./src/styles");
 const {TITLES}=require("./src/model");
 const {createEditorController}=require("./src/editor-controller");
-const {effective,mapped}=require("./src/permissions");
+const {effective,mapped,canEdit}=require("./src/permissions");
 const {txt,button,input,wrapChips}=require("./src/components/Controls");
 const UsersScreen=require("./src/screens/UsersScreen");
 const EditorScreen=require("./src/screens/EditorScreen");
 const CatalogScreen=require("./src/screens/CatalogScreen");
 const PendingScreen=require("./src/screens/PendingScreen");
 const HomeScreen=require("./src/screens/HomeScreen");
+const CalendarScreen=require("./src/screens/CalendarScreen");
+const {draftSeed}=require("./src/calendar-core");
 const {createAuth}=require("./src/auth");
 const {createApi}=require("./src/api");
 const {createSync}=require("./src/sync");
@@ -59,6 +61,7 @@ function Main(){
  const [session,setSession]=useState(null),[access,setAccess]=useState(null),[boot,setBoot]=useState(true);
  const [tab,setTab]=useState("Inicio"),[selectedType,setSelectedType]=useState("songs"),[form,setForm]=useState(null),[editing,setEditing]=useState(null);
  const [section,setSection]=useState("Datos"),[lists,setLists]=useState({}),[drafts,setDrafts]=useState([]),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
+ const [calendarOpen,setCalendarOpen]=useState(false);
  const [search,setSearch]=useState(""),[offline,setOffline]=useState(false),[roles,setRoles]=useState([]),[profiles,setProfiles]=useState([]);
  const [newRole,setNewRole]=useState(""),[roleDescription,setRoleDescription]=useState(""),[rolePermissions,setRolePermissions]=useState([]);
  const [inviteEmail,setInviteEmail]=useState(""),[inviteRoles,setInviteRoles]=useState([]),[showRoleEditor,setShowRoleEditor]=useState(false),[editingRole,setEditingRole]=useState(null),[assigned,setAssigned]=useState({}),[blockedUsers,setBlockedUsers]=useState([]);
@@ -152,7 +155,7 @@ function Main(){
    }}
   ]);
  }
- async function logout(){editor.reset();editorCallbacks.current.owner=null;studioContext.current=null;users.reset();setOverrideUser(null);setEditingRole(null);setShowRoleEditor(false);setNewRole("");setRoleDescription("");setRolePermissions([]);setInviteEmail("");setInviteRoles([]);setForm(null);setEditing(null);setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setTab("Inicio");setMessage("");}
+ async function logout(){editor.reset();editorCallbacks.current.owner=null;studioContext.current=null;users.reset();setOverrideUser(null);setEditingRole(null);setShowRoleEditor(false);setNewRole("");setRoleDescription("");setRolePermissions([]);setInviteEmail("");setInviteRoles([]);setForm(null);setEditing(null);setStudioPayload(null);await auth.signOut();setSession(null);setAccess(null);setLists({});setDrafts([]);setCalendarOpen(false);setTab("Inicio");setMessage("");}
  async function createRole(){
   if(!newRole.trim())return Alert.alert("Nombre requerido");
   try{if(editingRole)await api.changeRole({id:editingRole,name:newRole,description:roleDescription,permissions:rolePermissions});
@@ -205,16 +208,23 @@ function Main(){
   if(!session||boot)return false;
   if(tab==="Editor"){if(section!=="Datos"){setSection("Datos");return true;}leaveEditor();return true;}
   if(tab==="Usuarios"){if(overrideUser){setOverrideUser(null);return true;}if(showRoleEditor){setShowRoleEditor(false);return true;}}
+  if(tab==="Catálogo"&&selectedType==="repertoires"&&calendarOpen){setCalendarOpen(false);return true;}
   if(search){setSearch("");return true;}
   if(tab!=="Inicio"){setTab("Inicio");return true;}
   return false;
  }
- useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType]);
+ useEffect(()=>{if(Platform.OS!=="android")return;const sub=BackHandler.addEventListener("hardwareBackPress",adminBack);return()=>sub.remove()},[session,boot,tab,section,form,search,overrideUser,showRoleEditor,selectedType,calendarOpen]);
  function editorPanel(){return h(EditorScreen,{form,selectedType,section,update:editor.update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio,editorSaving,saveDraft,access,offline});}
  function catalogPanel(type){return h(CatalogScreen,{type,lists,search,setSearch,begin,access,offline,confirmRemove});}
  async function transitionPending(d){try{const changed=await store.transitionDraft(owner,d,d.status==="queued"?"draft":"queued",null);await reloadDrafts();if(!changed)setMessage("El borrador cambió. Revisa la versión actual.");}catch(e){Alert.alert("No se pudo actualizar",e.message);}}
  async function deletePending(d){try{const removed=await store.completeDraft(owner,d);await reloadDrafts();if(!removed)setMessage("El borrador cambió. Se conservó la versión actual.");}catch(e){Alert.alert("No se pudo borrar",e.message);}}
- function openRepertoires(){setSelectedType("repertoires");setTab("Catálogo");}
+ function openRepertoires(){setSelectedType("repertoires");setCalendarOpen(true);setSearch("");setTab("Catálogo");}
+ function beginScheduled(kind,date){
+  if(!owner||access?.blocked||(!offline&&(!access?.authorized||!canEdit(access,"repertoires"))))return;
+  const seed=draftSeed(kind,date);if(seed)editor.begin({owner,table:"repertoires",lists,origin:"Catálogo",seed});
+ }
+ function repertoireCalendar(){return h(CalendarScreen,{lists,drafts,access,offline,onOpen:record=>begin("repertoires",record),onDraft:draft=>begin("repertoires",null,draft),onNew:beginScheduled,onList:()=>setCalendarOpen(false)});}
+
  function pendingPanel(){return h(PendingScreen,{busy,offline,sendQueue,drafts,begin,onTransition:transitionPending,onDelete:deletePending});}
  function homePanel(){return h(HomeScreen,{lists,drafts,begin,onRepertoires:openRepertoires,busy,refresh,offline,session,access,logout});}
  if(boot)return h(View,{style:{flex:1,backgroundColor:C.bg,justifyContent:"center",alignItems:"center"}},h(ActivityIndicator,{color:C.green}),txt("Preparando SHALOM Admin...",S.subtitle));
@@ -228,7 +238,7 @@ function Main(){
    !!message&&h(View,{style:S.warning},h(View,{style:{flex:1}},txt(message,S.note)),
     h(Pressable,{onPress:()=>setMessage(""),accessibilityRole:"button",accessibilityLabel:"Cerrar aviso",style:{paddingHorizontal:7,paddingVertical:5}},txt("✕",{fontSize:17,color:C.muted}))),
    tab==="Inicio"?homePanel():tab==="Editor"?editorPanel():tab==="Cantos"?catalogPanel("songs"):tab==="Catálogo"?
-    h(View,{style:{gap:13}},wrapChips(catalogTabs.map(x=>[x,TITLES[x]]),selectedType,v=>{setSelectedType(v);setSearch("");}),catalogPanel(catalogTabs.includes(selectedType)?selectedType:"artists")):
+    h(View,{style:{gap:13}},wrapChips(catalogTabs.map(x=>[x,TITLES[x]]),selectedType,v=>{setSelectedType(v);setSearch("");setCalendarOpen(v==="repertoires");}),selectedType==="repertoires"?(calendarOpen?repertoireCalendar():h(View,{style:{gap:10}},button("Calendario",()=>setCalendarOpen(true),"secondary"),catalogPanel("repertoires"))):catalogPanel(catalogTabs.includes(selectedType)?selectedType:"artists")):
     tab==="Pendientes"?pendingPanel():usersPanel()
   ),
   studioPayload?h(require("./src/studio-screen"),{payload:studioPayload,onClose:()=>setStudioPayload(null),onSaveDraft:studioDraft,onPublish:studioPublish}):null,

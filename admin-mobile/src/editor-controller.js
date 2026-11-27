@@ -1,10 +1,12 @@
 "use strict";
 const {initial,fromServer,draftRecord}=require("./model");
+const {draftSeed}=require("./calendar-core");
 // A single editor session owns its baseline, pending save and exit confirmation.
 function createEditorController({store,createId,apply,alert,onSaved,onBusy,notice}){
  let current=null,sequence=0,saving=false,confirming=false;
- function begin({owner,table,record,fromDraft,lists,origin}){
-  const form=fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):initial(table);
+ function begin({owner,table,record,fromDraft,lists,origin,seed}){
+  const scheduled=!record&&!fromDraft&&table==="repertoires"&&seed?draftSeed(seed.kind,seed.event_date):null;
+  const form=fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):{...initial(table),...scheduled};
   const editing={id:fromDraft?.id||record?.id||record?.content_key||(table==="site_content"?"new":createId()),expected:fromDraft?.expected_updated||record?.updated_at||null};
   current={token:++sequence,owner,table,form,editing,origin,baseline:JSON.stringify(form)};
   confirming=false;

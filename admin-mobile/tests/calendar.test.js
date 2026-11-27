@@ -1,0 +1,10 @@
+"use strict";
+const assert=require("node:assert/strict"),A=require("../src/calendar-core");
+const rows={repertoires:[{id:"a",event_date:"2026-11-29",is_published:true},{id:"b",event_date:"2026-02-30"}]};
+const drafts=[{id:"a",type:"repertoires",body:{event_date:"2026-11-29"},status:"conflict"},{id:"song",type:"songs",body:{event_date:"2026-11-29"}}];
+const records=A.recordsForCalendar(rows,drafts);
+assert.deepEqual(records.map(r=>r.key),["local:a","server:a"]);assert.equal(records[0].status,"Conflicto");assert.equal(records[0].draft,drafts[0]);assert.equal(records[1].status,"Publicado");
+assert.deepEqual(A.draftSeed("misa","2026-11-29"),{kind:"misa",event_date:"2026-11-29"});assert.equal(A.draftSeed("ensayo","2026-02-30"),null);
+assert.equal(A.dayInfo("2026-11-29").reading.gospel,"Mc 13, 33-37");assert.equal(A.dayInfo("2026-12-25").options.length,3);
+assert.equal(A.shiftMonth("2026-12",1),"2027-01");assert.equal(A.monthDays("2026-11").filter(Boolean).length,30);
+console.log("Admin calendar: separate local and server records, exact date seed and shared readings verified.");

@@ -3,6 +3,15 @@ const {StyleSheet}=require("react-native");
 const C={bg:"#090d11",surface:"#171c21",surface2:"#22272c",border:"#333a3f",green:"#32c987",darkGreen:"#063221",text:"#f6f7f8",muted:"#9fa7aa",danger:"#fc8d8d"};
 const S=StyleSheet.create({
  screen:{flex:1,backgroundColor:C.bg},
+ calendarMonth:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},
+ calendarNav:{width:44,minHeight:44,alignItems:"center",justifyContent:"center"},
+ calendarGrid:{flexDirection:"row",flexWrap:"wrap"},
+ calendarCell:{width:"14.2857%",minHeight:44,alignItems:"center",justifyContent:"center",gap:3},
+ calendarSelected:{backgroundColor:C.darkGreen,borderRadius:9},
+ calendarDayText:{fontSize:14,color:C.text,fontWeight:"600"},
+ calendarDot:{width:5,height:5,borderRadius:3},
+ calendarDetail:{backgroundColor:C.surface,borderRadius:12,padding:12,gap:6},
+ calendarEvent:{borderBottomWidth:1,borderColor:C.border,paddingVertical:4},
  body:{paddingHorizontal:16,paddingTop:14,paddingBottom:28,gap:16,flexGrow:1},
  navShell:{paddingHorizontal:12,paddingTop:7,backgroundColor:C.bg},
  nav:{borderWidth:1,borderColor:C.border,backgroundColor:"#11171a",borderRadius:20,padding:5,flexDirection:"row",justifyContent:"space-around"},
