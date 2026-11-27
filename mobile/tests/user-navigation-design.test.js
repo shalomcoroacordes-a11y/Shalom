@@ -38,7 +38,7 @@ for(const url of ["acerca.html","contacto.html","donaciones.html"])
 assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);
 const today=home.indexOf("style:S.shalomToday}");
 const search=home.indexOf("style:S.homeSearchWrap}");
-const recent=home.indexOf('label("Continuar donde te quedaste",S.spotifyHeading)');
+const recent=home.indexOf('label("Continúa escuchando o practicando",S.spotifyHeading)');
 const access=home.lastIndexOf('label("Tus accesos",S.spotifyHeading)');
 const banner=home.indexOf("style:S.spotifyBannerMini,");
 assert.ok(today>=0&&search>today&&recent>search&&access>recent&&banner>access,

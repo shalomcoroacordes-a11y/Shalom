@@ -29,3 +29,6 @@ Agenda nativa dentro de Catálogo > Repertorios, acceso desde Inicio, fechas y r
 
 ## Séptima etapa: editor de repertorios Admin Android
 Sección Datos y Cantos; filas compactas expandibles, búsqueda por título o tono, paginación, momento de inserción y confirmación de quitar. Momentos compartidos con web; alias anteriores conservados al cargar. Advertencia de Gloria solo si existe referencia fechada que lo sustenta. Validación de fecha, lista y publicación vacía. Borradores de repertorios reabren sus arrays como texto JSON válido, sin descartar contenido. Sin modificaciones del catálogo. Pendiente CI y prueba visual; no asigna automáticamente cantos a los momentos.
+
+## Criterios de aceptación visual (Inicio inteligente)
+Referencia recuperada de Para ti: saludo contextual visible con cuatro pestañas, tarjeta verde oficial con celebración (nombre litúrgico solo cuando consta para la fecha de una misa), cuenta regresiva destacada y CTA según el evento, recomendaciones y accesos 2x2 compactos con subtítulos, continuar escuchando o practicando, explorar según el momento y añadidos recientemente. Datos reales y estados vacíos, navegación inferior intacta. No se considera validación visual concluida hasta comparar capturas del APK con las imágenes originales; las tres imágenes exactas no se recuperaron en la búsqueda. No se modifica la letra ni el lector.

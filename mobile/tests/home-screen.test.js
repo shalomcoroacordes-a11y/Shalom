@@ -9,7 +9,9 @@ vm.runInNewContext(fs.readFileSync("src/home-screen-ui.js","utf8"),{module:modul
  if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable","Image"].map(n=>[n,n]));
  if(name==="./catalog")return{normalize:s=>String(s).trim().toLowerCase(),names:()=>"Coro"};
  if(name==="./home-spotlight")return{personalCounts:()=>({likes:1,medleys:1,masses:1,creations:3}),officialHighlights:model=>model.highlights,recentCatalog:items=>(items||[]).filter(x=>x.updated_at)};
- if(name==="./liturgical-calendar")return{homeContext:()=>({today:"2026-11-26",greeting:"Buenas noches",subtitle:"Que cada canto sea una oración.",events:[],current:null,next:null,day:null})};
+ if(name==="./liturgical-calendar")return{homeContext:model=>({today:"2026-11-26",greeting:"Buenas noches",subtitle:"Que cada canto sea una oración.",events:[],current:model.current||null,next:model.next||null,day:null}),liturgicalDay:()=>({title:"I Domingo de Adviento",seasonName:"Adviento"})};
+ if(name==="./liturgical-readings")return{readingsForDay:()=>null};
+ if(name==="./liturgical-suggestions")return{seasonalSongs:(songs,day)=>day?songs:[]};
  if(name==="./calendar-panel-ui")return"CalendarPanel";
  if(name==="./repertoire-ui")return{repertoireType:e=>e.kind};
  if(name==="./visual-ui")return{InitialCover:"InitialCover"};
@@ -42,3 +44,10 @@ find(screen,n=>n.type==="TextInput").props.onSubmitEditing();assert.equal(calls.
 const empty=HomeScreen({...props,copy:null,model:{...props.model,highlights:[]},homeSearch:"",homeMatches:[]});
 assert.ok(find(empty,n=>n.type==="Btn"&&n.props.text==="Descargar biblioteca"));
 console.log("Home screen: official content, recent reading, personalized banner, favorites, search and offline download callbacks verified.");
+
+const scheduled={...rep,kind:"misa",event_date:"2026-11-29"};
+const candidate=HomeScreen({...props,model:{...props.model,next:scheduled,repertoires:[scheduled]}});
+const cta=find(candidate,n=>n.props.accessibilityLabel==="Ver celebración");assert.ok(cta);cta.props.onPress();assert.deepEqual(calls.at(-1),["selectRepertoire",scheduled]);
+assert.ok(find(candidate,n=>n.props.accessibilityLabel==="Abrir canto relacionado Gloria"));
+const onMass=HomeScreen({...props,openMusician:r=>calls.push(["music",r]),model:{...props.model,current:scheduled,repertoires:[scheduled]}});
+find(onMass,n=>n.props.accessibilityLabel==="Iniciar modo músico").props.onPress();assert.deepEqual(calls.at(-1),["music",scheduled]);

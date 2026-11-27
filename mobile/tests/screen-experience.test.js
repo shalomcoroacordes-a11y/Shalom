@@ -36,7 +36,7 @@ assert.match(profile,/Editar perfil/);
 assert.match(profile,/Mis me gusta/);
 assert.match(home,/label\(context.greeting,S.spotifyWelcomeTitle\)/);
 assert.match(home,/label\("Hoy en SHALOM",S.shalomTodayHeading\)/);
-assert.match(home,/label\("Continuar donde te quedaste",S.spotifyHeading\)/);
+assert.match(home,/label\("Continúa escuchando o practicando",S.spotifyHeading\)/);
 assert.match(profile,/Configuración/);
 assert.match(profile,/Respaldo y restauración/);
 assert.match(profile,/Solicitar canto/);
