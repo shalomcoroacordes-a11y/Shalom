@@ -30,4 +30,17 @@ for(const [Component,props,baseline] of [[Song,{song:{title:"Gloria"},store:{col
 const menu=Profile({visible:true,onDismiss:dismiss,onEdit:edit});
 find(menu,n=>n.props.accessibilityLabel==="Editar perfil").props.onPress();
 assert.deepEqual(calls.slice(-2),["dismiss","edit"]);
-console.log("Bottom sheets: native animation, reduced motion, safe-area spacing and actions verified.");
+const guitar=()=>calls.push("guitar");
+const full=Song({song:{title:"Gloria",_studio:{},youtube_url:"https://www.youtube.com/watch?v=example"},store:{collections:[]},onDismiss:dismiss,onStudio:guitar});
+const practice=find(full,n=>n.props.accessibilityLabel==="Practicar con guitarra");
+assert.ok(practice,"Studio action remains available when arrangement exists");
+const favorite=find(full,n=>n.props.accessibilityLabel==="Agregar a Mis me gusta");
+assert.equal(practice.props.style({pressed:false})[0],favorite.props.style({pressed:false})[0],"Studio uses the same neutral row");
+assert.equal(practice.props.style({pressed:false})[0].minHeight,44);
+assert.equal(practice.props.accessibilityHint,"Rasgueos y acompañamiento sin conexión");
+assert.ok(!find(practice,n=>n.type==="Text"&&n.children.includes("Rasgueos y acompañamiento sin conexión")),"Main menu has no visual subtitle");
+assert.ok(find(full,n=>n.props.accessibilityLabel==="Abrir YouTube"));
+assert.equal(find(Song({song:{title:"Gloria"},store:{collections:[]},onDismiss:dismiss,onStudio:guitar}),n=>n.props.accessibilityLabel==="Practicar con guitarra"),null);
+practice.props.onPress();
+assert.deepEqual(calls.slice(-2),["dismiss","guitar"]);
+console.log("Bottom sheets: native animation, reduced motion, safe-area spacing, compact neutral rows and Studio actions verified.");
