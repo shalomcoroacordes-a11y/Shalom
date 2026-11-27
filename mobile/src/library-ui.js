@@ -1,4 +1,4 @@
-const {createStyles}=require("./design-system");
+const {createStyles,type,ICON,TOUCH}=require("./design-system");
 const palette=require("./palette");
 // Estilo visual compartido por Canciones y Artistas. Solo usa datos reales del catálogo.
 // Las canciones siempre muestran iniciales: no se inventan fotos ni duración de audio.
@@ -17,16 +17,16 @@ function LibraryHero({title,subtitle}){
   h(Text,{style:S.heroSubtitle},subtitle));
 }
 
-function LibrarySearch({value,onChangeText,placeholder,showFilters=true,onFilters}){
+function LibrarySearch({icons={},value,onChangeText,placeholder,showFilters=true,onFilters}){
  return h(View,{style:S.searchArea},
   h(View,{style:S.searchBox},
-   txt("⌕",S.searchIcon),
+   h(Image,{source:icons.search,style:{width:ICON,height:ICON,tintColor:T.sub,marginRight:9},resizeMode:"contain"}),
    h(TextInput,{value,onChangeText,style:S.searchInput,placeholder,placeholderTextColor:palette.muted,
     returnKeyType:"search",autoCorrect:false,accessibilityLabel:placeholder})),
   h(Pressable,{onPress:onFilters,style:[S.filterButton,showFilters&&S.filterActive],
    accessibilityRole:"button",accessibilityLabel:showFilters?"Ocultar filtros":"Mostrar filtros",
    accessibilityState:{expanded:showFilters}},
-   txt("☷",S.filterText)));
+   h(Image,{source:icons.filter,style:{width:ICON,height:ICON,tintColor:showFilters?T.green:T.sub},resizeMode:"contain"})));
 }
 function LibraryChipRow({options,value,onChange}){
  return h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,
@@ -37,7 +37,7 @@ function LibraryChipRow({options,value,onChange}){
    style:[S.chip,code===value&&S.chipSelected]},
    txt(name,[S.chipText,code===value&&S.chipSelectedText]))));
 }
-function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions}){
+function LibrarySongRow({icons={},song,artistName,tone,liked,onOpen,onLike,onOptions}){
  const stop=(e,callback)=>{e?.stopPropagation?.();callback()};
  return h(Pressable,{style:S.songRow,onPress:onOpen,accessibilityRole:"button",
   accessibilityLabel:"Abrir "+(song.title||"Canto")},
@@ -47,10 +47,10 @@ function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions}){
    h(Text,{style:S.songMeta,numberOfLines:1},[artistName,tone?"Tono "+tone:""].filter(Boolean).join(" · ")||"SHALOM")),
   h(Pressable,{onPress:e=>stop(e,onLike),style:S.smallTouch,
    accessibilityRole:"button",accessibilityLabel:liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta"},
-   h(Text,{style:[S.heart,liked&&S.heartActive]},liked?"♥":"♡")),
+   h(Image,{source:icons[liked?"heart-filled":"heart"],style:{width:ICON,height:ICON,tintColor:liked?T.green:T.sub},resizeMode:"contain"})),
   h(Pressable,{onPress:e=>stop(e,onOptions),style:S.menuTouch,accessibilityRole:"button",
    accessibilityLabel:"Opciones de "+(song.title||"canto")},
-   txt("⋮",S.dots)));
+   h(Image,{source:icons.dots,style:{width:ICON,height:ICON,tintColor:T.sub},resizeMode:"contain"})));
 }
 function FavoriteSongCard({song,artistName,onOpen,onLike}){
  return h(Pressable,{style:S.favorite,onPress:onOpen,accessibilityRole:"button",
@@ -86,8 +86,8 @@ const S=createStyles(StyleSheet,{
  hero:{gap:5,paddingHorizontal:1,paddingVertical:6,marginBottom:12},
  heroShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
  heroText:{position:"absolute",left:16,right:16,bottom:18},
- heroTitle:{fontSize:26,fontWeight:"900",lineHeight:33,color:T.fg},
- heroSubtitle:{color:palette.muted,fontSize:12.5,lineHeight:19,maxWidth:"100%"},
+ heroTitle:{fontSize:type.hero,fontWeight:"900",lineHeight:33,color:T.fg},
+ heroSubtitle:{color:palette.muted,fontSize:type.secondary,lineHeight:19,maxWidth:"100%"},
  searchArea:{flexDirection:"row",gap:8,alignItems:"center",marginBottom:14},
  searchBox:{flex:1,minWidth:0,flexDirection:"row",alignItems:"center",height:47,
   backgroundColor:palette.panel,borderColor:palette.border,borderWidth:1,borderRadius:14,
@@ -108,12 +108,12 @@ const S=createStyles(StyleSheet,{
  songRow:{minHeight:75,flexDirection:"row",alignItems:"center",gap:9,paddingHorizontal:8,
   paddingVertical:8,backgroundColor:palette.panel,borderRadius:14,
   borderWidth:1,borderColor:palette.border},
- songTitle:{fontSize:14.5,fontWeight:"850",color:T.fg,lineHeight:19},
- songMeta:{color:T.sub,fontSize:11,marginTop:4},
- smallTouch:{width:32,height:45,alignItems:"center",justifyContent:"center"},
+ songTitle:{fontSize:type.body,fontWeight:"850",color:T.fg,lineHeight:19},
+ songMeta:{color:T.sub,fontSize:type.secondary,marginTop:4},
+ smallTouch:{width:TOUCH,height:TOUCH,alignItems:"center",justifyContent:"center"},
  heart:{fontSize:26,color:palette.text},
  heartActive:{color:T.green},
- menuTouch:{width:23,height:43,alignItems:"center",justifyContent:"center"},
+ menuTouch:{width:TOUCH,height:TOUCH,alignItems:"center",justifyContent:"center"},
  dots:{fontSize:25,color:T.fg,lineHeight:29},
  favorite:{width:137,backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,
   borderRadius:14,overflow:"hidden"},
