@@ -516,7 +516,7 @@ function AppScreen() {
       label(icon,[S.navIcon,selected&&{color:C.green}]),
      h(Text,{style:[S.navText,selected&&{color:C.green}],numberOfLines:2,
        adjustsFontSizeToFit:true,minimumFontScale:.78,allowFontScaling:false},name));})) : null,
-  actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
+  actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,motionEnabled,bottomInset:insets.bottom,
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
    store:personal,onDismiss:()=>setActionSongId(null),
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
@@ -535,7 +535,7 @@ function AppScreen() {
      clearLocalNotice();
      if(typeof undo==="function")undo();
     }}):null,
-   h(ProfileOptionsMenu,{visible:profileMenuOpen,onDismiss:()=>setProfileMenuOpen(false),
+   h(ProfileOptionsMenu,{visible:profileMenuOpen,motionEnabled,bottomInset:insets.bottom,onDismiss:()=>setProfileMenuOpen(false),
     onEdit:()=>setProfileEditNonce(n=>n+1),
     onCollections:()=>goTab("Mis colecciones"),
     onBackup:()=>goTab("Respaldo"),

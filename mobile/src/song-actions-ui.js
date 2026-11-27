@@ -5,7 +5,7 @@ const {InitialCover}=require("./visual-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const h=React.createElement;
 const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
-function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
+function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio,motionEnabled=false,bottomInset=0}){
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -21,7 +21,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
   close();
  };
  const button=(icon,title,action,subtitle=null,disabled=false,keyValue=title)=>
-  h(Pressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:S.action,
+  h(Pressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:({pressed})=>[S.action,pressed&&S.actionPressed,(busy||disabled)&&S.disabled],
    accessibilityRole:"button",accessibilityLabel:title,accessibilityState:{disabled:busy||disabled}},
    lbl(icon,S.actionIcon),
    h(View,{style:{flex:1}},lbl(title,S.actionTitle),
@@ -63,11 +63,11 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const youtubeAvailable=links.some(item=>/youtube\.com|youtu\.be/i.test(item.url));
  const targets=kind?entriesOf(store,kind):[];
  const selectedFolder=store.collections.some(c=>c.id===folderId)?folderId:"";
- return h(Modal,{visible:true,transparent:true,animationType:"slide",onRequestClose:back,statusBarTranslucent:true,
+ return h(Modal,{visible:true,transparent:true,animationType:motionEnabled?"slide":"none",onRequestClose:back,statusBarTranslucent:true,
   accessibilityViewIsModal:true},
   h(KeyboardAvoidingView,{style:S.root,behavior:Platform.OS==="ios"?"padding":undefined},
    h(Pressable,{style:S.dismissLayer,onPress:back,accessibilityRole:"button",accessibilityLabel:"Cerrar opciones"}),
-   h(View,{style:S.sheet},
+   h(View,{style:[S.sheet,{paddingBottom:Math.max(20,bottomInset+12)}],accessibilityViewIsModal:true},
     h(View,{style:S.handle}),
     h(View,{style:S.songHead},
      h(InitialCover,{title:song.title,size:49}),
@@ -149,12 +149,13 @@ const S=StyleSheet.create({
  songHead:{flexDirection:"row",alignItems:"center",gap:11,paddingBottom:14},
  songName:{fontSize:16,fontWeight:"850",color:T.text,lineHeight:22},
  artist:{fontSize:12,color:T.muted,marginTop:4},
- xButton:{width:36,height:36,justifyContent:"center",alignItems:"center",borderRadius:20,backgroundColor:T.surface},
+ xButton:{width:44,height:44,justifyContent:"center",alignItems:"center",borderRadius:20,backgroundColor:T.surface},
  xText:{fontSize:25,color:T.text,lineHeight:30},
  rule:{height:1,backgroundColor:T.line,marginVertical:5},
  menu:{paddingTop:8,paddingBottom:16,gap:4},
  action:{flexDirection:"row",alignItems:"center",gap:13,minHeight:54,paddingVertical:8,paddingHorizontal:8,
   borderRadius:12},
+ actionPressed:{backgroundColor:T.surface},
  actionIcon:{fontSize:25,fontWeight:"550",color:T.text,width:30,textAlign:"center"},
  actionTitle:{fontSize:14,fontWeight:"750",color:T.text},
  actionSub:{fontSize:11,color:T.muted,marginTop:3},
@@ -168,7 +169,7 @@ const S=StyleSheet.create({
   fontSize:14,color:T.text,paddingHorizontal:13,marginBottom:6},
  disabled:{opacity:.42},
  folderArea:{gap:5,marginTop:6},
- folderRow:{flexDirection:"row",alignItems:"center",minHeight:39,paddingHorizontal:9,gap:10},
+ folderRow:{flexDirection:"row",alignItems:"center",minHeight:44,paddingHorizontal:9,gap:10},
  folderCircle:{fontSize:21,color:T.green},
  folderLabel:{fontSize:13,color:T.text,flex:1}
 });

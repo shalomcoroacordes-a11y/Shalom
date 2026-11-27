@@ -34,8 +34,8 @@ assert.match(fs.readFileSync("src/personal-edit-controller.js","utf8"),/key:PROF
 assert.match(app,/onPress:\(\)=>tab==="Perfil"\?openProfileMenu\(\)/,"Opciones de perfil en tres puntos");
 assert.match(home,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,
  "El destacado usa la foto local seleccionada");
-assert.match(shared,/h\(InitialCover,\{title:title\|\|"Canto",size:53\}/,
- "Las listas de cantos utilizan iniciales de color");
+assert.match(shared,/h\(InitialCover,\{title:title\|\|"Canto",size:44\}/,
+ "Las listas compactas conservan iniciales de color");
 assert.match(catalogScreens,/h\(InitialCover,\{title:rep\.title\|\|"Repertorio",size:53\}/,
  "Los repertorios usan iniciales de color");
 assert.match(catalogScreens,/h\(LibraryArtistCard,/,"Los artistas utilizan tarjetas compartidas");
