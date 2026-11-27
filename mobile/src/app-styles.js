@@ -208,6 +208,7 @@ module.exports=function createAppStyles(C,MONO){
  homeTopIcon:{height:27,width:27,tintColor:C.text},
  homeBellDot:{position:"absolute",right:6,top:7,width:9,height:9,borderRadius:5,backgroundColor:C.green},
  homeContainer:{paddingHorizontal:16,paddingTop:8,paddingBottom:12},
+ homePressed:{opacity:.76},
  homeBrand:{alignItems:"center",justifyContent:"center",paddingTop:3,paddingBottom:22,minHeight:210,overflow:"hidden"},
  homeWaves:{position:"absolute",width:"120%",height:155,top:22,left:"-10%",opacity:.55},
  homeLogo:{width:186,height:112},

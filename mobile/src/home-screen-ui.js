@@ -19,6 +19,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
   }
   const counts=personalCounts(personal,likedIds);
   const official=officialHighlights(model,new Date());
+  const pressedStyle=style=>({pressed})=>[style,pressed&&S.homePressed];
   const shortcuts=[
    ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
    ["medleys","Mis popurrís","Cantos enlazados",counts.medleys,()=>goTab("Mis colecciones",{personalKind:"popurri"})],
@@ -83,7 +84,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
    h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading)),
    h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
     h(Pressable,{key:name,onPress,accessibilityRole:"button",
-     accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
+     accessibilityLabel:name+": "+count,style:pressedStyle(S.spotifyShortcut)},
      h(View,{style:S.spotifyShortcutTop},
       h(View,{style:S.spotifyShortcutSymbolBox},
        icon==="heart"?label("♡",S.spotifyShortcutIcon):
@@ -109,7 +110,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
      ["Álbumes","Colecciones oficiales","albums","Álbumes"],
      ["Más opciones","Solicitudes y ajustes","more","Más"]
     ].map(([name,subtitle,icon,destination])=>h(Pressable,{
-     key:name,onPress:()=>goTab(destination),style:S.homeTile,accessibilityRole:"button"},
+     key:name,onPress:()=>goTab(destination),style:pressedStyle(S.homeTile),accessibilityRole:"button"},
      h(View,{style:S.homeTileIcon},
       h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
      h(View,{style:{flex:1,minWidth:0}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)))))),

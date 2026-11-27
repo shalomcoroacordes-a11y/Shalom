@@ -13,7 +13,7 @@ vm.runInNewContext(fs.readFileSync("src/home-screen-ui.js","utf8"),{module:modul
  throw Error(name);
 }});
 const HomeScreen=moduleForTest.exports;
-const props={S:{},C:{},HOME_IMAGES:{},label:text=>h("Label",{text}),Btn:"Btn",SongRow:"SongRow",homeSearch:"Gloria",homeMatches:[song],lastRead:{type:"song",id:"s"},model:{songs:[song],repertoires:[rep],medleys:[medley],highlights},profile:{bannerAction:"recientes",bannerTitle:"Ensayar"},personal:{collections:[]},likedIds:["s"],copy:{syncedAt:"saved"}};
+const props={S:{spotifyShortcut:{name:"shortcut"},homeTile:{name:"tile"},homePressed:{opacity:.76}},C:{},HOME_IMAGES:{},label:text=>h("Label",{text}),Btn:"Btn",SongRow:"SongRow",homeSearch:"Gloria",homeMatches:[song],lastRead:{type:"song",id:"s"},model:{songs:[song],repertoires:[rep],medleys:[medley],highlights},profile:{bannerAction:"recientes",bannerTitle:"Ensayar"},personal:{collections:[]},likedIds:["s"],copy:{syncedAt:"saved"}};
 for(const key of ["setHomeSearch","goTab","selectSong","selectMedley","selectRepertoire","manualSync","setSettingsOpen"])props[key]=(...args)=>calls.push([key,...args]);
 function find(node,predicate){if(!node||typeof node!=="object")return null;if(predicate(node))return node;for(const child of node.children||[]){const value=find(child,predicate);if(value)return value}return null}
 const screen=HomeScreen(props);
@@ -24,6 +24,13 @@ tap("Continuar con Gloria");assert.deepEqual(calls.at(-1),["selectSong",song]);
 tap("Destacado: Ensayar");assert.deepEqual(calls.at(-1),["selectSong",song]);
 tap("Actualizar publicaciones del coro");assert.equal(calls.at(-1)[0],"manualSync");
 tap("Mis me gusta: 1");assert.equal(calls.at(-1)[1],"Canciones");assert.equal(calls.at(-1)[2].liked,true);
+const shortcut=find(screen,n=>n.props.accessibilityLabel==="Mis me gusta: 1");
+assert.equal(shortcut.props.style({pressed:false})[0],props.S.spotifyShortcut);
+assert.equal(shortcut.props.style({pressed:true})[1],props.S.homePressed);
+assert.equal(shortcut.props.style({pressed:false})[1],false);
+const tile=find(screen,n=>typeof n.props.style==="function"&&n.props.style({pressed:true})[0]===props.S.homeTile);
+assert.ok(tile,"Discovery tiles provide touch feedback");
+assert.equal(tile.props.style({pressed:true})[1],props.S.homePressed);
 find(screen,n=>n.type==="TextInput").props.onSubmitEditing();assert.equal(calls.at(-1)[2].search,"Gloria");
 const empty=HomeScreen({...props,copy:null,model:{...props.model,highlights:[]},homeSearch:"",homeMatches:[]});
 assert.ok(find(empty,n=>n.type==="Btn"&&n.props.text==="Descargar biblioteca"));
