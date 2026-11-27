@@ -20,3 +20,6 @@ Fuente concreta: https://arquidiocesistoluca.org.mx/wp-content/uploads/2026/11/M
 
 ## Cuarta etapa: agenda Admin web
 El motor de fechas y referencias tiene una única fuente compartida por Android y navegador. Agenda mensual dentro de Repertorios: identifica borradores y publicados, abre repertorios existentes, crea un borrador fechado de misa/ensayo y conserva campos al navegar por meses. Confirmación para abandonar cambios; guardar y publicar mantienen los permisos y el flujo existentes. Sin migraciones ni horarios inventados. Pendiente web pública, calendario de eventos sin repertorio y Admin nativo.
+
+## Quinta etapa: calendario público web
+Se reutilizan el motor litúrgico, las referencias, el renderizador de cuadrícula mensual y los estilos web compartidos con Admin. Repertorios incluye una vista mensual de consulta y enlaces a los repertorios publicados; Inicio muestra el día y el próximo evento disponible. No se consulta contenido privado, no se escribe en Supabase ni se altera el lector. Si falla la conexión, se conserva el calendario base y se informa que las actividades no pudieron consultarse. Las referencias navideñas requieren elegir el formulario. El verificador de dependencias de Admin ahora comprueba rutas relativas completas y orden de carga. Cobertura anual y administración nativa pendientes.

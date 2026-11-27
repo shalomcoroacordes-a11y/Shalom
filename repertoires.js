@@ -2,6 +2,7 @@
 (()=>{
  const db=window.supabaseClient,R=window.ShalomRepertoires;
  const $=id=>document.getElementById(id);
+ const calendar=(rows,status)=>window.ShalomPublicCalendar?.mount($("calendario"),rows,status);
  const esc=R.html;
  let rows=[],current=null,songs=new Map(),loading=false;
  const typeName=kind=>kind==="misa"?"Misa":"Ensayo";
@@ -87,13 +88,14 @@
   finally{loading=false;}
  }
  async function init(){
+  calendar([],db?"loading":"error");
   if(!db){$("repStatus").textContent="Sin conexión con el servidor del cancionero.";return}
   const {data,error}=await db.from("repertoires")
    .select("id,title,kind,event_date,location,notes,items,is_published,updated_at")
    .eq("is_published",true).order("event_date",{ascending:false,nullsFirst:false});
-  if(error){$("repStatus").textContent="Error al cargar repertorios: "+error.message;return;}
-  rows=(data||[]).filter(r=>Array.isArray(r.items));
-  catalog();
+  if(error){calendar([],"error");$("repStatus").textContent="Error al cargar repertorios: "+error.message;return;}
+  rows=(data||[]).filter(r=>r.is_published===true&&Array.isArray(r.items));
+  calendar(rows,"ready");catalog();
   const id=new URLSearchParams(location.search).get("id");
   if(id){const rep=rows.find(r=>r.id===id);if(rep)await openRep(id);else $("repStatus").textContent="No se encontró ese repertorio publicado.";}
   $("repCards").addEventListener("click",e=>{

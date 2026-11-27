@@ -258,21 +258,5 @@
 
 
 /* ===== Admin repertoire calendar ===== */
-.rep-agenda{display:grid;gap:10px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--border,#354650)}
-.rep-agenda h3,.rep-agenda h4,.rep-agenda p{margin:0}
-.rep-agenda-month{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.rep-agenda-month button,.rep-agenda-grid button{color:var(--text,#f4f7f7);background:transparent;border:1px solid transparent;border-radius:8px;min-height:44px;cursor:pointer;font:inherit}
-.rep-agenda-month button{min-width:44px;font-size:1.3rem}
-.rep-agenda-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
-.rep-agenda-grid button{position:relative;padding:3px;display:grid;place-content:center;justify-items:center;gap:3px}
-.rep-agenda-grid button[aria-pressed="true"]{background:#23483c;border-color:#487762}
-.rep-agenda-grid i{display:block;width:5px;height:5px;border-radius:50%;background:#a2aab0}
-.rep-agenda-grid i.published{background:#27c98b}
-.rep-agenda-week{text-align:center;color:var(--muted,#b0c0c7);font-size:.75rem;padding:6px 0}
-.rep-agenda-day{display:grid;gap:5px;padding:12px;border-radius:10px;background:var(--card-soft,#23272e)}
-.rep-agenda-day small,.rep-agenda-event small{color:var(--muted,#b0c0c7);line-height:1.4}
-.rep-agenda-day a{font-size:.85rem;color:var(--gold,#27c98b)}
-.rep-agenda-event{display:grid;gap:3px;text-align:left;padding:9px 0;min-height:44px;background:transparent;color:var(--text,#f4f7f7);border:0;border-bottom:1px solid var(--border,#354650);cursor:pointer;font:inherit}
-.rep-agenda-actions{display:flex;gap:8px;flex-wrap:wrap}
-.rep-agenda button:disabled{opacity:.5;cursor:not-allowed}
-.rep-agenda button:focus-visible,.rep-agenda a:focus-visible{outline:2px solid var(--gold,#27c98b);outline-offset:2px}
+/* Shared calendar presentation lives in calendar-web.css; Admin owns only its placement. */
+.rep-admin-layout .rep-agenda{margin-bottom:24px}

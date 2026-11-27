@@ -66,3 +66,14 @@ assert.equal(A.shiftMonth("2026-12",1),"2027-01");assert.match(A.render(rows,"20
 assert.match(repertoireAdmin,/if\(!draft\|\|!canDiscard\(\)\)return/);assert.match(repertoireAdmin,/capture\(\);state.calendarDay/);
 assert.ok(adminPage.indexOf("mobile/src/liturgical-dates.js")<adminPage.indexOf("admin-calendar.js"));assert.ok(adminPage.indexOf("admin-calendar.js")<adminPage.indexOf("admin-repertoires.js"));
 console.log("Admin calendar: shared dates, source references, safe drafts, published and private events verified.");
+
+const W=require("../calendar-web-core.js"),P=require("../public-calendar.js");
+assert.deepEqual(W.publishedEvents(rows).map(r=>r.id),["b"]);
+assert.equal(W.nextEvent(rows,"2026-11-29").id,"b");assert.equal(W.nextEvent(rows,"2026-11-30"),null);
+const publicAgenda=P.render(rows,"2026-11-29");assert.match(publicAgenda,/I Domingo de Adviento/);assert.match(publicAgenda,/repertorios.html\?id=b/);assert.doesNotMatch(publicAgenda,/&lt;Misa&gt;|Borrador|data-edit|data-calendar-new/);
+assert.match(P.render([],"2026-12-25"),/data-calendar-variant="noche"/);assert.doesNotMatch(P.render([],"2026-12-25"),/Lc 2, 1-14/);assert.match(P.render([],"2026-12-25","noche"),/Lc 2, 1-14/);
+assert.match(P.render([],"2026-11-29",null,"error"),/No se pudieron consultar las actividades/);
+assert.match(P.homeSummary(rows,"2026-11-29"),/repertorios.html\?id=b/);assert.doesNotMatch(P.homeSummary(rows,"2026-11-29"),/&lt;Misa&gt;/);
+assert.match(page,/id="calendario"/);assert.match(fs.readFileSync("index.html","utf8"),/id="homeCalendarSummary"/);
+assert.ok(adminPage.indexOf("calendar-web-core.js")<adminPage.indexOf("admin-calendar.js"));
+console.log("Public calendar: private draft isolation, exact dates, Christmas options and home links verified.");

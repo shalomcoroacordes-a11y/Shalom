@@ -35,7 +35,10 @@ def main():
     for name in local:
         if local.count(name) > 1:
             errors.append(f"Duplicate admin script: {name}")
-        if not (ROOT / name).is_file():
+        src = entries[names.index(name)][0]
+        relative = urlsplit(src).path
+        target = (ROOT / relative).resolve()
+        if not target.is_relative_to(ROOT) or not target.is_file():
             errors.append(f"Missing admin script: {name}")
     for name in local:
         entry = entries[names.index(name)]
@@ -45,7 +48,7 @@ def main():
     chains = [
         ("supabase-js", "Supabase.js", "admin-auth-controller.js"),
         ("song-chords.js", "medley-core.js", "admin-medleys.js"),
-        ("repertoires-core.js", "admin-repertoires.js"),
+        ("repertoires-core.js", "liturgical-dates.js", "liturgical-readings.js", "calendar-web-core.js", "admin-calendar.js", "admin-repertoires.js"),
         ("admin-backup.js", "admin-backup-import.js"),
         ("admin-pro.js", "admin-category-browser-v2.js", "admin-song-category-picker.js"),
     ]
