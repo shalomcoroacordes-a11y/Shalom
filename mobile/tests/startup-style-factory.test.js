@@ -24,6 +24,10 @@ const colors={bg:"#111",panel:"#222",sub:"#333",border:"#444",text:"#fff",
 for(const mono of ["monospace","Menlo"]){
  const styles=createStyles(colors,mono);
  assert.ok(Object.keys(styles).length>=100);
+ assert.equal(styles.homeContainer.paddingHorizontal,16,"Home content has consistent side margins");
+ assert.ok(styles.shalomTodayRefresh.height>=44,"Refresh has a usable touch target");
+ assert.equal(styles.homeRecentCard.backgroundColor,"transparent","Resume is a clean row");
+ assert.ok(styles.navPressed.opacity<1,"Navigation has native press feedback");
  for(const key of ["songScoreText","chordText","lyricText","verse"]){
   assert.equal(styles[key].fontFamily,mono,key+" must get injected mono font");
  }

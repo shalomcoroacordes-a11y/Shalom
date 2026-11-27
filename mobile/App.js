@@ -507,7 +507,7 @@ function AppScreen() {
     const selected=isSelectedTab(tab,name)&&!detail;
     const homeIcon=HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
-     onPress:()=>goTab(routeForTab(name)),style:[S.navItem,selected&&S.navSelected]},
+     onPress:()=>goTab(routeForTab(name)),style:({pressed})=>[S.navItem,selected&&S.navSelected,pressed&&S.navPressed]},
      name==="Perfil"?h(View,{style:S.profileNavIcon},
        h(View,{style:[S.profileNavHead,{borderColor:selected?C.green:C.text}]}),
        h(View,{style:[S.profileNavBody,{borderColor:selected?C.green:C.text}]})):
