@@ -11,3 +11,6 @@ Pestañas Para ti, Liturgia, Ensayar, Mis cantos, saludo contextual, accesos en 
 
 ## Pendiente
 Validación visual y APK, fuente autorizada de lecturas y calendario propio, edición de eventos sin repertorio, configuración personal, web y modo músico dedicado. No hay cambio de esquema ni despliegue a producción.
+
+## Segunda etapa: referencias litúrgicas fechadas
+Fuente concreta: https://arquidiocesistoluca.org.mx/wp-content/uploads/2026/11/Misal-noviembre-2026.pdf (p.160 y 166). Referencias de 29 y 30 de noviembre de 2026, sin reproducir traducciones. Se distingue color de la celebración del color del tiempo. Cualquier otra fecha sin registro muestra ausencia de cobertura. Ascensión y Sagrado Corazón coinciden en las referencias contrastadas para 2027. Corpus Christi y traslados del santoral se mantienen sin calcular hasta resolver discrepancias de fuentes. Próxima etapa: catálogo de referencias verificadas con fecha y procedencia, revisión diocesana y flujo editorial, no consumir endpoints sin documentación ni asumir derechos de redistribución.

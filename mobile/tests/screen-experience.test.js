@@ -34,7 +34,7 @@ assert.match(profile,/Tus canciones favoritas/,"Favorites stay visible");
 assert.match(profile,/Acerca de y donaciones/,"Existing information links are easy to find");
 assert.match(profile,/Editar perfil/);
 assert.match(profile,/Mis me gusta/);
-assert.match(home,/label\("Bienvenido a SHALOM",S.spotifyWelcomeTitle\)/);
+assert.match(home,/label\(context.greeting,S.spotifyWelcomeTitle\)/);
 assert.match(home,/label\("Hoy en SHALOM",S.shalomTodayHeading\)/);
 assert.match(home,/label\("Continuar donde te quedaste",S.spotifyHeading\)/);
 assert.match(profile,/Configuración/);

@@ -34,14 +34,14 @@ function liturgicalDay(date){
  [y+"-01-01","Santa María, Madre de Dios"],[epiphany(y),"Epifanía del Señor"],[baptism(y),"Bautismo del Señor"],
  [ash,"Miércoles de Ceniza"],[shift(pascha,-7),"Domingo de Ramos"],[holyThursday,"Jueves Santo"],
  [shift(pascha,-2),"Viernes Santo"],[shift(pascha,-1),"Sábado Santo"],[pascha,"Domingo de Pascua"],
- [pentecost,"Pentecostés"],[shift(pentecost,7),"Santísima Trinidad"],[shift(adv,-7),"Jesucristo, Rey del Universo"],[y+"-12-25","Natividad del Señor"]
+ [shift(pascha,42),"Ascensión del Señor"],[pentecost,"Pentecostés"],[shift(pentecost,7),"Santísima Trinidad"],[shift(pentecost,19),"Sagrado Corazón de Jesús"],[shift(adv,-7),"Jesucristo, Rey del Universo"],[y+"-12-25","Natividad del Señor"]
  ];
  title=principal.find(row=>row[0]===date)?.[1]||null;
  if(!title&&weekday(date)===0&&season==="advent")title=ROMAN[(parseDay(date)-parseDay(adv))/(7*DAY)]+" Domingo de Adviento";
  if(!title&&weekday(date)===0&&season==="lent")title=ROMAN[Math.floor((parseDay(date)-parseDay(ash))/(7*DAY))]+" Domingo de Cuaresma";
  const litYear=date>=adv?y+1:y;
- const cycle=["C","A","B"][litYear%3];
- return {date,season,seasonName:SEASONS[season][0],seasonColor:SEASONS[season][1],title,cycle,scope:"Tiempos litúrgicos y fechas principales; no es un ordo diario."};
+ const cycle=["C","A","B"][litYear%3],weekdayCycle=litYear%2?"I":"II";
+ return {date,season,seasonName:SEASONS[season][0],seasonColor:SEASONS[season][1],title,cycle,weekdayCycle,scope:"Tiempos litúrgicos y fechas principales; no es un ordo diario."};
 }
 function monthDays(month){
  const first=month+"-01",t=parseDay(first);if(t===null)return [];

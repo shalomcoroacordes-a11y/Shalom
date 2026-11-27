@@ -6,8 +6,9 @@ const {personalCounts,officialHighlights,recentCatalog}=require("./home-spotligh
 const {InitialCover}=require("./visual-ui");
 const {CoverArt}=require("./personal-cover-ui");
 const {homeContext}=require("./liturgical-calendar");
+const {repertoireType}=require("./repertoire-ui");
 const CalendarPanel=require("./calendar-panel-ui");
-function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,openMusician,openDetail,manualSync,busy,copy,setSettingsOpen,progress,error}){
+function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,openMusician,openDetail,openWeb,manualSync,busy,copy,setSettingsOpen,progress,error}){
   const [tab,setTab]=React.useState("Para ti");
   const context=homeContext(model);
   const term=normalize(homeSearch.trim());
@@ -23,7 +24,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
    }
   }
   const counts=personalCounts(personal,likedIds);
-  const official=officialHighlights(model,new Date());
+  const official=officialHighlights(context.current?{...model,repertoires:[context.current]}:model,new Date());
   const recentSongs=recentCatalog(model.songs),recentArtists=recentCatalog(model.artists);
   const pressedStyle=style=>({pressed})=>[style,pressed&&S.homePressed];
   const shortcuts=[
@@ -37,7 +38,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
   const accessGrid=h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name+": "+count,style:({pressed})=>[S.spotifyShortcut,pressed&&S.smartShortcutPressed]},h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage,accessible:false}),label(name,S.spotifyShortcutName),count>0?label(count,S.spotifyShortcutCountText):null)));
   const eventRow=(event)=>h(Pressable,{key:String(event.id),style:pressedStyle(S.homeRecentCard),onPress:()=>selectRepertoire(event),accessibilityRole:"button",accessibilityLabel:"Abrir "+event.title},h(View,{style:{flex:1}},h(Text,{style:S.homeRecentTitle},event.title),h(Text,{style:S.homeRecentSubtitle},event.event_date+" · "+event.items.length+" cantos")),label("›",S.homeRecentArrow));
   if(tab!=="Para ti")return h(View,{style:S.homeContainer},tabBar,
-   tab==="Liturgia"?h(CalendarPanel,{context,onOpen:selectRepertoire}):tab==="Ensayar"?h(View,{style:S.spotifyBlock},label("Próximos ensayos",S.spotifyHeading),...context.events.filter(e=>e.event_date>=context.today&&/^(ensayo|rehearsal|practica|practice)$/i.test(String(e.kind||""))).map(eventRow),h(Btn,{text:"Explorar repertorios",secondary:true,onPress:()=>goTab("Repertorios")}),recent?h(Btn,{text:"Volver al último canto",secondary:true,onPress:()=>selectSong(recent)}):null):h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading),accessGrid,h(Btn,{text:"Abrir biblioteca de cantos",secondary:true,onPress:()=>goTab("Canciones",{openLibrary:true})})));
+   tab==="Liturgia"?h(CalendarPanel,{context,onOpen:selectRepertoire,openWeb}):tab==="Ensayar"?h(View,{style:S.spotifyBlock},label("Próximos ensayos",S.spotifyHeading),...context.events.filter(e=>e.event_date>=context.today&&repertoireType(e)==="ensayo").map(eventRow),h(Btn,{text:"Explorar repertorios",secondary:true,onPress:()=>goTab("Repertorios")}),recent?h(Btn,{text:"Volver al último canto",secondary:true,onPress:()=>selectSong(recent)}):null):h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading),accessGrid,h(Btn,{text:"Abrir biblioteca de cantos",secondary:true,onPress:()=>goTab("Canciones",{openLibrary:true})})));
   return h(View,{style:S.homeContainer},
    h(View,{style:S.spotifyWelcome},
     label(context.greeting,S.spotifyWelcomeTitle),
@@ -68,7 +69,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
        [item.subtitle,item.count+" "+(item.count===1?"canto":"cantos")].filter(Boolean).join(" · ")),
       Number.isInteger(item.daysUntil)?h(Text,{style:S.todayCountdown},item.daysUntil===0?"Hoy":item.daysUntil===1?"Mañana":"En "+item.daysUntil+" días"):null),
      label("›",S.shalomTodayArrow))),
-    context.current&&context.current.kind==="misa"&&openMusician?h(Pressable,{style:S.smartPrimary,onPress:()=>openMusician(context.current),accessibilityRole:"button",accessibilityLabel:"Iniciar modo músico"},h(Text,{style:S.smartPrimaryText},"Iniciar modo músico")):null,
+    context.current&&repertoireType(context.current)==="misa"&&openMusician?h(Pressable,{style:S.smartPrimary,onPress:()=>openMusician(context.current),accessibilityRole:"button",accessibilityLabel:"Iniciar modo músico"},h(Text,{style:S.smartPrimaryText},"Iniciar modo músico")):null,
     !official.length?h(View,{style:S.shalomTodayEmpty},
      label(copy?.syncedAt?
       "Aquí aparecerán las misas, repertorios y popurrís que publique el coro.":

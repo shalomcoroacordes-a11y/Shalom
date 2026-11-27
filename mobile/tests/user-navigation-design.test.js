@@ -39,7 +39,7 @@ assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);
 const today=home.indexOf("style:S.shalomToday}");
 const search=home.indexOf("style:S.homeSearchWrap}");
 const recent=home.indexOf('label("Continuar donde te quedaste",S.spotifyHeading)');
-const access=home.indexOf('label("Tus accesos",S.spotifyHeading)');
+const access=home.lastIndexOf('label("Tus accesos",S.spotifyHeading)');
 const banner=home.indexOf("style:S.spotifyBannerMini,");
 assert.ok(today>=0&&search>today&&recent>search&&access>recent&&banner>access,
  "Prioritize liturgy, search and recent reading before the personalized banner");

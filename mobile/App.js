@@ -280,7 +280,7 @@ function AppScreen() {
  function renderSettings(){
   return h(SettingsScreen,{S,C,title,label,Card,Btn,copy,model,wifiOnly,changeWifi,busy,manualSync,progress,error,goTab,openWeb});
  }
- function renderHome(){return h(HomeScreen,{S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,openMusician:Platform.OS==="android"?rep=>{selectRepertoire(rep);setImmersive(true)}:null,openDetail,manualSync,busy,copy,setSettingsOpen,progress,error});}
+ function renderHome(){return h(HomeScreen,{S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,openMusician:Platform.OS==="android"?rep=>{selectRepertoire(rep);setImmersive(true)}:null,openDetail,openWeb,manualSync,busy,copy,setSettingsOpen,progress,error});}
  function renderSongs(){return h(SongsScreen,{S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId});}
  function renderArtists(){return h(ArtistsScreen,{S,label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail});}
  function renderCategories(){return h(CategoriesScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,folderId,folderType,query,setFolderType,setFolderId,setQuery,sectionSearchOpen,selectSong});}

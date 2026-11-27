@@ -25,11 +25,11 @@ function unknownIdentifiers(source){
  return problems;
 }
 const home=fs.readFileSync("src/home-screen-ui.js","utf8");
-assert.match(home,/function HomeScreen\(\{[^}]+\}\)\{\s*const term=normalize\(homeSearch\.trim\(\)\)/);
+assert.match(home,/const term=normalize\(homeSearch\.trim\(\)\)/);
 const broken=home.replace("const term=normalize(homeSearch.trim());\n  const found=homeMatches;","const found=homeMatches;");
 assert.ok(unknownIdentifiers(broken).some(x=>x.startsWith("term@")),
  "Scope checker must catch the real missing Home variable");
-for(const file of ["App.js","src/app-styles.js","src/app-components.js","src/library-selectors.js","src/studio-queue.js","src/song-reader-actions.js","src/navigation-core.js","src/settings-screen-ui.js","src/exploration-screens-ui.js","src/catalog-screens-ui.js","src/home-screen-ui.js","src/music-readers-ui.js","src/personal-edit-controller.js","src/personal-backup-controller.js","src/sync-controller.js","src/preference-core.js","src/database.js","src/file-storage.js"]){
+for(const file of ["App.js","src/app-styles.js","src/app-components.js","src/library-selectors.js","src/studio-queue.js","src/song-reader-actions.js","src/navigation-core.js","src/settings-screen-ui.js","src/exploration-screens-ui.js","src/catalog-screens-ui.js","src/home-screen-ui.js","src/liturgical-calendar.js","src/calendar-panel-ui.js","src/liturgical-readings.js","src/music-readers-ui.js","src/personal-edit-controller.js","src/personal-backup-controller.js","src/sync-controller.js","src/preference-core.js","src/database.js","src/file-storage.js"]){
  const missing=unknownIdentifiers(fs.readFileSync(file,"utf8"));
  assert.deepEqual(missing,[],"Unbound JS variables in "+file+": "+missing.join(", "));
 }

@@ -1,16 +1,17 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
 const moduleForTest={exports:{}};
 const h=(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity).filter(Boolean)});
-const calls=[];
+const calls=[];let activeTab="Para ti";let nextTab=null;
 const song={id:"s",title:"Gloria",updated_at:"2026-11-26"},rep={id:"r",title:"Misa"},medley={id:"m",title:"Alabanza"};
 const highlights=[{type:"repertoire",id:"r",title:"Misa",label:"Misa",count:1},{type:"medley",id:"m",title:"Alabanza",label:"Popurrí",count:2}];
 vm.runInNewContext(fs.readFileSync("src/home-screen-ui.js","utf8"),{module:moduleForTest,require(name){
- if(name==="react")return{createElement:h,useState:v=>[v,()=>{}]};
+ if(name==="react")return{createElement:h,useState:v=>[activeTab||v,value=>{nextTab=value}]};
  if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable","Image"].map(n=>[n,n]));
  if(name==="./catalog")return{normalize:s=>String(s).trim().toLowerCase(),names:()=>"Coro"};
  if(name==="./home-spotlight")return{personalCounts:()=>({likes:1,medleys:1,masses:1,creations:3}),officialHighlights:model=>model.highlights,recentCatalog:items=>(items||[]).filter(x=>x.updated_at)};
  if(name==="./liturgical-calendar")return{homeContext:()=>({today:"2026-11-26",greeting:"Buenas noches",subtitle:"Que cada canto sea una oración.",events:[],current:null,next:null,day:null})};
  if(name==="./calendar-panel-ui")return"CalendarPanel";
+ if(name==="./repertoire-ui")return{repertoireType:e=>e.kind};
  if(name==="./visual-ui")return{InitialCover:"InitialCover"};
  if(name==="./personal-cover-ui")return{CoverArt:"CoverArt"};
  throw Error(name);
@@ -21,6 +22,7 @@ for(const key of ["setHomeSearch","goTab","selectSong","selectMedley","selectRep
 function find(node,predicate){if(!node||typeof node!=="object")return null;if(predicate(node))return node;for(const child of node.children||[]){const value=find(child,predicate);if(value)return value}return null}
 const screen=HomeScreen(props);
 function tap(label){const node=find(screen,n=>n.props.accessibilityLabel===label);assert.ok(node,label);node.props.onPress()}
+tap("Liturgia");assert.equal(nextTab,"Liturgia");activeTab="Liturgia";const liturgy=HomeScreen(props);assert.ok(find(liturgy,n=>n.type==="CalendarPanel"));activeTab="Ensayar";assert.ok(find(HomeScreen(props),n=>n.type==="Btn"&&n.props.text==="Explorar repertorios"));activeTab="Mis cantos";assert.ok(find(HomeScreen(props),n=>n.props.accessibilityLabel==="Mis me gusta: 1"));activeTab="Para ti";
 tap("Abrir Misa: Misa");assert.deepEqual(calls.at(-1),["selectRepertoire",rep]);
 tap("Abrir Popurrí: Alabanza");assert.deepEqual(calls.at(-1),["selectMedley",medley]);
 tap("Continuar con Gloria");assert.deepEqual(calls.at(-1),["selectSong",song]);
