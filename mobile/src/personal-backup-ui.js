@@ -1,9 +1,11 @@
+const {createStyles}=require("./design-system");
+const palette=require("./palette");
 const React=require("react");
 const {useState}=React;
 const {View,Text,Pressable,Alert,StyleSheet}=require("react-native");
 const {summaryOf}=require("./personal-backup-core");
 const h=React.createElement;
-const G="#27c98b",T="#f4f7f7",M="#b7c6cb";
+const G=palette.green,T=palette.text,M=palette.muted;
 const text=(value,style)=>h(Text,{style},String(value||""));
 function PersonalBackupScreen({onExport,onPick,onRestore,onBack}){
  const [selection,setSelection]=useState(null);
@@ -72,11 +74,11 @@ function PersonalBackupScreen({onExport,onPick,onRestore,onBack}){
    text("Los cantos oficiales no se incluyen; en otro teléfono se descargan desde la biblioteca de SHALOM.",S.privacyText)),
   button("← Regresar",onBack,true));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  page:{gap:13,paddingBottom:22},
  title:{fontSize:23,fontWeight:"900",color:T},
  subtitle:{fontSize:12,color:M,lineHeight:18,marginBottom:2},
- card:{gap:12,padding:14,backgroundColor:"#192832",borderRadius:16,borderWidth:1,borderColor:"#344b4f"},
+ card:{gap:12,padding:14,backgroundColor:palette.panel,borderRadius:16,borderWidth:1,borderColor:palette.border},
  line:{flexDirection:"row",alignItems:"center",gap:11},
  icon:{fontSize:25,color:G,fontWeight:"900"},
  heading:{fontSize:17,color:T,fontWeight:"900"},
@@ -84,15 +86,15 @@ const S=StyleSheet.create({
  hint:{fontSize:11,color:M,lineHeight:17},
  button:{borderRadius:11,paddingHorizontal:16,paddingVertical:12,minHeight:44,
   backgroundColor:G,alignItems:"center",justifyContent:"center"},
- buttonText:{fontSize:13,color:"#062619",fontWeight:"850"},
- buttonSecondary:{backgroundColor:"#22373c",borderWidth:1,borderColor:"#417060"},
+ buttonText:{fontSize:13,color:palette.bg,fontWeight:"850"},
+ buttonSecondary:{backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border},
  buttonSecondaryText:{color:T},
- preview:{gap:9,padding:12,borderRadius:12,backgroundColor:"#132b25"},
+ preview:{gap:9,padding:12,borderRadius:12,backgroundColor:palette.panel},
  previewTitle:{fontSize:14,fontWeight:"800",color:G},
  summaryRow:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:10},
  summaryLabel:{fontSize:12,color:M},
  summaryNum:{fontSize:13,fontWeight:"850",color:T},
- privacy:{borderWidth:1,borderColor:"#294a42",borderRadius:12,padding:13,gap:7},
+ privacy:{borderWidth:1,borderColor:palette.border,borderRadius:12,padding:13,gap:7},
  privacyText:{fontSize:11,color:M,lineHeight:17}
 });
 module.exports=PersonalBackupScreen;

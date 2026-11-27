@@ -37,7 +37,7 @@ const styles=fs.readFileSync("src/personal-styles.js","utf8");
 assert.match(screen,/require\("\.\/personal-store"\)/);
 assert.match(screen,/require\("\.\/personal-styles"\)\(theme\)/);
 assert.doesNotMatch(screen,/StyleSheet\.create\(/);
-assert.match(styles,/return StyleSheet\.create\(/);
+assert.match(styles,/return createStyles\(StyleSheet,/);
 assert.match(styles,/collectionGrid:/);
 assert.match(styles,/readerPart:/);
 const activeImport=screen.slice(screen.indexOf("function completeImport(){"),screen.indexOf("function receiveView(){"));

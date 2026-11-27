@@ -1,3 +1,4 @@
+const palette=require("./palette");
 const React=require("react");
 const {useMemo,useState,useEffect}=React;
 const {View,Text,StyleSheet}=require("react-native");
@@ -76,8 +77,8 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,fi
 }
 const S=StyleSheet.create({
  // La WebView se funde con el fondo del lector: la letra ya no va dentro de una caja.
- container:{width:"100%",backgroundColor:"#0e1219",flex:0},
- web:{width:"100%",flex:0,backgroundColor:"#0e1219"},
- fallback:{fontSize:11,color:"#b1d9c9",paddingVertical:6}
+ container:{width:"100%",backgroundColor:palette.bg,flex:0},
+ web:{width:"100%",flex:0,backgroundColor:palette.bg},
+ fallback:{fontSize:11,color:palette.muted,paddingVertical:6}
 });
 module.exports=AlignedScore;
