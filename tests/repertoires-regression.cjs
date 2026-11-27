@@ -56,3 +56,13 @@ for(const action of ["data-move","data-remove"]){
 const adminPage=fs.readFileSync("admin.html","utf8");
 assert.match(adminPage,/admin-repertoires.js/);
 console.log("SHALOM: repertorios de misa y ensayo comprobados.");
+const A=require("../admin-calendar.js");
+const rows=[{id:"a",title:"<Misa>",event_date:"2026-11-29",kind:"misa",items:[],is_published:false},{id:"b",title:"Ensayo",event_date:"2026-11-29",kind:"ensayo",items:[{}],is_published:true},{id:"c",title:"Otro",event_date:"2026-11-30"}];
+assert.equal(A.eventsOn(rows,"2026-11-29").length,2);
+const agenda=A.render(rows,"2026-11-29");assert.match(agenda,/I Domingo de Adviento/);assert.match(agenda,/Mc 13, 33-37/);assert.match(agenda,/&lt;Misa&gt;/);assert.doesNotMatch(agenda,/<Misa>/);assert.match(agenda,/Borrador/);assert.match(agenda,/Publicado/);assert.doesNotMatch(agenda,/data-edit="c"/);
+assert.deepEqual(A.newDraft("misa","2026-11-29"),{...R.blank("misa"),event_date:"2026-11-29"});
+assert.equal(A.newDraft("ensayo","2026-02-30"),null);assert.equal(A.newDraft("bad","2026-11-29"),null);
+assert.equal(A.shiftMonth("2026-12",1),"2027-01");assert.match(A.render(rows,"2026-11-29",true),/data-calendar-new="misa" disabled/);
+assert.match(repertoireAdmin,/if\(!draft\|\|!canDiscard\(\)\)return/);assert.match(repertoireAdmin,/capture\(\);state.calendarDay/);
+assert.ok(adminPage.indexOf("mobile/src/liturgical-dates.js")<adminPage.indexOf("admin-calendar.js"));assert.ok(adminPage.indexOf("admin-calendar.js")<adminPage.indexOf("admin-repertoires.js"));
+console.log("Admin calendar: shared dates, source references, safe drafts, published and private events verified.");

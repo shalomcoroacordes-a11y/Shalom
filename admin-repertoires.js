@@ -1,7 +1,7 @@
 /* Panel de repertorios SHALOM: sólo se carga después del acceso admin existente. */
 (()=>{
- const db=window.supabaseClient,R=window.ShalomRepertoires;
- const state={root:null,songs:[],rows:[],active:R.blank(),search:"",message:"",loading:false,saving:false,deleting:false,ready:false,baseline:null};
+ const db=window.supabaseClient,R=window.ShalomRepertoires,A=window.ShalomAdminCalendar;
+ const state={root:null,songs:[],rows:[],active:R.blank(),search:"",message:"",loading:false,saving:false,deleting:false,ready:false,baseline:null,calendarDay:A.today()};
  const $=selector=>state.root?.querySelector(selector);
  const esc=R.html;
  const songBy=id=>state.songs.find(s=>String(s.id)===String(id));
@@ -9,7 +9,7 @@
  function capture(){
   if(!state.root)return;
   const d=state.active;
-  d.title=$("#repTitle")?.value||d.title;
+  d.title=$("#repTitle")?.value??d.title;
   d.kind=$("#repKind")?.value||d.kind;
   d.event_date=$("#repDate")?.value||null;
   d.location=$("#repLocation")?.value||"";
@@ -71,7 +71,7 @@
      (d.id?'<button type="button" class="song-btn secondary" id="repDelete" '+(state.saving||state.deleting?"disabled":"")+'>Eliminar</button>':"")+'</div>'+
     '<p id="repertoireNotice" class="admin-note" aria-live="polite">'+esc(state.message)+'</p>'+
    '</form></div>'+
-   '<aside class="admin-preview-card"><h3>Repertorios guardados</h3>'+
+   '<aside class="admin-preview-card">'+A.render(state.rows,state.calendarDay,busy())+'<h3>Repertorios guardados</h3>'+
      (saved||'<p class="admin-note">Aún no hay repertorios. Crea uno y guárdalo.</p>')+
      '<p class="admin-note">Los cantos originales nunca se modifican. Publica sólo cuando hayas terminado.</p></aside>'+
    '</div></section>';
@@ -89,6 +89,12 @@
  }
  function busy(){return state.saving||state.deleting;}
  function bind(){
+  state.root.querySelectorAll("[data-calendar-day]").forEach(btn=>btn.addEventListener("click",()=>{if(busy())return;capture();state.calendarDay=btn.dataset.calendarDay;render();}));
+  state.root.querySelectorAll("[data-calendar-nav]").forEach(btn=>btn.addEventListener("click",()=>{if(busy())return;capture();state.calendarDay=A.shiftMonth(state.calendarDay.slice(0,7),Number(btn.dataset.calendarNav))+"-01";render();}));
+  state.root.querySelectorAll("[data-calendar-new]").forEach(btn=>btn.addEventListener("click",()=>{
+   if(busy())return;const draft=A.newDraft(btn.dataset.calendarNew,state.calendarDay);if(!draft||!canDiscard())return;
+   state.active=draft;state.baseline=snapshot(draft);state.message="";state.search="";render();$("#repTitle")?.focus();
+  }));
   $("#repNew")?.addEventListener("click",()=>{if(state.saving||state.deleting||!canDiscard())return;state.active=R.blank();state.baseline=snapshot(state.active);state.message="";state.search="";render();});
   $("#repKind")?.addEventListener("change",e=>{
    if(busy())return;
@@ -122,8 +128,9 @@
   }));
   state.root.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
    if(state.saving||state.deleting)return;
-   const rep=state.rows.find(r=>r.id===btn.dataset.edit);if(!rep||!canDiscard())return;
+   const rep=state.rows.find(r=>String(r.id)===btn.dataset.edit);if(!rep||!canDiscard())return;
    state.active={...rep,items:(rep.items||[]).map(item=>({...item}))};
+   if(rep.event_date)state.calendarDay=rep.event_date;
    state.baseline=snapshot(state.active);
    state.message="";state.search="";render();
   }));
@@ -140,6 +147,7 @@
     saved=true;
     state.active={...data,items:(data.items||[]).map(item=>({...item}))};
     state.baseline=snapshot(state.active);
+    if(data.event_date)state.calendarDay=data.event_date;
     await reload();state.message="Repertorio guardado. "+(data.is_published?"Visible para los integrantes.":"Sólo visible para administradores.");
    }catch(err){
     state.message=saved

@@ -4,7 +4,7 @@ const fs=require("node:fs");
 const parser=require("@babel/parser");
 const traverse=require("@babel/traverse").default;
 const globals=new Set([
- "require","module","exports","console","process","global","globalThis",
+ "require","module","exports","console","process","global","globalThis","window",
  "__DEV__","fetch","setTimeout","clearTimeout","setInterval","clearInterval",
  "Date","Math","JSON","Number","String","Boolean","Object","Array","Set","Map",
  "WeakMap","WeakSet","Promise","Error","TypeError","ReferenceError","RangeError",
@@ -29,7 +29,7 @@ assert.match(home,/const term=normalize\(homeSearch\.trim\(\)\)/);
 const broken=home.replace("const term=normalize(homeSearch.trim());\n  const found=homeMatches;","const found=homeMatches;");
 assert.ok(unknownIdentifiers(broken).some(x=>x.startsWith("term@")),
  "Scope checker must catch the real missing Home variable");
-for(const file of ["App.js","src/app-styles.js","src/app-components.js","src/library-selectors.js","src/studio-queue.js","src/song-reader-actions.js","src/navigation-core.js","src/settings-screen-ui.js","src/exploration-screens-ui.js","src/catalog-screens-ui.js","src/home-screen-ui.js","src/liturgical-calendar.js","src/calendar-panel-ui.js","src/liturgical-readings.js","src/liturgical-suggestions.js","src/music-readers-ui.js","src/personal-edit-controller.js","src/personal-backup-controller.js","src/sync-controller.js","src/preference-core.js","src/database.js","src/file-storage.js"]){
+for(const file of ["App.js","src/app-styles.js","src/app-components.js","src/library-selectors.js","src/studio-queue.js","src/song-reader-actions.js","src/navigation-core.js","src/settings-screen-ui.js","src/exploration-screens-ui.js","src/catalog-screens-ui.js","src/home-screen-ui.js","src/liturgical-calendar.js","src/liturgical-dates.js","src/calendar-panel-ui.js","src/liturgical-readings.js","src/liturgical-suggestions.js","src/music-readers-ui.js","src/personal-edit-controller.js","src/personal-backup-controller.js","src/sync-controller.js","src/preference-core.js","src/database.js","src/file-storage.js"]){
  const missing=unknownIdentifiers(fs.readFileSync(file,"utf8"));
  assert.deepEqual(missing,[],"Unbound JS variables in "+file+": "+missing.join(", "));
 }

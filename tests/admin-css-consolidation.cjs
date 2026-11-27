@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const html = fs.readFileSync("admin.html", "utf8");
 const css = fs.readFileSync("admin-pro.css", "utf8");
 const sections = ["admin-search-fix.css", "admin-catalog-check.css", "admin-home-section.css", "admin-mobile-polish.css"];
-assert.match(html, /href="admin-pro\.css\?v=5"/);
+assert.match(html, /href="admin-pro\.css\?v=6"/);
 assert.equal((html.match(/href="admin-pro\.css/g) || []).length, 1);
 let previous = -1;
 for (const name of sections) {

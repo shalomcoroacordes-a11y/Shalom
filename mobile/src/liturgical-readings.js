@@ -1,3 +1,5 @@
+// Shared browser/CommonJS module. Single source of truth for web and Android.
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.ShalomLiturgicalReadings=api;})(typeof window!=="undefined"?window:globalThis,function(){
 // Dated lectionary references only. No copied liturgical translation.
 // Sources are recorded per date: Toluca monthly missal, FDLC seasonal guide, Mexican Guadalupe missal.
 // Never substitute another year's or date's reading, even when offline.
@@ -194,4 +196,7 @@ function readingsForDay(date,variant){
  return row?{...row}:null;
 }
 function readingOptions(date){return VARIANTS.filter(x=>x.date===date).map(({id,variant})=>({id,label:variant}));}
-module.exports={readingsForDay,readingOptions};
+
+
+return Object.freeze({readingsForDay,readingOptions});
+});
