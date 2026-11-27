@@ -39,7 +39,7 @@ assert.match(app,/onRequest:\(\)=>requestForm\("song"\)/);
 const today=home.indexOf("style:S.shalomToday}");
 const search=home.indexOf("style:S.homeSearchWrap}");
 const recent=home.indexOf('label("Continuar donde te quedaste",S.spotifyHeading)');
-const access=home.indexOf('label("Tu biblioteca",S.spotifyHeading)');
+const access=home.indexOf('label("Tus accesos",S.spotifyHeading)');
 const banner=home.indexOf("style:S.spotifyBannerMini,");
 assert.ok(today>=0&&search>today&&recent>search&&access>recent&&banner>access,
  "Prioritize liturgy, search and recent reading before the personalized banner");
@@ -50,7 +50,7 @@ assert.match(catalogScreens,/style:S.cantosLibraryCard/,"Cantos begins with a ta
 assert.match(catalogScreens,/style:S.repSuggest/,"Suggestion is a compact working repertoire row");
 assert.match(home,/style:S.homeRecentCard/,"Native Resume card");
 assert.doesNotMatch(home,/style:S.spotifyShortcutBackground/,"Personal shortcuts do not use oversized green gradients");
-assert.match(styles,/spotifyShortcut:\{width:"48\.6%",minHeight:52/,"Compact flat Home access rows");
+assert.match(styles,/spotifyShortcut:\{width:"48\.6%",minHeight:72/,"Approved compact two-column access cards");
 assert.match(home,/h\(CoverArt,\{preset:profile\.bannerPreset,photo:profile\.banner\|\|profile\.cover/,"User-selected featured banner photo remains visible in the compact card");
 assert.match(app,/numberOfLines:2,[\s\S]*?minimumFontScale:.78/,"Keep all five labels readable, wrapping if needed");
 assert.match(app,/onOpenLink:url=>openWeb\(url\)/,"Maintain tutorial links");

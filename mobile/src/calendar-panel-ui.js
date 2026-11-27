@@ -1,0 +1,35 @@
+// Calendar presentation: only verified base seasons and real published repertoire dates.
+const React=require("react"),h=React.createElement;
+const {View,Text,Pressable,StyleSheet}=require("react-native");
+const {liturgicalDay,monthDays,shiftMonth}=require("./liturgical-calendar");
+const {repertoireType}=require("./repertoire-ui");
+const MONTHS=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const COLORS={advent:"#b6a0d9",christmas:"#e8e5d7",lent:"#b6a0d9",triduum:"#b9bdc9",easter:"#e8e5d7",ordinary:"#70c69c"};
+function CalendarPanel({context,onOpen,openWeb}){
+ const [selected,setSelected]=React.useState(context.today);
+ const [month,setMonth]=React.useState(context.today.slice(0,7));
+ const day=liturgicalDay(selected),events=context.events.filter(e=>e.event_date===selected);
+ const dateLabel=selected.split("-").reverse().join("/");
+ const change=delta=>{const next=shiftMonth(month,delta);setMonth(next);setSelected(next+"-01");};
+ const nav=(name,text,fn)=>h(Pressable,{style:S.nav,onPress:fn,accessibilityRole:"button",accessibilityLabel:name},h(Text,{style:S.text},text));
+ return h(View,{style:S.root},
+  h(Text,{style:S.heading},"Calendario"),
+  h(View,{style:S.monthRow},nav("Mes anterior","‹",()=>change(-1)),h(Text,{style:S.month},MONTHS[Number(month.slice(5))-1]+" "+month.slice(0,4)),nav("Mes siguiente","›",()=>change(1))),
+  h(View,{style:S.grid},...["L","M","X","J","V","S","D"].map((d,i)=>h(View,{key:"w"+i,style:S.cell},h(Text,{style:S.muted},d))),
+   ...monthDays(month).map((d,i)=>d?h(Pressable,{key:d,style:[S.cell,selected===d&&S.selected],onPress:()=>setSelected(d),accessibilityRole:"button",accessibilityLabel:d,accessibilityState:{selected:selected===d}},
+    h(Text,{style:[S.text,d===context.today&&S.today]},String(Number(d.slice(-2)))),
+    h(View,{style:[S.dot,{backgroundColor:context.events.some(e=>e.event_date===d)?"#27c98b":"transparent"}]})):h(View,{key:"empty"+i,style:S.cell}))),
+  h(View,{style:S.line}),
+  h(Text,{style:S.muted},dateLabel+" · Ciclo "+(day?.cycle||"—")),
+  h(View,{style:S.seasonRow},h(View,{style:[S.seasonDot,{backgroundColor:COLORS[day?.season]||"#b0c0c7"}]}),h(Text,{style:S.heading},day?.seasonName||"Fecha no disponible")),
+  day?.title?h(Text,{style:S.text},day.title):null,
+  h(Text,{style:S.muted},"Calendario base. El color indica el tiempo litúrgico, no necesariamente los ornamentos del día."),
+  h(Text,{style:S.heading},"Actividades del coro"),
+  ...events.map(e=>h(Pressable,{key:String(e.id),style:S.event,onPress:()=>onOpen(e),accessibilityRole:"button",accessibilityLabel:"Abrir "+e.title},
+   h(View,{style:{flex:1,minWidth:0}},h(Text,{style:S.text},e.title||"Repertorio SHALOM"),h(Text,{style:S.muted},[repertoireType(e)==="misa"?"Misa":repertoireType(e)==="ensayo"?"Ensayo":"Celebración",e.items.length+" cantos",e.location].filter(Boolean).join(" · "))),h(Text,{style:S.text},"›"))),
+  !events.length?h(Text,{style:S.muted},"No hay repertorios publicados para esta fecha."):null,
+  h(Text,{style:S.muted},"Lecturas, santoral y celebraciones propias: consulta una fuente litúrgica autorizada. Aún no están integrados.")
+ );
+}
+const S=StyleSheet.create({root:{gap:10,paddingBottom:12},heading:{fontSize:17,fontWeight:"700",color:"#f4f7f7"},text:{fontSize:14,color:"#f4f7f7"},muted:{fontSize:12,lineHeight:17,color:"#b0c0c7"},monthRow:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},month:{fontSize:15,color:"#f4f7f7",fontWeight:"600"},nav:{width:44,height:44,alignItems:"center",justifyContent:"center"},grid:{flexDirection:"row",flexWrap:"wrap"},cell:{width:"14.2857%",minHeight:44,alignItems:"center",justifyContent:"center",gap:3},selected:{backgroundColor:"#23483c",borderRadius:8},today:{color:"#27c98b",fontWeight:"700"},dot:{width:5,height:5,borderRadius:3},line:{height:1,backgroundColor:"#354650"},seasonRow:{flexDirection:"row",alignItems:"center",gap:8},seasonDot:{width:9,height:9,borderRadius:5},event:{minHeight:54,flexDirection:"row",alignItems:"center",gap:12,paddingVertical:8,borderBottomWidth:1,borderColor:"#354650"}});
+module.exports=CalendarPanel;
