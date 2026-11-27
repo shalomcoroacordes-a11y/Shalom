@@ -76,11 +76,6 @@ render_ui(home_banner, "home-banner.png", 1200, 350)
 
 # Lucide SVG sources, pinned and licensed locally. Existing logo is unchanged.
 import json
-icons = {}
-for source in ("primary", "actions", "extra"):
-    icons.update(json.loads((assets / "icons" / (source + ".json")).read_text(encoding="utf-8")))
-# Distinct musical note and chalice for the catalog and liturgy.
-icons["song"] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13M9 9l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2.5"/><ellipse cx="17" cy="16" rx="3" ry="2.5"/></svg>'
-icons["mass"] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16l-2 6a6.4 6.4 0 0 1-12 0L4 6ZM12 16v5M7 21h10M12 1v5M9 3h6"/></svg>'
+icons = json.loads((assets / "icons" / "catalog.json").read_text(encoding="utf-8"))
 for name, svg in icons.items():
     render_ui(svg, "home-" + name + ".png", 100, 100)
