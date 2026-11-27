@@ -2,18 +2,19 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const read=name=>fs.readFileSync(path.join(__dirname,"../.github/workflows",name),"utf8");
 const gate="github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha";
+const publicGate=gate.replace("release/android-0.4.26-admin-0.1.8","release/android-0.4.27");
 const publicRelease=read("android-apk.yml"),admin=read("admin-apk.yml");
-for(const source of [publicRelease,admin]){
+for(const [source,expectedGate] of [[publicRelease,publicGate],[admin,gate]]){
  assert.match(source,/workflow_dispatch:\s*\n\s*inputs:\s*\n\s*publish_official:/);
  assert.match(source,/type: boolean\s*\n\s*required: true\s*\n\s*default: false/);
- assert.ok(source.includes("if: "+gate));
+ assert.ok(source.includes("if: "+expectedGate));
  assert.ok(source.includes('gh release create "$TAG" --target "$GITHUB_SHA"'));
  assert.ok(source.includes('git ls-remote --exit-code --tags origin "refs/tags/$TAG"'));
  assert.match(source,/approved_sha:\s*\n\s*description:.*\n\s*type: string\s*\n\s*required: true/);
  assert.ok(!source.includes("github.event_name == 'push'"));
 }
 assert.ok(!/^  push:/m.test(publicRelease));
-assert.ok(publicRelease.includes("  build-apk:\n    if: "+gate+"\n    permissions:\n      contents: write"));
+assert.ok(publicRelease.includes("  build-apk:\n    if: "+publicGate+"\n    permissions:\n      contents: write"));
 assert.ok(admin.includes("  publish-official:\n    if: "+gate+"\n    needs: [test, apk, smoke]"));
 assert.ok(admin.includes("if: env.OFFICIAL_RELEASE != 'true'"));
 assert.equal(admin.split('if [ "$OFFICIAL_RELEASE" = true ]; then').length,3);

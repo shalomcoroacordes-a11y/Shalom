@@ -7,6 +7,7 @@ const highlights=[{type:"repertoire",id:"r",title:"Misa",label:"Misa",count:1},{
 vm.runInNewContext(fs.readFileSync("src/home-screen-ui.js","utf8"),{module:moduleForTest,require(name){
  if(name==="react")return{createElement:h};
  if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable","Image"].map(n=>[n,n]));
+ if(name==="./motion-ui")return{MotionPressable:"MotionPressable"};
  if(name==="./catalog")return{normalize:s=>String(s).trim().toLowerCase(),names:()=>"Coro"};
  if(name==="./home-spotlight")return{personalCounts:()=>({likes:1,medleys:1,masses:1,creations:3}),officialHighlights:model=>model.highlights};
  if(name==="./personal-cover-ui")return{CoverArt:"CoverArt"};
@@ -18,6 +19,8 @@ for(const key of ["setHomeSearch","goTab","selectSong","selectMedley","selectRep
 function find(node,predicate){if(!node||typeof node!=="object")return null;if(predicate(node))return node;for(const child of node.children||[]){const value=find(child,predicate);if(value)return value}return null}
 const screen=HomeScreen(props);
 function tap(label){const node=find(screen,n=>n.props.accessibilityLabel===label);assert.ok(node,label);node.props.onPress()}
+assert.equal(find(screen,n=>n.props.accessibilityLabel==="Abrir Misa: Misa").type,"MotionPressable");
+assert.equal(find(screen,n=>n.props.accessibilityLabel==="Destacado: Ensayar").type,"MotionPressable");
 tap("Abrir Misa: Misa");assert.deepEqual(calls.at(-1),["selectRepertoire",rep]);
 tap("Abrir Popurrí: Alabanza");assert.deepEqual(calls.at(-1),["selectMedley",medley]);
 tap("Continuar con Gloria");assert.deepEqual(calls.at(-1),["selectSong",song]);

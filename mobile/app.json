@@ -3,7 +3,7 @@
     "name": "SHALOM",
     "slug": "shalom-offline",
     "scheme": "shalom",
-    "version": "0.4.26",
+    "version": "0.4.27",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
@@ -13,7 +13,7 @@
     "android": {
       "package": "com.shalomcoroacordes.cancionero",
       "edgeToEdgeEnabled": true,
-      "versionCode": 49,
+      "versionCode": 50,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#006D3B"
@@ -30,6 +30,44 @@
           "photosPermission": "Permite elegir fotografías para las portadas de tus colecciones personales. No se suben a internet.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Inter",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/Inter_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./assets/fonts/Inter_500Medium.ttf",
+                    "weight": 500
+                  },
+                  {
+                    "path": "./assets/fonts/Inter_600SemiBold.ttf",
+                    "weight": 600
+                  },
+                  {
+                    "path": "./assets/fonts/Inter_700Bold.ttf",
+                    "weight": 700
+                  }
+                ]
+              }
+            ]
+          },
+          "ios": {
+            "fonts": [
+              "./assets/fonts/Inter_400Regular.ttf",
+              "./assets/fonts/Inter_500Medium.ttf",
+              "./assets/fonts/Inter_600SemiBold.ttf",
+              "./assets/fonts/Inter_700Bold.ttf"
+            ]
+          }
         }
       ]
     ]

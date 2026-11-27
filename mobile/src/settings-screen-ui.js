@@ -12,7 +12,7 @@ function SettingsScreen({S,C,title,label,Card,Btn,copy,model,wifiOnly,changeWifi
     h(View,{style:S.metrics},metric("Cantos",model.songs.length),metric("Artistas",model.artists.length),metric("Categorías",model.categories.length)),
     h(View,{style:S.switchRow},
      h(View,{style:{flex:1}},label("Preferir Wi-Fi",S.listTitle),label("Sincronización automática al abrir la aplicación.",S.smallMuted)),
-     h(Switch,{value:wifiOnly,onValueChange:changeWifi,trackColor:{false:C.border,true:"#1f8f60"},thumbColor:C.pale})),
+     h(Switch,{value:wifiOnly,onValueChange:changeWifi,trackColor:{false:C.border,true:C.green},thumbColor:C.pale})),
     h(Btn,{text:busy?"Actualizando…":"Actualizar cancionero",onPress:manualSync,disabled:busy}),
     busy?h(ActivityIndicator,{color:C.green,style:{marginTop:8}}):null,
     progress?label(progress,S.info):null,error?label(error,S.error):null),

@@ -6,14 +6,14 @@ const h=React.createElement;
 function MoreScreen({S,SectionHero,SectionListCard,goTab,requestForm,setSettingsOpen,openWeb}){
   const cards=[
    ["Explorar música","Artistas, álbumes, categorías y popurrís","categories",()=>goTab("Explorar")],
-   ["Solicitar canto o corrección","Envía una solicitud al administrador","song",()=>requestForm("song")],
-   ["Configuración","Sincronización, respaldo e información","more",()=>setSettingsOpen(true)],
-   ["Mis me gusta","Tus cantos guardados en este teléfono","song",()=>goTab("Canciones",{liked:true})],
-   ["Acerca de SHALOM","Conoce el proyecto y su propósito","more",
+   ["Solicitar canto o corrección","Envía una solicitud al administrador","request",()=>requestForm("song")],
+   ["Configuración","Sincronización, respaldo e información","settings",()=>setSettingsOpen(true)],
+   ["Mis me gusta","Tus cantos guardados en este teléfono","heart",()=>goTab("Canciones",{liked:true})],
+   ["Acerca de SHALOM","Conoce el proyecto y su propósito","info",
     ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/acerca.html")],
-   ["Contacto","Envía comentarios o consultas","more",
+   ["Contacto","Envía comentarios o consultas","contact",
     ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/contacto.html")],
-   ["Donaciones","Apoya el crecimiento del cancionero","more",
+   ["Donaciones","Apoya el crecimiento del cancionero","donation",
     ()=>openWeb("https://shalomcoroacordes-a11y.github.io/Shalom/donaciones.html")]
   ];
   return h(View,{style:S.repPage},

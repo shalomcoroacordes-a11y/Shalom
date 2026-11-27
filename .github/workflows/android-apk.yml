@@ -18,12 +18,12 @@ concurrency:
   group: shalom-android-apk
   cancel-in-progress: true
 env:
-  BASELINE_VERSION: "0.4.25"
-  BASELINE_CODE: "48"
-  CANDIDATE_CODE: "49"
+  BASELINE_VERSION: "0.4.26"
+  BASELINE_CODE: "49"
+  CANDIDATE_CODE: "50"
 jobs:
   build-apk:
-    if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha
+    if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.27') && inputs.publish_official == true && github.sha == inputs.approved_sha
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -79,7 +79,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/shalom-upgrade"
-          gh release download android-v0.4.25 --pattern "SHALOM-Android-v0.4.25.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
+          gh release download android-v0.4.26 --pattern "SHALOM-Android-v0.4.26.apk" --dir "$RUNNER_TEMP/shalom-upgrade"
           bash scripts/verify-upgrade-candidate.sh
       - name: Enable emulator acceleration
         run: |
@@ -119,6 +119,6 @@ jobs:
             echo "::error::La versión ya existe. No se sobrescribe una APK publicada."
             exit 1
           else
-            gh release create "$TAG" --target "$GITHUB_SHA" "$APK" --title "SHALOM Android v${VERSION}" --notes "Indicaciones en la letra normal, capos y opciones por canto en misas, repertorios y popurrís, personalizaciones locales, códigos SHALOM2 y respaldo. Firma, actualización y arranque Android verificados en emulador."
+            gh release create "$TAG" --target "$GITHUB_SHA" "$APK" --title "SHALOM Android v${VERSION}" --notes "Diseño aprobado: tipografía Inter local, iconos lineales unificados, paleta y animaciones de navegación. Conserva lectura musical, composiciones, datos locales y funcionalidades anteriores. Firma, actualización y arranque Android verificados en emulador."
           fi
 

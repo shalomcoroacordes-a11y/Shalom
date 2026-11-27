@@ -7,7 +7,7 @@ const {filterRepertoires}=require("./repertoire-ui");
 const {InitialCover}=require("./visual-ui");
 const {LibraryHero,LibrarySearch,LibraryChipRow,LibrarySongRow,LibraryArtistCard}=require("./library-ui");
 const SONG_TYPES=[["","Todos"],["catolico","Católico"],["cristiano","Cristiano"],["mixto","Mixto"],["general","General"]];
-function SongsScreen({S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId}){
+function SongsScreen({S,C,icons={},label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId}){
   const chosen=onlyLiked?"liked":typeFilter||"all";
   const options=[["all","Todos"],["catolico","Católicos"],
    ["cristiano","Cristianos"],["liked","Mis me gusta"]];
@@ -60,7 +60,7 @@ function SongsScreen({S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOn
       typeFilter==="cristiano"?"Cantos cristianos":"Todos los cantos",S.librarySectionTitle),
      label(eligible.length+" "+(eligible.length===1?"canto":"cantos"),S.libraryCount)),
     h(View,{style:S.libraryList},
-     ...eligible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,
+     ...eligible.slice(0,countLimit).map(song=>h(LibrarySongRow,{icons,key:song.id,song,
       artistName:names(song._artists)||type(song.song_type),tone:song.tone,
       liked:likedSet.has(String(song.id)),onOpen:()=>selectSong(song),
       onLike:()=>toggleLike(song.id),onOptions:()=>setActionSongId(String(song.id))})),
@@ -71,12 +71,12 @@ function SongsScreen({S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOn
     !copy?.syncedAt?h(Btn,{text:"Descargar cancionero",onPress:manualSync,disabled:busy}):null));
  }
 
-function ArtistsScreen({S,label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail}){
+function ArtistsScreen({S,icons={},label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail}){
   const filtered=filteredArtists;
   return h(View,{style:S.repPage},
    h(LibraryHero,{title:"Artistas",
     subtitle:"Coros, ministerios y cantores de alabanza.",preset:"choir"}),
-   h(LibrarySearch,{value:query,onChangeText:v=>{setQuery(v);setCountLimit(80)},
+   h(LibrarySearch,{icons,value:query,onChangeText:v=>{setQuery(v);setCountLimit(80)},
     placeholder:"Buscar artistas o ministerios…",showFilters:libraryFiltersVisible,
     onFilters:()=>setLibraryFiltersVisible(v=>!v)}),
    libraryFiltersVisible?h(LibraryChipRow,{options:SONG_TYPES,value:artistTypeFilter,
@@ -166,7 +166,7 @@ function RepertoiresScreen({S,C,HOME_IMAGES,label,model,repertoireFilter,query,s
       accessibilityState:{selected:active},onPress:()=>setRepertoireFilter(code),
       style:[S.repFilterChip,active&&S.repFilterActive]},
       icon?h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",
-       style:[S.repFilterIcon,{tintColor:active?"#05271d":C.text}]}):null,
+       style:[S.repFilterIcon,{tintColor:active?C.bg:C.text}]}):null,
       label(name,[S.repFilterText,active&&S.repFilterTextActive]));
     })),
    repertoireSearchOpen?h(TextInput,{style:S.repSearchInput,value:query,onChangeText:setQuery,
