@@ -32,9 +32,10 @@ assert.match(app,/\["Inicio","Canciones","Repertorios","Mis colecciones","Perfil
  "All five pages use the same header");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View,\{style:S.nav\}/,
  "All five pages use one common bottom navigation bar");
-assert.match(styles,/nav:\{marginHorizontal:11,marginBottom:8/);
-assert.match(styles,/navSelected:\{backgroundColor:"#063221"/);
-assert.match(profile,/toolRow\("⚙","Configuración"/);
+assert.match(styles,/nav:\{backgroundColor:C.bg,borderTopWidth:1/);
+assert.match(styles,/navSelected:\{backgroundColor:"transparent"/);
+assert.match(app,/tintColor:selected\?C.green:C.muted/);
+assert.match(profile,/toolRow\("settings","Configuración"/);
 assert.match(personal,/label\("Mis creaciones",styles.collectionTitle\)/);
 assert.match(catalogScreens,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
 console.log("SHALOM: Cantos fiel a la maqueta, barra uniforme, favoritos, rutas y enlaces conservados.");
