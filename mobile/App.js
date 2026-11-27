@@ -53,7 +53,7 @@ const HOME_IMAGES={
  menu:require("./assets/home-menu.png"),
  mass:require("./assets/home-mass.png"),
  calendar:require("./assets/home-calendar.png"),
- search:require("./assets/home-search.png")};
+ search:require("./assets/home-search.png"),heart:require("./assets/home-heart.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const {tabs,isSelectedTab,routeForTab,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
@@ -280,7 +280,7 @@ function AppScreen() {
  function renderSettings(){
   return h(SettingsScreen,{S,C,title,label,Card,Btn,copy,model,wifiOnly,changeWifi,busy,manualSync,progress,error,goTab,openWeb});
  }
- function renderHome(){return h(HomeScreen,{S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,manualSync,busy,copy,setSettingsOpen,progress,error});}
+ function renderHome(){return h(HomeScreen,{S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,openDetail,manualSync,busy,copy,setSettingsOpen,progress,error});}
  function renderSongs(){return h(SongsScreen,{S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId});}
  function renderArtists(){return h(ArtistsScreen,{S,label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail});}
  function renderCategories(){return h(CategoriesScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,folderId,folderType,query,setFolderType,setFolderId,setQuery,sectionSearchOpen,selectSong});}
@@ -478,12 +478,12 @@ function AppScreen() {
    h(View,{style:S.spotifyHomeBrand},
     h(Image,{source:HOME_IMAGES.logo,style:S.spotifyHomeLogo,resizeMode:"contain",accessibilityLabel:"Paloma original de SHALOM"}),
     h(View,null,label("SHALOM",S.spotifyHomeBrandName),label("Coro y Alabanza",S.spotifyHomeBrandSub))),
-   h(Pressable,{onPress:()=>{
+   tab!=="Inicio"?h(Pressable,{onPress:()=>{
     if(tab==="Canciones")setSongLibraryOpen(true);
     else if(tab==="Repertorios"){setRepertoireSearchOpen(v=>!v);setQuery("");}
     else goTab("Canciones",{openLibrary:true});
    },accessibilityRole:"button",accessibilityLabel:"Buscar cantos",style:S.homeTopButton},
-    h(Image,{source:HOME_IMAGES.search,style:S.homeTopIcon,resizeMode:"contain"})),
+    h(Image,{source:HOME_IMAGES.search,style:S.homeTopIcon,resizeMode:"contain"})):null,
    h(Pressable,{onPress:()=>tab==="Perfil"?openProfileMenu():setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:tab==="Perfil"?"Más opciones del perfil":"Configuración y sincronización del cancionero",style:S.homeTopButton},
     label("⚙",S.sectionHeaderGear))):
   !immersiveActive&&settingsOpen?h(AppSectionHeader,{section:"Configuración",onBack:()=>setSettingsOpen(false)}):
@@ -505,7 +505,7 @@ function AppScreen() {
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>{
-    const selected=isSelectedTab(tab,name)&&!detail;
+    const selected=isSelectedTab(tab,name)&&!detail||Boolean(detail&&(detail.type==="artist"||detail.type==="album")&&name==="Cantos");
     const homeIcon=HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(routeForTab(name)),style:({pressed})=>[S.navItem,selected&&S.navSelected,pressed&&S.navPressed]},

@@ -1,16 +1,17 @@
 const React=require("react");
 const {Modal,View,Text,Pressable,ScrollView,StyleSheet}=require("react-native");
 const h=React.createElement;
+const ActionIcon=require("./action-icon");
 function ProfileOptionsMenu({visible,onDismiss,onEdit,onCollections,onBackup,onMore,motionEnabled=false,bottomInset=0}){
  const items=[
-  ["✎","Editar perfil",onEdit],
-  ["▣","Mis creaciones",onCollections],
-  ["↥","Respaldo y restauración",onBackup],
-  ["⋯","Más opciones",onMore]
+  ["edit","Editar perfil",onEdit],
+  ["repertoires","Mis creaciones",onCollections],
+  ["backup","Respaldo y restauración",onBackup],
+  ["more","Más opciones",onMore]
  ];
  const option=([symbol,title,action])=>h(Pressable,{key:title,accessibilityRole:"button",
   accessibilityLabel:title,style:({pressed})=>[S.item,pressed&&S.pressed],onPress:()=>{onDismiss();action();}},
-  h(Text,{style:S.icon},symbol),
+  h(View,{style:S.icon},h(ActionIcon,{name:symbol})),
   h(Text,{style:S.name},title),
   h(Text,{style:S.arrow},"›"));
  return h(Modal,{visible,transparent:true,animationType:motionEnabled?"slide":"none",onRequestClose:onDismiss,
@@ -34,7 +35,7 @@ const S=StyleSheet.create({
  item:{minHeight:44,flexDirection:"row",alignItems:"center",gap:10,paddingVertical:5,paddingHorizontal:4,
   borderRadius:8},
  pressed:{backgroundColor:"#233139"},
- icon:{width:25,textAlign:"center",fontSize:20,color:"#b0c0c7"},
+ icon:{width:25,alignItems:"center",justifyContent:"center"},
  name:{flex:1,fontSize:14,fontWeight:"500",color:"#f4f7f7"},
  arrow:{fontSize:19,color:"#87958e"},
  close:{alignItems:"center",justifyContent:"center",minHeight:44,padding:8,marginTop:4,borderTopWidth:1,borderColor:"#303a40"},

@@ -6,10 +6,10 @@ vm.runInNewContext(fs.readFileSync("src/artist-profile-ui.js","utf8"),{module:mo
  if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable","Image"].map(x=>[x,x]));
  if(name==="./catalog")return {safeWebUrl:s=>String(s||"").startsWith("https:")?s:null,normalize:s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()};
  if(name==="./library-ui")return {ArtistAvatar:"ArtistAvatar",LibrarySongRow:"LibrarySongRow"};
- if(/^\.\.\/assets\/social-[a-z]+\.png$/.test(name))return name;
+ if(/^\.\.\/assets\/(social-[a-z]+|home-search)\.png$/.test(name))return name;
  throw Error(name);
 }});
-const calls=[],song={id:"1",title:"María",tone:"D"},other={id:"2",title:"Gloria"};
+const calls=[],song={id:"1",title:"Coro - María",tone:"D"},other={id:"2",title:"Gloria"};
 const artist={id:"a",name:"Coro",youtube_url:"https://example.com",facebook_url:"javascript:bad"};
 const album={id:"album-1",artist_id:"a",title:"Álbum de prueba"};
 const props={S:{},C:{},artist,online:false,model:{songsForArtist:()=>[song,other],albums:[album,{id:"other",artist_id:"other",title:"Otro álbum"}],songsForAlbum:()=>[song]},search:"maria",countLimit:80,copy:{syncedAt:"yes"},likedSet:new Set(["1"]),type:()=>"Católico",Btn:"Btn",SectionEmpty:"Empty"};
@@ -17,7 +17,7 @@ for(const key of ["onSearch","onMore","selectSong","toggleLike","onOptions","ope
 const screen=mod.exports(props);
 function all(n,p){return !n||typeof n!=="object"?[]:[...(p(n)?[n]:[]),...(n.children||[]).flatMap(c=>all(c,p))]}
 const rows=all(screen,n=>n.type==="LibrarySongRow");assert.equal(rows.length,1);
-assert.equal(rows[0].props.song,song);assert.equal(rows[0].props.liked,true);assert.equal(rows[0].props.compact,true);
+assert.equal(rows[0].props.song,song);assert.equal(rows[0].props.displayTitle,"María");assert.equal(song.title,"Coro - María");assert.equal(rows[0].props.liked,true);assert.equal(rows[0].props.compact,true);
 rows[0].props.onOpen();rows[0].props.onLike();rows[0].props.onOptions();
 assert.deepEqual(calls,[["selectSong",song],["toggleLike","1"],["onOptions",song]]);
 assert.equal(all(screen,n=>n.props.accessibilityRole==="link").length,1);

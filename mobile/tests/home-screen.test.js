@@ -2,19 +2,20 @@ const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("nod
 const moduleForTest={exports:{}};
 const h=(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity).filter(Boolean)});
 const calls=[];
-const song={id:"s",title:"Gloria"},rep={id:"r",title:"Misa"},medley={id:"m",title:"Alabanza"};
+const song={id:"s",title:"Gloria",updated_at:"2026-11-26"},rep={id:"r",title:"Misa"},medley={id:"m",title:"Alabanza"};
 const highlights=[{type:"repertoire",id:"r",title:"Misa",label:"Misa",count:1},{type:"medley",id:"m",title:"Alabanza",label:"Popurrí",count:2}];
 vm.runInNewContext(fs.readFileSync("src/home-screen-ui.js","utf8"),{module:moduleForTest,require(name){
  if(name==="react")return{createElement:h};
  if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable","Image"].map(n=>[n,n]));
  if(name==="./catalog")return{normalize:s=>String(s).trim().toLowerCase(),names:()=>"Coro"};
- if(name==="./home-spotlight")return{personalCounts:()=>({likes:1,medleys:1,masses:1,creations:3}),officialHighlights:model=>model.highlights};
+ if(name==="./home-spotlight")return{personalCounts:()=>({likes:1,medleys:1,masses:1,creations:3}),officialHighlights:model=>model.highlights,recentCatalog:items=>(items||[]).filter(x=>x.updated_at)};
+ if(name==="./visual-ui")return{InitialCover:"InitialCover"};
  if(name==="./personal-cover-ui")return{CoverArt:"CoverArt"};
  throw Error(name);
 }});
 const HomeScreen=moduleForTest.exports;
-const props={S:{spotifyShortcut:{name:"shortcut"},homeTile:{name:"tile"},homePressed:{opacity:.76}},C:{},HOME_IMAGES:{},label:text=>h("Label",{text}),Btn:"Btn",SongRow:"SongRow",homeSearch:"Gloria",homeMatches:[song],lastRead:{type:"song",id:"s"},model:{songs:[song],repertoires:[rep],medleys:[medley],highlights},profile:{bannerAction:"recientes",bannerTitle:"Ensayar"},personal:{collections:[]},likedIds:["s"],copy:{syncedAt:"saved"}};
-for(const key of ["setHomeSearch","goTab","selectSong","selectMedley","selectRepertoire","manualSync","setSettingsOpen"])props[key]=(...args)=>calls.push([key,...args]);
+const props={S:{spotifyShortcut:{name:"shortcut"},homeTile:{name:"tile"},homePressed:{opacity:.76}},C:{},HOME_IMAGES:{},label:text=>h("Label",{text}),Btn:"Btn",SongRow:"SongRow",homeSearch:"Gloria",homeMatches:[song],lastRead:{type:"song",id:"s"},model:{songs:[song],artists:[{id:"a",name:"Coro",updated_at:"2026-11-26"}],repertoires:[rep],medleys:[medley],highlights},profile:{bannerAction:"recientes",bannerTitle:"Ensayar"},personal:{collections:[]},likedIds:["s"],copy:{syncedAt:"saved"}};
+for(const key of ["setHomeSearch","goTab","selectSong","selectMedley","selectRepertoire","openDetail","manualSync","setSettingsOpen"])props[key]=(...args)=>calls.push([key,...args]);
 function find(node,predicate){if(!node||typeof node!=="object")return null;if(predicate(node))return node;for(const child of node.children||[]){const value=find(child,predicate);if(value)return value}return null}
 const screen=HomeScreen(props);
 function tap(label){const node=find(screen,n=>n.props.accessibilityLabel===label);assert.ok(node,label);node.props.onPress()}
@@ -22,6 +23,8 @@ tap("Abrir Misa: Misa");assert.deepEqual(calls.at(-1),["selectRepertoire",rep]);
 tap("Abrir Popurrí: Alabanza");assert.deepEqual(calls.at(-1),["selectMedley",medley]);
 tap("Continuar con Gloria");assert.deepEqual(calls.at(-1),["selectSong",song]);
 tap("Destacado: Ensayar");assert.deepEqual(calls.at(-1),["selectSong",song]);
+tap("Abrir canto reciente Gloria");assert.deepEqual(calls.at(-1),["selectSong",song]);
+tap("Abrir artista Coro");assert.equal(calls.at(-1)[1].id,"a");
 tap("Actualizar publicaciones del coro");assert.equal(calls.at(-1)[0],"manualSync");
 tap("Mis me gusta: 1");assert.equal(calls.at(-1)[1],"Canciones");assert.equal(calls.at(-1)[2].liked,true);
 const shortcut=find(screen,n=>n.props.accessibilityLabel==="Mis me gusta: 1");

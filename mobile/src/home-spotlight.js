@@ -9,6 +9,16 @@ const localDay=(value=new Date())=>{
   String(date.getDate()).padStart(2,"0")].join("-");
 };
 const timestamp=item=>Date.parse(item?.updated_at||item?.created_at||"")||0;
+function daysUntil(date,today=new Date()){
+ const day=localDay(today);
+ if(!day||!/^\d{4}-\d{2}-\d{2}$/.test(date||""))return null;
+ const difference=(Date.parse(date+"T00:00:00Z")-Date.parse(day+"T00:00:00Z"))/86400000;
+ return Number.isInteger(difference)&&difference>=0?difference:null;
+}
+function recentCatalog(items,limit=3){
+ return (Array.isArray(items)?items:[]).filter(item=>timestamp(item)>0)
+  .sort((a,b)=>timestamp(b)-timestamp(a)).slice(0,limit);
+}
 function personalCounts(store,likedIds=[]){
  const entries=(store?.collections||[]).flatMap(c=>Array.isArray(c.entries)?c.entries:[]);
  const valid=new Set(Array.isArray(likedIds)?likedIds.map(String):[]);
@@ -37,7 +47,7 @@ function officialHighlights({repertoires=[],medleys=[]}={},today=new Date()){
   selected.push({id:String(chosenRepertoire.id),type:"repertoire",kind,
    label:title,title:chosenRepertoire.title||"Repertorio SHALOM",
    subtitle:[when?when.split("-").reverse().join("/"):"",chosenRepertoire.location||""].filter(Boolean).join(" · "),
-   count:chosenRepertoire.items.length,date:when||null});
+   count:chosenRepertoire.items.length,date:when||null,daysUntil:daysUntil(when,today)});
  }
  if(publishedMedleys.length){
   const m=publishedMedleys[0];
@@ -47,4 +57,4 @@ function officialHighlights({repertoires=[],medleys=[]}={},today=new Date()){
  }
  return selected;
 }
-module.exports={localDay,personalCounts,officialHighlights};
+module.exports={localDay,personalCounts,officialHighlights,recentCatalog,daysUntil};

@@ -2,9 +2,10 @@
 const h=require("react").createElement;
 const {View,Text,TextInput,Pressable,Image}=require("react-native");
 const {normalize,names}=require("./catalog");
-const {personalCounts,officialHighlights}=require("./home-spotlight");
+const {personalCounts,officialHighlights,recentCatalog}=require("./home-spotlight");
+const {InitialCover}=require("./visual-ui");
 const {CoverArt}=require("./personal-cover-ui");
-function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,manualSync,busy,copy,setSettingsOpen,progress,error}){
+function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,openDetail,manualSync,busy,copy,setSettingsOpen,progress,error}){
   const term=normalize(homeSearch.trim());
   const found=homeMatches;
   const recent=lastRead?.type==="song"?model.songs.find(song=>song.id===lastRead.id):null;
@@ -19,6 +20,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
   }
   const counts=personalCounts(personal,likedIds);
   const official=officialHighlights(model,new Date());
+  const recentSongs=recentCatalog(model.songs),recentArtists=recentCatalog(model.artists);
   const pressedStyle=style=>({pressed})=>[style,pressed&&S.homePressed];
   const shortcuts=[
    ["heart","Mis me gusta","Cantos favoritos",counts.likes,()=>goTab("Canciones",{liked:true})],
@@ -33,7 +35,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
    h(View,{style:S.shalomToday},
     h(View,{style:S.shalomTodayHeader},
      h(View,{style:S.todayTitleWrap},
-      label("▦",S.todayTitleIcon),label("Hoy en SHALOM",S.shalomTodayHeading)),
+      h(Image,{source:HOME_IMAGES.calendar,style:S.todayTitleIcon,resizeMode:"contain",accessible:false}),label("Hoy en SHALOM",S.shalomTodayHeading)),
      h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
       accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
       label(busy?"…":"↻",S.shalomTodayRefreshIcon))),
@@ -49,10 +51,11 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
       }
      },accessibilityRole:"button",accessibilityLabel:"Abrir "+item.label+": "+item.title},
      h(View,{style:S.todayEntryBody},
+      h(Text,{style:S.shalomTodayLabel},item.label.toUpperCase()),
       h(Text,{style:S.shalomTodayTitle,numberOfLines:2},item.title),
       h(Text,{style:S.shalomTodayMeta,numberOfLines:2},
-       [item.label,item.count+" "+(item.count===1?"canto":"cantos"),item.subtitle]
-        .filter(Boolean).join(" · "))),
+       [item.subtitle,item.count+" "+(item.count===1?"canto":"cantos")].filter(Boolean).join(" · ")),
+      Number.isInteger(item.daysUntil)?h(Text,{style:S.todayCountdown},item.daysUntil===0?"Hoy":item.daysUntil===1?"Mañana":"En "+item.daysUntil+" días"):null),
      label("›",S.shalomTodayArrow))),
     !official.length?h(View,{style:S.shalomTodayEmpty},
      label(copy?.syncedAt?
@@ -75,24 +78,27 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
     label("Continuar donde te quedaste",S.spotifyHeading),
     h(Pressable,{style:S.homeRecentCard,onPress:()=>recent?selectSong(recent):goTab("Canciones"),
      accessibilityRole:"button",accessibilityLabel:recent?"Continuar con "+recent.title:"Explorar cantos"},
+     h(InitialCover,{title:recent?.title||"Cantos",size:36}),
      h(View,{style:{flex:1,minWidth:0}},
       h(Text,{style:S.homeRecentTitle,numberOfLines:1},
        recent?recent.title:"Abre un canto para comenzar"),
       recent?h(Text,{style:S.homeRecentSubtitle,numberOfLines:1},
        names(recent._artists)||"Último canto consultado"):null),
      label("›",S.homeRecentArrow))),
-   h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading)),
+   h(View,{style:S.spotifyBlock},label("Tu biblioteca",S.spotifyHeading)),
    h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
     h(Pressable,{key:name,onPress,accessibilityRole:"button",
      accessibilityLabel:name+": "+count,style:pressedStyle(S.spotifyShortcut)},
-     h(View,{style:S.spotifyShortcutTop},
-      h(View,{style:S.spotifyShortcutSymbolBox},
-       icon==="heart"?label("♡",S.spotifyShortcutIcon):
-       h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage})),
-      h(View,{style:S.spotifyShortcutCount},label(count,S.spotifyShortcutCountText))),
+     h(View,{style:S.spotifyShortcutSymbolBox},
+      h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",style:S.spotifyShortcutImage,accessible:false})),
      h(View,{style:S.spotifyShortcutText},
-      label(name,S.spotifyShortcutName),
-      label(subtitle,S.spotifyShortcutSubtitle))))),
+      label(name,S.spotifyShortcutName),count>0?label(count,S.spotifyShortcutCountText):null)))),
+   recentSongs.length?h(View,{style:S.spotifyBlock},label("Cantos recientes",S.spotifyHeading),
+    ...recentSongs.map(song=>h(Pressable,{key:song.id,style:pressedStyle(S.homeRecentCard),accessibilityRole:"button",accessibilityLabel:"Abrir canto reciente "+song.title,onPress:()=>selectSong(song)},
+     h(InitialCover,{title:song.title,size:36}),h(View,{style:{flex:1,minWidth:0}},h(Text,{style:S.homeRecentTitle,numberOfLines:1},song.title),h(Text,{style:S.homeRecentSubtitle,numberOfLines:1},names(song._artists)||"SHALOM")),label("›",S.homeRecentArrow)))):null,
+   recentArtists.length?h(View,{style:S.spotifyBlock},label("Artistas nuevos y actualizados",S.spotifyHeading),
+    ...recentArtists.map(artist=>h(Pressable,{key:artist.id,style:pressedStyle(S.homeRecentCard),accessibilityRole:"button",accessibilityLabel:"Abrir artista "+artist.name,onPress:()=>openDetail({type:"artist",id:artist.id})},
+     h(InitialCover,{title:artist.name,size:36,round:true}),h(Text,{style:[S.homeRecentTitle,{flex:1}],numberOfLines:1},artist.name),label("›",S.homeRecentArrow)))):null,
    h(Pressable,{style:S.spotifyBannerMini,onPress:goBanner,accessibilityRole:"button",
     accessibilityLabel:"Destacado: "+(profile.bannerTitle||"Explorar cantos")},
     h(View,{style:S.spotifyBannerMiniCover},

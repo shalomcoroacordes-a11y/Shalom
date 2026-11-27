@@ -5,6 +5,7 @@ function load(path){
  vm.runInNewContext(fs.readFileSync(path,"utf8"),{module:mod,require(name){
  if(name==="react")return {createElement:h,useState:v=>[v,()=>{}]};
  if(name==="react-native")return {...Object.fromEntries(["Modal","View","Text","TextInput","Pressable","ScrollView","KeyboardAvoidingView"].map(x=>[x,x])),StyleSheet:{create:v=>v,absoluteFillObject:{}},Platform:{OS:"android"},Alert:{alert(){}}};
+ if(name==="./action-icon")return "ActionIcon";
  if(name==="./visual-ui")return {InitialCover:"InitialCover"};
  if(name==="./song-actions-core")return {entriesOf:()=>[],NAMES:{}};
  throw Error(name);
@@ -34,6 +35,9 @@ const guitar=()=>calls.push("guitar");
 const full=Song({song:{title:"Gloria",_studio:{},youtube_url:"https://www.youtube.com/watch?v=example"},store:{collections:[]},onDismiss:dismiss,onStudio:guitar});
 const practice=find(full,n=>n.props.accessibilityLabel==="Practicar con guitarra");
 assert.ok(practice,"Studio action remains available when arrangement exists");
+assert.equal(find(practice,n=>n.type==="ActionIcon").props.name,"guitar");
+assert.equal(find(find(full,n=>n.props.accessibilityLabel==="Agregar a misa"),n=>n.type==="ActionIcon").props.name,"church");
+assert.equal(find(find(full,n=>n.props.accessibilityLabel==="Compartir canción"),n=>n.type==="ActionIcon").props.name,"share");
 const favorite=find(full,n=>n.props.accessibilityLabel==="Agregar a Mis me gusta");
 assert.equal(practice.props.style({pressed:false})[0],favorite.props.style({pressed:false})[0],"Studio uses the same neutral row");
 assert.equal(practice.props.style({pressed:false})[0].minHeight,44);

@@ -89,7 +89,18 @@ icons = {
  "church": '<path d="M9 65h62 M16 65V34L40 13l24 21v31 M33 65V48q7-9 14 0v17 M40 3v13 M32 9h16"/>',
  "mass": '<path d="M12 17 H68 L61 35 Q56 48 40 48 Q24 48 19 35 Z M40 48V66 M22 68H58 M40 3V19 M31 11H49"/>',
  "calendar": '<rect x="10" y="18" width="60" height="54" rx="7"/><path d="M10 33H70 M26 8V26 M54 8V26 M40 43L44 51L54 52L47 59L49 68L40 64L31 68L33 59L26 52L36 51Z"/>',
- "search": '<circle cx="34" cy="33" r="20"/><path d="M48 48L69 69"/>'
+ "search": '<circle cx="34" cy="33" r="20"/><path d="M48 48L69 69"/>',
+ "heart": '<path d="M40 65 13 39C-1 23 20 7 34 22l6 7 6-7C60 7 81 23 67 39Z"/>',
+ "guitar": '<path d="m44 35 21-22 9 9-22 22M42 33c-7-5-16-2-18 6-1 4-7 5-11 8-11 8-8 24 4 27 13 4 25-4 25-15 0-5 5-7 10-10 5-4 5-11-1-15"/><circle cx="30" cy="52" r="5"/><path d="m62 10 9-7 7 7-5 10"/>',
+ "share": '<circle cx="62" cy="14" r="9"/><circle cx="18" cy="40" r="9"/><circle cx="62" cy="66" r="9"/><path d="m26 35 28-16M26 45l28 16"/>',
+ "link": '<path d="M33 50 47 36M29 35 16 48a13 13 0 0 0 18 18l13-13M51 45l13-13a13 13 0 0 0-18-18L33 27"/>',
+ "print": '<rect x="19" y="7" width="42" height="23" rx="2"/><path d="M18 57H8V31q0-6 6-6h52q6 0 6 6v26H62M57 38h4"/><rect x="19" y="47" width="42" height="25" rx="2"/>',
+ "download": '<path d="M40 8v43M24 35l16 16 16-16M10 54v14h60V54"/>',
+ "fullscreen": '<path d="M9 29V9h20M51 9h20v20M71 51v20H51M29 71H9V51"/>',
+ "reset": '<path d="M13 34a28 28 0 1 1 5 26M13 12v22h22"/>',
+ "edit": '<path d="m12 53 38-38 15 15-38 38-17 3ZM45 20l15 15M56 9l7-5 13 13-5 7"/>',
+ "backup": '<path d="M40 52V10M24 26l16-16 16 16M10 53v16h60V53"/>',
+ "external": '<path d="M44 12h24v24M68 12 33 47M38 13H12v55h55V42"/>'
 }
 for name, drawing in icons.items():
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">

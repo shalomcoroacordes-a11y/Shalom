@@ -2,6 +2,7 @@ const React=require("react");
 const {useState}=React;
 const {Modal,View,Text,TextInput,Pressable,ScrollView,StyleSheet,KeyboardAvoidingView,Platform,Alert}=require("react-native");
 const {InitialCover}=require("./visual-ui");
+const ActionIcon=require("./action-icon");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const h=React.createElement;
 const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
@@ -23,7 +24,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const button=(icon,title,action,subtitle=null,disabled=false,keyValue=title)=>
   h(Pressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:({pressed})=>[S.action,pressed&&S.actionPressed,(busy||disabled)&&S.disabled],
    accessibilityRole:"button",accessibilityLabel:title,accessibilityHint:subtitle||undefined,accessibilityState:{disabled:busy||disabled}},
-   lbl(icon,S.actionIcon),
+   h(View,{style:S.actionIcon},h(ActionIcon,{name:icon,active:icon==="heart"&&liked})),
    h(View,{style:{flex:1}},lbl(title,S.actionTitle),
     subtitle&&phase!=="menu"?lbl(subtitle,S.actionSub):null),lbl("›",S.chevron));
  const go=next=>{setKind(next);setPhase("targets");setName("");setFolderId(store.collections[0]?.id||"")};
@@ -79,35 +80,35 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
     h(View,{style:S.rule}),
     phase==="menu"?h(ScrollView,{keyboardShouldPersistTaps:"handled",showsVerticalScrollIndicator:false,
       contentContainerStyle:S.menu},
-     button(liked?"♥":"♡",liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta",
+     button("heart",liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta",
       ()=>run(onLike)),
-     button("▣","Agregar a repertorio",()=>go("repertorio"),"Repertorio personal · en este teléfono"),
-     button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
-     button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
+     button("repertoires","Agregar a repertorio",()=>go("repertorio"),"Repertorio personal · en este teléfono"),
+     button("church","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
+     button("medleys","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
-     song._studio&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
-     button("↗","Ver enlaces y tutoriales",()=>setPhase("links"),
+     song._studio&&onStudio?button("guitar","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
+     button("link","Ver enlaces y tutoriales",()=>setPhase("links"),
       links.length+" enlace(s) registrado(s)"),
-     youtubeAvailable?button("▶","Abrir YouTube",()=>run(onVideo,true)):null,
+     youtubeAvailable?button("youtube","Abrir YouTube",()=>run(onVideo,true)):null,
      h(View,{style:S.rule}),
-     button("↗","Compartir canción",()=>run(onShare,true)),
-     button("▤","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
-     button("↓","Descargar sin conexión",()=>run(onDownload,true),
+     button("share","Compartir canción",()=>run(onShare,true)),
+     button("print","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
+     button("download","Descargar sin conexión",()=>run(onDownload,true),
       offline?"Este canto ya está disponible sin conexión":"Actualizar biblioteca local"),
      h(View,{style:S.rule}),
-     button("⛶","Opciones de lectura",()=>setPhase("reading"),"Pantalla completa y tono original")
+     button("fullscreen","Opciones de lectura",()=>setPhase("reading"),"Pantalla completa y tono original")
     ):phase==="reading"?h(View,{style:S.menu},
      lbl("Opciones de lectura",S.sectionTitle),
-     button("⛶","Pantalla completa",()=>run(onFullScreen)),
-     button("↺","Restablecer tono original",()=>run(onResetTone)),
+     button("fullscreen","Pantalla completa",()=>run(onFullScreen)),
+     button("reset","Restablecer tono original",()=>run(onResetTone)),
      h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
       lbl("← Volver al panel",S.createLabel))
     ):phase==="links"?h(ScrollView,{keyboardShouldPersistTaps:"handled",
       showsVerticalScrollIndicator:false,contentContainerStyle:S.menu},
      lbl("Enlaces de este canto",S.sectionTitle),
-     ...links.map((link,index)=>button("↗",link.title,
+     ...links.map((link,index)=>button("external",link.title,
       ()=>run(()=>onOpenLink(link.url),true),link.url,false,"link-"+index)),
-     button("↗","Ver canto en la página SHALOM",()=>run(onOpenSongPage,true),
+     button("external","Ver canto en la página SHALOM",()=>run(onOpenSongPage,true),
       "Abrir el canto desde el sitio oficial"),
      !links.length?lbl("Este canto aún no tiene tutoriales registrados.",S.hint):null,
      h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
@@ -116,7 +117,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
       contentContainerStyle:S.menu},
      lbl("Agregar a "+NAMES[kind],S.sectionTitle),
      lbl("Elige una composición guardada o crea una nueva. No se modifica Supabase.",S.hint),
-     ...targets.map(item=>button("♫",item.title,
+     ...targets.map(item=>button("song",item.title,
       ()=>save({folderId:item.folderId,entryId:item.entryId}),
       item.folderName+" · "+item.count+" fragmentos",item.count>=30)),
      h(Pressable,{style:S.createButton,onPress:()=>{setPhase("create");setName("");},
@@ -157,8 +158,8 @@ const S=StyleSheet.create({
  action:{flexDirection:"row",alignItems:"center",gap:10,minHeight:44,paddingVertical:5,paddingHorizontal:4,
   borderRadius:8},
  actionPressed:{backgroundColor:T.surface},
- actionIcon:{fontSize:20,fontWeight:"500",color:"#b0c0c7",width:25,textAlign:"center"},
- actionTitle:{fontSize:14,fontWeight:"500",color:T.text},
+ actionIcon:{width:25,alignItems:"center",justifyContent:"center"},
+ actionTitle:{fontSize:13.5,fontWeight:"500",color:T.text},
  actionSub:{fontSize:11,color:T.muted,marginTop:3},
  chevron:{fontSize:19,color:"#87958e"},
  sectionTitle:{fontSize:18,fontWeight:"850",color:T.text,marginTop:5,marginBottom:4},

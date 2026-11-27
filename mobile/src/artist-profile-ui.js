@@ -17,6 +17,13 @@ function legacyArtistProfile(description){
  try{links=marker?JSON.parse(marker[1])?.links||{}:{}}catch(_){}
  return {bio:marker?raw.slice(0,marker.index).trim():raw.trim(),links};
 }
+function artistSongTitle(song,artist){
+ const title=String(song.title||"");
+ const name=String(artist.name||"").trim();
+ if(!name)return title;
+ const prefix=title.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+ return prefix&&normalize(prefix[1])===normalize(name)?prefix[2].trim():title;
+}
 function ArtistProfile({S,C,artist,online,model,search,onSearch,countLimit,onMore,copy,likedSet,selectSong,toggleLike,onOptions,openWeb,openDetail,type,Btn,SectionEmpty}){
  const songs=model.songsForArtist(artist.id);
  const term=normalize(search.trim());
@@ -27,15 +34,15 @@ function ArtistProfile({S,C,artist,online,model,search,onSearch,countLimit,onMor
  const bio=artist.bio||legacy.bio;
  return h(View,{style:S.artistProfilePage},
   h(View,{style:S.artistProfileHero},
-   h(ArtistAvatar,{artist,online,size:100}),
+   h(ArtistAvatar,{artist,online,size:88}),
    h(Text,{style:S.artistProfileName},artist.name||"Artista"),
    h(Text,{style:S.artistProfileMeta},[type(artist.artist_type),songs.length+" "+(songs.length===1?"canto":"cantos")].filter(Boolean).join(" · ")),
    links.length?h(View,{style:S.artistProfileLinks},...links.map(({name,url,icon})=>h(Pressable,{key:name,style:S.artistSocialButton,onPress:()=>openWeb(url),accessibilityRole:"link",accessibilityLabel:"Abrir "+name},
     ({pressed})=>h(Image,{source:icon,resizeMode:"contain",accessible:false,style:[S.artistSocialIcon,pressed&&{tintColor:C.green}]})))):null),
   bio?h(Text,{style:S.artistProfileBio},bio):null,
-  h(View,{style:S.libraryTitleRow},h(Text,{style:S.librarySectionTitle},"Cancionero"),h(Text,{style:S.libraryCount},String(visible.length))),
-  h(TextInput,{style:S.artistProfileSearch,value:search,onChangeText:onSearch,placeholder:"Buscar cantos de "+(artist.name||"este artista"),placeholderTextColor:C.muted,accessibilityLabel:"Buscar dentro del artista",returnKeyType:"search"}),
-  h(View,{style:S.artistProfileList},...visible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,tone:song.tone,compact:true,liked:likedSet.has(String(song.id)),
+  h(View,{style:S.artistCatalogHeading},h(Text,{style:S.librarySectionTitle},"Cancionero"),h(Text,{style:S.libraryCount},String(visible.length))),
+  h(View,{style:S.artistSearchBox},h(Image,{source:require("../assets/home-search.png"),style:S.artistSearchIcon,resizeMode:"contain",accessible:false}),h(TextInput,{style:S.artistProfileSearch,value:search,onChangeText:onSearch,placeholder:"Buscar cantos",placeholderTextColor:C.muted,accessibilityLabel:"Buscar dentro del artista",returnKeyType:"search"})),
+  h(View,{style:S.artistProfileList},...visible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,displayTitle:artistSongTitle(song,artist),tone:song.tone,compact:true,liked:likedSet.has(String(song.id)),
    onOpen:()=>selectSong(song),onLike:()=>toggleLike(song.id),onOptions:()=>onOptions(song)}))),
   visible.length>countLimit?h(Btn,{text:"Mostrar más cantos",secondary:true,onPress:onMore}):null,
   !visible.length?h(SectionEmpty,{message:term?"No hay cantos que coincidan con la búsqueda.":copy?.syncedAt?"Este artista todavía no tiene cantos.":"Descarga la biblioteca para consultar sus cantos."}):null,

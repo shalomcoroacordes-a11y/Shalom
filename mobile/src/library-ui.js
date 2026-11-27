@@ -34,13 +34,14 @@ function LibraryChipRow({options,value,onChange}){
    style:[S.chip,code===value&&S.chipSelected]},
    txt(name,[S.chipText,code===value&&S.chipSelectedText]))));
 }
-function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions,compact=false}){
+function LibrarySongRow({song,displayTitle,artistName,tone,liked,onOpen,onLike,onOptions,compact=false}){
+ const title=displayTitle||song.title||"Sin título";
  const stop=(e,callback)=>{e?.stopPropagation?.();callback()};
  return h(Pressable,{style:compact?[S.songRow,S.compactSongRow]:S.songRow,onPress:onOpen,accessibilityRole:"button",
-  accessibilityLabel:"Abrir "+(song.title||"Canto")},
-  h(InitialCover,{title:song.title,size:compact?42:57}),
+  accessibilityLabel:"Abrir "+title},
+  h(InitialCover,{title,size:compact?38:57}),
   h(View,{style:{flex:1,minWidth:0}},
-   h(Text,{style:S.songTitle,numberOfLines:2},song.title||"Sin título"),
+   h(Text,{style:compact?[S.songTitle,S.compactSongTitle]:S.songTitle,numberOfLines:2},title),
    (artistName||tone||!compact)?h(Text,{style:S.songMeta,numberOfLines:1},[artistName,tone?"Tono "+tone:""].filter(Boolean).join(" · ")||"SHALOM"):null),
   h(Pressable,{onPress:e=>stop(e,onLike),style:S.smallTouch,
    accessibilityRole:"button",accessibilityLabel:liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta"},
@@ -103,7 +104,8 @@ const S=StyleSheet.create({
  songRow:{minHeight:75,flexDirection:"row",alignItems:"center",gap:9,paddingHorizontal:8,
   paddingVertical:8,backgroundColor:"#23272e",borderRadius:14,
   borderWidth:1,borderColor:"#363f44"},
- compactSongRow:{backgroundColor:"transparent",borderWidth:0,borderBottomWidth:1,borderColor:"#354650",borderRadius:0,minHeight:60,paddingHorizontal:0},
+ compactSongRow:{backgroundColor:"transparent",borderWidth:0,borderBottomWidth:1,borderColor:"#354650",borderRadius:0,minHeight:56,paddingHorizontal:0,paddingVertical:5,gap:8},
+ compactSongTitle:{fontWeight:"500",fontSize:14},
  songTitle:{fontSize:14.5,fontWeight:"850",color:T.fg,lineHeight:19},
  songMeta:{color:T.sub,fontSize:11,marginTop:4},
  smallTouch:{width:44,height:45,alignItems:"center",justifyContent:"center"},

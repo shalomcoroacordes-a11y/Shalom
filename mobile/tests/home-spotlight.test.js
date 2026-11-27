@@ -1,6 +1,6 @@
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
-const {localDay,personalCounts,officialHighlights}=require("../src/home-spotlight");
+const {localDay,personalCounts,officialHighlights,recentCatalog,daysUntil}=require("../src/home-spotlight");
 assert.equal(localDay(new Date(2026,10,19,12,0)), "2026-11-19");
 const today=new Date(2026,10,19,12,0);
 assert.deepEqual(personalCounts({collections:[]},[]),{likes:0,medleys:0,masses:0,creations:0});
@@ -40,6 +40,10 @@ assert.equal(featured.length,1);
 assert.equal(featured[0].label,"Próxima misa");
 assert.equal(featured[0].id,"future","Nearest upcoming repertoire takes precedence");
 assert.equal(featured[0].subtitle,"22/11/2026");
+assert.equal(featured[0].daysUntil,3);
+assert.equal(daysUntil("2026-11-19",today),0);
+assert.equal(daysUntil("2026-11-18",today),null);
+assert.deepEqual(recentCatalog([{id:1,updated_at:"2026-11-18"},{id:2,updated_at:"2026-11-19"},{id:3}]).map(x=>x.id),[2,1]);
 featured=officialHighlights({repertoires:[
  repertoire("past","Misa pasada","misa","2026-01-01"),
  repertoire("undated","Para ensayo","ensayo",null)]},today);
@@ -59,7 +63,8 @@ const styles=fs.readFileSync("src/app-styles.js","utf8");
 assert.match(home,/personalCounts\(personal,likedIds\)/,"Counters follow persisted local state");
 assert.match(home,/officialHighlights\(model,new Date\(\)\)/,"Feature only real admin published content");
 assert.match(styles,/spotifyShortcuts:\{flexDirection:"row",flexWrap:"wrap"/,"Four shortcuts form 2x2 grid");
-assert.match(styles,/spotifyShortcutCountText/,"Every tile has a numeric count");
+assert.match(home,/count>0\?label\(count,S.spotifyShortcutCountText\)/,"Hide zero counters");
+assert.match(styles,/spotifyShortcutCountText/,"Nonzero counts remain available");
 assert.doesNotMatch(styles,/spotifyShortcutShade:/,"Remove poster backgrounds and double-overlay icon");
 assert.match(home,/Hoy en SHALOM/);
 assert.match(home,/selectRepertoire\(rep\)/,"Tap opens official repertoire or mass");
