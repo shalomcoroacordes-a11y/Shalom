@@ -43,8 +43,21 @@ const annual=require("../src/liturgical-year-data");
 assert.equal(annual.dates().filter(d=>d.startsWith("2027-")).length,356);
 assert.equal(c.liturgicalDay("2027-05-27").title,"Corpus Christi");
 assert.equal(readingsForDay("2027-05-27").title,"Corpus Christi");assert.equal(readingsForDay("2027-05-27").gloria,null);
-assert.equal(readingsForDay("2027-05-30"),null);assert.equal(readingsForDay("2027-12-12"),null);
+assert.equal(readingsForDay("2027-05-30").title,"IX Domingo del Tiempo Ordinario");assert.equal(readingsForDay("2027-12-12"),null);
 assert.equal(readingsForDay("2027-03-27"),null);assert.equal(readingsForDay("2027-12-25"),null);
 for(const date of annual.dates()){const value=annual.annualReading(date);assert.equal(value.date,date);assert.equal(value.provisional,true);assert.equal(value.gloria,null);assert.ok(value.gospel);assert.ok(c.parseDay(date)!==null);}
 assert.equal(readingsForDay("2026-12-12").gloria,true);assert.equal(readingsForDay("2026-12-25","dia").gloria,true);
 console.log("Annual provisional readings: provenance, exact dates, Mexican Corpus Christi correction, exceptions and priority of reviewed records verified.");
+
+const L=require("../src/liturgical-readings");
+assert.equal(L.readingsForDay("2027-03-21").gospel,"Mc 14, 1–15, 47");
+assert.equal(L.readingsForDay("2027-03-25","cena").gloria,true);
+assert.equal(L.readingsForDay("2027-03-26").gloria,null);
+assert.match(L.gloriaLabel(L.readingsForDay("2027-03-26")),/Pasión/);
+assert.equal(L.readingRows(L.readingsForDay("2027-03-27","vigilia-pascual")).length,17);
+assert.equal(L.readingOptions("2027-12-24").length,2);assert.equal(L.readingOptions("2027-12-25").length,3);
+assert.equal(L.readingsForDay("2027-12-24","manana").gospel,"Lc 1, 67-79");
+assert.equal(L.readingsForDay("2027-12-25","dia").gospel,"Jn 1, 1-18 o 1, 1-5.9-14");
+assert.match(L.dateNotice("2027-12-12"),/decreto/);assert.equal(L.readingsForDay("2027-12-13"),null);
+const covered=Array.from({length:365},(_,i)=>c.shift("2027-01-01",i)).filter(date=>L.readingsForDay(date)||L.readingOptions(date).length);
+assert.equal(covered.length,363);console.log("363 dates with references or explicit celebration forms; Guadalupe pending decree.");

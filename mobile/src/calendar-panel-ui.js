@@ -3,7 +3,7 @@ const React=require("react"),h=React.createElement;
 const {View,Text,Pressable,StyleSheet}=require("react-native");
 const {liturgicalDay,monthDays,shiftMonth}=require("./liturgical-calendar");
 const {repertoireType}=require("./repertoire-ui");
-const {readingsForDay,readingOptions}=require("./liturgical-readings");
+const {readingsForDay,readingOptions,dateNotice,readingRows,gloriaLabel}=require("./liturgical-readings");
 const {seasonalSongs}=require("./liturgical-suggestions");
 const MONTHS=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const COLORS={advent:"#b6a0d9",christmas:"#e8e5d7",lent:"#b6a0d9",triduum:"#b9bdc9",easter:"#e8e5d7",ordinary:"#70c69c"};
@@ -35,15 +35,15 @@ function CalendarPanel({context,onOpen,openWeb,songs,onSong}){
   !events.length?h(Text,{style:S.muted},"No hay repertorios publicados para esta fecha."):null,
   h(View,{style:S.line}),
   h(Text,{style:S.heading},"Lecturas de la misa"),
-  options.length?h(View,{style:S.readings},h(Text,{style:S.muted},selected.endsWith("-24")?"Referencias de la vigilia vespertina; no corresponden a la misa de la mañana.":"Selecciona la misa que vas a celebrar."),...options.map(option=>h(Pressable,{key:option.id,style:[S.source,choice?.date===selected&&choice.id===option.id&&S.selected],onPress:()=>setChoice({date:selected,id:option.id}),accessibilityRole:"button",accessibilityState:{selected:choice?.date===selected&&choice.id===option.id}},h(Text,{style:S.sourceText},option.label)))):null,
+  options.length?h(View,{style:S.readings},h(Text,{style:S.muted},"Selecciona el formulario de la celebración."),...options.map(option=>h(Pressable,{key:option.id,style:[S.source,choice?.date===selected&&choice.id===option.id&&S.selected],onPress:()=>setChoice({date:selected,id:option.id}),accessibilityRole:"button",accessibilityState:{selected:choice?.date===selected&&choice.id===option.id}},h(Text,{style:S.sourceText},option.label)))):null,
   reading?h(View,{style:S.readings},
    h(Text,{style:S.muted},reading.rank+" · Color de la celebración: "+reading.color),
-   ...[["Primera lectura",reading.first],["Salmo responsorial",reading.psalm],["Segunda lectura",reading.second],["Evangelio",reading.gospel]].filter(([,value])=>value).map(([name,value])=>h(View,{key:name,style:S.readingRow},h(Text,{style:S.muted},name),h(Text,{style:S.text},value))),
-   h(Text,{style:S.muted},reading.gloria===true?"Se dice Gloria.":reading.gloria===false?"No se dice Gloria.":"Gloria: confirmar en el misal."),
-   reading.provisional?h(Text,{style:S.muted},reading.note):null,
+   ...readingRows(reading).map(([name,value])=>h(View,{key:name,style:S.readingRow},h(Text,{style:S.muted},name),h(Text,{style:S.text},value))),
+   h(Text,{style:S.muted},gloriaLabel(reading)),
+   reading.note?h(Text,{style:S.muted},reading.note):null,
    h(Text,{style:S.muted},reading.source+(reading.page?" · p. "+reading.page:"")),
    openWeb?h(Pressable,{style:S.source,onPress:()=>openWeb(reading.url),accessibilityRole:"link",accessibilityLabel:"Consultar misal original"},h(Text,{style:S.sourceText},"Consultar misal original ↗")):null
-  ):h(Text,{style:S.muted},options.length?"Elige la celebración para consultar sus lecturas.":"Aún no tenemos lecturas verificadas para esta fecha. Consulta el misal correspondiente. No se muestran lecturas de otro día."),
+  ):h(Text,{style:S.muted},dateNotice(selected)||(options.length?"Elige la celebración para consultar sus lecturas.":"Aún no tenemos lecturas verificadas para esta fecha. Consulta el misal correspondiente.")),
   h(View,{style:S.line}),h(Text,{style:S.heading},"Cantos relacionados"),
   h(Text,{style:S.muted},"Según las categorías del cancionero. Revisa su adecuación a la celebración antes de elegir."),
   ...suggestions.map(song=>h(Pressable,{key:String(song.id),style:S.event,onPress:()=>onSong?.(song),accessibilityRole:"button",accessibilityLabel:"Abrir canto "+song.title},h(View,{style:{flex:1,minWidth:0}},h(Text,{style:S.text},song.title),h(Text,{style:S.muted},song.tone?"Tono "+song.tone:"Canto del catálogo")),h(Text,{style:S.text},"›"))),
