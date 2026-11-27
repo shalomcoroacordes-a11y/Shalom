@@ -73,7 +73,15 @@ const HOME_IMAGES={
  "print":require("./assets/home-print.png"),
  "fullscreen":require("./assets/home-fullscreen.png"),
  "play":require("./assets/home-play.png"),
- "filter":require("./assets/home-filter.png")};
+ "filter":require("./assets/home-filter.png"),
+ "folder":require("./assets/home-folder.png"),
+ "lock":require("./assets/home-lock.png"),
+ "share":require("./assets/home-share.png"),
+ "contact":require("./assets/home-contact.png"),
+ "donation":require("./assets/home-donation.png"),
+ "request":require("./assets/home-request.png"),
+ "close":require("./assets/home-close.png"),
+ "plus":require("./assets/home-plus.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const {tabs,isSelectedTab,routeForTab,readerFullscreenAvailable,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");

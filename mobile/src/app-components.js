@@ -93,12 +93,12 @@ function SectionSearch({value,onChangeText,placeholder}){
 function SectionListCard({title,subtitle,meta,icon,onPress}){
  return h(Pressable,{style:S.repCard,onPress,accessibilityRole:"button",
   accessibilityLabel:[title,subtitle].filter(Boolean).join(", ")},
-  h(InitialCover,{title:title||"Canto",size:53}),
+  icon&&HOME_IMAGES[icon]?h(View,{style:S.repCardIconWrap},h(Image,{source:HOME_IMAGES[icon],style:S.repCardIcon,resizeMode:"contain",accessible:false})):h(InitialCover,{title:title||"Canto",size:53}),
   h(View,{style:{flex:1,minWidth:0}},
    h(Text,{style:S.repCardTitle,numberOfLines:2},title||"Sin título"),
    subtitle?h(Text,{style:S.repCardCount,numberOfLines:2},subtitle):null,
    meta?h(Text,{style:S.repCardMeta,numberOfLines:1},meta):null),
-  label("›",S.repArrow));
+  h(Image,{source:HOME_IMAGES.chevron,resizeMode:"contain",style:{width:24,height:24,tintColor:C.muted},accessible:false}));
 }
 function SectionEmpty({message}){
  return h(View,{style:S.repEmptyCard},

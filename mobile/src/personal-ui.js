@@ -224,7 +224,7 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
   const symbol=kind==="misa"?"mass":kind==="popurri"?"medleys":"repertoires";
   return h(MotionPressable,{key:kind,onPress:()=>startCreate(kind),
    style:styles.quickTile,accessibilityRole:"button",accessibilityLabel:"Crear "+name.toLowerCase()},
-   h(Image,{source:icons[symbol],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}), label(kind==="repertorio"?"Nuevo Repertorio":"Nueva "+name,styles.quickTileText),
+   h(Image,{source:icons[symbol],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}), label(kind==="misa"?"Nueva misa":kind==="repertorio"?"Nuevo repertorio":"Nuevo popurrí",styles.quickTileText),
    label(caption,styles.quickTileCaption));
  }
  function homeView(){
@@ -264,14 +264,14 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
      label("›",styles.arrow)),
     item.parts.length?h(Pressable,{onPress:()=>showShare(item,c,"home"),
      style:styles.shareSmall,accessibilityRole:"button",
-     accessibilityLabel:"Compartir "+item.title},label("↗",styles.moreIcon)):null)),
+     accessibilityLabel:"Compartir "+item.title},h(Image,{source:icons.share,style:{width:24,height:24,tintColor:theme.muted},resizeMode:"contain",accessible:false})):null)),
    !all.length?h(View,{style:styles.emptyClean},
     label(listFilter==="all"?"Todavía no tienes composiciones.":
      "Aún no has creado "+(listFilter==="misa"?"misas":listFilter==="popurri"?"popurrís":"repertorios")+".",styles.emptyTitle),
     label("Elige una de las opciones de arriba para comenzar. No necesitas crear una carpeta.",styles.description)):null,
-   action("▣  Organizar por carpetas",()=>setView("folders"),true),
+   h(Pressable,{onPress:()=>setView("folders"),accessibilityRole:"button",style:[styles.action,styles.actionSecondary,styles.iconAction]},h(Image,{source:icons.folder,style:{width:24,height:24,tintColor:theme.text},resizeMode:"contain",accessible:false}),label("Organizar por carpetas",[styles.actionText,styles.actionTextSecondary])),
    h(View,{style:styles.privacyFooter},
-    label("🔒  Tus composiciones son privadas y no modifican los cantos oficiales de SHALOM.",styles.privateText)));
+    h(Image,{source:icons.lock,style:{width:16,height:16,tintColor:theme.muted},resizeMode:"contain",accessible:false}),label("Tus composiciones son privadas y no modifican los cantos oficiales de SHALOM.",styles.privateText)));
  }
  function createView(){
   const title=createKind==="misa"?"Nueva misa":createKind==="repertorio"?"Nuevo repertorio":"Nuevo popurrí";
@@ -282,9 +282,9 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
    label("Dale un nombre. Después podrás elegir los cantos y ordenarlos.",styles.description),
    label("¿Qué vas a preparar?",styles.inputLabel),
    h(View,{style:styles.wrap},
-    chip("♧ Misa",createKind==="misa",()=>setCreateKind("misa")),
-    chip("▣ Repertorio",createKind==="repertorio",()=>setCreateKind("repertorio")),
-    chip("♫ Popurrí",createKind==="popurri",()=>setCreateKind("popurri"))),
+    chip("Misa",createKind==="misa",()=>setCreateKind("misa")),
+    chip("Repertorio",createKind==="repertorio",()=>setCreateKind("repertorio")),
+    chip("Popurrí",createKind==="popurri",()=>setCreateKind("popurri"))),
    label("Nombre",styles.inputLabel),
    input(createTitle,setCreateTitle,createKind==="misa"?"Ej. Misa del domingo":
     createKind==="repertorio"?"Ej. Ensayo del jueves":"Ej. Alabanzas de entrada"),
@@ -423,7 +423,7 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
     label("Estas son portadas de muestra, no colecciones ni cantos creados.",styles.emptyHint),
     action("+ Crear mi primera colección",()=>startNewFolder())):null,
    h(View,{style:styles.privacyFooter},
-    label("⌂  Guardado solo en este dispositivo. Tus misas y popurrís no modifican los cantos oficiales.",styles.privateText)));
+    h(Image,{source:icons.lock,style:{width:16,height:16,tintColor:theme.muted},resizeMode:"contain",accessible:false}),label("Guardado solo en este dispositivo. Tus misas y popurrís no modifican los cantos oficiales.",styles.privateText)));
  }
  function folderView(){
   if(!folder)return foldersView();
@@ -437,7 +437,7 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
       label(folder.entries.length+" composiciones · Guardado en tu teléfono",styles.meta)),
      h(Pressable,{onPress:()=>setCustomize(v=>!v),accessibilityRole:"button",
       accessibilityLabel:"Editar portada y colores",style:styles.folderCustomize},
-      label("✎",styles.folderCustomizeIcon)))),
+      h(Image,{source:icons.edit,style:{width:24,height:24,tintColor:theme.text},resizeMode:"contain",accessible:false})))),
    customize?h(View,{style:styles.customizerPanel},
     h(View,{style:styles.actions},
      label("Personalizar mi colección",styles.customTitle),
@@ -453,7 +453,7 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
     action("+ Repertorio",()=>createEntry("repertorio"),true),
     action("Recibir composición",()=>openReceive(folder.id),true)),
    ...folder.entries.map(item=>h(View,{key:item.id,style:styles.entryCard},
-    label(item.kind==="misa"?"⛪ MISA PERSONAL":item.kind==="repertorio"?"▣ REPERTORIO PERSONAL":"♫ POPURRÍ PERSONAL",styles.tag),
+    label(item.kind==="misa"?"MISA PERSONAL":item.kind==="repertorio"?"REPERTORIO PERSONAL":"POPURRÍ PERSONAL",styles.tag),
     label(item.title,styles.cardTitle),
     label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
     h(View,{style:styles.actions},
