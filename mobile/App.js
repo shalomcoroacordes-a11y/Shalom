@@ -45,6 +45,7 @@ const {SongsScreen,ArtistsScreen,CategoriesScreen,RepertoiresScreen,MedleysScree
 const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
 const C=require("./src/palette");
+const {MotionProvider,MotionEntrance,MotionPressable,NavHighlight}=require("./src/motion-ui");
 const HOME_IMAGES={
  logo:require("./assets/home-logo.png"),waves:require("./assets/home-waves.png"),
  banner:require("./assets/home-banner.png"),song:require("./assets/home-song.png"),
@@ -96,6 +97,7 @@ function AppScreen() {
  const [progress,setProgress]=useState("");
  const [error,setError]=useState("");
  const [tab,setTab]=useState("Inicio");
+ const [navWidth,setNavWidth]=useState(0);
  const [detail,setDetail]=useState(null);
  const [lastRead,setLastRead]=useState(null);
  const lastReadRef=useRef(lastRead);
@@ -542,12 +544,13 @@ function AppScreen() {
   h(ScrollView,{ref:readerScrollRef,key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
    contentContainerStyle:immersiveActive?S.immersivePage:isReader?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled",onLayout:e=>{const height=Math.floor(e.nativeEvent.layout.height);setReaderViewport(v=>v===height?v:height);}},
-   h(ReaderScroll.Provider,{value:readerScrollRef},h(ReaderViewport.Provider,{value:readerViewport},settingsOpen?renderSettings():page)),h(View,{style:{height:27}})),
-  !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},
+   h(ReaderScroll.Provider,{value:readerScrollRef},h(ReaderViewport.Provider,{value:readerViewport},settingsOpen?renderSettings():!isReader&&tab!=="Mis colecciones"?h(MotionEntrance,null,page):page)),h(View,{style:{height:27}})),
+  !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav,onLayout:e=>setNavWidth(e.nativeEvent.layout.width)},
+   h(NavHighlight,{width:navWidth,count:tabs.length,index:tabs.findIndex(([name])=>isSelectedTab(tab,name))}),
    ...tabs.map(([name,icon])=>{
     const selected=isSelectedTab(tab,name);
     const homeIcon=HOME_IMAGES[icon];
-    return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
+    return h(MotionPressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(routeForTab(name)),style:[S.navItem,selected&&S.navSelected]},
      h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.muted}],accessible:false}),
      h(Text,{style:[S.navText,selected&&{color:C.green}],numberOfLines:2,
@@ -578,7 +581,7 @@ function AppScreen() {
     onMore:()=>goTab("Más")})
  );
 }
-function App(){return h(SafeAreaProvider,null,h(AppScreen));}
+function App(){return h(SafeAreaProvider,null,h(MotionProvider,null,h(AppScreen)));}
 // La lógica de navegación no contiene definiciones de estilo.
 const S=require("./src/app-styles")(C,MONO);
 const {label,type,inputField,Btn,Card,Chip,SongRow,EntityRow,Photo,AppSectionHeader,AppDetailHeader,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty}=

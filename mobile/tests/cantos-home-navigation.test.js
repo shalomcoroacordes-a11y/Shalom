@@ -30,7 +30,7 @@ assert.match(styles,/cantosFilterChip:/);
 assert.match(styles,/cantosExploreGrid:/);
 assert.match(app,/\["Inicio","Canciones","Repertorios","Mis colecciones","Perfil"\]\.includes\(tab\)/,
  "All five pages use the same header");
-assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View,\{style:S.nav\}/,
+assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View,\{style:S.nav,onLayout:/,
  "All five pages use one common bottom navigation bar");
 assert.match(styles,/nav:\{backgroundColor:C.bg,borderTopWidth:1/);
 assert.match(styles,/navSelected:\{backgroundColor:"transparent"/);

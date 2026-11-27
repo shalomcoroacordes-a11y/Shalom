@@ -1,6 +1,7 @@
 // Home presentation. Personal state, downloads and navigation stay with the root.
 const h=require("react").createElement;
-const {View,Text,TextInput,Pressable,Image}=require("react-native");
+const {View,Text,TextInput,Image}=require("react-native");
+const {MotionPressable}=require("./motion-ui");
 const {normalize,names}=require("./catalog");
 const {personalCounts,officialHighlights}=require("./home-spotlight");
 const {CoverArt}=require("./personal-cover-ui");
@@ -33,11 +34,11 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
     h(View,{style:S.shalomTodayHeader},
      h(View,{style:S.todayTitleWrap},
       h(Image,{source:HOME_IMAGES.calendar,style:{width:24,height:24,tintColor:C.green},resizeMode:"contain"}),label("Hoy en SHALOM",S.shalomTodayHeading)),
-     h(Pressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
+     h(MotionPressable,{onPress:manualSync,disabled:busy,style:S.shalomTodayRefresh,
       accessibilityRole:"button",accessibilityLabel:"Actualizar publicaciones del coro"},
       h(Image,{source:HOME_IMAGES.refresh,style:{width:24,height:24,tintColor:C.green,opacity:busy?.5:1},resizeMode:"contain"}))),
     
-    ...official.map((item,index)=>h(Pressable,{key:item.type+"-"+item.id,
+    ...official.map((item,index)=>h(MotionPressable,{key:item.type+"-"+item.id,
      style:[S.shalomTodayCard,index>0&&S.todayEntryDivider],onPress:()=>{
       if(item.type==="medley"){
        const medley=model.medleys.find(x=>String(x.id)===item.id);
@@ -72,7 +73,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
     h(Btn,{text:"Ver todos los resultados",secondary:true,onPress:()=>goTab("Canciones",{search:homeSearch})})):null,
    h(View,{style:S.spotifyBlock},
     label("Continuar donde te quedaste",S.spotifyHeading),
-    h(Pressable,{style:S.homeRecentCard,onPress:()=>recent?selectSong(recent):goTab("Canciones"),
+    h(MotionPressable,{style:S.homeRecentCard,onPress:()=>recent?selectSong(recent):goTab("Canciones"),
      accessibilityRole:"button",accessibilityLabel:recent?"Continuar con "+recent.title:"Explorar cantos"},
      h(View,{style:{flex:1,minWidth:0}},
       h(Text,{style:S.homeRecentTitle,numberOfLines:1},
@@ -82,7 +83,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
      label("›",S.homeRecentArrow))),
    h(View,{style:S.spotifyBlock},label("Tus accesos",S.spotifyHeading)),
    h(View,{style:S.spotifyShortcuts},...shortcuts.map(([icon,name,subtitle,count,onPress])=>
-    h(Pressable,{key:name,onPress,accessibilityRole:"button",
+    h(MotionPressable,{key:name,onPress,accessibilityRole:"button",
      accessibilityLabel:name+": "+count,style:S.spotifyShortcut},
      h(View,{style:S.spotifyShortcutTop},
       h(View,{style:S.spotifyShortcutSymbolBox},
@@ -91,7 +92,7 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
      h(View,{style:S.spotifyShortcutText},
       label(name,S.spotifyShortcutName),
       label(subtitle,S.spotifyShortcutSubtitle))))),
-   h(Pressable,{style:S.spotifyBannerMini,onPress:goBanner,accessibilityRole:"button",
+   h(MotionPressable,{style:S.spotifyBannerMini,onPress:goBanner,accessibilityRole:"button",
     accessibilityLabel:"Destacado: "+(profile.bannerTitle||"Explorar cantos")},
     h(View,{style:S.spotifyBannerMiniCover},
      h(CoverArt,{preset:profile.bannerPreset,photo:profile.banner||profile.cover,
@@ -107,13 +108,13 @@ function HomeScreen({S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,
      ["Popurrís oficiales","Cantos unidos por SHALOM","medleys","Popurrís"],
      ["Álbumes","Colecciones oficiales","albums","Álbumes"],
      ["Más opciones","Solicitudes y ajustes","more","Más"]
-    ].map(([name,subtitle,icon,destination])=>h(Pressable,{
+    ].map(([name,subtitle,icon,destination])=>h(MotionPressable,{
      key:name,onPress:()=>goTab(destination),style:S.homeTile,accessibilityRole:"button"},
      h(View,{style:S.homeTileIcon},
       h(Image,{source:HOME_IMAGES[icon],style:S.homeTileImage,resizeMode:"contain"})),
      h(View,{style:{flex:1,minWidth:0}},label(name,S.homeTileName),label(subtitle,S.homeTileSubtitle)))))),
 
-   !copy?.syncedAt?h(Pressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
+   !copy?.syncedAt?h(MotionPressable,{style:S.homeNeedsSync,onPress:()=>setSettingsOpen(true),accessibilityRole:"button"},
     label("↓ Descargar cancionero sin conexión  ›",S.homeSyncText)):null,
    busy?label("Sincronizando… "+progress,S.info):null,error?label(error,S.error):null);
  }

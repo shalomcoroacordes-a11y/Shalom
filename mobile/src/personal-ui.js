@@ -12,6 +12,7 @@ const {useCollectionSections,CollectionSectionControls,CollectionSectionScore}=r
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme=require("./palette");
+const {MotionEntrance,MotionPressable}=require("./motion-ui");
 const styles=require("./personal-styles")(theme);
 const label=(str,style)=>h(Text,{style:style||styles.text},String(str==null?"":str));
 function action(title,onPress,secondary=false,disabled=false){
@@ -203,7 +204,7 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
  function collectionCard(c){
   const compositions=c.entries.length;
   const fragments=c.entries.reduce((acc,item)=>acc+(item.parts?.length||0),0);
-  return h(Pressable,{key:c.id,style:[styles.collectionCard,{borderBottomColor:c.color}],
+  return h(MotionPressable,{key:c.id,style:[styles.collectionCard,{borderBottomColor:c.color}],
    accessibilityRole:"button",accessibilityLabel:"Abrir colección "+c.name,
    onPress:()=>openFolder(c)},
    h(CoverArt,{preset:c.coverPreset,photo:c.coverPhoto,color:c.color,height:124}),
@@ -221,7 +222,7 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
  function kindTile(kind,caption){
   const name=kind==="misa"?"Misa":kind==="popurri"?"Popurrí":"Repertorio";
   const symbol=kind==="misa"?"mass":kind==="popurri"?"medleys":"repertoires";
-  return h(Pressable,{key:kind,onPress:()=>startCreate(kind),
+  return h(MotionPressable,{key:kind,onPress:()=>startCreate(kind),
    style:styles.quickTile,accessibilityRole:"button",accessibilityLabel:"Crear "+name.toLowerCase()},
    h(Image,{source:icons[symbol],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}), label(kind==="repertorio"?"Nuevo Repertorio":"Nueva "+name,styles.quickTileText),
    label(caption,styles.quickTileCaption));
@@ -588,8 +589,8 @@ function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,co
  if(view==="share")return shareView();
  if(view==="import")return receiveView();
  if(view==="create")return createView();
- if(view==="folder")return folderView();
- if(view==="folders")return foldersView();
+ if(view==="folder")return h(MotionEntrance,{key:"folder"},folderView());
+ if(view==="folders")return h(MotionEntrance,{key:"folders"},foldersView());
  return homeView();
 }
 module.exports=PersonalCollectionsScreen;

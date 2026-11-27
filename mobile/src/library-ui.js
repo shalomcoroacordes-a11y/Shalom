@@ -7,6 +7,7 @@ const {useState}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Image,StyleSheet}=require("react-native");
 const {LinearGradient}=require("expo-linear-gradient");
 const {InitialCover}=require("./visual-ui");
+const {MotionHeart,MotionPressable}=require("./motion-ui");
 const {safeWebUrl}=require("./catalog");
 const h=React.createElement;
 const T={green:palette.green,fg:palette.text,sub:palette.muted,bg:palette.bg};
@@ -45,10 +46,10 @@ function LibrarySongRow({icons={},song,artistName,tone,liked,onOpen,onLike,onOpt
   h(View,{style:{flex:1,minWidth:0}},
    h(Text,{style:S.songTitle,numberOfLines:2},song.title||"Sin título"),
    h(Text,{style:S.songMeta,numberOfLines:1},[artistName,tone?"Tono "+tone:""].filter(Boolean).join(" · ")||"SHALOM")),
-  h(Pressable,{onPress:e=>stop(e,onLike),style:S.smallTouch,
+  h(MotionPressable,{onPress:e=>stop(e,onLike),style:S.smallTouch,
    accessibilityRole:"button",accessibilityLabel:liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta"},
-   h(Image,{source:icons[liked?"heart-filled":"heart"],style:{width:ICON,height:ICON,tintColor:liked?T.green:T.sub},resizeMode:"contain"})),
-  h(Pressable,{onPress:e=>stop(e,onOptions),style:S.menuTouch,accessibilityRole:"button",
+   h(MotionHeart,{liked,source:icons[liked?"heart-filled":"heart"],style:{width:ICON,height:ICON,tintColor:liked?T.green:T.sub},resizeMode:"contain"})),
+  h(MotionPressable,{onPress:e=>stop(e,onOptions),style:S.menuTouch,accessibilityRole:"button",
    accessibilityLabel:"Opciones de "+(song.title||"canto")},
    h(Image,{source:icons.dots,style:{width:ICON,height:ICON,tintColor:T.sub},resizeMode:"contain"})));
 }

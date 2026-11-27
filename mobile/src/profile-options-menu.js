@@ -2,20 +2,22 @@ const {createStyles,GUTTER}=require("./design-system");
 const palette=require("./palette");
 const React=require("react");
 const {Modal,View,Text,Pressable,StyleSheet,Image}=require("react-native");
+const {useReducedMotion,MotionPressable}=require("./motion-ui");
 const h=React.createElement;
 function ProfileOptionsMenu({icons={},visible,onDismiss,onEdit,onCollections,onBackup,onMore}){
+ const reduced=useReducedMotion();
  const items=[
   ["edit","Editar perfil",onEdit],
   ["repertoires","Mis creaciones",onCollections],
   ["upload","Respaldo y restauración",onBackup],
   ["more","Más opciones",onMore]
  ];
- const option=([symbol,title,action])=>h(Pressable,{key:title,accessibilityRole:"button",
+ const option=([symbol,title,action])=>h(MotionPressable,{key:title,accessibilityRole:"button",
   accessibilityLabel:title,style:S.item,onPress:()=>{onDismiss();action();}},
   h(Image,{source:icons[symbol],resizeMode:"contain",style:{width:24,height:24,tintColor:palette.green}}),
   h(Text,{style:S.name},title),
   h(Text,{style:S.arrow},"›"));
- return h(Modal,{visible,transparent:true,animationType:"slide",onRequestClose:onDismiss,
+ return h(Modal,{visible,transparent:true,animationType:reduced?"none":"slide",onRequestClose:onDismiss,
   statusBarTranslucent:true,accessibilityViewIsModal:true},
   h(View,{style:S.root},
    h(Pressable,{onPress:onDismiss,accessibilityRole:"button",accessibilityLabel:"Cerrar opciones",style:S.backdrop}),

@@ -4,11 +4,13 @@ const React=require("react");
 const {useState}=React;
 const {Modal,View,Text,TextInput,Pressable,ScrollView,StyleSheet,Image,KeyboardAvoidingView,Platform,Alert}=require("react-native");
 const {InitialCover}=require("./visual-ui");
+const {useReducedMotion,MotionPressable}=require("./motion-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const CollectionCueEditor=require("./collection-cue-editor");
 const h=React.createElement;
 const T={bg:palette.bg,panel:palette.panel,surface:palette.panel,line:palette.border,text:palette.text,muted:palette.muted,green:palette.green};
 function SongActionsSheet({icons={},song,liked=false,offline=false,store,onDismiss,context,onSaveCues,onOpenOriginal,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
+ const reduced=useReducedMotion();
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -24,7 +26,7 @@ function SongActionsSheet({icons={},song,liked=false,offline=false,store,onDismi
   close();
  };
  const button=(icon,title,action,subtitle=null,disabled=false,keyValue=title)=>
-  h(Pressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:S.action,
+  h(MotionPressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:S.action,
    accessibilityRole:"button",accessibilityLabel:title,accessibilityState:{disabled:busy||disabled}},
    h(Image,{source:icons[icon],resizeMode:"contain",style:{width:24,height:24,tintColor:icon==="heart-filled"?T.green:T.text}}),
    h(View,{style:{flex:1}},lbl(title,S.actionTitle),
@@ -66,7 +68,7 @@ function SongActionsSheet({icons={},song,liked=false,offline=false,store,onDismi
  const youtubeAvailable=links.some(item=>/youtube\.com|youtu\.be/i.test(item.url));
  const targets=kind?entriesOf(store,kind):[];
  const selectedFolder=store.collections.some(c=>c.id===folderId)?folderId:"";
- return h(Modal,{visible:true,transparent:true,animationType:"slide",onRequestClose:back,statusBarTranslucent:true,
+ return h(Modal,{visible:true,transparent:true,animationType:reduced?"none":"slide",onRequestClose:back,statusBarTranslucent:true,
   accessibilityViewIsModal:true},
   h(KeyboardAvoidingView,{style:S.root,behavior:Platform.OS==="ios"?"padding":undefined},
    h(Pressable,{style:S.dismissLayer,onPress:back,accessibilityRole:"button",accessibilityLabel:"Cerrar opciones"}),
