@@ -1,6 +1,6 @@
 // Session-only scroll positions for catalog lists. Readers retain their own behavior.
 const React=require("react");
-const {ScrollView}=require("react-native");
+const {Animated,AccessibilityInfo}=require("react-native");
 const h=React.createElement;
 const catalogTabs=new Set(["Inicio","Canciones","Artistas","Categorías","Álbumes","Popurrís","Repertorios","Explorar"]);
 function scrollRouteKey({tab,detail,settingsOpen,songLibraryOpen,folderId,folderType}){
@@ -32,17 +32,37 @@ function createScrollSession(memory,route){
   }
  };
 }
-function RememberedScrollView({memory,route,children,...props}){
+function useCatalogMotion(){
+ const [enabled,setEnabled]=React.useState(false);
+ React.useEffect(()=>{
+  let active=true,changed=false;
+  const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",value=>{changed=true;if(active)setEnabled(!value)});
+  AccessibilityInfo.isReduceMotionEnabled().then(value=>{if(active&&!changed)setEnabled(!value)}).catch(()=>{});
+  return()=>{active=false;sub.remove()};
+ },[]);
+ return enabled;
+}
+function RememberedScrollView({memory,route,motionEnabled=false,children,...props}){
  const viewRef=React.useRef(null);
+ const opacity=React.useRef(null);
+ if(!opacity.current)opacity.current=new Animated.Value(1);
+ React.useEffect(()=>{
+  const value=opacity.current;
+  if(!motionEnabled){value.setValue(1);return;}
+  value.setValue(.88);
+  const animation=Animated.timing(value,{toValue:1,duration:160,useNativeDriver:true});
+  animation.start();
+  return()=>animation.stop();
+ },[route,motionEnabled]);
  const sessionRef=React.useRef(null);
  if(!sessionRef.current||sessionRef.current.memory!==memory){
   sessionRef.current={memory,controller:createScrollSession(memory,route)};
  }
  const session=sessionRef.current.controller;
- return h(ScrollView,{...props,ref:viewRef,
+ return h(Animated.ScrollView,{...props,style:[props.style,{opacity:opacity.current}],ref:viewRef,
   onLayout:event=>session.layout(event.nativeEvent.layout.height,viewRef.current?y=>viewRef.current?.scrollTo({y,animated:false}):null),
   onContentSizeChange:(_width,height)=>session.content(height,viewRef.current?y=>viewRef.current?.scrollTo({y,animated:false}):null),
   onScroll:event=>session.scroll(event.nativeEvent.contentOffset.y),scrollEventThrottle:32
  },children);
 }
-module.exports={RememberedScrollView,scrollRouteKey,createScrollSession};
+module.exports={RememberedScrollView,scrollRouteKey,createScrollSession,useCatalogMotion};

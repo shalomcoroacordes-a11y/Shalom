@@ -20,7 +20,8 @@ const SettingsScreen=require("./src/settings-screen-ui");
 const {MoreScreen,ExploreScreen,AlbumsScreen}=require("./src/exploration-screens-ui");
 const {FAVORITES_KEY,parseFavorites,hasFavorite}=require("./src/favorites");
 const HomeScreen=require("./src/home-screen-ui");
-const {RememberedScrollView,scrollRouteKey}=require("./src/screen-scroll");
+const {RememberedScrollView,scrollRouteKey,useCatalogMotion}=require("./src/screen-scroll");
+const ArtistProfile=require("./src/artist-profile-ui");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
 const StudioCollections=require("./src/studio-collections");
@@ -134,6 +135,8 @@ function AppScreen() {
  const previousTabRef=useRef("Inicio");
  const detailHistoryRef=useRef([]);
  const scrollMemoryRef=useRef(new Map());
+ const motionEnabled=useCatalogMotion();
+ const [artistSearch,setArtistSearch]=useState({id:null,value:""});
  const tabHistoryRef=useRef([]);
  const likedRef=useRef([]);
  function showLocalNotice(message,onUndo){
@@ -159,6 +162,7 @@ function AppScreen() {
  function goTab(next,options={}){
   // Tab navigation resets filters; old list positions no longer describe the new list.
   scrollMemoryRef.current=new Map();
+  setArtistSearch({id:null,value:""});
   navigateTab(next,options,{tab,tabHistoryRef,detailHistoryRef,personalNavRef},{
    setProfileMenuOpen,setProfileEditNonce,setPersonalFilter,setActionSongId,setSettingsOpen,setImmersive,setTab,setDetail,
    setSongLibraryOpen,setCountLimit,setFolderType,setFolderId,setQuery,setTypeFilter,setArtistTypeFilter,setMedleyTypeFilter,
@@ -363,23 +367,11 @@ function AppScreen() {
  }
 
  function renderArtistDetail(a){
-  const songs=model.songsForArtist(a.id);
-  const urls=[["YouTube",a.youtube_url],["Spotify",a.spotify_url],
-   ["Instagram",a.instagram_url],["Facebook",a.facebook_url]].filter(x=>safeWebUrl(x[1]));
-  return h(View,null,
-   h(View,{style:S.profileHeader},
-    h(Photo,{url:network.online?a.avatar_url:null,labelText:a.name}),
-    h(View,{style:{flex:1}},label(a.name,S.readerTitle),label(type(a.artist_type),S.eyebrow))),
-   a.description||a.bio?label(a.bio||a.description,S.description):null,
-   urls.length?title("Redes y tutoriales"):null,
-   h(View,{style:S.rowWrap},...urls.map(([name,url])=>h(Btn,{key:name,text:name+" ↗",small:true,secondary:true,onPress:()=>openWeb(url)}))),
-   title("Cantos de "+a.name,songs.length+" cantos"),
-   previewSongs(songs),
-   model.albums.some(al=>al.artist_id===a.id)?title("Álbumes"):null,
-   ...model.albums.filter(al=>al.artist_id===a.id).map(al=>h(EntityRow,{key:al.id,item:al,kind:"album",
-    description:model.songsForAlbum(al.id).length+" cantos",
-    onPress:()=>openDetail({type:"album",id:al.id})}))
-  );
+  const search=artistSearch.id===String(a.id)?artistSearch.value:"";
+  return h(ArtistProfile,{S,C,artist:a,online:network.online,model,search,
+   onSearch:value=>{setArtistSearch({id:String(a.id),value});setCountLimit(80);},
+   countLimit,onMore:()=>setCountLimit(v=>v+80),copy,likedSet,selectSong,toggleLike,
+   onOptions:song=>setActionSongId(String(song.id)),openWeb,openDetail,type,Btn,SectionEmpty});
  }
  function renderAlbumDetail(a){
   const songs=model.songsForAlbum(a.id);
@@ -505,7 +497,7 @@ function AppScreen() {
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(rememberedRoute?RememberedScrollView:ScrollView,{
    key:settingsOpen?"settings":JSON.stringify([detail?.type||tab,detail?.id??null,rememberedRoute]),style:{flex:1},
-   ...(rememberedRoute?{memory:scrollMemoryRef.current,route:rememberedRoute}:{}),
+   ...(rememberedRoute?{memory:scrollMemoryRef.current,route:rememberedRoute,motionEnabled}:{}),
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
@@ -551,6 +543,6 @@ function AppScreen() {
 function App(){return h(SafeAreaProvider,null,h(AppScreen));}
 // La lógica de navegación no contiene definiciones de estilo.
 const S=require("./src/app-styles")(C,MONO);
-const {label,type,inputField,Btn,Card,Chip,SongRow,EntityRow,Photo,AppSectionHeader,AppDetailHeader,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty}=
+const {label,type,inputField,Btn,Card,Chip,SongRow,AppSectionHeader,AppDetailHeader,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty}=
  require("./src/app-components")({styles:S,colors:C,images:HOME_IMAGES,InitialCover});
 module.exports=App;

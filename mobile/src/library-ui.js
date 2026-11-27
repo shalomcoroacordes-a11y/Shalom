@@ -35,14 +35,14 @@ function LibraryChipRow({options,value,onChange}){
    style:[S.chip,code===value&&S.chipSelected]},
    txt(name,[S.chipText,code===value&&S.chipSelectedText]))));
 }
-function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions}){
+function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions,compact=false}){
  const stop=(e,callback)=>{e?.stopPropagation?.();callback()};
- return h(Pressable,{style:S.songRow,onPress:onOpen,accessibilityRole:"button",
+ return h(Pressable,{style:compact?[S.songRow,S.compactSongRow]:S.songRow,onPress:onOpen,accessibilityRole:"button",
   accessibilityLabel:"Abrir "+(song.title||"Canto")},
-  h(InitialCover,{title:song.title,size:57}),
+  h(InitialCover,{title:song.title,size:compact?42:57}),
   h(View,{style:{flex:1,minWidth:0}},
    h(Text,{style:S.songTitle,numberOfLines:2},song.title||"Sin título"),
-   h(Text,{style:S.songMeta,numberOfLines:1},[artistName,tone?"Tono "+tone:""].filter(Boolean).join(" · ")||"SHALOM")),
+   (artistName||tone||!compact)?h(Text,{style:S.songMeta,numberOfLines:1},[artistName,tone?"Tono "+tone:""].filter(Boolean).join(" · ")||"SHALOM"):null),
   h(Pressable,{onPress:e=>stop(e,onLike),style:S.smallTouch,
    accessibilityRole:"button",accessibilityLabel:liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta"},
    h(Text,{style:[S.heart,liked&&S.heartActive]},liked?"♥":"♡")),
@@ -62,12 +62,12 @@ function FavoriteSongCard({song,artistName,onOpen,onLike}){
    h(Text,{style:S.favoriteTitle,numberOfLines:2},song.title||"Canto"),
    h(Text,{style:S.favoriteArtist,numberOfLines:1},artistName||"SHALOM")));
 }
-function ArtistAvatar({artist,size=62}){
- const [failed,setFailed]=useState(false);
- const photo=safeWebUrl(artist?.image_url||artist?.photo_url||artist?.avatar_url||artist?.cover_url||"");
- if(!photo||failed)return h(InitialCover,{title:artist?.name||"Artista",size,round:true});
+function ArtistAvatar({artist,size=62,online=true}){
+ const [failed,setFailed]=useState(null);
+ const photo=online?safeWebUrl(artist?.image_url||artist?.photo_url||artist?.avatar_url||artist?.cover_url||""):null;
+ if(!photo||failed===photo)return h(InitialCover,{title:artist?.name||"Artista",size,round:true});
  return h(Image,{source:{uri:photo},style:{width:size,height:size,borderRadius:size/2,
-  borderWidth:1,borderColor:"#79c9a5"},onError:()=>setFailed(true),resizeMode:"cover"});
+  borderWidth:1,borderColor:"#79c9a5"},onError:()=>setFailed(photo),resizeMode:"cover"});
 }
 function LibraryArtistCard({artist,count,type,onOpen}){
  return h(Pressable,{style:S.artistCard,onPress:onOpen,accessibilityRole:"button",
@@ -106,6 +106,7 @@ const S=StyleSheet.create({
  songRow:{minHeight:75,flexDirection:"row",alignItems:"center",gap:9,paddingHorizontal:8,
   paddingVertical:8,backgroundColor:"#23272e",borderRadius:14,
   borderWidth:1,borderColor:"#363f44"},
+ compactSongRow:{backgroundColor:"transparent",borderWidth:0,borderBottomWidth:1,borderColor:"#354650",borderRadius:0,minHeight:60,paddingHorizontal:0},
  songTitle:{fontSize:14.5,fontWeight:"850",color:T.fg,lineHeight:19},
  songMeta:{color:T.sub,fontSize:11,marginTop:4},
  smallTouch:{width:32,height:45,alignItems:"center",justifyContent:"center"},
@@ -130,4 +131,4 @@ const S=StyleSheet.create({
  artistType:{fontSize:11,color:T.sub,textAlign:"center"},
  artistCount:{fontSize:11,color:T.green,fontWeight:"800",textAlign:"center"}
 });
-module.exports={LibraryHero,LibrarySearch,LibraryChipRow,LibrarySongRow,FavoriteSongCard,LibraryArtistCard};
+module.exports={LibraryHero,LibrarySearch,LibraryChipRow,LibrarySongRow,FavoriteSongCard,LibraryArtistCard,ArtistAvatar};
