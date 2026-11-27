@@ -9,7 +9,7 @@ const native={View:"View",Text:"Text",TextInput:"TextInput",Pressable:"Pressable
 function load(file,dependencies){const m={exports:{}};new Function("require","module",fs.readFileSync(file,"utf8"))(n=>{assert.ok(n in dependencies,"Missing dependency "+n);return dependencies[n]},m);return m.exports;}
 const shared={react:React,"react-native":native,"../styles":{S,C}};
 const controls=load("src/components/Controls.js",shared);
-const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"./Picker":"Picker","./LyricsEditor":"LyricsEditor","./Controls":controls});
+const {Field,CompositeEditor,NestedEditor}=load("src/components/EditorFields.js",{...shared,"../model":model,"../selector":selector,"./Picker":"Picker","./LyricsEditor":"LyricsEditor","./RepertoireEditor":"RepertoireEditor","./Controls":controls});
 const calls=[];const props={form:{lyrics:"G",category_ids:["c"],parts:"[]",kind:"misa"},lists:{categories:[{id:"c",name:"Coro",song_type:"catolico"}],songs:[{id:"s",title:"Canto",tone:"G",lyrics:"[Coro]\nG\nTexto"}]},onChange:(...v)=>calls.push(v),createId:()=>"part-id"};
 const lyrics=Field({...props,spec:["lyrics","Letra","multiline"]});assert.equal(lyrics.type,"LyricsEditor");lyrics.props.onChange("D");assert.deepEqual(calls.pop(),["lyrics","D"]);
 const picker=Field({...props,spec:["category_ids","Categorías","categories"]});assert.equal(picker.type,"Picker");assert.equal(picker.props.multiple,true);assert.deepEqual(picker.props.value,["c"]);picker.props.onChange(["c2"]);assert.deepEqual(calls.pop(),["category_ids",["c2"]]);
@@ -28,3 +28,7 @@ cursor=0;action(CompositeEditor({...cp,value:JSON.stringify(Array.from({length:3
 state=["Tutorial","https://example.com","YouTube","Tutorial","","2","G"];cursor=0;action(NestedEditor({kind:"links",value:[],onChange:v=>updates.push(v)}),"+ Agregar enlace").props.onPress();assert.equal(updates.pop()[0].url,"https://example.com");
 state=["","","YouTube","Tutorial","","4","D"];cursor=0;action(NestedEditor({kind:"capos",value:[],onChange:v=>updates.push(v)}),"+ Agregar capo").props.onPress();assert.deepEqual(updates.pop(),[{label:"Capo 4 · D",capo_position:4,capo_key:"D",sort_order:0}]);
 console.log("Admin: reusable controls, editor fields, relationships, medleys, links and capos verified.");
+
+const repertoireField=Field({...props,spec:["items","Cantos","json"],form:{items:"[]",kind:"misa",event_date:"2026-11-29"}});assert.equal(repertoireField.type,"RepertoireEditor");assert.equal(repertoireField.props.date,"2026-11-29");
+const RE=load("src/components/RepertoireEditor.js",{...shared,"./Controls":controls,"../repertoire-editor-core":require("../src/repertoire-editor-core")});
+state=[];cursor=0;const rTree=RE({value:[],onChange:v=>updates.push(JSON.parse(v)),songs:props.lists.songs,mode:"misa",date:"2026-11-29"});flat(rTree).find(n=>n.props.accessibilityLabel==="Agregar Canto").props.onPress();assert.deepEqual(updates.pop(),[{song_id:"s",moment:"Entrada",notes:""}]);

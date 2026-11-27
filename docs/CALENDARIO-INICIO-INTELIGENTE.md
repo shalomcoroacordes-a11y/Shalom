@@ -26,3 +26,6 @@ Se reutilizan el motor litúrgico, las referencias, el renderizador de cuadrícu
 
 ## Sexta etapa: calendario Admin Android
 Agenda nativa dentro de Catálogo > Repertorios, acceso desde Inicio, fechas y referencias compartidas con web. Se distinguen registros de servidor, borradores locales y conflictos. Creación con tipo y fecha iniciales mediante el editor existente, sin publicar automáticamente; conserva la cola, revisión de permisos y propietario de sesión. El modo offline usa la copia local existente. Metro observa el directorio compartido; CI de Admin se activa al cambiar el motor litúrgico. Pendientes prueba de APK y de sesión real, editor visual de cantos del repertorio y cobertura anual.
+
+## Séptima etapa: editor de repertorios Admin Android
+Sección Datos y Cantos; filas compactas expandibles, búsqueda por título o tono, paginación, momento de inserción y confirmación de quitar. Momentos compartidos con web; alias anteriores conservados al cargar. Advertencia de Gloria solo si existe referencia fechada que lo sustenta. Validación de fecha, lista y publicación vacía. Borradores de repertorios reabren sus arrays como texto JSON válido, sin descartar contenido. Sin modificaciones del catálogo. Pendiente CI y prueba visual; no asigna automáticamente cantos a los momentos.

@@ -11,14 +11,14 @@ const h=React.createElement;
 function EditorScreen({form,selectedType,section,update,adminBack,setSection,lists,localId,editing,studioStatus,openStudio,editorSaving,saveDraft,access,offline}){
   if(!form)return null;
   const specs=FIELDS[selectedType]||[];
-  const song=selectedType==="songs";
+  const song=selectedType==="songs",repertoire=selectedType==="repertoires";
   const available= song && section==="Datos"?specs.filter(x=>!["lyrics","links","capos"].includes(x[0])):
     song&&section==="Letra"?specs.filter(x=>x[0]==="lyrics"):
     song&&section==="Capos"?specs.filter(x=>x[0]==="capos"):
-    song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:specs;
+    song&&section==="Enlaces"?specs.filter(x=>x[0]==="links"):song?[]:repertoire?specs.filter(x=>section==="Cantos"?x[0]==="items":x[0]!=="items"):specs;
   return h(View,{style:{gap:14}},
    h(View,{style:S.apart},h(View,null,txt("Editar "+(TITLES[selectedType]||selectedType),S.kicker),txt(form.title||form.name||"Nuevo contenido",S.section)),button("Volver",adminBack,"secondary")),
-   song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):null,
+   song?wrapChips(["Datos","Letra","Capos","Enlaces","Vista previa"].map(x=>[x,x]),section,setSection):repertoire?wrapChips(["Datos","Cantos"].map(x=>[x,x]),section,setSection):null,
    section==="Vista previa"&&song?h(View,{style:S.preview},
     txt(form.title||"Canto sin título",S.section),
     txt("TONO "+(form.tone||"—")+" · CAPO "+(form.capo_position||0),S.caption),

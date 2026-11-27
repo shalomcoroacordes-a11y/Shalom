@@ -1,0 +1,12 @@
+"use strict";
+const assert=require("node:assert/strict"),R=require("../src/repertoire-editor-core");
+assert.equal(R.canonicalMoment("Ofertorio"),"Presentación de dones");assert.equal(R.canonicalMoment("Salmo"),"Salmo responsorial");assert.equal(R.moments("misa").length,10);
+const rows=[{song_id:"a",notes:"nota"},{song_id:"b",custom:true}];assert.deepEqual(R.moveItem(rows,0,1),[rows[1],rows[0]]);assert.equal(R.moveItem(rows,0,-1),rows);
+assert.equal(R.parseItems("mal"),null);assert.deepEqual(R.parseItems(rows),rows);assert.equal(R.parseItems("[null]"),null);
+assert.equal(R.findSongs([{title:"María",tone:"G"}],"maria").length,1);
+assert.equal(R.warnings({kind:"misa",event_date:"2026-11-29",items:[{moment:"Gloria"}]}).length,1);
+assert.equal(R.warnings({kind:"misa",event_date:"2028-01-02",items:[{moment:"Gloria"}]}).length,0);
+assert.throws(()=>R.validate({kind:"misa",event_date:"2026-02-30",items:[]}),/fecha real/);
+assert.throws(()=>R.validate({kind:"misa",items:[],is_published:true}),/al menos un canto/);
+assert.equal(R.validate({kind:"ensayo",items:rows}),rows);
+console.log("Visual repertoire: non-destructive ordering, search, shared moments, dated guidance and validation verified.");

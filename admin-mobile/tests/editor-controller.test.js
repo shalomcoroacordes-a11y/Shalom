@@ -16,6 +16,7 @@ async function test(){
  begin();e.update("title","Guardado confirmado");refreshFail=true;assert.equal(await e.save(false),true);assert.equal(view.tab,"Pendientes");assert.match(notices.at(-1),/Borrador guardado/);
  begin();e.update("title","Sin letra");e.update("lyrics","");const before=writes.length;assert.equal(await e.save(false),false);assert.equal(writes.length,before);assert.match(dialog[1],/Falta el campo: lyrics/);
  e.begin({owner:"a",table:"repertoires",lists:{},origin:"Catálogo",seed:{kind:"ensayo",event_date:"2026-11-29",is_published:true,title:"Injected"}});assert.equal(view.form.kind,"ensayo");assert.equal(view.form.event_date,"2026-11-29");assert.equal(view.form.is_published,false);assert.equal(view.form.title,"");assert.equal(view.editing.expected,null);e.leave();assert.equal(view.tab,"Catálogo");
+ e.begin({owner:"a",table:"repertoires",lists:{},origin:"Pendientes",fromDraft:{id:"draft-r",body:{title:"Misa guardada",kind:"misa",event_date:"2026-11-29",items:[{song_id:"s",moment:"Entrada"}],is_published:false}}});assert.deepEqual(JSON.parse(view.form.items),[{song_id:"s",moment:"Entrada"}]);assert.equal(view.editing.id,"draft-r");
  console.log("Admin editor: save deduplication, unsaved edits, failure, late response and exit verified.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});

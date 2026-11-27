@@ -7,6 +7,7 @@ const {OPTIONS,displayTitle}=require("../model");
 const {categoryChoices}=require("../selector");
 const Picker=require("./Picker");
 const LyricsEditor=require("./LyricsEditor");
+const RepertoireEditor=require("./RepertoireEditor");
 const {txt,heading,button,chip,input,wrapChips}=require("./Controls");
 const h=React.createElement;
 function CompositeEditor({kind,value,onChange,songs,mode,createId}){
@@ -86,7 +87,8 @@ function Field({spec,form,onChange,lists,createId}){
  }
  if(key==="lyrics")return h(LyricsEditor,{value:value||"",onChange:set});
  if(kind==="links"||kind==="capos")return h(NestedEditor,{kind,value:value||[],onChange:set});
- if(kind==="json"&&["parts","items"].includes(key))return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa",createId});
+ if(kind==="json"&&key==="items")return h(RepertoireEditor,{value:value??"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa",date:form.event_date});
+ if(kind==="json"&&key==="parts")return h(CompositeEditor,{kind:key,value:value||"[]",onChange:set,songs:lists.songs||[],mode:form.kind||"misa",createId});
  return input(label,value,set,{multi:kind==="multiline"||kind==="json",email:kind==="url"});
 }
 function NestedEditor({kind,value,onChange}){

@@ -12,6 +12,7 @@ const S=StyleSheet.create({
  calendarDot:{width:5,height:5,borderRadius:3},
  calendarDetail:{backgroundColor:C.surface,borderRadius:12,padding:12,gap:6},
  calendarEvent:{borderBottomWidth:1,borderColor:C.border,paddingVertical:4},
+ repEditorRow:{paddingVertical:10,gap:8,borderBottomWidth:1,borderColor:C.border},
  body:{paddingHorizontal:16,paddingTop:14,paddingBottom:28,gap:16,flexGrow:1},
  navShell:{paddingHorizontal:12,paddingTop:7,backgroundColor:C.bg},
  nav:{borderWidth:1,borderColor:C.border,backgroundColor:"#11171a",borderRadius:20,padding:5,flexDirection:"row",justifyContent:"space-around"},

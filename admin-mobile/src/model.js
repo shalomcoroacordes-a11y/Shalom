@@ -1,11 +1,12 @@
 "use strict";
+const {validate:validateRepertoire}=require("./repertoire-editor-core");
 const FIELDS=Object.freeze({
  songs:[["title","Título","text",true],["song_type","Tipo","type"],["tone","Tonalidad","text"],["difficulty","Dificultad","difficulty"],["artist_id","Artista principal","artist"],["lyrics","Letra y acordes","multiline",true],["capo_position","Capo principal (0-12)","number"],["capo_key","Figuras con capo","text"],["category_ids","Categorías","categories"],["collaborator_ids","Artistas colaboradores","artists"],["album_id","Álbum","album"],["links","Tutoriales y enlaces","links"],["capos","Versiones de capo","capos"]],
  artists:[["name","Nombre","text",true],["artist_type","Tipo","type"],["description","Descripción","multiline"],["bio","Biografía","multiline"],["avatar_url","Fotografía URL","url"],["cover_url","Portada URL","url"],["youtube_url","YouTube","url"],["spotify_url","Spotify","url"],["instagram_url","Instagram","url"],["facebook_url","Facebook","url"],["featured_song_ids","Canciones destacadas (máx. 3)","featured"]],
  albums:[["title","Nombre del álbum","text",true],["artist_id","Artista","artist"],["description","Descripción","multiline"],["sort_order","Orden","number"]],
  categories:[["name","Categoría","text",true],["song_type","Tipo","category_type"],["parent_id","Categoría principal","category"],["description","Descripción","multiline"],["sort_order","Orden","number"]],
  medleys:[["title","Nombre del popurrí","text",true],["song_type","Tipo","type"],["base_tone","Tonalidad","text"],["description","Descripción","multiline"],["parts","Partes (JSON)","json"],["is_published","Publicado","boolean"]],
- repertoires:[["title","Nombre del repertorio","text",true],["kind","Tipo de repertorio","repertoire_type"],["event_date","Fecha (AAAA-MM-DD)","date"],["location","Lugar","text"],["notes","Notas","multiline"],["items","Cantos y orden (JSON)","json"],["is_published","Publicado","boolean"]],
+ repertoires:[["title","Nombre del repertorio","text",true],["kind","Tipo de repertorio","repertoire_type"],["event_date","Fecha (AAAA-MM-DD)","date"],["location","Lugar","text"],["notes","Notas","multiline"],["items","Cantos y orden","json"],["is_published","Publicado","boolean"]],
  contact_messages:[["status","Estado","request_status"],["admin_notes","Notas internas","multiline"]],
  home_recommendations:[["target_type","Tipo destacado","target_type"],["target_id","ID del contenido","text"],["section_type","Sección","section_type"],["sort_order","Orden","number"],["is_visible","Visible","boolean"]],
  donation_settings:[["title","Título","text",true],["subtitle","Subtítulo","multiline"],["bank_name","Banco","text"],["account_holder","Titular","text"],["account_number","Número de cuenta","text"],["account_type","Tipo de cuenta","text"],["note","Nota","multiline"],["button_text","Texto del botón","text"],["label","Etiqueta","text"],["instructions","Instrucciones","multiline"],["sort_order","Orden","number"],["is_active","Activo","boolean"]],
@@ -45,6 +46,7 @@ function baseRecord(table,form,id) {
   for(const x of out.capos){if(!(Number(x.capo_position)>0&&Number(x.capo_position)<=12)||!String(x.capo_key||"").trim())throw Error("Versión de capo inválida");}
  }
  if(table==="medleys"&&Array.isArray(out.parts))for(const part of out.parts){if(part.studio_gap_ms!=null&&(!Number.isInteger(part.studio_gap_ms)||part.studio_gap_ms<0||part.studio_gap_ms>10000))throw Error("Pausa de Studio inválida (0–10000 ms)");}
+ if(table==="repertoires")out.items=validateRepertoire(out);
  if(table==="artists"&&out.featured_song_ids.length>3)throw Error("Máximo tres canciones destacadas");
  if(table==="categories"&&out.song_type==="mixto")throw Error("Categoría mixta no compatible con la base actual");
  return out;

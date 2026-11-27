@@ -6,7 +6,9 @@ function createEditorController({store,createId,apply,alert,onSaved,onBusy,notic
  let current=null,sequence=0,saving=false,confirming=false;
  function begin({owner,table,record,fromDraft,lists,origin,seed}){
   const scheduled=!record&&!fromDraft&&table==="repertoires"&&seed?draftSeed(seed.kind,seed.event_date):null;
-  const form=fromDraft?{...fromDraft.body}:record?fromServer(table,record,lists):{...initial(table),...scheduled};
+  const form=fromDraft?fromServer(table,fromDraft.body,lists):record?fromServer(table,record,lists):{...initial(table),...scheduled};
+  // Local relationship fields belong to the draft rather than the cached server relations.
+  if(fromDraft&&["songs","artists"].includes(table))Object.assign(form,fromDraft.body);
   const editing={id:fromDraft?.id||record?.id||record?.content_key||(table==="site_content"?"new":createId()),expected:fromDraft?.expected_updated||record?.updated_at||null};
   current={token:++sequence,owner,table,form,editing,origin,baseline:JSON.stringify(form)};
   confirming=false;
