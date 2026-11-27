@@ -32,8 +32,10 @@ assert.match(app,/\["Inicio","Canciones","Repertorios","Mis colecciones","Perfil
  "All five pages use the same header");
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View,\{style:S.nav\}/,
  "All five pages use one common bottom navigation bar");
-assert.match(styles,/nav:\{marginHorizontal:11,marginBottom:8/);
-assert.match(styles,/navSelected:\{backgroundColor:"#063221"/);
+// The approved compact navigation retains margins, touch targets and a single green selection.
+assert.match(styles,/nav:\{marginHorizontal:11,marginBottom:6,[^\n]*minHeight:60/);
+assert.match(styles,/navItem:\{[^\n]*minHeight:52/);
+assert.match(styles,/navSelected:\{backgroundColor:"#123b2e"/);
 assert.match(profile,/toolRow\("⚙","Configuración"/);
 assert.match(personal,/label\("Mis creaciones",styles.collectionTitle\)/);
 assert.match(catalogScreens,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);
