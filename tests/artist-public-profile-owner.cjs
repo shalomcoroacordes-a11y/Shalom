@@ -29,6 +29,8 @@ async function test(){
  assert.equal(modern.title,"Coro & fe | SHALOM");
  assert.match(modern.markup,/Biografía &lt;actual&gt;/);assert.doesNotMatch(modern.markup,/Biografía anterior|JHD_ARTIST_META|javascript:|old\.test/);
  assert.match(modern.markup,/https:\/\/example\.test\/video/);
+ assert.match(modern.markup,/aria-label="Abrir YouTube"/);assert.match(modern.markup,/artist-social-icon artist-social-youtube/);
+ assert.doesNotMatch(modern.markup,/artist-social-spotify/);
  assert.ok(modern.markup.indexOf("Segundo canto")<modern.markup.indexOf("Primer canto"));
  assert.equal(modern.queries.filter(q=>q.table==="artists").length,1);
  assert.equal(modern.queries.filter(q=>q.table==="artist_featured_songs").length,1);
@@ -39,6 +41,11 @@ async function test(){
  assert.match(old.markup,/https:\/\/example\.test\/legacy/);assert.match(old.markup,/No hay canciones destacadas todavía/);
  assert.deepEqual(old.queries.find(q=>q.table==="artists").eq,["slug","perfil-antiguo"]);
  assert.equal(old.queries.filter(q=>q.table==="songs").length,0);
+ const socials=await run({id:"c",name:"Cinco redes",facebook_url:"https://facebook.com/coro",tiktok_url:"https://tiktok.com/@coro",instagram_url:"https://instagram.com/coro",youtube_url:"https://youtube.com/@coro",spotify_url:"https://open.spotify.com/artist/coro"},"?id=c",[]);
+ const names=["Facebook","TikTok","Instagram","YouTube","Spotify"];
+ for(const name of names){assert.ok(socials.markup.includes(`aria-label="Abrir ${name}"`));assert.ok(fs.existsSync(`social-icons/${name.toLowerCase()}.svg`));}
+ assert.equal((socials.markup.match(/class="artist-social-link"/g)||[]).length,5);
+ const css=fs.readFileSync("artist-layout.css","utf8");assert.match(css,/artist-social-link\{[^}]*width:44px;height:44px/);assert.match(css,/artist-social-icon\{[^}]*width:23px;height:23px/);
  console.log("Artist profile: single data owner, modern and legacy fields, safe social URLs, ordered featured songs and empty state verified.");
 }
 test().catch(error=>{console.error(error);process.exitCode=1});

@@ -44,5 +44,5 @@ assert.equal(all(socialScreen,n=>n.type==="Text"&&n.children.includes("Biografí
 assert.equal(all(socialScreen,n=>n.type==="Text"&&n.children.some(c=>typeof c==="string"&&c.includes("JHD_ARTIST_META"))).length,0);
 assert.equal(all(mod.exports({...props,artist:{id:"empty",name:"Sin redes"}}),n=>n.props.accessibilityRole==="link").length,0);
 const generator=fs.readFileSync("scripts/generate_icons.py","utf8");
-for(const key of ["facebook","tiktok","instagram","youtube","spotify"])assert.ok(generator.includes('"'+key+'":'));
+for(const key of ["facebook","tiktok","instagram","youtube","spotify"]){assert.ok(generator.includes('"'+key+'"'));assert.match(fs.readFileSync("../social-icons/"+key+".svg","utf8"),/<svg[^>]*viewBox="0 0 24 24"/);}
 console.log("Artist profile: search, offline avatar, safe monochrome social links and real song actions verified.");
