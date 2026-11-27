@@ -20,6 +20,7 @@ const SettingsScreen=require("./src/settings-screen-ui");
 const {MoreScreen,ExploreScreen,AlbumsScreen}=require("./src/exploration-screens-ui");
 const {FAVORITES_KEY,parseFavorites,hasFavorite}=require("./src/favorites");
 const HomeScreen=require("./src/home-screen-ui");
+const {RememberedScrollView,scrollRouteKey}=require("./src/screen-scroll");
 const PersonalCollectionsScreen=require("./src/personal-ui");
 const SongActionsSheet=require("./src/song-actions-ui");
 const StudioCollections=require("./src/studio-collections");
@@ -132,6 +133,7 @@ function AppScreen() {
  const [sending,setSending]=useState(false);
  const previousTabRef=useRef("Inicio");
  const detailHistoryRef=useRef([]);
+ const scrollMemoryRef=useRef(new Map());
  const tabHistoryRef=useRef([]);
  const likedRef=useRef([]);
  function showLocalNotice(message,onUndo){
@@ -155,6 +157,8 @@ function AppScreen() {
   [model,query,artistTypeFilter]);
  const homeMatches=useMemo(()=>searchHomeSongs(model,homeSearch,6),[model,homeSearch]);
  function goTab(next,options={}){
+  // Tab navigation resets filters; old list positions no longer describe the new list.
+  scrollMemoryRef.current=new Map();
   navigateTab(next,options,{tab,tabHistoryRef,detailHistoryRef,personalNavRef},{
    setProfileMenuOpen,setProfileEditNonce,setPersonalFilter,setActionSongId,setSettingsOpen,setImmersive,setTab,setDetail,
    setSongLibraryOpen,setCountLimit,setFolderType,setFolderId,setQuery,setTypeFilter,setArtistTypeFilter,setMedleyTypeFilter,
@@ -443,6 +447,7 @@ function AppScreen() {
       onExport:exportMyPersonalBackup,onPick:pickPersonalBackup,
       onRestore:restoreMyPersonalBackup,onBack:back})
    :tab==="Solicitar"?renderRequest():tab==="Más"?renderMore():renderHome();
+ const rememberedRoute=scrollRouteKey({tab,detail,settingsOpen,songLibraryOpen,folderId,folderType});
  return h(SafeAreaView,{style:[S.root,{paddingTop:immersiveActive?0:topInset}],edges:["bottom","left","right"]},
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive&&isReader&&!settingsOpen?h(View,{style:S.songTopBar},
@@ -498,7 +503,9 @@ function AppScreen() {
    section:"Solicitudes",onBack:back
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
-  h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
+  h(rememberedRoute?RememberedScrollView:ScrollView,{
+   key:settingsOpen?"settings":JSON.stringify([detail?.type||tab,detail?.id??null,rememberedRoute]),style:{flex:1},
+   ...(rememberedRoute?{memory:scrollMemoryRef.current,route:rememberedRoute}:{}),
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),

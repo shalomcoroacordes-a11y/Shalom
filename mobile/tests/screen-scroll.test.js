@@ -1,0 +1,32 @@
+const assert=require("node:assert/strict"),fs=require("node:fs"),vm=require("node:vm");
+const mod={exports:{}};
+vm.runInNewContext(fs.readFileSync("src/screen-scroll.js","utf8"),{module:mod,require(name){
+ if(name==="react")return {createElement:()=>null};
+ if(name==="react-native")return {ScrollView:"ScrollView"};
+ throw Error(name);
+}});
+const {scrollRouteKey,createScrollSession}=mod.exports;
+const songs=scrollRouteKey({tab:"Canciones",songLibraryOpen:true});
+const artist=scrollRouteKey({tab:"Artistas",detail:{type:"artist",id:"a"}});
+assert.notEqual(songs,scrollRouteKey({tab:"Canciones",songLibraryOpen:false}));
+assert.notEqual(artist,scrollRouteKey({tab:"Artistas"}));
+assert.notEqual(scrollRouteKey({tab:"Categorías",folderId:"a"}),scrollRouteKey({tab:"Categorías",folderId:"b"}));
+assert.equal(scrollRouteKey({tab:"Canciones",detail:{type:"song",id:"a"}}),null);
+assert.equal(scrollRouteKey({tab:"Inicio",settingsOpen:true}),null);
+const memory=new Map(),calls=[];
+const to=y=>calls.push(y);
+createScrollSession(memory,songs).scroll(740);
+createScrollSession(memory,artist).scroll(230);
+const session=createScrollSession(memory,songs);
+session.scroll(0); // Initial native event must not erase stored position.
+session.content(1600,to);assert.equal(calls.length,0);
+session.layout(500,to);assert.deepEqual(calls,[740]);
+session.content(1800,to);assert.deepEqual(calls,[740],"Restore only once");
+session.scroll(810);assert.equal(memory.get(songs),810);
+const short=createScrollSession(memory,songs);
+short.layout(500,to);short.content(600,to);
+assert.deepEqual(calls,[740,100],"Clamp after content shrinks");
+assert.equal(memory.get(artist),230);
+const fresh=createScrollSession(new Map(),songs);
+fresh.layout(500,to);fresh.content(1000,to);assert.equal(calls.length,2);
+console.log("Catalog scroll: independent routes, restore after layout, clamping and clean navigation verified.");
