@@ -5,7 +5,7 @@ const styles=fs.readFileSync("mobile/src/app-styles.js","utf8");
 const components=fs.readFileSync("mobile/src/app-components.js","utf8");
 assert.match(app,/useSafeAreaInsets/,"Safe-area context must be used");
 assert.match(app,/function AppScreen\(\)/,"App screen is nested inside SafeAreaProvider");
-assert.match(app,/function App\(\)\{return h\(SafeAreaProvider,null,h\(AppScreen\)\);\}/);
+assert.match(app,/function App\(\)\{return h\(SafeAreaProvider,null,h\(MotionProvider,null,h\(AppScreen\)\)\);\}/);
 assert.match(app,/const topInset=Platform\.OS==="android"\?Math\.max\(insets\.top\|\|0,StatusBar\.currentHeight\|\|0\)/,
  "Android reserves at least the system status-bar height");
 assert.match(app,/paddingTop:immersiveActive\?0:topInset/);
