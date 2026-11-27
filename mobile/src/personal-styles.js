@@ -1,7 +1,8 @@
+const {createStyles,type:uiType}=require("./design-system");
 // Estilos de Mis colecciones. Sin estados ni efectos de interfaz.
 const {StyleSheet}=require("react-native");
 module.exports=function createPersonalStyles(theme){
-return StyleSheet.create({
+return createStyles(StyleSheet,{
  editorStep:{gap:7,paddingTop:7,paddingBottom:7},
  searchPanel:{padding:10,backgroundColor:theme.panel,borderRadius:13,gap:4},
  partCompact:{padding:12,borderRadius:13,borderColor:theme.border,borderWidth:1,gap:10,marginBottom:5},
@@ -18,7 +19,7 @@ return StyleSheet.create({
  receiveShortcut:{flexDirection:"row",gap:12,alignItems:"center",paddingHorizontal:13,paddingVertical:13,
   borderRadius:13,backgroundColor:theme.panel,borderColor:theme.border,borderWidth:1},
  receiveIcon:{fontSize:25,color:theme.green,fontWeight:"850"},
- sectionHeading:{fontSize:19,fontWeight:"900",color:theme.text,marginTop:9},
+ sectionHeading:{fontSize:uiType.heading,fontWeight:"900",color:theme.text,marginTop:9},
  creationRow:{backgroundColor:theme.panel,borderWidth:1,borderColor:theme.border,borderRadius:13,
   flexDirection:"row",alignItems:"center",overflow:"hidden",marginVertical:2},
  creationOpen:{flex:1,minWidth:0,padding:11,flexDirection:"row",gap:10,alignItems:"center",minHeight:78},
@@ -36,7 +37,7 @@ return StyleSheet.create({
  collectionRoot:{gap:13,paddingBottom:25},
  collectionHeading:{gap:4,paddingTop:5,marginBottom:2},
  eyebrow:{fontSize:10,fontWeight:"900",letterSpacing:1.1,color:theme.green},
- collectionTitle:{fontSize:25,color:theme.text,fontWeight:"900",lineHeight:33},
+ collectionTitle:{fontSize:uiType.hero,color:theme.text,fontWeight:"900",lineHeight:33},
  collectionSubtitle:{fontSize:12,color:theme.muted,lineHeight:18},
  collectionTopActions:{flexDirection:"row",flexWrap:"wrap",gap:8,marginBottom:5},
  collectionGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:13},

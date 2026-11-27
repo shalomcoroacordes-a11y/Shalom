@@ -1,3 +1,4 @@
+const {createStyles}=require("./design-system");
 const palette=require("./palette");
 const React=require("react");
 const {View,Text,Pressable,StyleSheet}=require("react-native");
@@ -12,7 +13,7 @@ function LocalNotice({notice,onUndo,bottom=80}){
     accessibilityRole:"button",accessibilityLabel:"Deshacer última acción",onPress:onUndo,
     style:S.undoButton},h(Text,{style:S.undoText},"Deshacer")):null));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  overlay:{position:"absolute",left:12,right:12,zIndex:30,elevation:24,alignItems:"center"},
  bar:{flexDirection:"row",alignItems:"center",gap:9,backgroundColor:palette.panel,borderRadius:13,
   borderColor:palette.border,borderWidth:1,paddingHorizontal:13,paddingVertical:12,

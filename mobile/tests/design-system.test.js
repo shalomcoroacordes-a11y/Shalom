@@ -1,0 +1,11 @@
+const assert=require("node:assert/strict");
+const D=require("../src/design-system");
+const fs=require("node:fs");
+assert.equal(D.GUTTER,16);assert.equal(D.ICON,24);assert.equal(D.TOUCH,48);
+assert.deepEqual(D.normalizeStyles({title:{fontWeight:"850"},music:{fontFamily:"monospace",fontWeight:"750"}}),{title:{fontWeight:"700"},music:{fontFamily:"monospace",fontWeight:"750"}});
+const styles=fs.readFileSync("src/app-styles.js","utf8");
+assert.match(styles,/page:\{paddingHorizontal:GUTTER/);
+assert.match(styles,/navSelected:\{backgroundColor:"transparent"/);
+assert.match(styles,/nav:\{backgroundColor:C.bg,borderTopWidth:1/);
+assert.match(styles,/homeNavIcon:\{height:ICON,width:ICON/);
+console.log("Shared spacing, typography and flat navigation verified.");

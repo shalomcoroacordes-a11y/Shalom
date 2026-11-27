@@ -1,3 +1,4 @@
+const {createStyles}=require("./design-system");
 const React=require("react");
 const {View,Text,StyleSheet}=require("react-native");
 const {LinearGradient}=require("expo-linear-gradient");
@@ -24,7 +25,7 @@ function InitialCover({title,size=54,round=false,full=false}){
   h(LinearGradient,{colors,style:S.full}),
   h(Text,{style:[S.letter,{fontSize:Math.max(15,size*.32)}]},initials(title)));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  box:{backgroundColor:"#17674C",overflow:"hidden",alignItems:"center",justifyContent:"center",position:"relative"},
  full:{position:"absolute",top:0,bottom:0,left:0,right:0},
  letter:{fontWeight:"900",color:"#F5F9F6",textAlign:"center"}

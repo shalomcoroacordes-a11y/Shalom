@@ -32,7 +32,9 @@ assert.doesNotMatch(medley,/\.slice\(0,3\)/,"Every tutorial should remain availa
 assert.match(score,/parseSong\(lyrics,delta\)/,"Use the same parser as Cantos");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Use saved section labels in all readers");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/song-section-label/,"Use green chorus and verse labels");
-assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/#27c98b/,"Use SHALOM green for chords");
+const palette=require("../mobile/src/palette");
+const {scoreHtml}=require("../mobile/src/web-score-html");
+assert.ok(scoreHtml([],15).includes("color:"+palette.green+"!important"),"Use shared SHALOM green for chords");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/Courier New/, "Use identical browser font for lyrics");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/overflow-x:auto/,"Support horizontal chord scrolling");
 assert.match(grid,/h\(WebView,\{/,"Browser score remains selectable");
@@ -52,5 +54,5 @@ assert.match(app,/\{text:"Compartir",onPress:shareMultiReading\}/,
 assert.doesNotMatch(app,/style:S\.songActionBar/,
  "No second toolbar under the lyrics");
 assert.match(app,/shareMultiReading/);
-assert.match(styles,/multiPage:\{paddingHorizontal:18/,"Keep comfortable side margins");
+assert.match(styles,/multiPage:\{paddingHorizontal:GUTTER/,"Keep comfortable side margins");
 console.log("SHALOM medley and misa readers match Cantos styling, preserve content, and have usable controls.");

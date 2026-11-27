@@ -1,3 +1,4 @@
+const {createStyles}=require("./design-system");
 const palette=require("./palette");
 const React=require("react");
 const {useState}=React;
@@ -73,7 +74,7 @@ function PersonalBackupScreen({onExport,onPick,onRestore,onBack}){
    text("Los cantos oficiales no se incluyen; en otro teléfono se descargan desde la biblioteca de SHALOM.",S.privacyText)),
   button("← Regresar",onBack,true));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  page:{gap:13,paddingBottom:22},
  title:{fontSize:23,fontWeight:"900",color:T},
  subtitle:{fontSize:12,color:M,lineHeight:18,marginBottom:2},

@@ -1,3 +1,4 @@
+const {createStyles}=require("./design-system");
 const palette=require("./palette");
 const React=require("react");
 const {useState,useEffect}=React;
@@ -14,7 +15,7 @@ const btn=(s,fn,outline=false,disabled=false)=>h(Pressable,{onPress:fn,disabled,
  accessibilityRole:"button",accessibilityLabel:s,
  style:[S.button,outline&&S.outline,disabled&&{opacity:.4}]},
  txt(s,[S.buttonText,outline&&S.outlineText]));
-function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
+function ProfileScreen({icons={},profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
  editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal,onSettings,onBackup,onRequest,onMore}){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState(profile);
@@ -71,7 +72,7 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
  function toolRow(symbol,name,description,onPress){
   return h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,
    style:S.toolRow},
-   h(View,{style:S.toolIcon},txt(symbol,S.toolSymbol)),
+   h(View,{style:S.toolIcon},h(Image,{source:icons[symbol],resizeMode:"contain",style:{width:24,height:24,tintColor:GREEN}})),
    h(View,{style:{flex:1,minWidth:0}},txt(name,S.toolName),txt(description,S.toolDescription)),
    txt("›",S.toolChevron));
  }
@@ -125,17 +126,17 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
     txt("✎",S.simpleEditIcon))),
   h(View,{style:S.simpleDivider}),
   h(View,{style:S.toolList},
-   toolRow("♡","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
-   toolRow("⚙","Configuración","Sincronización y Wi-Fi",onSettings),
-   toolRow("♢","Respaldo y restauración","Guardar tus datos personales",onBackup),
-   toolRow("◌","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
-   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
+   toolRow("heart","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
+   toolRow("settings","Configuración","Sincronización y Wi-Fi",onSettings),
+   toolRow("upload","Respaldo y restauración","Guardar tus datos personales",onBackup),
+   toolRow("song","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
+   toolRow("info","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
   h(View,{style:S.simpleDivider}),
   txt("Misas, repertorios, popurrís y composiciones: entra a Mis creaciones en la barra inferior.",S.simpleFootnote));
 
 
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  page:{gap:13,paddingBottom:18,paddingTop:4},
  profileStats:{flexDirection:"row",backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,borderRadius:18,paddingVertical:14},
  profileStat:{flex:1,alignItems:"center",gap:4},

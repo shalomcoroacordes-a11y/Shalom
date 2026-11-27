@@ -1,3 +1,4 @@
+const {createStyles}=require("./design-system");
 const palette=require("./palette");
 // Estilo visual compartido por Canciones y Artistas. Solo usa datos reales del catálogo.
 // Las canciones siempre muestran iniciales: no se inventan fotos ni duración de audio.
@@ -81,7 +82,7 @@ function LibraryArtistCard({artist,count,type,onOpen}){
    h(Text,{style:S.artistType,numberOfLines:1},type),
    h(Text,{style:S.artistCount,numberOfLines:1},count+" "+(count===1?"canto":"cantos"))));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  hero:{gap:5,paddingHorizontal:1,paddingVertical:6,marginBottom:12},
  heroShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
  heroText:{position:"absolute",left:16,right:16,bottom:18},

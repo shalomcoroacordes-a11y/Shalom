@@ -10,6 +10,7 @@ const fake={exports:{}};
 const context={
  module:fake,exports:fake.exports,
  require(name){
+  if(name==="./design-system")return require("../src/design-system");
   assert.equal(name,"react-native");
   return {StyleSheet:{create:styles=>styles}};
  }
