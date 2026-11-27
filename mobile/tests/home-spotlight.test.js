@@ -61,7 +61,7 @@ const home=fs.readFileSync("src/home-screen-ui.js","utf8");
 assert.match(app,/h\(HomeScreen,\{/);
 const styles=fs.readFileSync("src/app-styles.js","utf8");
 assert.match(home,/personalCounts\(personal,likedIds\)/,"Counters follow persisted local state");
-assert.match(home,/officialHighlights\(model,new Date\(\)\)/,"Feature only real admin published content");
+assert.match(home,/officialHighlights\(context.current\?\{\.\.\.model,repertoires:\[context.current\]\}:model,new Date\(\)\)/,"Prioritize today’s real published choir event");
 assert.match(styles,/spotifyShortcuts:\{flexDirection:"row",flexWrap:"wrap"/,"Four shortcuts form 2x2 grid");
 assert.match(home,/count>0\?label\(count,S.spotifyShortcutCountText\)/,"Hide zero counters");
 assert.match(styles,/spotifyShortcutCountText/,"Nonzero counts remain available");
