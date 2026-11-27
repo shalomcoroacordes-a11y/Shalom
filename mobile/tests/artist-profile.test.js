@@ -3,9 +3,10 @@ const mod={exports:{}};
 const h=(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity).filter(Boolean)});
 vm.runInNewContext(fs.readFileSync("src/artist-profile-ui.js","utf8"),{module:mod,require(name){
  if(name==="react")return {createElement:h};
- if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable"].map(x=>[x,x]));
- if(name==="./catalog")return {safeWebUrl:s=>String(s||"").startsWith("https:"),normalize:s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()};
+ if(name==="react-native")return Object.fromEntries(["View","Text","TextInput","Pressable","Image"].map(x=>[x,x]));
+ if(name==="./catalog")return {safeWebUrl:s=>String(s||"").startsWith("https:")?s:null,normalize:s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()};
  if(name==="./library-ui")return {ArtistAvatar:"ArtistAvatar",LibrarySongRow:"LibrarySongRow"};
+ if(/^\.\.\/assets\/social-[a-z]+\.png$/.test(name))return name;
  throw Error(name);
 }});
 const calls=[],song={id:"1",title:"María",tone:"D"},other={id:"2",title:"Gloria"};
@@ -26,4 +27,22 @@ albums[0].props.onPress();assert.equal(calls.at(-1)[0],"openDetail");
 assert.equal(calls.at(-1)[1].type,"album");assert.equal(calls.at(-1)[1].id,album.id);
 assert.equal(all(screen,n=>n.type==="ArtistAvatar")[0].props.online,false);
 assert.equal(all(mod.exports({...props,search:"nothing"}),n=>n.type==="Empty").length,1);
-console.log("Artist profile: search, offline avatar and real song actions verified.");
+const socialArtist={...artist,facebook_url:"https://facebook.com/coro",instagram_url:"https://instagram.com/coro",spotify_url:"https://open.spotify.com/artist/test",description:'Biografía <!--JHD_ARTIST_META:{"links":{"tiktok":"https://tiktok.com/@coro"}}-->'};
+const socialScreen=mod.exports({...props,artist:socialArtist,C:{green:"#27c98b"}});
+const socialLinks=all(socialScreen,n=>n.props.accessibilityRole==="link");
+assert.equal(socialLinks.length,5);
+for(const link of socialLinks){
+ const image=link.children[0]({pressed:false});
+ assert.equal(image.type,"Image");
+ assert.match(image.props.source,/social-.*\.png$/);
+ assert.equal(image.props.accessible,false);
+ assert.equal(link.children[0]({pressed:true}).props.style[1].tintColor,"#27c98b");
+}
+const tt=socialLinks.find(n=>n.props.accessibilityLabel==="Abrir TikTok");
+tt.props.onPress();assert.deepEqual(calls.at(-1),["openWeb","https://tiktok.com/@coro"]);
+assert.equal(all(socialScreen,n=>n.type==="Text"&&n.children.includes("Biografía")).length,1);
+assert.equal(all(socialScreen,n=>n.type==="Text"&&n.children.some(c=>typeof c==="string"&&c.includes("JHD_ARTIST_META"))).length,0);
+assert.equal(all(mod.exports({...props,artist:{id:"empty",name:"Sin redes"}}),n=>n.props.accessibilityRole==="link").length,0);
+const generator=fs.readFileSync("scripts/generate_icons.py","utf8");
+for(const key of ["facebook","tiktok","instagram","youtube","spotify"])assert.ok(generator.includes('"'+key+'":'));
+console.log("Artist profile: search, offline avatar, safe monochrome social links and real song actions verified.");

@@ -95,3 +95,16 @@ for name, drawing in icons.items():
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
     <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">{drawing}</g></svg>"""
     render_ui(svg, "home-" + name + ".png", 100, 100)
+
+# Social marks: local, transparent and monochrome. The public profile tints
+# these assets with the existing muted/active palette; no remote icon requests.
+social_icons = {
+    "facebook": '<path fill="white" d="M14 22V13h3l.5-3H14V8.2c0-.9.3-1.5 1.6-1.5H18V4a17 17 0 0 0-2.6-.2C12.8 3.8 11 5.4 11 8.4V10H8v3h3v9Z"/>',
+    "tiktok": '<path fill="white" d="M14 2h3c.3 2.7 1.9 4.4 5 4.8V10a8.2 8.2 0 0 1-5-1.7v7.8A6 6 0 1 1 11 10v3.2a2.9 2.9 0 1 0 3 2.9Z"/>',
+    "instagram": '<g stroke="white" stroke-width="1.9" fill="none"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></g><circle cx="17.4" cy="6.7" r="1.1" fill="white"/>',
+    "youtube": '<path fill="white" fill-rule="evenodd" d="M22 7.1c-.2-1.5-1.3-2.5-2.8-2.7A64 64 0 0 0 12 4a64 64 0 0 0-7.2.4C3.3 4.6 2.2 5.6 2 7.1a35 35 0 0 0 0 9.8c.2 1.5 1.3 2.5 2.8 2.7a64 64 0 0 0 14.4 0c1.5-.2 2.6-1.2 2.8-2.7a35 35 0 0 0 0-9.8ZM10 8.5v7l6-3.5Z"/>',
+    "spotify": '<path fill="white" fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM6.2 8.1c4.3-1.4 9.1-.9 12.4 1.3a.9.9 0 0 1-1 1.5C14.5 9 10.3 8.6 6.8 9.8a.9.9 0 1 1-.6-1.7Zm.9 3.4c3.5-1 7.3-.6 10.2 1a.75.75 0 1 1-.8 1.3c-2.5-1.4-5.9-1.7-9-.9a.75.75 0 0 1-.4-1.4Zm.8 3.2c2.8-.8 5.7-.5 8 1a.6.6 0 0 1-.6 1c-2.1-1.3-4.6-1.5-7.1-.8a.6.6 0 0 1-.3-1.2Z"/>'
+}
+for name, drawing in social_icons.items():
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">{drawing}</svg>'
+    render_ui(svg, "social-" + name + ".png", 96, 96)
