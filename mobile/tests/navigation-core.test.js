@@ -80,5 +80,5 @@ navigateTab("Inicio",{},back.state,back.controls);assert.deepEqual(back.state.ta
 const artist={type:"artist",id:"a"},album={type:"album",id:"b"};const f=fixture();f.state.detail=artist;navigateDetail(album,f.state,f.controls);assert.equal(f.values.setDetail,album);assert.equal(f.state.detailHistoryRef.current.at(-1),artist);
 navigateRequest(f.state,f.controls);assert.equal(f.state.previousTabRef.current,"Artistas");assert.equal(f.values.setTab,"Solicitar");assert.deepEqual(f.state.detailHistoryRef.current,[]);
 f.state.tab="Solicitar";navigateRequest(f.state,f.controls);assert.equal(f.state.previousTabRef.current,"Artistas");
-assert.match(source,/onPress:\(\)=>openDetail\(\{type:"album",id:al.id\}\)/);
+// Artist-to-album navigation is exercised through the real profile renderer in artist-profile.test.js.
 console.log("Navigation forward transitions, deep links, filters, album history and repeated request verified.");

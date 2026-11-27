@@ -10,7 +10,8 @@ vm.runInNewContext(fs.readFileSync("src/artist-profile-ui.js","utf8"),{module:mo
 }});
 const calls=[],song={id:"1",title:"María",tone:"D"},other={id:"2",title:"Gloria"};
 const artist={id:"a",name:"Coro",youtube_url:"https://example.com",facebook_url:"javascript:bad"};
-const props={S:{},C:{},artist,online:false,model:{songsForArtist:()=>[song,other],albums:[],songsForAlbum:()=>[]},search:"maria",countLimit:80,copy:{syncedAt:"yes"},likedSet:new Set(["1"]),type:()=>"Católico",Btn:"Btn",SectionEmpty:"Empty"};
+const album={id:"album-1",artist_id:"a",title:"Álbum de prueba"};
+const props={S:{},C:{},artist,online:false,model:{songsForArtist:()=>[song,other],albums:[album,{id:"other",artist_id:"other",title:"Otro álbum"}],songsForAlbum:()=>[song]},search:"maria",countLimit:80,copy:{syncedAt:"yes"},likedSet:new Set(["1"]),type:()=>"Católico",Btn:"Btn",SectionEmpty:"Empty"};
 for(const key of ["onSearch","onMore","selectSong","toggleLike","onOptions","openWeb","openDetail"])props[key]=(...args)=>calls.push([key,...args]);
 const screen=mod.exports(props);
 function all(n,p){return !n||typeof n!=="object"?[]:[...(p(n)?[n]:[]),...(n.children||[]).flatMap(c=>all(c,p))]}
@@ -19,6 +20,10 @@ assert.equal(rows[0].props.song,song);assert.equal(rows[0].props.liked,true);ass
 rows[0].props.onOpen();rows[0].props.onLike();rows[0].props.onOptions();
 assert.deepEqual(calls,[["selectSong",song],["toggleLike","1"],["onOptions",song]]);
 assert.equal(all(screen,n=>n.props.accessibilityRole==="link").length,1);
+const albums=all(screen,n=>n.type==="Pressable"&&n.props.accessibilityRole==="button");
+assert.equal(albums.length,1,"Only albums owned by this artist appear");
+albums[0].props.onPress();assert.equal(calls.at(-1)[0],"openDetail");
+assert.equal(calls.at(-1)[1].type,"album");assert.equal(calls.at(-1)[1].id,album.id);
 assert.equal(all(screen,n=>n.type==="ArtistAvatar")[0].props.online,false);
 assert.equal(all(mod.exports({...props,search:"nothing"}),n=>n.type==="Empty").length,1);
 console.log("Artist profile: search, offline avatar and real song actions verified.");

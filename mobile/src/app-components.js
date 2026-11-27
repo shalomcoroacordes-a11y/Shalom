@@ -91,9 +91,9 @@ function SectionSearch({value,onChangeText,placeholder}){
   accessibilityLabel:placeholder,returnKeyType:"search"});
 }
 function SectionListCard({title,subtitle,meta,icon,onPress}){
- return h(Pressable,{style:S.repCard,onPress,accessibilityRole:"button",
+ return h(Pressable,{style:({pressed})=>[S.catalogListRow,pressed&&S.homePressed],onPress,accessibilityRole:"button",
   accessibilityLabel:[title,subtitle].filter(Boolean).join(", ")},
-  h(InitialCover,{title:title||"Canto",size:53}),
+  h(InitialCover,{title:title||"Canto",size:44}),
   h(View,{style:{flex:1,minWidth:0}},
    h(Text,{style:S.repCardTitle,numberOfLines:2},title||"Sin título"),
    subtitle?h(Text,{style:S.repCardCount,numberOfLines:2},subtitle):null,

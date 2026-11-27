@@ -136,7 +136,7 @@ function AppScreen() {
  const detailHistoryRef=useRef([]);
  const scrollMemoryRef=useRef(new Map());
  const motionEnabled=useCatalogMotion();
- const [artistSearch,setArtistSearch]=useState({id:null,value:""});
+ const [artistSearch,setArtistSearch]=useState({id:null,value:"",limit:80});
  const tabHistoryRef=useRef([]);
  const likedRef=useRef([]);
  function showLocalNotice(message,onUndo){
@@ -162,7 +162,7 @@ function AppScreen() {
  function goTab(next,options={}){
   // Tab navigation resets filters; old list positions no longer describe the new list.
   scrollMemoryRef.current=new Map();
-  setArtistSearch({id:null,value:""});
+  setArtistSearch({id:null,value:"",limit:80});
   navigateTab(next,options,{tab,tabHistoryRef,detailHistoryRef,personalNavRef},{
    setProfileMenuOpen,setProfileEditNonce,setPersonalFilter,setActionSongId,setSettingsOpen,setImmersive,setTab,setDetail,
    setSongLibraryOpen,setCountLimit,setFolderType,setFolderId,setQuery,setTypeFilter,setArtistTypeFilter,setMedleyTypeFilter,
@@ -367,10 +367,11 @@ function AppScreen() {
  }
 
  function renderArtistDetail(a){
-  const search=artistSearch.id===String(a.id)?artistSearch.value:"";
-  return h(ArtistProfile,{S,C,artist:a,online:network.online,model,search,
-   onSearch:value=>{setArtistSearch({id:String(a.id),value});setCountLimit(80);},
-   countLimit,onMore:()=>setCountLimit(v=>v+80),copy,likedSet,selectSong,toggleLike,
+  const id=String(a.id);
+  const state=artistSearch.id===id?artistSearch:{id,value:"",limit:80};
+  return h(ArtistProfile,{S,C,artist:a,online:network.online,model,search:state.value,
+   onSearch:value=>setArtistSearch({id,value,limit:80}),
+   countLimit:state.limit,onMore:()=>setArtistSearch(prev=>prev.id===id?{...prev,limit:prev.limit+80}:{id,value:"",limit:160}),copy,likedSet,selectSong,toggleLike,
    onOptions:song=>setActionSongId(String(song.id)),openWeb,openDetail,type,Btn,SectionEmpty});
  }
  function renderAlbumDetail(a){
@@ -498,7 +499,8 @@ function AppScreen() {
   h(rememberedRoute?RememberedScrollView:ScrollView,{
    key:settingsOpen?"settings":JSON.stringify([detail?.type||tab,detail?.id??null,rememberedRoute]),style:{flex:1},
    ...(rememberedRoute?{memory:scrollMemoryRef.current,route:rememberedRoute,motionEnabled}:{}),
-   contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
+   contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:
+    rememberedRoute&&!(detail?.type==="artist"||(!detail&&tab==="Inicio"))?S.catalogPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},

@@ -3,7 +3,6 @@
 const React=require("react");
 const {useState}=React;
 const {View,Text,TextInput,Pressable,ScrollView,Image,StyleSheet}=require("react-native");
-const {LinearGradient}=require("expo-linear-gradient");
 const {InitialCover}=require("./visual-ui");
 const {safeWebUrl}=require("./catalog");
 const h=React.createElement;
@@ -72,8 +71,6 @@ function ArtistAvatar({artist,size=62,online=true}){
 function LibraryArtistCard({artist,count,type,onOpen}){
  return h(Pressable,{style:S.artistCard,onPress:onOpen,accessibilityRole:"button",
   accessibilityLabel:"Abrir artista "+(artist?.name||"")},
-  h(LinearGradient,{colors:["#1b3e35","#172b32","#182632"],
-   style:S.artistCardShade}),
   h(View,{style:S.artistContent},
    h(ArtistAvatar,{artist,size:64}),
    h(Text,{style:S.artistTitle,numberOfLines:2},artist.name||"Sin nombre"),
@@ -84,7 +81,7 @@ const S=StyleSheet.create({
  hero:{gap:5,paddingHorizontal:1,paddingVertical:6,marginBottom:12},
  heroShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
  heroText:{position:"absolute",left:16,right:16,bottom:18},
- heroTitle:{fontSize:26,fontWeight:"900",lineHeight:33,color:T.fg},
+ heroTitle:{fontSize:25,fontWeight:"750",lineHeight:32,color:T.fg},
  heroSubtitle:{color:"#b0c0c7",fontSize:12.5,lineHeight:19,maxWidth:"100%"},
  searchArea:{flexDirection:"row",gap:8,alignItems:"center",marginBottom:14},
  searchBox:{flex:1,minWidth:0,flexDirection:"row",alignItems:"center",height:47,
@@ -109,10 +106,10 @@ const S=StyleSheet.create({
  compactSongRow:{backgroundColor:"transparent",borderWidth:0,borderBottomWidth:1,borderColor:"#354650",borderRadius:0,minHeight:60,paddingHorizontal:0},
  songTitle:{fontSize:14.5,fontWeight:"850",color:T.fg,lineHeight:19},
  songMeta:{color:T.sub,fontSize:11,marginTop:4},
- smallTouch:{width:32,height:45,alignItems:"center",justifyContent:"center"},
+ smallTouch:{width:44,height:45,alignItems:"center",justifyContent:"center"},
  heart:{fontSize:26,color:"#dfe9e5"},
  heartActive:{color:T.green},
- menuTouch:{width:23,height:43,alignItems:"center",justifyContent:"center"},
+ menuTouch:{width:44,height:44,alignItems:"center",justifyContent:"center"},
  dots:{fontSize:25,color:T.fg,lineHeight:29},
  favorite:{width:137,backgroundColor:"#1b2b34",borderWidth:1,borderColor:"#3a5e51",
   borderRadius:14,overflow:"hidden"},
@@ -123,9 +120,8 @@ const S=StyleSheet.create({
  favoriteBottom:{paddingHorizontal:9,paddingVertical:8,minHeight:56},
  favoriteTitle:{fontSize:12.5,fontWeight:"850",lineHeight:16,color:T.fg},
  favoriteArtist:{fontSize:10.5,color:T.sub,marginTop:3},
- artistCard:{width:"48.5%",minHeight:183,borderRadius:16,overflow:"hidden",
-  borderWidth:1,borderColor:"#3c725c",backgroundColor:"#17342e"},
- artistCardShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
+ artistCard:{width:"48.5%",minHeight:144,borderRadius:12,overflow:"hidden",
+  borderWidth:1,borderColor:"#354650",backgroundColor:"#19222d"},
  artistContent:{flex:1,padding:10,alignItems:"center",justifyContent:"center",gap:7},
  artistTitle:{fontSize:13,fontWeight:"900",color:T.fg,textAlign:"center",lineHeight:17},
  artistType:{fontSize:11,color:T.sub,textAlign:"center"},

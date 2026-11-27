@@ -61,7 +61,7 @@ function SongsScreen({S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOn
      label(eligible.length+" "+(eligible.length===1?"canto":"cantos"),S.libraryCount)),
     h(View,{style:S.libraryList},
      ...eligible.slice(0,countLimit).map(song=>h(LibrarySongRow,{key:song.id,song,
-      artistName:names(song._artists)||type(song.song_type),tone:song.tone,
+      artistName:names(song._artists)||type(song.song_type),tone:song.tone,compact:true,
       liked:likedSet.has(String(song.id)),onOpen:()=>selectSong(song),
       onLike:()=>toggleLike(song.id),onOptions:()=>setActionSongId(String(song.id))})),
      eligible.length>countLimit?h(Btn,{text:"Mostrar más cantos",secondary:true,
