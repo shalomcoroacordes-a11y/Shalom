@@ -39,8 +39,7 @@ const {InitialCover}=require("./src/visual-ui");
 const {SongsScreen,ArtistsScreen,CategoriesScreen,RepertoiresScreen,MedleysScreen}=require("./src/catalog-screens-ui");
 const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
-const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
- text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
+const C=require("./src/palette");
 const HOME_IMAGES={
  logo:require("./assets/home-logo.png"),waves:require("./assets/home-waves.png"),
  banner:require("./assets/home-banner.png"),song:require("./assets/home-song.png"),

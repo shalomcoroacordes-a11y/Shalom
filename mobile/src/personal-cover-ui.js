@@ -1,3 +1,4 @@
+const palette=require("./palette");
 const React=require("react");
 const {View,Text,Pressable,Image,StyleSheet}=require("react-native");
 const {LinearGradient}=require("expo-linear-gradient");
@@ -14,7 +15,7 @@ const PRESETS={
  choir:{label:"Nuestro coro",colors:["#E7A16F","#BC5B7B","#52306D"],symbol:"♪",image:require("../assets/home-artists.png")},
  music:{label:"Notas musicales",colors:["#8F71C2","#49377D","#24355D"],symbol:"♬",image:require("../assets/home-medleys.png")}
 };
-function CoverArt({preset="dove",photo=null,color="#27c98b",height=140,compact=false}){
+function CoverArt({preset="dove",photo=null,color=palette.green,height=140,compact=false}){
  const options=PRESETS[preset]||PRESETS.dove;
  const uri=photoUri(photo);
  return h(View,{style:[S.art,{height,backgroundColor:options.colors[1]}]},
@@ -67,22 +68,22 @@ const S=StyleSheet.create({
  roundIcon:{position:"absolute",alignItems:"center",justifyContent:"center",borderRadius:30,borderWidth:1,borderColor:"rgba(255,255,255,0.6)"},
  picker:{gap:9},
  preview:{borderRadius:14,overflow:"hidden"},
- heading:{fontSize:17,fontWeight:"900",color:"#F4F7F7"},
- subtitle:{fontSize:12,color:"#B0C0C7",lineHeight:18},
- sectionTitle:{fontSize:13,fontWeight:"800",color:"#F4F7F7",marginTop:7},
+ heading:{fontSize:17,fontWeight:"900",color:palette.text},
+ subtitle:{fontSize:12,color:palette.muted,lineHeight:18},
+ sectionTitle:{fontSize:13,fontWeight:"800",color:palette.text,marginTop:7},
  actions:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",gap:9},
- photoButton:{backgroundColor:"#27c98b",borderRadius:12,paddingVertical:11,paddingHorizontal:13,minHeight:42,justifyContent:"center"},
- photoButtonText:{color:"#06291d",fontWeight:"850",fontSize:12},
+ photoButton:{backgroundColor:palette.green,borderRadius:12,paddingVertical:11,paddingHorizontal:13,minHeight:42,justifyContent:"center"},
+ photoButtonText:{color:palette.bg,fontWeight:"850",fontSize:12},
  minorButton:{paddingHorizontal:8,paddingVertical:10},
- minorText:{color:"#B5FFE0",fontWeight:"750",fontSize:12},
+ minorText:{color:palette.green,fontWeight:"750",fontSize:12},
  presetGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:9},
- presetCard:{width:"23.3%",borderWidth:1,borderColor:"#46555e",borderRadius:12,overflow:"hidden",backgroundColor:"#232d39"},
- presetActive:{borderWidth:2,borderColor:"#27c98b"},
- presetName:{fontSize:9,color:"#F4F7F7",textAlign:"center",paddingHorizontal:2,paddingVertical:6},
+ presetCard:{width:"23.3%",borderWidth:1,borderColor:palette.border,borderRadius:12,overflow:"hidden",backgroundColor:palette.panel},
+ presetActive:{borderWidth:2,borderColor:palette.green},
+ presetName:{fontSize:9,color:palette.text,textAlign:"center",paddingHorizontal:2,paddingVertical:6},
  palette:{flexDirection:"row",flexWrap:"wrap",gap:11,marginVertical:5},
  swatch:{width:36,height:36,borderRadius:99,alignItems:"center",justifyContent:"center"},
  selectedSwatch:{borderWidth:3,borderColor:"#ffffff"},
  check:{color:"#fff",fontWeight:"900",fontSize:19},
- hint:{fontSize:11,color:"#B0C0C7",lineHeight:16}
+ hint:{fontSize:11,color:palette.muted,lineHeight:16}
 });
 module.exports={CoverArt,CoverPicker,ColorChoices,PRESETS};

@@ -1,3 +1,4 @@
+const palette=require("./palette");
 const React=require("react");
 const {Modal,View,Text,Pressable,StyleSheet}=require("react-native");
 const h=React.createElement;
@@ -27,16 +28,16 @@ function ProfileOptionsMenu({visible,onDismiss,onEdit,onCollections,onBackup,onM
 const S=StyleSheet.create({
  root:{flex:1,justifyContent:"flex-end"},
  backdrop:{...StyleSheet.absoluteFillObject,backgroundColor:"rgba(0,0,0,.58)"},
- menu:{backgroundColor:"#10181e",borderTopLeftRadius:23,borderTopRightRadius:23,
-  borderTopWidth:1,borderColor:"#456356",paddingHorizontal:17,paddingTop:10,paddingBottom:26},
- handle:{height:5,width:42,borderRadius:4,alignSelf:"center",backgroundColor:"#536762",marginBottom:15},
- heading:{fontSize:18,color:"#f3f8f5",fontWeight:"850",marginBottom:12},
+ menu:{backgroundColor:palette.bg,borderTopLeftRadius:23,borderTopRightRadius:23,
+  borderTopWidth:1,borderColor:palette.border,paddingHorizontal:17,paddingTop:10,paddingBottom:26},
+ handle:{height:5,width:42,borderRadius:4,alignSelf:"center",backgroundColor:palette.muted,marginBottom:15},
+ heading:{fontSize:18,color:palette.text,fontWeight:"850",marginBottom:12},
  item:{minHeight:53,flexDirection:"row",alignItems:"center",gap:13,paddingHorizontal:6,
-  borderBottomColor:"#34453f",borderBottomWidth:1},
- icon:{width:29,textAlign:"center",fontSize:23,color:"#27c98b"},
- name:{flex:1,fontSize:14,fontWeight:"750",color:"#f4f7f7"},
- arrow:{fontSize:23,color:"#879d94"},
- close:{alignItems:"center",padding:12,marginTop:10,borderRadius:12,backgroundColor:"#213a33"},
- closeText:{fontSize:13,color:"#d1f7e5",fontWeight:"750"}
+  borderBottomColor:palette.border,borderBottomWidth:1},
+ icon:{width:29,textAlign:"center",fontSize:23,color:palette.green},
+ name:{flex:1,fontSize:14,fontWeight:"750",color:palette.text},
+ arrow:{fontSize:23,color:palette.muted},
+ close:{alignItems:"center",padding:12,marginTop:10,borderRadius:12,backgroundColor:palette.panel},
+ closeText:{fontSize:13,color:palette.text,fontWeight:"750"}
 });
 module.exports=ProfileOptionsMenu;

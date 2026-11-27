@@ -9,7 +9,7 @@ const {transposeOne}=require("./chords");
 const {readingRows}=require("./personal-reader-core");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
-const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
+const theme=require("./palette");
 const styles=require("./personal-styles")(theme);
 const label=(str,style)=>h(Text,{style:style||styles.text},String(str==null?"":str));
 function action(title,onPress,secondary=false,disabled=false){

@@ -1,10 +1,11 @@
+const palette=require("./palette");
 const React=require("react");
 const {useState}=React;
 const {Modal,View,Text,TextInput,Pressable,ScrollView,StyleSheet,KeyboardAvoidingView,Platform,Alert}=require("react-native");
 const {InitialCover}=require("./visual-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
 const h=React.createElement;
-const T={bg:"#0e1219",panel:"#1a2730",surface:"#233139",line:"#394d52",text:"#f4f7f7",muted:"#b4c5c9",green:"#27c98b"};
+const T={bg:palette.bg,panel:palette.panel,surface:palette.panel,line:palette.border,text:palette.text,muted:palette.muted,green:palette.green};
 function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
@@ -144,8 +145,8 @@ const S=StyleSheet.create({
  root:{flex:1,justifyContent:"flex-end"},
  dismissLayer:{...StyleSheet.absoluteFillObject,backgroundColor:"rgba(0,0,0,0.58)"},
  sheet:{backgroundColor:T.bg,borderTopLeftRadius:24,borderTopRightRadius:24,borderTopWidth:1,
-  borderColor:"#41685b",paddingTop:10,paddingHorizontal:17,paddingBottom:20,maxHeight:"86%"},
- handle:{width:40,height:5,borderRadius:5,backgroundColor:"#50656a",alignSelf:"center",marginBottom:16},
+  borderColor:palette.border,paddingTop:10,paddingHorizontal:17,paddingBottom:20,maxHeight:"86%"},
+ handle:{width:40,height:5,borderRadius:5,backgroundColor:palette.muted,alignSelf:"center",marginBottom:16},
  songHead:{flexDirection:"row",alignItems:"center",gap:11,paddingBottom:14},
  songName:{fontSize:16,fontWeight:"850",color:T.text,lineHeight:22},
  artist:{fontSize:12,color:T.muted,marginTop:4},
@@ -158,12 +159,12 @@ const S=StyleSheet.create({
  actionIcon:{fontSize:25,fontWeight:"550",color:T.text,width:30,textAlign:"center"},
  actionTitle:{fontSize:14,fontWeight:"750",color:T.text},
  actionSub:{fontSize:11,color:T.muted,marginTop:3},
- chevron:{fontSize:23,color:"#698780"},
+ chevron:{fontSize:23,color:palette.muted},
  sectionTitle:{fontSize:18,fontWeight:"850",color:T.text,marginTop:5,marginBottom:4},
  hint:{fontSize:12,color:T.muted,lineHeight:18,marginBottom:8},
- createButton:{backgroundColor:"#145a43",padding:14,alignItems:"center",justifyContent:"center",borderRadius:13,
+ createButton:{backgroundColor:palette.panel,padding:14,alignItems:"center",justifyContent:"center",borderRadius:13,
   borderWidth:1,borderColor:T.green,minHeight:47,marginTop:10},
- createLabel:{fontSize:14,fontWeight:"850",color:"#c7ffe5"},
+ createLabel:{fontSize:14,fontWeight:"850",color:palette.text},
  input:{backgroundColor:T.surface,borderRadius:12,borderWidth:1,borderColor:T.line,minHeight:49,
   fontSize:14,color:T.text,paddingHorizontal:13,marginBottom:6},
  disabled:{opacity:.42},

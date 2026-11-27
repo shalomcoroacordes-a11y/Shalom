@@ -1,3 +1,4 @@
+const palette=require("./palette");
 const React=require("react");
 const {View,Text,Pressable,StyleSheet}=require("react-native");
 const h=React.createElement;
@@ -13,12 +14,12 @@ function LocalNotice({notice,onUndo,bottom=80}){
 }
 const S=StyleSheet.create({
  overlay:{position:"absolute",left:12,right:12,zIndex:30,elevation:24,alignItems:"center"},
- bar:{flexDirection:"row",alignItems:"center",gap:9,backgroundColor:"#202c35",borderRadius:13,
-  borderColor:"#51645e",borderWidth:1,paddingHorizontal:13,paddingVertical:12,
+ bar:{flexDirection:"row",alignItems:"center",gap:9,backgroundColor:palette.panel,borderRadius:13,
+  borderColor:palette.border,borderWidth:1,paddingHorizontal:13,paddingVertical:12,
   shadowColor:"#000",shadowOpacity:.25,shadowRadius:9,maxWidth:520,width:"100%"},
- check:{color:"#27c98b",fontWeight:"900",fontSize:16},
- message:{flex:1,color:"#f1f5f4",fontWeight:"650",fontSize:12.5,lineHeight:18},
+ check:{color:palette.green,fontWeight:"900",fontSize:16},
+ message:{flex:1,color:palette.text,fontWeight:"650",fontSize:12.5,lineHeight:18},
  undoButton:{paddingVertical:7,paddingHorizontal:5,minHeight:37,justifyContent:"center"},
- undoText:{color:"#5ff2b7",fontWeight:"850",fontSize:12.5}
+ undoText:{color:palette.green,fontWeight:"850",fontSize:12.5}
 });
 module.exports=LocalNotice;

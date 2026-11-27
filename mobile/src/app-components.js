@@ -25,7 +25,7 @@ function Btn({text,onPress,small=false,secondary=false,disabled=false}){
 function Card({children,style}){return h(View,{style:[S.card,style]},children)}
 function Chip({text,active=false,onPress}){
  return h(Pressable,{onPress,accessibilityRole:"button",accessibilityLabel:String(text),accessibilityState:{selected:active},style:[S.chip,active&&S.chipActive]},
- label(text,[S.chipText,active&&{color:"#03251a"}]));
+ label(text,[S.chipText,active&&{color:C.bg}]));
 }
 function SongRow({song,onPress}) {
  return h(Pressable,{onPress,style:S.listRow,accessibilityRole:"button",key:song.id},
@@ -81,7 +81,7 @@ function SectionFilterBar({options,value,onChange,compact=false}){
     accessibilityRole:"button",accessibilityLabel:"Filtrar: "+text,
     accessibilityState:{selected},style:[S.repFilterChip,selected&&S.repFilterActive]},
     icon?h(Image,{source:HOME_IMAGES[icon]||HOME_IMAGES.song,resizeMode:"contain",
-     style:[S.repFilterIcon,{tintColor:selected?"#05271d":C.text}]}):null,
+     style:[S.repFilterIcon,{tintColor:selected?C.bg:C.text}]}):null,
     label(text,[S.repFilterText,selected&&S.repFilterTextActive]));
   }));
 }

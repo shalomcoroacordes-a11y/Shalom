@@ -166,7 +166,7 @@ function RepertoiresScreen({S,C,HOME_IMAGES,label,model,repertoireFilter,query,s
       accessibilityState:{selected:active},onPress:()=>setRepertoireFilter(code),
       style:[S.repFilterChip,active&&S.repFilterActive]},
       icon?h(Image,{source:HOME_IMAGES[icon],resizeMode:"contain",
-       style:[S.repFilterIcon,{tintColor:active?"#05271d":C.text}]}):null,
+       style:[S.repFilterIcon,{tintColor:active?C.bg:C.text}]}):null,
       label(name,[S.repFilterText,active&&S.repFilterTextActive]));
     })),
    repertoireSearchOpen?h(TextInput,{style:S.repSearchInput,value:query,onChangeText:setQuery,
