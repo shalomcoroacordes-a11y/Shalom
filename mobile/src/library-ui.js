@@ -1,3 +1,5 @@
+const {createStyles,type,ICON,TOUCH}=require("./design-system");
+const palette=require("./palette");
 // Estilo visual compartido por Canciones y Artistas. Solo usa datos reales del catálogo.
 // Las canciones siempre muestran iniciales: no se inventan fotos ni duración de audio.
 const React=require("react");
@@ -7,7 +9,7 @@ const {LinearGradient}=require("expo-linear-gradient");
 const {InitialCover}=require("./visual-ui");
 const {safeWebUrl}=require("./catalog");
 const h=React.createElement;
-const T={green:"#27c98b",fg:"#f4f7f7",sub:"#c3d5d5",bg:"#0e1219"};
+const T={green:palette.green,fg:palette.text,sub:palette.muted,bg:palette.bg};
 const txt=(text,style)=>h(Text,{style},String(text??""));
 function LibraryHero({title,subtitle}){
  return h(View,{style:S.hero},
@@ -15,16 +17,16 @@ function LibraryHero({title,subtitle}){
   h(Text,{style:S.heroSubtitle},subtitle));
 }
 
-function LibrarySearch({value,onChangeText,placeholder,showFilters=true,onFilters}){
+function LibrarySearch({icons={},value,onChangeText,placeholder,showFilters=true,onFilters}){
  return h(View,{style:S.searchArea},
   h(View,{style:S.searchBox},
-   txt("⌕",S.searchIcon),
-   h(TextInput,{value,onChangeText,style:S.searchInput,placeholder,placeholderTextColor:"#b9caca",
+   h(Image,{source:icons.search,style:{width:ICON,height:ICON,tintColor:T.sub,marginRight:9},resizeMode:"contain"}),
+   h(TextInput,{value,onChangeText,style:S.searchInput,placeholder,placeholderTextColor:palette.muted,
     returnKeyType:"search",autoCorrect:false,accessibilityLabel:placeholder})),
   h(Pressable,{onPress:onFilters,style:[S.filterButton,showFilters&&S.filterActive],
    accessibilityRole:"button",accessibilityLabel:showFilters?"Ocultar filtros":"Mostrar filtros",
    accessibilityState:{expanded:showFilters}},
-   txt("☷",S.filterText)));
+   h(Image,{source:icons.filter,style:{width:ICON,height:ICON,tintColor:showFilters?T.green:T.sub},resizeMode:"contain"})));
 }
 function LibraryChipRow({options,value,onChange}){
  return h(ScrollView,{horizontal:true,showsHorizontalScrollIndicator:false,
@@ -35,7 +37,7 @@ function LibraryChipRow({options,value,onChange}){
    style:[S.chip,code===value&&S.chipSelected]},
    txt(name,[S.chipText,code===value&&S.chipSelectedText]))));
 }
-function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions}){
+function LibrarySongRow({icons={},song,artistName,tone,liked,onOpen,onLike,onOptions}){
  const stop=(e,callback)=>{e?.stopPropagation?.();callback()};
  return h(Pressable,{style:S.songRow,onPress:onOpen,accessibilityRole:"button",
   accessibilityLabel:"Abrir "+(song.title||"Canto")},
@@ -45,10 +47,10 @@ function LibrarySongRow({song,artistName,tone,liked,onOpen,onLike,onOptions}){
    h(Text,{style:S.songMeta,numberOfLines:1},[artistName,tone?"Tono "+tone:""].filter(Boolean).join(" · ")||"SHALOM")),
   h(Pressable,{onPress:e=>stop(e,onLike),style:S.smallTouch,
    accessibilityRole:"button",accessibilityLabel:liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta"},
-   h(Text,{style:[S.heart,liked&&S.heartActive]},liked?"♥":"♡")),
+   h(Image,{source:icons[liked?"heart-filled":"heart"],style:{width:ICON,height:ICON,tintColor:liked?T.green:T.sub},resizeMode:"contain"})),
   h(Pressable,{onPress:e=>stop(e,onOptions),style:S.menuTouch,accessibilityRole:"button",
    accessibilityLabel:"Opciones de "+(song.title||"canto")},
-   txt("⋮",S.dots)));
+   h(Image,{source:icons.dots,style:{width:ICON,height:ICON,tintColor:T.sub},resizeMode:"contain"})));
 }
 function FavoriteSongCard({song,artistName,onOpen,onLike}){
  return h(Pressable,{style:S.favorite,onPress:onOpen,accessibilityRole:"button",
@@ -67,7 +69,7 @@ function ArtistAvatar({artist,size=62}){
  const photo=safeWebUrl(artist?.image_url||artist?.photo_url||artist?.avatar_url||artist?.cover_url||"");
  if(!photo||failed)return h(InitialCover,{title:artist?.name||"Artista",size,round:true});
  return h(Image,{source:{uri:photo},style:{width:size,height:size,borderRadius:size/2,
-  borderWidth:1,borderColor:"#79c9a5"},onError:()=>setFailed(true),resizeMode:"cover"});
+  borderWidth:1,borderColor:palette.green},onError:()=>setFailed(true),resizeMode:"cover"});
 }
 function LibraryArtistCard({artist,count,type,onOpen}){
  return h(Pressable,{style:S.artistCard,onPress:onOpen,accessibilityRole:"button",
@@ -80,40 +82,40 @@ function LibraryArtistCard({artist,count,type,onOpen}){
    h(Text,{style:S.artistType,numberOfLines:1},type),
    h(Text,{style:S.artistCount,numberOfLines:1},count+" "+(count===1?"canto":"cantos"))));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  hero:{gap:5,paddingHorizontal:1,paddingVertical:6,marginBottom:12},
  heroShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
  heroText:{position:"absolute",left:16,right:16,bottom:18},
- heroTitle:{fontSize:26,fontWeight:"900",lineHeight:33,color:T.fg},
- heroSubtitle:{color:"#b0c0c7",fontSize:12.5,lineHeight:19,maxWidth:"100%"},
+ heroTitle:{fontSize:type.hero,fontWeight:"900",lineHeight:33,color:T.fg},
+ heroSubtitle:{color:palette.muted,fontSize:type.secondary,lineHeight:19,maxWidth:"100%"},
  searchArea:{flexDirection:"row",gap:8,alignItems:"center",marginBottom:14},
  searchBox:{flex:1,minWidth:0,flexDirection:"row",alignItems:"center",height:47,
-  backgroundColor:"#181d24",borderColor:"#3a444c",borderWidth:1,borderRadius:14,
+  backgroundColor:palette.panel,borderColor:palette.border,borderWidth:1,borderRadius:14,
   paddingHorizontal:13},
- searchIcon:{fontSize:29,color:"#9eeac3",marginRight:9,lineHeight:33},
+ searchIcon:{fontSize:29,color:palette.green,marginRight:9,lineHeight:33},
  searchInput:{fontSize:13,color:T.fg,flex:1,paddingVertical:7},
- filterButton:{width:48,height:47,borderRadius:14,borderColor:"#3a444c",borderWidth:1,
-  alignItems:"center",justifyContent:"center",backgroundColor:"#23272e"},
- filterActive:{borderColor:"#67a98a"},
+ filterButton:{width:48,height:47,borderRadius:14,borderColor:palette.border,borderWidth:1,
+  alignItems:"center",justifyContent:"center",backgroundColor:palette.panel},
+ filterActive:{borderColor:palette.green},
  filterText:{fontSize:24,color:T.green,lineHeight:29},
  filters:{marginBottom:5},
  filtersBody:{flexDirection:"row",gap:7,paddingVertical:2,paddingBottom:10},
- chip:{minHeight:39,borderRadius:99,borderWidth:1,borderColor:"#3a444c",
-  paddingHorizontal:14,alignItems:"center",justifyContent:"center",backgroundColor:"#23272e"},
+ chip:{minHeight:39,borderRadius:99,borderWidth:1,borderColor:palette.border,
+  paddingHorizontal:14,alignItems:"center",justifyContent:"center",backgroundColor:palette.panel},
  chipSelected:{backgroundColor:T.green,borderColor:T.green},
  chipText:{fontSize:12,fontWeight:"750",color:T.fg},
- chipSelectedText:{color:"#052d1c"},
+ chipSelectedText:{color:palette.bg},
  songRow:{minHeight:75,flexDirection:"row",alignItems:"center",gap:9,paddingHorizontal:8,
-  paddingVertical:8,backgroundColor:"#23272e",borderRadius:14,
-  borderWidth:1,borderColor:"#363f44"},
- songTitle:{fontSize:14.5,fontWeight:"850",color:T.fg,lineHeight:19},
- songMeta:{color:T.sub,fontSize:11,marginTop:4},
- smallTouch:{width:32,height:45,alignItems:"center",justifyContent:"center"},
- heart:{fontSize:26,color:"#dfe9e5"},
+  paddingVertical:8,backgroundColor:palette.panel,borderRadius:14,
+  borderWidth:1,borderColor:palette.border},
+ songTitle:{fontSize:type.body,fontWeight:"850",color:T.fg,lineHeight:19},
+ songMeta:{color:T.sub,fontSize:type.secondary,marginTop:4},
+ smallTouch:{width:TOUCH,height:TOUCH,alignItems:"center",justifyContent:"center"},
+ heart:{fontSize:26,color:palette.text},
  heartActive:{color:T.green},
- menuTouch:{width:23,height:43,alignItems:"center",justifyContent:"center"},
+ menuTouch:{width:TOUCH,height:TOUCH,alignItems:"center",justifyContent:"center"},
  dots:{fontSize:25,color:T.fg,lineHeight:29},
- favorite:{width:137,backgroundColor:"#1b2b34",borderWidth:1,borderColor:"#3a5e51",
+ favorite:{width:137,backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,
   borderRadius:14,overflow:"hidden"},
  favoriteCover:{position:"relative"},
  favoriteHeart:{position:"absolute",right:6,top:3,minWidth:31,minHeight:31,
@@ -123,7 +125,7 @@ const S=StyleSheet.create({
  favoriteTitle:{fontSize:12.5,fontWeight:"850",lineHeight:16,color:T.fg},
  favoriteArtist:{fontSize:10.5,color:T.sub,marginTop:3},
  artistCard:{width:"48.5%",minHeight:183,borderRadius:16,overflow:"hidden",
-  borderWidth:1,borderColor:"#3c725c",backgroundColor:"#17342e"},
+  borderWidth:1,borderColor:palette.border,backgroundColor:palette.panel},
  artistCardShade:{position:"absolute",top:0,bottom:0,left:0,right:0},
  artistContent:{flex:1,padding:10,alignItems:"center",justifyContent:"center",gap:7},
  artistTitle:{fontSize:13,fontWeight:"900",color:T.fg,textAlign:"center",lineHeight:17},

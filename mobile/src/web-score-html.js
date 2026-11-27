@@ -1,3 +1,4 @@
+const palette=require("./palette");
 // HTML autosuficiente para dibujar canciones como la web pública de SHALOM.
 // React Native Text no reproduce de manera consistente las columnas de Courier New
 // con acentos y espacios; Chromium utiliza las mismas reglas que el administrador.
@@ -59,20 +60,20 @@ function scoreHtml(rows,fontSize=15,fit={}){
  const fitHeight=fitMode==="auto"&&Number.isFinite(fit.height)&&fit.height>0?Math.floor(fit.height):0;
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
-  'html,body{margin:0;padding:0;border:0;background:#0e1219;color:#f4f7f7;-webkit-text-size-adjust:none;text-size-adjust:none;}',
+  'html,body{margin:0;padding:0;border:0;background:'+palette.bg+';color:'+palette.text+';-webkit-text-size-adjust:none;text-size-adjust:none;}',
   'body{overflow:hidden;}',
   '.score-scroll{width:100%;max-width:100vw;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}',
   '.song-lyrics{font-family:"Courier New",Courier,monospace!important;font-size:'+size+'px;',
   'font-variant-ligatures:none;letter-spacing:0!important;line-height:1.22;',
   'white-space:pre;width:max-content;min-width:100%;padding:5px 4px 12px;',
-  'box-sizing:border-box;color:#f4f7f7;}',
+  'box-sizing:border-box;color:'+palette.text+';}',
   '.song-line{display:block;margin-bottom:3px;break-inside:avoid;}',
   '.chord-line,.lyric-line,.song-plain-line,.song-standalone-chords{',
   'display:block;min-height:0;white-space:pre!important;line-height:1.22!important;',
   'font-size:1em;font-family:inherit;letter-spacing:0!important;}',
-  '.chord-line,.song-standalone-chords{color:#27c98b!important;font-weight:850;}',
+  '.chord-line,.song-standalone-chords{color:'+palette.green+'!important;font-weight:850;}',
   '.lyric-line,.song-plain-line{font-weight:400;}',
-  '.song-section-label{display:block;color:#27c98b!important;font-weight:850;margin:10px 0 3px;}',
+  '.song-section-label{display:block;color:'+palette.green+'!important;font-weight:850;margin:10px 0 3px;}',
   '.song-empty-line{display:block;height:1.45em;}',
   '.song-lyrics.score-wrapped{width:100%;min-width:0;}',
   '.score-wrapped .song-section-label{white-space:normal;overflow-wrap:anywhere;}',

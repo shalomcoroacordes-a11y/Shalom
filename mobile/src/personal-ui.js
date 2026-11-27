@@ -1,6 +1,6 @@
 const React=require("react");
 const {useState,useEffect}=React;
-const {View,Text,TextInput,Pressable,Share,Alert}=require("react-native");
+const {View,Text,TextInput,Pressable,Share,Alert,Image}=require("react-native");
 const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
@@ -11,7 +11,7 @@ const {CollectionCapoControl,CollectionSongMenu}=require("./music-readers-ui");
 const {useCollectionSections,CollectionSectionControls,CollectionSectionScore}=require("./section-reader-ui");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
-const theme={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0"};
+const theme=require("./palette");
 const styles=require("./personal-styles")(theme);
 const label=(str,style)=>h(Text,{style:style||styles.text},String(str==null?"":str));
 function action(title,onPress,secondary=false,disabled=false){
@@ -30,7 +30,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionScoreRows,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues,onReadingChange,immersiveActive=false,onToggleFullscreen}){
+function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,collectionScoreRows,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues,onReadingChange,immersiveActive=false,onToggleFullscreen}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -216,14 +216,14 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
      h(Text,{style:styles.collectionCardType},"Colección privada"),
      h(Pressable,{onPress:e=>{e?.stopPropagation?.();openFolder(c,true);},
       accessibilityRole:"button",accessibilityLabel:"Personalizar "+c.name,
-      style:styles.collectionCardMore},label("⋮",styles.moreIcon)))));
+      style:styles.collectionCardMore},h(Image,{source:icons.dots,style:{width:24,height:24,tintColor:theme.muted},resizeMode:"contain"})))));
  }
  function kindTile(kind,caption){
   const name=kind==="misa"?"Misa":kind==="popurri"?"Popurrí":"Repertorio";
-  const symbol=kind==="misa"?"♧":kind==="popurri"?"♫":"▣";
+  const symbol=kind==="misa"?"mass":kind==="popurri"?"medleys":"repertoires";
   return h(Pressable,{key:kind,onPress:()=>startCreate(kind),
    style:styles.quickTile,accessibilityRole:"button",accessibilityLabel:"Crear "+name.toLowerCase()},
-   label(symbol,styles.quickTileIcon), label(kind==="repertorio"?"Nuevo Repertorio":"Nueva "+name,styles.quickTileText),
+   h(Image,{source:icons[symbol],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}), label(kind==="repertorio"?"Nuevo Repertorio":"Nueva "+name,styles.quickTileText),
    label(caption,styles.quickTileCaption));
  }
  function homeView(){
@@ -240,7 +240,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
     kindTile("popurri","Une varios cantos")),
    h(Pressable,{onPress:openReceive,accessibilityRole:"button",
     accessibilityLabel:"Recibir una composición por código",style:styles.receiveShortcut},
-    label("↓",styles.receiveIcon),
+    h(Image,{source:icons.download,style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}),
     h(View,{style:{flex:1}},
      label("Recibir composición",styles.cardTitle),
      label("Pega el mensaje que te enviaron por WhatsApp.",styles.meta)),
@@ -254,7 +254,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,collectionS
    ...all.map(({folder:c,entry:item})=>h(View,{key:c.id+"-"+item.id,style:styles.creationRow},
     h(Pressable,{style:styles.creationOpen,onPress:()=>openEntry(item,c,"home"),
      accessibilityRole:"button",accessibilityLabel:"Abrir "+item.title},
-     h(View,{style:styles.creationIcon},label(item.kind==="misa"?"♧":item.kind==="repertorio"?"▣":"♫",styles.creationIconText)),
+     h(View,{style:styles.creationIcon},h(Image,{source:icons[item.kind==="misa"?"mass":item.kind==="repertorio"?"repertoires":"medleys"],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"})),
      h(View,{style:{flex:1,minWidth:0}},
       h(Text,{style:styles.cardTitle,numberOfLines:2},item.title),
       label((item.kind==="misa"?"Misa":item.kind==="repertorio"?"Repertorio":"Popurrí")+

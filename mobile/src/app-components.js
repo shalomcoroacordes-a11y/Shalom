@@ -25,7 +25,7 @@ function Btn({text,onPress,small=false,secondary=false,disabled=false}){
 function Card({children,style}){return h(View,{style:[S.card,style]},children)}
 function Chip({text,active=false,onPress}){
  return h(Pressable,{onPress,accessibilityRole:"button",accessibilityLabel:String(text),accessibilityState:{selected:active},style:[S.chip,active&&S.chipActive]},
- label(text,[S.chipText,active&&{color:"#03251a"}]));
+ label(text,[S.chipText,active&&{color:C.bg}]));
 }
 function SongRow({song,onPress}) {
  return h(Pressable,{onPress,style:S.listRow,accessibilityRole:"button",key:song.id},
@@ -35,9 +35,9 @@ function SongRow({song,onPress}) {
   label("›",S.rowArrow));
 }
 function EntityRow({item,onPress,description,kind}) {
- const categoryIcon=kind==="folder"?(/misa|liturg/i.test(item.name||"")?"⛪":/adoraci/i.test(item.name||"")?"✦":/alabanza/i.test(item.name||"")?"♫":/navidad/i.test(item.name||"")?"★":/pascua/i.test(item.name||"")?"☀":"📁"):null;
+ const categoryIcon=kind==="folder"?(/misa|liturg/i.test(item.name||"")?"mass":"categories"):null;
  return h(Pressable,{onPress,style:S.listRow,accessibilityRole:"button",key:item.id},
-  h(View,{style:S.entityIcon},label(kind==="artist"?"♪":kind==="folder"?categoryIcon:"▣",S.entityEmoji)),
+  h(View,{style:S.entityIcon},h(Image,{source:HOME_IMAGES[kind==="artist"?"artists":kind==="folder"?categoryIcon:"repertoires"],resizeMode:"contain",style:{width:24,height:24,tintColor:C.green}})),
   h(View,{style:{flex:1}},
    label(item.name||item.title||"Sin nombre",S.listTitle),
    label(description||"Abrir detalles",S.rowMeta)),
@@ -53,14 +53,14 @@ function Photo({url,labelText}) {
 function AppSectionHeader({section,onBack,onSettings}){
  return h(View,{style:S.sectionTopBar},
   onBack?h(Pressable,{style:S.sectionHeaderSide,onPress:onBack,accessibilityRole:"button",accessibilityLabel:"Volver"},
-   label("←",S.sectionHeaderArrow)):h(View,{style:S.sectionHeaderSide}),
+   h(Image,{source:HOME_IMAGES.back,resizeMode:"contain",style:{width:24,height:24,tintColor:C.text}})):h(View,{style:S.sectionHeaderSide}),
   h(View,{style:S.sectionHeaderIdentity},
    h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.sectionHeaderLogo,accessibilityLabel:"Logo oficial de SHALOM"}),
    h(View,{style:{flexShrink:1,minWidth:0}},
     label("SHALOM",S.sectionHeaderBrand),
     h(Text,{style:S.sectionHeaderSubtitle,numberOfLines:1},section||"Coro y Alabanza"))),
   onSettings?h(Pressable,{style:S.sectionHeaderSide,onPress:onSettings,accessibilityRole:"button",accessibilityLabel:"Abrir configuración"},
-   label("⚙",S.sectionHeaderGear)):h(View,{style:S.sectionHeaderSide})
+   h(Image,{source:HOME_IMAGES.settings,resizeMode:"contain",style:{width:24,height:24,tintColor:C.text}})):h(View,{style:S.sectionHeaderSide})
  );
 }
 function AppDetailHeader(props){return h(AppSectionHeader,{...props})}
@@ -81,7 +81,7 @@ function SectionFilterBar({options,value,onChange,compact=false}){
     accessibilityRole:"button",accessibilityLabel:"Filtrar: "+text,
     accessibilityState:{selected},style:[S.repFilterChip,selected&&S.repFilterActive]},
     icon?h(Image,{source:HOME_IMAGES[icon]||HOME_IMAGES.song,resizeMode:"contain",
-     style:[S.repFilterIcon,{tintColor:selected?"#05271d":C.text}]}):null,
+     style:[S.repFilterIcon,{tintColor:selected?C.bg:C.text}]}):null,
     label(text,[S.repFilterText,selected&&S.repFilterTextActive]));
   }));
 }

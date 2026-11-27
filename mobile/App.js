@@ -44,8 +44,7 @@ const {InitialCover}=require("./src/visual-ui");
 const {SongsScreen,ArtistsScreen,CategoriesScreen,RepertoiresScreen,MedleysScreen}=require("./src/catalog-screens-ui");
 const {STORE_KEY:PERSONAL_KEY,emptyStore,parseStore}=require("./src/personal-collections");
 const h=React.createElement;
-const C={bg:"#0e1219",panel:"#19222d",sub:"#232d39",border:"#354650",
- text:"#f4f7f7",muted:"#b0c0c7",green:"#27c98b",pale:"#b5ffe0",error:"#ffc4bf",gold:"#ffce53"};
+const C=require("./src/palette");
 const HOME_IMAGES={
  logo:require("./assets/home-logo.png"),waves:require("./assets/home-waves.png"),
  banner:require("./assets/home-banner.png"),song:require("./assets/home-song.png"),
@@ -56,7 +55,24 @@ const HOME_IMAGES={
  menu:require("./assets/home-menu.png"),
  mass:require("./assets/home-mass.png"),
  calendar:require("./assets/home-calendar.png"),
- search:require("./assets/home-search.png")};
+ search:require("./assets/home-search.png"),
+ "profile":require("./assets/home-profile.png"),
+ "heart":require("./assets/home-heart.png"),
+ "heart-filled":require("./assets/home-heart-filled.png"),
+ "settings":require("./assets/home-settings.png"),
+ "back":require("./assets/home-back.png"),
+ "chevron":require("./assets/home-chevron.png"),
+ "dots":require("./assets/home-dots.png"),
+ "refresh":require("./assets/home-refresh.png"),
+ "download":require("./assets/home-download.png"),
+ "upload":require("./assets/home-upload.png"),
+ "edit":require("./assets/home-edit.png"),
+ "info":require("./assets/home-info.png"),
+ "link":require("./assets/home-link.png"),
+ "print":require("./assets/home-print.png"),
+ "fullscreen":require("./assets/home-fullscreen.png"),
+ "play":require("./assets/home-play.png"),
+ "filter":require("./assets/home-filter.png")};
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
 const {tabs,isSelectedTab,routeForTab,readerFullscreenAvailable,navigateTab,navigateDetail,navigateRequest,handleBack}=require("./src/navigation-core");
 const {filterSongs,filterArtists,searchHomeSongs,selectDetailRecords,selectActionSong}=require("./src/library-selectors");
@@ -288,8 +304,8 @@ function AppScreen() {
   return h(SettingsScreen,{S,C,title,label,Card,Btn,copy,model,wifiOnly,changeWifi,busy,manualSync,progress,error,goTab,openWeb});
  }
  function renderHome(){return h(HomeScreen,{S,C,HOME_IMAGES,label,Btn,SongRow,homeSearch,setHomeSearch,homeMatches,lastRead,model,profile,personal,likedIds,goTab,selectSong,selectMedley,selectRepertoire,manualSync,busy,copy,setSettingsOpen,progress,error});}
- function renderSongs(){return h(SongsScreen,{S,C,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId});}
- function renderArtists(){return h(ArtistsScreen,{S,label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail});}
+ function renderSongs(){return h(SongsScreen,{S,C,icons:HOME_IMAGES,label,type,Btn,SectionEmpty,onlyLiked,typeFilter,setOnlyLiked,setTypeFilter,setCountLimit,setSongLibraryOpen,query,setQuery,songLibraryOpen,goTab,copy,busy,manualSync,eligible,countLimit,likedSet,selectSong,toggleLike,setActionSongId});}
+ function renderArtists(){return h(ArtistsScreen,{S,icons:HOME_IMAGES,label,type,Btn,SectionEmpty,filteredArtists,query,setQuery,setCountLimit,libraryFiltersVisible,setLibraryFiltersVisible,artistTypeFilter,setArtistTypeFilter,countLimit,model,openDetail});}
  function renderCategories(){return h(CategoriesScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,folderId,folderType,query,setFolderType,setFolderId,setQuery,sectionSearchOpen,selectSong});}
  function renderMore(){
   return h(MoreScreen,{S,SectionHero,SectionListCard,goTab,requestForm,setSettingsOpen,openWeb});
@@ -454,9 +470,9 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,collectionScoreRows,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{icons:HOME_IMAGES,store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,collectionScoreRows,showReaderCues,setShowReaderCues,onSelectSong:selectSong,onSongOptions:openCollectionSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;},onReadingChange:onPersonalReadingChange,immersiveActive,onToggleFullscreen:toggleFullscreen})
-   :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
+   :tab==="Perfil"?h(ProfileScreen,{icons:HOME_IMAGES,profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
       onOpenPersonal:(folderId,entryId,parts)=>goTab("Mis colecciones",{
        personalNav:{view:parts?"reading":"editing",folderId,entryId,editReturn:"home"}}),
@@ -472,7 +488,7 @@ function AppScreen() {
   h(StatusBar,{barStyle:"light-content",backgroundColor:C.bg,hidden:immersiveActive,animated:true}),
   !immersiveActive&&isReader&&!settingsOpen?h(View,{style:S.songTopBar},
    h(Pressable,{style:S.songBackButton,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Volver a las canciones"},
-    label("‹",S.songBackSymbol)),
+    h(Image,{source:HOME_IMAGES.back,style:S.headerActionIcon,resizeMode:"contain"})),
    h(View,{style:S.songTopBrand},
     h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.songTopLogo}),
     label("SHALOM",S.songTopName)),
@@ -482,10 +498,10 @@ function AppScreen() {
       {text:"Pantalla completa",onPress:()=>setImmersive(true)},
       {text:"Tono original",onPress:()=>{setTranspose(0);setCapo("none")}},
       {text:"Cancelar",style:"cancel"}]),accessibilityRole:"button",accessibilityLabel:active?"Opciones de canción":"Opciones de lectura"},
-     label("⋮",S.songTopMoreText))):
+     h(Image,{source:HOME_IMAGES.dots,style:S.headerActionIcon,resizeMode:"contain"}))):
   !immersiveActive&&!detail&&!settingsOpen&&["Artistas","Categorías","Popurrís","Álbumes","Explorar","Más","Respaldo"].includes(tab)?h(View,{style:S.repTopBar},
    h(Pressable,{style:S.repTopBack,onPress:()=>back(),accessibilityRole:"button",accessibilityLabel:"Regresar"},
-    label("←",S.repTopBackSymbol)),
+    h(Image,{source:HOME_IMAGES.back,style:S.headerActionIcon,resizeMode:"contain"})),
    h(View,{style:S.repTopBrand},
     h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.repTopLogo}),
     h(View,{style:{flex:1,minWidth:0}},
@@ -499,7 +515,7 @@ function AppScreen() {
     h(Image,{source:HOME_IMAGES.search,resizeMode:"contain",style:S.repTopActionIcon})):h(View,{style:S.repTopAction}),
    h(Pressable,{style:S.repTopAction,onPress:()=>tab==="Perfil"?openProfileMenu():tab==="Más"?setSettingsOpen(true):goTab("Más"),
     accessibilityRole:"button",accessibilityLabel:tab==="Más"?"Abrir configuración":"Más opciones"},
-    tab==="Más"?label("⚙",S.sectionHeaderGear):tab==="Perfil"?label("⋯",S.sectionHeaderGear):
+    tab==="Más"?h(Image,{source:HOME_IMAGES.settings,style:S.headerActionIcon,resizeMode:"contain"}):tab==="Perfil"?h(Image,{source:HOME_IMAGES.more,style:S.headerActionIcon,resizeMode:"contain"}):
      h(Image,{source:HOME_IMAGES.more,resizeMode:"contain",style:S.repTopActionIcon}))):
   !immersiveActive&&!detail&&!settingsOpen&&["Inicio","Canciones","Repertorios","Mis colecciones","Perfil"].includes(tab)?h(View,{style:S.homeTopBar},
    h(View,{style:S.spotifyHomeBrand},
@@ -512,7 +528,7 @@ function AppScreen() {
    },accessibilityRole:"button",accessibilityLabel:"Buscar cantos",style:S.homeTopButton},
     h(Image,{source:HOME_IMAGES.search,style:S.homeTopIcon,resizeMode:"contain"})),
    h(Pressable,{onPress:()=>tab==="Perfil"?openProfileMenu():setSettingsOpen(true),accessibilityRole:"button",accessibilityLabel:tab==="Perfil"?"Más opciones del perfil":"Configuración y sincronización del cancionero",style:S.homeTopButton},
-    label("⚙",S.sectionHeaderGear))):
+    h(Image,{source:HOME_IMAGES.settings,style:S.headerActionIcon,resizeMode:"contain"}))):
   !immersiveActive&&settingsOpen?h(AppSectionHeader,{section:"Configuración",onBack:()=>setSettingsOpen(false)}):
   !immersiveActive&&detail&&!isReader?h(AppDetailHeader,{
    section:detail.type==="artist"?"Artista":detail.type==="album"?"Álbum":
@@ -524,23 +540,19 @@ function AppScreen() {
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
   h(ScrollView,{ref:readerScrollRef,key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
-   contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
+   contentContainerStyle:immersiveActive?S.immersivePage:isReader?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled",onLayout:e=>{const height=Math.floor(e.nativeEvent.layout.height);setReaderViewport(v=>v===height?v:height);}},
    h(ReaderScroll.Provider,{value:readerScrollRef},h(ReaderViewport.Provider,{value:readerViewport},settingsOpen?renderSettings():page)),h(View,{style:{height:27}})),
   !immersiveActive&&!settingsOpen&&!isReader?h(View,{style:S.nav},
    ...tabs.map(([name,icon])=>{
-    const selected=isSelectedTab(tab,name)&&!detail;
+    const selected=isSelectedTab(tab,name);
     const homeIcon=HOME_IMAGES[icon];
     return h(Pressable,{key:name,accessibilityRole:"tab",accessibilityState:{selected},
      onPress:()=>goTab(routeForTab(name)),style:[S.navItem,selected&&S.navSelected]},
-     name==="Perfil"?h(View,{style:S.profileNavIcon},
-       h(View,{style:[S.profileNavHead,{borderColor:selected?C.green:C.text}]}),
-       h(View,{style:[S.profileNavBody,{borderColor:selected?C.green:C.text}]})):
-      homeIcon?h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.text}]}):
-      label(icon,[S.navIcon,selected&&{color:C.green}]),
+     h(Image,{source:homeIcon,resizeMode:"contain",style:[S.homeNavIcon,{tintColor:selected?C.green:C.muted}],accessible:false}),
      h(Text,{style:[S.navText,selected&&{color:C.green}],numberOfLines:2,
        adjustsFontSizeToFit:true,minimumFontScale:.78,allowFontScaling:false},name));})) : null,
-  actionSong?h(SongActionsSheet,{key:String(actionSong.id),song:actionSong,
+  actionSong?h(SongActionsSheet,{icons:HOME_IMAGES,key:String(actionSong.id),song:actionSong,
    liked:hasFavorite(likedIds,actionSong.id),offline:Boolean(copy?.syncedAt),
    store:personal,onDismiss:()=>setActionSongId(null),context:actionContext,onSaveCues:actionContext?.personalTarget?value=>{const next=updateOccurrenceCues(personalRef.current,actionContext.personalTarget,actionSong,actionContext.lyrics,actionContext.override,value);savePersonal(next,{notice:"Indicaciones actualizadas solo en esta colección"});}:null,onOpenOriginal:actionContext?()=>selectSong(actionSong):null,
    onLike:()=>toggleLike(actionSong.id),onShare:()=>shareSong(actionSong),
@@ -559,7 +571,7 @@ function AppScreen() {
      clearLocalNotice();
      if(typeof undo==="function")undo();
     }}):null,
-   h(ProfileOptionsMenu,{visible:profileMenuOpen,onDismiss:()=>setProfileMenuOpen(false),
+   h(ProfileOptionsMenu,{icons:HOME_IMAGES,visible:profileMenuOpen,onDismiss:()=>setProfileMenuOpen(false),
     onEdit:()=>setProfileEditNonce(n=>n+1),
     onCollections:()=>goTab("Mis colecciones"),
     onBackup:()=>goTab("Respaldo"),

@@ -1,3 +1,5 @@
+const {createStyles}=require("./design-system");
+const palette=require("./palette");
 const React=require("react");
 const {useState,useEffect}=React;
 const {View,Text,Image,TextInput,Pressable,Alert,StyleSheet}=require("react-native");
@@ -6,14 +8,14 @@ const {CoverArt,PRESETS}=require("./personal-cover-ui");
 const {photoUri,chooseCover}=require("./collection-covers");
 const {BANNER_ACTIONS}=require("./profile-core");
 const h=React.createElement;
-const GREEN="#27c98b",FG="#f4f7f7",MUTED="#b0c0c7";
+const GREEN=palette.green,FG=palette.text,MUTED=palette.muted;
 const ACTION_LABEL={explorar:"Explorar cantos",repertorios:"Ver repertorios",recientes:"Continuar leyendo",favoritos:"Mis me gusta",popurris:"Mis popurrís"};
 const txt=(s,style)=>h(Text,{style},String(s==null?"":s));
 const btn=(s,fn,outline=false,disabled=false)=>h(Pressable,{onPress:fn,disabled,
  accessibilityRole:"button",accessibilityLabel:s,
  style:[S.button,outline&&S.outline,disabled&&{opacity:.4}]},
  txt(s,[S.buttonText,outline&&S.outlineText]));
-function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
+function ProfileScreen({icons={},profile,onChange,likedSongs,personal,openSong,onLiked,onCollections,onSongs,onRepertoires,
  editNonce=0,onEditRequestConsumed,registerBack,onOpenPersonal,onSettings,onBackup,onRequest,onMore}){
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState(profile);
@@ -60,7 +62,7 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
  function profileHeader(data,edit=false){
   return h(View,{style:S.hero},
    h(CoverArt,{preset:"sunrise",photo:data.cover,color:GREEN,height:190}),
-   h(LinearGradient,{colors:["transparent","#0e1219"],style:S.heroGradient}),
+   h(LinearGradient,{colors:["transparent",palette.bg],style:S.heroGradient}),
    h(View,{style:S.profileIdentity},avatar(data,106),
     h(View,{style:{flex:1,minWidth:0}},txt(data.name,S.name),
      txt(data.subtitle,S.subtitle))),
@@ -70,7 +72,7 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
  function toolRow(symbol,name,description,onPress){
   return h(Pressable,{key:name,onPress,accessibilityRole:"button",accessibilityLabel:name,
    style:S.toolRow},
-   h(View,{style:S.toolIcon},txt(symbol,S.toolSymbol)),
+   h(View,{style:S.toolIcon},h(Image,{source:icons[symbol],resizeMode:"contain",style:{width:24,height:24,tintColor:GREEN}})),
    h(View,{style:{flex:1,minWidth:0}},txt(name,S.toolName),txt(description,S.toolDescription)),
    txt("›",S.toolChevron));
  }
@@ -124,25 +126,25 @@ function ProfileScreen({profile,onChange,likedSongs,personal,openSong,onLiked,on
     txt("✎",S.simpleEditIcon))),
   h(View,{style:S.simpleDivider}),
   h(View,{style:S.toolList},
-   toolRow("♡","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
-   toolRow("⚙","Configuración","Sincronización y Wi-Fi",onSettings),
-   toolRow("♢","Respaldo y restauración","Guardar tus datos personales",onBackup),
-   toolRow("◌","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
-   toolRow("ⓘ","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
+   toolRow("heart","Mis me gusta","Tus canciones favoritas",()=>onSongs(true)),
+   toolRow("settings","Configuración","Sincronización y Wi-Fi",onSettings),
+   toolRow("upload","Respaldo y restauración","Guardar tus datos personales",onBackup),
+   toolRow("song","Solicitar canto","Enviar sugerencias o correcciones",onRequest),
+   toolRow("info","Acerca de y donaciones","Información y enlaces de SHALOM",onMore)),
   h(View,{style:S.simpleDivider}),
   txt("Misas, repertorios, popurrís y composiciones: entra a Mis creaciones en la barra inferior.",S.simpleFootnote));
 
 
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  page:{gap:13,paddingBottom:18,paddingTop:4},
- profileStats:{flexDirection:"row",backgroundColor:"#15332d",borderWidth:1,borderColor:"#426e60",borderRadius:18,paddingVertical:14},
+ profileStats:{flexDirection:"row",backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,borderRadius:18,paddingVertical:14},
  profileStat:{flex:1,alignItems:"center",gap:4},
  profileStatIcon:{color:GREEN,fontSize:23,fontWeight:"800"},
  profileStatCount:{color:FG,fontSize:22,fontWeight:"900"},
  profileStatLabel:{color:MUTED,fontSize:10.5},
  profileShortcuts:{flexDirection:"row",gap:10},
- profileShortcut:{flex:1,minHeight:110,padding:12,borderRadius:15,backgroundColor:"#17372f",borderWidth:1,borderColor:"#426e60",justifyContent:"center",gap:5},
+ profileShortcut:{flex:1,minHeight:110,padding:12,borderRadius:15,backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,justifyContent:"center",gap:5},
  profileShortcutIcon:{fontSize:24,color:GREEN},
  profileShortcutTitle:{fontSize:15,color:FG,fontWeight:"850"},
  profileShortcutSub:{fontSize:11,color:MUTED,lineHeight:16},
@@ -151,51 +153,51 @@ const S=StyleSheet.create({
  simpleSubtitle:{fontSize:13,color:MUTED,marginTop:5},
  simpleEdit:{height:44,width:44,alignItems:"center",justifyContent:"center",borderRadius:22},
  simpleEditIcon:{fontSize:23,color:FG},
- simpleDivider:{height:1,backgroundColor:"#34383f",marginVertical:10},
+ simpleDivider:{height:1,backgroundColor:palette.border,marginVertical:10},
  simpleFootnote:{fontSize:11.5,lineHeight:17,color:MUTED,marginTop:6},
  title:{fontSize:28,fontWeight:"900",color:FG,lineHeight:36},
  caption:{fontSize:12,color:MUTED,lineHeight:18},
- hero:{borderRadius:17,overflow:"hidden",height:232,backgroundColor:"#073b32"},
+ hero:{borderRadius:17,overflow:"hidden",height:232,backgroundColor:palette.panel},
  heroGradient:{position:"absolute",left:0,right:0,bottom:0,height:173},
  profileIdentity:{position:"absolute",left:12,right:10,bottom:12,flexDirection:"row",alignItems:"center",gap:12},
- avatar:{borderWidth:3,borderColor:"#a9ffe3",backgroundColor:"#14533f",justifyContent:"center",alignItems:"center",overflow:"hidden"},
+ avatar:{borderWidth:3,borderColor:palette.green,backgroundColor:palette.panel,justifyContent:"center",alignItems:"center",overflow:"hidden"},
  avatarInitial:{color:"#fff",fontWeight:"900"},
  name:{color:FG,fontSize:26,fontWeight:"900"},
- subtitle:{color:"#f1f4f4",fontSize:14,marginTop:3},
+ subtitle:{color:palette.text,fontSize:14,marginTop:3},
  editBubble:{position:"absolute",top:10,right:10,borderRadius:99,width:40,height:40,
-  backgroundColor:"#0c6c50",alignItems:"center",justifyContent:"center"},
+  backgroundColor:palette.panel,alignItems:"center",justifyContent:"center"},
  editBubbleText:{fontSize:23,color:"#fff"},
- metrics:{flexDirection:"row",borderWidth:1,borderColor:"#35584f",borderRadius:17,backgroundColor:"#17312c",
+ metrics:{flexDirection:"row",borderWidth:1,borderColor:palette.border,borderRadius:17,backgroundColor:palette.panel,
   overflow:"hidden",minHeight:80,justifyContent:"space-around",alignItems:"center"},
  metric:{flex:1,alignItems:"center",justifyContent:"center",paddingVertical:10},
  metricIcon:{fontSize:18,color:GREEN,fontWeight:"800"},
  metricNum:{color:FG,fontSize:20,fontWeight:"900"},
- metricCaption:{fontSize:10,color:"#c3d9d3",textAlign:"center",marginTop:3},
+ metricCaption:{fontSize:10,color:palette.muted,textAlign:"center",marginTop:3},
  shortcuts:{flexDirection:"row",justifyContent:"space-between",gap:6},
  sectionHeader:{gap:2,marginTop:10},
  quickGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",rowGap:8},
  shortcut:{width:"48.5%",minHeight:84,padding:12,flexDirection:"row",gap:9,alignItems:"center",
-  borderRadius:13,borderWidth:1,borderColor:"#3a6155",backgroundColor:"#17342f"},
+  borderRadius:13,borderWidth:1,borderColor:palette.border,backgroundColor:palette.panel},
  shortcutIcon:{width:31,height:37,alignItems:"center",justifyContent:"center"},
  shortcutSymbol:{color:GREEN,fontSize:26,fontWeight:"800"},
  shortcutLabel:{fontSize:13,color:"#fff",fontWeight:"850"},
  shortcutDescription:{fontSize:10,color:MUTED,marginTop:3},
  shortcutArrow:{color:GREEN,fontSize:24,fontWeight:"600"},
- toolList:{gap:0,borderTopWidth:1,borderColor:"#354d49"},
+ toolList:{gap:0,borderTopWidth:1,borderColor:palette.border},
  toolRow:{minHeight:70,paddingVertical:12,flexDirection:"row",gap:12,alignItems:"center"},
  toolIcon:{width:30,height:34,alignItems:"center",justifyContent:"center"},
  toolSymbol:{fontSize:21,fontWeight:"600",color:MUTED},
  toolName:{fontSize:15,color:FG,fontWeight:"750"},
  toolDescription:{fontSize:12,color:MUTED,marginTop:4,lineHeight:17},
  toolChevron:{fontSize:23,color:MUTED},
- receiveButton:{backgroundColor:"#1d3036",borderWidth:1,borderColor:"#45635b",
+ receiveButton:{backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,
   borderRadius:14,padding:12,flexDirection:"row",alignItems:"center",gap:11,minHeight:72},
  receiveIcon:{color:GREEN,fontSize:25},
  receiveTitle:{color:FG,fontSize:14,fontWeight:"850"},
  personalItem:{flexDirection:"row",alignItems:"center",gap:10,padding:12,
-  borderBottomWidth:1,borderBottomColor:"#334a4a",minHeight:69},
+  borderBottomWidth:1,borderBottomColor:palette.border,minHeight:69},
  personalIcon:{width:40,height:40,alignItems:"center",justifyContent:"center",
-  borderRadius:10,backgroundColor:"#174633"},
+  borderRadius:10,backgroundColor:palette.panel},
  personalIconText:{color:GREEN,fontSize:22},
  simpleEmpty:{padding:12,gap:9},
  bottomActions:{gap:8,marginTop:8},
@@ -203,7 +205,7 @@ const S=StyleSheet.create({
  sectionTitle:{fontSize:20,color:FG,fontWeight:"900",flex:1},
  more:{color:GREEN,fontSize:13,fontWeight:"850"},
  songItem:{flexDirection:"row",alignItems:"center",gap:10,padding:8,borderRadius:13,
-  borderWidth:1,borderColor:"#385056",backgroundColor:"#1a2c33",minHeight:75},
+  borderWidth:1,borderColor:palette.border,backgroundColor:palette.panel,minHeight:75},
  songTitle:{fontSize:14.5,color:FG,fontWeight:"850"},
  songDesc:{fontSize:12,color:MUTED,marginTop:4},
  heart:{fontSize:26,color:GREEN,paddingHorizontal:6},
@@ -211,17 +213,17 @@ const S=StyleSheet.create({
  rowActions:{flexDirection:"row",flexWrap:"wrap",gap:9},
  button:{minHeight:43,backgroundColor:GREEN,borderRadius:12,paddingHorizontal:14,
   alignItems:"center",justifyContent:"center"},
- buttonText:{fontSize:12,fontWeight:"850",color:"#052418"},
- outline:{backgroundColor:"#19312d",borderColor:"#366c5e",borderWidth:1},
+ buttonText:{fontSize:12,fontWeight:"850",color:palette.bg},
+ outline:{backgroundColor:palette.panel,borderColor:palette.border,borderWidth:1},
  outlineText:{color:FG},
  formTitle:{fontSize:13,fontWeight:"750",color:FG,marginTop:5},
- input:{backgroundColor:"#223038",borderWidth:1,borderColor:"#39555b",borderRadius:12,
+ input:{backgroundColor:palette.panel,borderWidth:1,borderColor:palette.border,borderRadius:12,
   minHeight:47,paddingHorizontal:12,fontSize:14,color:FG},
- divider:{height:1,backgroundColor:"#36514b",marginVertical:7},
+ divider:{height:1,backgroundColor:palette.border,marginVertical:7},
  presetRow:{flexDirection:"row",flexWrap:"wrap",gap:7},
- presetChip:{paddingHorizontal:9,paddingVertical:8,borderWidth:1,borderRadius:99,borderColor:"#426157",backgroundColor:"#182d2d"},
- presetChipActive:{backgroundColor:"#076449",borderColor:GREEN},
+ presetChip:{paddingHorizontal:9,paddingVertical:8,borderWidth:1,borderRadius:99,borderColor:palette.border,backgroundColor:palette.panel},
+ presetChipActive:{backgroundColor:palette.panel,borderColor:GREEN},
  presetText:{color:FG,fontSize:11,fontWeight:"700"},
- infoBox:{borderWidth:1,borderColor:"#35574d",backgroundColor:"#16342c",padding:13,borderRadius:12,gap:9}
+ infoBox:{borderWidth:1,borderColor:palette.border,backgroundColor:palette.panel,padding:13,borderRadius:12,gap:9}
 });
 module.exports={ProfileScreen,ACTION_LABEL};
