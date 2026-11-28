@@ -50,3 +50,8 @@
 
 /* Inline feedback is placed after the exact selected row, not below the form. */
 .cue-phrase-row{display:grid;gap:3px;min-width:0}.cue-phrase-row>.cue-phrase{width:100%}.cue-phrase-heading{color:var(--accent);font-size:12px;font-weight:700;margin:9px 0 3px}.cue-inline-saved{color:var(--accent);font-size:12px;padding:4px 8px;overflow-wrap:anywhere}.cue-phrase-row>.cue-selection-preview{margin:0 0 4px;padding:6px 9px;background:rgba(110,180,145,.08)}
+
+/* Shared proportional score in Studio; original row identity and active chord remain owned by playback. */
+#score .score-proportional{--gold:var(--accent);width:max-content;min-width:0;line-height:1.4}
+#score .score-proportional .chord-line,#score .score-proportional .lyric-line{font-family:Inter,sans-serif!important}
+#score .score-proportional .active-chord{color:#14271a;background:var(--accent)}

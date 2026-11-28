@@ -28,3 +28,5 @@ assert.equal((source.match(/ShalomChords\.render\(/g)||[]).length,2,"All score w
 assert.match(source,/renderPlaybackScore\(track.song.lyrics,track.shift\)/);
 assert.equal((source.match(/renderPlaybackScore\(\$\("source"\).value,move\)/g)||[]).length,2);
 console.log("Studio score reuse: one render for 21 identical reads; source, node and playback invalidation verified.");
+
+assert.match(source,/ShalomStudioScoreView\?\.enhance\(score,source,anchors,chord=>shifted\(chord,move\)\)/);

@@ -62,7 +62,10 @@ function readRows(){
 }
 function renderPlaybackScore(source,move){
  originalScore=null;
- $("score").innerHTML=window.ShalomChords.render(source,{transpose:chord=>shifted(chord,move)});
+ const score=$("score");
+ score.innerHTML=window.ShalomChords.render(source,{transpose:chord=>shifted(chord,move)});
+ // Visual projection only: timing, signatures and playback indices keep their original owners.
+ window.ShalomStudioScoreView?.enhance(score,source,anchors,chord=>shifted(chord,move));
 }
 function divisions(){const m=$("meter").value;$("division").replaceChildren(...core.divisions[m].map(d=>new Option(d+" por pulso"+(d===core.meters[m].division?" · recomendado":""),String(d))));$("division").value=String(core.meters[m].division)}
 function size(){const m=core.resolution(config.meter,config.division);return m.beats*m.division}
@@ -332,6 +335,7 @@ function diagram(chord){
 let lastFollowedLine=null,followTouchY=null,scoreFont=16,scorePinch=null,pinchConsumed=false;
 function setScoreFont(value){
  scoreFont=clampScoreFont(value);$("score").style.setProperty("--studio-score-font",scoreFont+"px");$("scoreSize").value=String(Math.round(scoreFont));$("scoreSmaller").disabled=scoreFont<=10;$("scoreLarger").disabled=scoreFont>=46;
+ window.ShalomScoreReader?.relayout($("score"));
 }
 function startScorePinch(e){
  const distance=touchDistance(e.touches);if(distance<1)return;
