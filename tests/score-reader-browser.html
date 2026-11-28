@@ -39,6 +39,14 @@
    assert(getComputedStyle(hidden.querySelector(".score-chords")).visibility==="hidden","Chord hiding must persist on render");
    document.body.classList.remove("song-hide-chords");check();
   }
+  target.innerHTML=ShalomChords.render("(C)Hola (G)Señor",{includeAnchors:true});
+  const pending=ShalomScoreReader.upgrade(target);
+  target.innerHTML=ShalomChords.render("(D)Nuevo canto",{includeAnchors:true});
+  assert(!await pending,"Stale update must not replace newer draft");
+  assert(target.textContent.includes("Nuevo canto"),"Newer draft remains");
+  assert(await ShalomScoreReader.upgrade(target),"Admin/offline markup upgrade");
+  check();
+  assert(!await ShalomScoreReader.upgrade(target),"Already upgraded content must remain unchanged");
   report.textContent="PASS: real browser Inter anchors, collisions, zoom and escaped lyrics";
  }catch(e){report.textContent="FAIL: "+e.message;}
 })();

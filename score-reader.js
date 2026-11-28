@@ -10,7 +10,12 @@
   if(text!==undefined)el.textContent=text;
   return el;
  };
- async function loadFont(){
+ let fontRequest;
+ function loadFont(){
+  if(!fontRequest)fontRequest=checkFont();
+  return fontRequest;
+ }
+ async function checkFont(){
   if(!doc.fonts)return false;
   try{
    const faces=await doc.fonts.load('400 16px Inter',"Áñ");
@@ -95,5 +100,22 @@
   relayout(score);
   return score;
  }
- root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout});
+ // Upgrade only markup explicitly prepared by its owner. A stale asynchronous
+ // result must never replace newer edits, a different song or a closed view.
+ async function upgrade(target){
+  if(!target||!target.isConnected||target.firstElementChild?.classList.contains("score-proportional"))return false;
+  const original=Array.from(target.childNodes);
+  if(!await loadFont()||!target.isConnected||!original.length||
+    original.length!==target.childNodes.length||original.some((node,i)=>node!==target.childNodes[i]))return false;
+  const scrollTop=target.scrollTop,scrollLeft=target.scrollLeft;
+  try{
+   const score=buildMarkup(target.innerHTML);
+   if(!target.getClientRects().length)return false;
+   target.replaceChildren(score);
+   try{relayout(score);}catch(error){target.replaceChildren(...original);throw error;}
+   target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;
+   return true;
+  }catch(error){target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;console.warn("SHALOM: retained original reader",error);return false;}
+ }
+ root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade});
 })(window);

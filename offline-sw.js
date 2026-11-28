@@ -1,12 +1,17 @@
 /* El trabajador solamente guarda archivos públicos de SHALOM Offline.
    No intercepta el administrador ni almacena respuestas privadas de Supabase. */
-const VERSION = "shalom-offline-shell-v21-collection-styles";
+const VERSION = "shalom-offline-shell-v22-score-reader";
 const ASSETS = [
   "./offline.html",
   "./offline.css",
   "./offline.js",
   "./offline-capo.js",
   "./song-chords.js",
+  "./score-layout.js",
+  "./score-reader.js",
+  "./score-reader.css",
+  "./assets/fonts/inter.css",
+  "./assets/fonts/Inter-OFL.txt",
   "./studio-lab.html",
   "./studio.css",
   "./studio-core.js",
@@ -20,10 +25,11 @@ const ASSETS = [
   "./favicon.svg",
   "./site.webmanifest"
 ];
-const ASSET_PATHS = new Set(ASSETS.map((path) => new URL(path, self.registration.scope).pathname));
+const OPTIONAL_ASSETS = ["./assets/fonts/InterVariable.woff2"];
+const ASSET_PATHS = new Set([...ASSETS,...OPTIONAL_ASSETS].map((path) => new URL(path, self.registration.scope).pathname));
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(VERSION)
-    .then((cache) => cache.addAll(ASSETS))
+    .then(async (cache) => {await cache.addAll(ASSETS); await Promise.all(OPTIONAL_ASSETS.map(path=>cache.add(path).catch(()=>{})));})
     .then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (event) => {
