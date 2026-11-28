@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 # Only one expensive Gradle preview build per PR/branch.
 concurrency:
   group: shalom-android-preview-${{ github.event.pull_request.number || github.ref }}

@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   base:
     name: Official base guard
@@ -20,7 +21,7 @@ jobs:
           node-version: "22"
       - name: Regression tests for release guard
         run: node tests/release-base-guard.cjs
-      - name: Require both latest published release commits and version identities
+      - name: Require current public APK, Admin APK and deployed web commits
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/release-base-guard.cjs

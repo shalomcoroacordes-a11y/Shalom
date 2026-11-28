@@ -27,6 +27,7 @@ on:
         default: ""
 permissions:
   contents: read
+  actions: read
 env:
   OFFICIAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/android-0.4.26-admin-0.1.8') && inputs.publish_official == true && github.sha == inputs.approved_sha }}
 concurrency:
@@ -199,6 +200,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:

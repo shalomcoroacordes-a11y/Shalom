@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 env:
   BASELINE_VERSION: "0.1.7"
   BASELINE_CODE: "8"
