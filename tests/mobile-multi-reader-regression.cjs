@@ -22,7 +22,13 @@ assert.doesNotMatch(medley,/h\(Card,|S\.lyricsArea|S\.listRow/,"No boxed lyrical
 assert.match(rep,/song\?\.lyrics/,"Repertoire reads saved original song lyrics");
 assert.match(rep,/item\.moment/,"Mass moments must be distinguished");
 assert.match(rep,/song\?\.tone\?transposeOne\(song\.tone,transpose\)/,"Repertoire song tone is transposed");
-assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",transpose/);
+assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",transpose\+selections\[index\]\.offset/);
+for(const reader of [rep,medley]){
+ assert.match(reader,/h\(Mode,reading\)/,"Reading mode switch is available");
+ assert.match(reader,/active\.partIndex!==index/,"Only the active song is shown in section mode");
+ assert.match(reader,/renderAlignedScoreRows\(active\.rows,readerFont/,"Sections share the anchored Inter renderer");
+ assert.match(reader,/h\(CollectionCapo/,"Preserve individual capo selection");
+}
 assert.match(medley,/part\.lyrics\|\|original\?\.lyrics/,"Retain fragment-only lyrics when available");
 assert.match(medley,/const delta=transpose\+/,"Keep original per-fragment pitch shifts");
 assert.match(medley,/capoPosition/,"Retain capo instructions per fragment");

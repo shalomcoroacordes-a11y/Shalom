@@ -62,6 +62,7 @@ function PersonalCollectionsScreen({renderAlignedScoreRows,store,onChange,songs,
  const [readerCapos,setReaderCapos]=useState({});
  const [readingMode,setReadingMode]=useState("continuous"),[readingPage,setReadingPage]=useState(0);
  const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:setReadingPage};
+ useEffect(()=>{setReadingPage(0);},[entryId]);
  const [readerFont,setReaderFont]=useState(16);
  useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind,editReturn,shareReturn})},
   [folderId,entryId,view,createKind,editReturn,shareReturn]);

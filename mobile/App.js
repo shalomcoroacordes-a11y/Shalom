@@ -102,7 +102,9 @@ function AppScreen() {
  const [readerFont,setReaderFont]=useState(15);
  const [readingMode,setReadingMode]=useState("continuous");
  const [readingPage,setReadingPage]=useState(0);
- const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:setReadingPage};
+ const readerScroll=useRef(null);
+ const goReadingPage=page=>{setReadingPage(page);readerScroll.current?.scrollTo({y:0,animated:false});};
+ const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:goReadingPage};
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
@@ -502,7 +504,7 @@ function AppScreen() {
    section:"Solicitudes",onBack:back
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
-  h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
+  h(ScrollView,{ref:readerScroll,key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
