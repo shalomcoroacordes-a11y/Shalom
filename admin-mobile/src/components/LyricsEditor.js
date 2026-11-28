@@ -13,7 +13,7 @@ const SECTIONS=["Intro","Verso 1","Pre-coro","Coro","Puente","Intermedio","Final
 function text(t,style){return h(Text,{style},t);}
 function tool(t,fn){return h(Pressable,{key:t,style:S.lyricTool,onPress:fn,accessibilityRole:"button"},text(t,{color:C.text,fontSize:12,fontWeight:"700"}));}
 function Preview({value,font}){
- const html=React.useMemo(()=>scoreHtml(parseSong(value,0,true),font,scoreAssets),[value,font]);
+ const html=React.useMemo(()=>scoreHtml(parseSong(value,0,true),font,scoreAssets,{scrollDocument:true}),[value,font]);
  const source=React.useMemo(()=>({html}),[html]);
  return h(WebView,{source,originWhitelist:["*"],javaScriptEnabled:true,domStorageEnabled:false,
   allowFileAccess:false,mixedContentMode:"never",setSupportMultipleWindows:false,

@@ -69,5 +69,5 @@ assert.match(bridge,/\bsource,\s*originWhitelist/,"Use bundled HTML, never the p
 assert.match(bridge,/scrollEnabled:false/,"Native outer screen controls vertical scrolling");
 assert.match(bridge,/onError:\(\)=>setFailed\(true\)/,"Keep a fallback for devices without WebView");
 assert.match(bridge,/LegacyScore/,"Keep readable native fallback");
-assert.match(bridge,/scoreHtml\(rows,safeFont\)/);
+assert.match(bridge,/scoreHtml\(rows,safeFont,scoreAssets\)/);
 console.log("SHALOM: native offline browser text matches web/admin chords and lyrics at all font sizes.");

@@ -27,6 +27,7 @@ jobs:
         run: |
           node scripts/prepare-inter-font.js
           node scripts/prepare-inter-font.js --check
+          node scripts/build-native-score.js
           node scripts/test-score-reader-browser.js
 
       - name: Test clean architecture guard

@@ -28,13 +28,13 @@ function estimateScoreHeight(rows,fontSize){
  }
  return Math.max(80,Math.ceil(units+16));
 }
-function scoreHtml(rows,fontSize=15,assets=null){
+function scoreHtml(rows,fontSize=15,assets=null,options={}){
  const proportional=!!assets&&rows.every(row=>row.kind!=="chords"||Array.isArray(row.anchors));
  const size=clampReaderFont(fontSize);
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
   'html,body{margin:0;padding:0;border:0;background:'+palette.bg+';color:'+palette.text+';}',
-  'body{overflow:hidden;}',
+  options.scrollDocument?'body{overflow:auto;}':'body{overflow:hidden;}',
   '.score-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}',
   '.song-lyrics{font-family:"Courier New",Courier,monospace!important;font-size:'+size+'px;',
   'font-variant-ligatures:none;letter-spacing:0!important;line-height:1.22;',

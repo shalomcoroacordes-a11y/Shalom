@@ -49,6 +49,6 @@ assert.match(reader,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is ap
 assert.doesNotMatch(grid,/anchoredTokens\(|token\.column\*cell/,"Do not approximate character positions in native Text");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.chordLine\|\|" "\)/,"One complete chord line with no word fragmentation");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.lyricLine\|\|" "\)/,"One complete continuous lyric line");
-assert.match(grid,/scoreHtml\(rows,safeFont\)/,"Both rows share the same CSS font size");
+assert.match(grid,/scoreHtml\(rows,safeFont,scoreAssets\)/,"Both rows share the same CSS font size");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/overflow-x:auto/,"Long lines scroll without wrapping");
 console.log("SHALOM Android reader: local-only likes, accessible controls and no editing verified.");
