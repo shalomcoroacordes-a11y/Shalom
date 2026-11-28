@@ -96,7 +96,7 @@
  }
  // Fit a complete section using actual glyph metrics, not character counts.
  // If even the minimum does not fit, keep all content scrollable.
- function fitSection(wrapper,score,{width,height,min=10,max=46}){
+ function fitSection(wrapper,score,{width,height,min=12,max=15}){
   if(!(width>0&&height>0&&min>0&&max>=min))return null;
   function measure(size){
    wrapper.style.fontSize=size+"px";relayout(score);

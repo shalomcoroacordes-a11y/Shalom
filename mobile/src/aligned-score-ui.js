@@ -5,7 +5,7 @@ const {View,Text,StyleSheet,useWindowDimensions}=require("react-native");
 const {WebView}=require("react-native-webview");
 const {scoreHtml,estimateScoreHeight}=require("./web-score-html");
 const scoreAssets=require("./score-reader-assets");
-const {clampReaderFont}=require("./score-zoom");
+const {clampReaderFont,DEFAULT_READER_FONT}=require("./score-zoom");
 const LegacyScore=require("./aligned-score-legacy-ui");
 const h=React.createElement;
 
@@ -20,7 +20,7 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,au
  const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
  const fitHeight=autoFit?budget:0;
- const html=useMemo(()=>fitHeight?scoreHtml(rows,15,scoreAssets,{fitHeight}):scoreHtml(rows,safeFont,scoreAssets),[serialized,safeFont,fitHeight]);
+ const html=useMemo(()=>fitHeight?scoreHtml(rows,DEFAULT_READER_FONT,scoreAssets,{fitHeight}):scoreHtml(rows,safeFont,scoreAssets),[serialized,safeFont,fitHeight]);
  useEffect(()=>{setBudget(null);},[variant,windowHeight,windowWidth,autoFit]);
  useEffect(()=>{if(autoFit&&budget===null){const task=requestAnimationFrame(measureAvailable);return()=>cancelAnimationFrame(task);}},[autoFit,budget,variant,windowHeight,windowWidth]);
  function measureAvailable(){

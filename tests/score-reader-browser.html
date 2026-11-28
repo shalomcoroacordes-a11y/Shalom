@@ -62,12 +62,14 @@
   check();
   const wrap=document.createElement("div");wrap.style.width="max-content";wrap.style.minWidth="100%";wrap.style.padding="4px";
   target.replaceChildren(wrap);const fitted=ShalomScoreReader.render(wrap,"[Coro]\n(C)Hoy cantamos (G)con alegría\n(F)Unidos en (C)la paz");
-  const fit=ShalomScoreReader.fitSection(wrap,fitted,{width:320,height:150,min:10,max:46});
-  assert(fit.fits&&fit.fontSize>=10,"Complete section fits in available geometry");
+  const fit=ShalomScoreReader.fitSection(wrap,fitted,{width:320,height:150});
+  assert(fit.fits&&fit.fontSize>=12&&fit.fontSize<=15,"Complete section fits at comfortable bounded size");
   assert(wrap.getBoundingClientRect().height<=151&&wrap.scrollWidth<=321,"Fit does not clip");
   check();
-  const tiny=ShalomScoreReader.fitSection(wrap,fitted,{width:50,height:20,min:10,max:46});
-  assert(!tiny.fits&&tiny.fontSize===10&&wrap.textContent.includes("Unidos"),"Oversized sections remain complete and scrollable");
+  const generous=ShalomScoreReader.fitSection(wrap,fitted,{width:900,height:900});
+  assert(generous.fontSize===15,"Short sections never inflate above the normal size");
+  const tiny=ShalomScoreReader.fitSection(wrap,fitted,{width:50,height:20});
+  assert(!tiny.fits&&tiny.fontSize===12&&wrap.textContent.includes("Unidos"),"Oversized sections remain complete and scrollable at readable minimum");
   report.textContent="PASS: real browser Inter anchors, collisions, zoom and escaped lyrics";
  }catch(e){report.textContent="FAIL: "+e.message;}
 })();

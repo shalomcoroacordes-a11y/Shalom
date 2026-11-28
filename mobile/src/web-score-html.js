@@ -2,7 +2,7 @@ const palette=require("./palette");
 // HTML autosuficiente para dibujar canciones como la web pública de SHALOM.
 // React Native Text no reproduce de manera consistente las columnas de Courier New
 // con acentos y espacios; Chromium utiliza las mismas reglas que el administrador.
-const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT}=require("./score-zoom");
+const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT,DEFAULT_READER_FONT}=require("./score-zoom");
 const escapeHTML=value=>String(value??"")
  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
@@ -107,7 +107,7 @@ function scoreHtml(rows,fontSize=15,assets=null,options={}){
   '<style>'+css+(proportional?'@font-face{font-family:Inter;src:url(data:font/woff2;base64,'+assets.font+') format("woff2");font-weight:100 900;font-style:normal;}'+assets.css+':root{--gold:'+palette.green+';}':'')+'</style></head><body>'+
   '<div id="score" class="score-scroll"><div class="song-lyrics">'+scoreMarkup(rows)+'</div></div>'+
   '<script>'+measure+'</script>'+(proportional?'<script>'+assets.layout+'\n'+assets.reader+'\n'+
-  '(async function(){var wrapper=document.querySelector(".song-lyrics");try{if(!await ShalomScoreReader.loadFont())return;var score=ShalomScoreReader.buildMarkup(wrapper.innerHTML);var original=Array.from(wrapper.childNodes);wrapper.replaceChildren(score);try{ShalomScoreReader.relayout(score);}catch(e){wrapper.replaceChildren(...original);throw e;}var budget='+fitHeight+';if(budget>0){var result=ShalomScoreReader.fitSection(wrapper,score,{width:document.getElementById("score").clientWidth,height:budget,min:'+MIN_READER_FONT+',max:'+MAX_READER_FONT+'});if(result)window.dispatchEvent(new CustomEvent("shalom-score-fit",{detail:result}));}window.dispatchEvent(new Event("resize"));}catch(e){console.warn("SHALOM: retained original score",e);}})();'+
+  '(async function(){var wrapper=document.querySelector(".song-lyrics");try{if(!await ShalomScoreReader.loadFont())return;var score=ShalomScoreReader.buildMarkup(wrapper.innerHTML);var original=Array.from(wrapper.childNodes);wrapper.replaceChildren(score);try{ShalomScoreReader.relayout(score);}catch(e){wrapper.replaceChildren(...original);throw e;}var budget='+fitHeight+';if(budget>0){var result=ShalomScoreReader.fitSection(wrapper,score,{width:document.getElementById("score").clientWidth,height:budget,min:12,max:'+DEFAULT_READER_FONT+'});if(result)window.dispatchEvent(new CustomEvent("shalom-score-fit",{detail:result}));}window.dispatchEvent(new Event("resize"));}catch(e){console.warn("SHALOM: retained original score",e);}})();'+
   '</script>':'')+'</body></html>';
 }
 module.exports={scoreHtml,scoreMarkup,estimateScoreHeight,escapeHTML};
