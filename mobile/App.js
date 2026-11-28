@@ -97,6 +97,8 @@ function AppScreen() {
  const [folderId,setFolderId]=useState("");
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
+ const [collectionCapos,setCollectionCapos]=useState({});
+ const setCollectionCapo=(key,id)=>setCollectionCapos(previous=>({...previous,[key]:id}));
  const [readerFont,setReaderFont]=useState(15);
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
@@ -185,8 +187,8 @@ function AppScreen() {
  });
  const {exportBackup:exportMyPersonalBackup,restoreBackup:restoreMyPersonalBackup}=backupControllerRef.current;
  function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
- function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
- function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
+ function selectMedley(medley){setCollectionCapos({});openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
+ function selectRepertoire(rep){setCollectionCapos({});openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
   return handleBack({
    profileMenuOpen,actionSongId,immersiveActive,settingsOpen,detail,capoExpanded,
@@ -350,9 +352,9 @@ function AppScreen() {
   return h(View,{style:{paddingVertical:8}},h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioCollection(plan)},
    label("♫ "+caption+" · "+plan.ready.length+"/"+plan.total,S.multiOriginalText)));
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{medley,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }

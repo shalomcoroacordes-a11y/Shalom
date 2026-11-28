@@ -7,6 +7,8 @@ const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const {readingRows}=require("./personal-reader-core");
+const {capoSelection}=require("./song-capo-core");
+const CollectionCapo=require("./collection-capo-ui");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme=require("./palette");
@@ -54,6 +56,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [adding,setAdding]=useState(false);
  const [shareInput,setShareInput]=useState("");
  const [readerShift,setReaderShift]=useState(0);
+ const [readerCapos,setReaderCapos]=useState({});
  const [readerFont,setReaderFont]=useState(16);
  useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind,editReturn,shareReturn})},
   [folderId,entryId,view,createKind,editReturn,shareReturn]);
@@ -533,7 +536,8 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function readingView(){
   if(!folder||!entry)return folderView();
   const rows=readingRows(entry,catalog,readerShift);
-  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift})),songs);
+  const selections=rows.map(({part,song})=>capoSelection(song,readerCapos[entry.id+":"+part.id]||"none"));
+  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift},index)=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift:shift+selections[index].offset,capo:selections[index].chosen.position})),songs);
   return h(View,{style:styles.container},
    action("← Editar "+kindName(entry.kind),back,true),
    label(entry.title,styles.pageTitle),
@@ -553,10 +557,11 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
        label(song?.title||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
         (song?.tone?" · Tono "+tone:""),styles.meta))),
+     song?h(CollectionCapo,{selection:selections[index],transpose:shift,onChange:id=>setReaderCapos(previous=>({...previous,[entry.id+":"+p.id]:id}))}):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
+      resolved.lyrics?renderScore(resolved.lyrics,shift+selections[index].offset,"local-"+p.id,readerFont):
        label("Este canto no tiene letra descargada.",styles.warning),
-     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift}),true):null,
+     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:shift+selections[index].offset,capo:selections[index].chosen.position}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
    action("Compartir",()=>showShare(entry,folder,"reading"),true));
