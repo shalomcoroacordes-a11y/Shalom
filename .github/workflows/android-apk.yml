@@ -38,7 +38,8 @@ jobs:
       - name: Require current official base and approved release identity
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node ${{ github.workspace }}/scripts/release-base-guard.cjs --publish public --approved-sha "${{ inputs.approved_sha }}"
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+        run: node "${{ github.workspace }}/scripts/release-base-guard.cjs" --publish public --approved-sha "$APPROVED_SHA"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

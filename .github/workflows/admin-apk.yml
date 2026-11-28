@@ -40,6 +40,12 @@ jobs:
         working-directory: admin-mobile
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reject outdated source before building
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node "${{ github.workspace }}/scripts/release-base-guard.cjs"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -200,7 +206,8 @@ jobs:
       - name: Require current official base and approved release identity
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node ${{ github.workspace }}/scripts/release-base-guard.cjs --publish admin --approved-sha "${{ inputs.approved_sha }}"
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+        run: node "${{ github.workspace }}/scripts/release-base-guard.cjs" --publish admin --approved-sha "$APPROVED_SHA"
       - uses: actions/download-artifact@v4
         with:
           name: SHALOM-ADMIN-Android-Preview
