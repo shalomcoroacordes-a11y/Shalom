@@ -2,7 +2,7 @@ name: SHALOM official base guard
 on:
   pull_request:
   push:
-    branches: [main, "integration/**", "feature/**", "design/**", "quality/**"]
+    branches: ["**"]
   workflow_dispatch:
 permissions:
   contents: read
