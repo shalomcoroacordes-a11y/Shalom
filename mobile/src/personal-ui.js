@@ -61,8 +61,12 @@ function PersonalCollectionsScreen({renderAlignedScoreRows,store,onChange,songs,
  const [readerShift,setReaderShift]=useState(0);
  const [readerCapos,setReaderCapos]=useState({});
  const [readingMode,setReadingMode]=useState("continuous"),[readingPage,setReadingPage]=useState(0);
- const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:setReadingPage};
- useEffect(()=>{setReadingPage(0);},[entryId]);
+ const [sectionAutoFit,setSectionAutoFit]=useState(true);
+ const fittedFont=React.useRef(null);
+ const goPage=page=>{setSectionAutoFit(true);fittedFont.current=null;setReadingPage(page);};
+ const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:goPage};
+ useEffect(()=>{goPage(0);},[entryId]);
+ const changeReaderFont=value=>{const fit=fittedFont.current;fittedFont.current=null;setSectionAutoFit(false);setReaderFont(previous=>Math.max(10,Math.min(46,typeof value==="function"?value(fit??previous):value)));};
  const [readerFont,setReaderFont]=useState(16);
  useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind,editReturn,shareReturn})},
   [folderId,entryId,view,createKind,editReturn,shareReturn]);
@@ -554,8 +558,8 @@ function PersonalCollectionsScreen({renderAlignedScoreRows,store,onChange,songs,
     action("T−",()=>setReaderShift(v=>Math.max(-11,v-1)),true,readerShift<=-11),
     label(readerShift===0?"Tono original":(readerShift>0?"+":"")+readerShift+" semitonos",styles.meta),
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
-    action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
-    action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
+    action("A−",()=>changeReaderFont(v=>v-1),true,!sectionAutoFit&&readerFont<=10),
+    action("A+",()=>changeReaderFont(v=>v+1),true,!sectionAutoFit&&readerFont>=46)),
    h(Mode,reading),active?h(Pager,{...reading,pages}):null,
    entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
    ...rows.map(({part:p,index,song,resolved,shift,tone})=>{
@@ -569,7 +573,7 @@ function PersonalCollectionsScreen({renderAlignedScoreRows,store,onChange,songs,
         (song?.tone?" · Tono "+tone:""),styles.meta))),
      song?h(CollectionCapo,{selection:selections[index],transpose:shift,onChange:id=>setReaderCapos(previous=>({...previous,[entry.id+":"+p.id]:id}))}):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?(active?renderAlignedScoreRows(active.rows,readerFont,"local-section-"+p.id+"-"+active.sectionIndex,true):renderScore(resolved.lyrics,shift+selections[index].offset,"local-"+p.id,readerFont)):
+      resolved.lyrics?(active?renderAlignedScoreRows(active.rows,readerFont,"local-section-"+p.id+"-"+active.sectionIndex,{autoFit:sectionAutoFit,onAutoFont:value=>{fittedFont.current=value;},onFontSizeChange:changeReaderFont}):renderScore(resolved.lyrics,shift+selections[index].offset,"local-"+p.id,readerFont)):
        label("Este canto no tiene letra descargada.",styles.warning),
      plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:shift+selections[index].offset,capo:selections[index].chosen.position}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);

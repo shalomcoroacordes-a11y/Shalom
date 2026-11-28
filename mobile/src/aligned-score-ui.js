@@ -22,6 +22,7 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,au
  const fitHeight=autoFit?budget:0;
  const html=useMemo(()=>fitHeight?scoreHtml(rows,15,scoreAssets,{fitHeight}):scoreHtml(rows,safeFont,scoreAssets),[serialized,safeFont,fitHeight]);
  useEffect(()=>{setBudget(null);},[variant,windowHeight,windowWidth,autoFit]);
+ useEffect(()=>{if(autoFit&&budget===null){const task=requestAnimationFrame(measureAvailable);return()=>cancelAnimationFrame(task);}},[autoFit,budget,variant,windowHeight,windowWidth]);
  function measureAvailable(){
   if(!autoFit||budget!==null)return;
   container.current?.measureInWindow((_x,y,_w,h)=>{

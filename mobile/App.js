@@ -102,7 +102,7 @@ function AppScreen() {
  const [readerFont,setReaderFontValue]=useState(15);
  const [sectionAutoFit,setSectionAutoFit]=useState(true);
  const fittedFont=useRef(null);
- const setReaderFont=value=>{setSectionAutoFit(false);setReaderFontValue(previous=>typeof value==="function"?value(fittedFont.current??previous):value);fittedFont.current=null;};
+ const setReaderFont=value=>{const fit=fittedFont.current;fittedFont.current=null;setSectionAutoFit(false);setReaderFontValue(previous=>typeof value==="function"?value(fit??previous):value);};
  const [readingMode,setReadingMode]=useState("continuous");
  const [readingPage,setReadingPage]=useState(0);
  const readerScroll=useRef(null);
@@ -194,9 +194,9 @@ function AppScreen() {
   }
  });
  const {exportBackup:exportMyPersonalBackup,restoreBackup:restoreMyPersonalBackup}=backupControllerRef.current;
- function selectSong(song){setReadingPage(0);openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
- function selectMedley(medley){setReadingPage(0);setCollectionCapos({});openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
- function selectRepertoire(rep){setReadingPage(0);setCollectionCapos({});openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
+ function selectSong(song){setSectionAutoFit(true);fittedFont.current=null;setReadingPage(0);openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
+ function selectMedley(medley){setSectionAutoFit(true);fittedFont.current=null;setReadingPage(0);setCollectionCapos({});openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
+ function selectRepertoire(rep){setSectionAutoFit(true);fittedFont.current=null;setReadingPage(0);setCollectionCapos({});openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
   return handleBack({
    profileMenuOpen,actionSongId,immersiveActive,settingsOpen,detail,capoExpanded,
@@ -334,7 +334,7 @@ function AppScreen() {
  // Todos los lectores usan una sola cuadrícula de texto monoespaciado:
  // en un único Text padre, los acordes mantienen sus columnas al cambiar dispositivo.
  function renderAlignedScoreRows(rows,fontSize,keyPrefix,section=false){
-  if(section)return h(AlignedScore,{key:keyPrefix,rows,fontSize,variant:keyPrefix,autoFit:sectionAutoFit,onAutoFont:value=>{fittedFont.current=value;},onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
+  if(section)return h(AlignedScore,{key:keyPrefix,rows,fontSize,variant:keyPrefix,autoFit:sectionAutoFit,onAutoFont:value=>{fittedFont.current=value;},onFontSizeChange:next=>setReaderFont(clampReaderFont(next)),...(typeof section==="object"?section:{})});
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
