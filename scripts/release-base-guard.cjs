@@ -59,7 +59,7 @@ function validate({releases,webBase,head,resolveTag,readManifests,isAncestor,pub
  return results;
 }
 function cli(args){
- const read=(cmd,argv)=>execFileSync(cmd,argv,{encoding:"utf8",stdio:["ignore","pipe","pipe"]}).trim();
+ const read=(cmd,argv)=>execFileSync(cmd,argv,{encoding:"utf8",maxBuffer:32*1024*1024,stdio:["ignore","pipe","pipe"]}).trim();
  const git=(...args)=>read("git",args);
  const repo=process.env.GITHUB_REPOSITORY||"shalomcoroacordes-a11y/Shalom";
  if(repo.toLowerCase()!=="shalomcoroacordes-a11y/shalom")throw Error("Repositorio distinto de SHALOM");
@@ -76,7 +76,8 @@ function cli(args){
  if(publish&&head!==git("rev-parse","HEAD"))throw Error("Publicar solo el commit actual");
  // Read every page; never trust /releases/latest (two independent app tracks).
  const releases=JSON.parse(read("gh",["api","--paginate","--slurp","repos/"+repo+"/releases?per_page=100"])).flat();
- const pages=JSON.parse(read("gh",["api","--paginate","--slurp","repos/"+repo+"/actions/runs?event=dynamic&status=success&branch=main&per_page=100"])).flatMap(page=>page.workflow_runs);
+ // Project API results down to fields used by the guard before capturing stdout.
+ const pages=read("gh",["api","--paginate","repos/"+repo+"/actions/runs?event=dynamic&status=success&branch=main&per_page=100","--jq",".workflow_runs[] | {id,head_sha,path,event,head_branch,status,conclusion,updated_at}"]).split("\n").filter(Boolean).map(line=>JSON.parse(line));
  const webBase=latestWebDeployment(pages);
  const jobs=JSON.parse(read("gh",["api","--paginate","--slurp","repos/"+repo+"/actions/runs/"+webBase.id+"/jobs?per_page=100"])).flatMap(page=>page.jobs);
  verifyWebDeployment(jobs);
