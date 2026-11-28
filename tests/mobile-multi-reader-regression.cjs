@@ -30,7 +30,7 @@ assert.match(medley,/h\(CollectionCapoControl,\{song:original,selection/,"Select
 assert.match(rep,/h\(CollectionCapoControl,\{song,selection/);
 assert.match(medley,/tutorials\.map/,"Preserve YouTube/tutorial links");
 assert.doesNotMatch(medley,/\.slice\(0,3\)/,"Every tutorial should remain available");
-assert.match(score,/parseSong\(lyrics,delta\)/,"Use the same parser as Cantos");
+assert.match(score,/parseSong\(lyrics,delta,true\)/,"Use the same parser as Cantos");
 assert.match(score,/song&&lyrics===song\.lyrics\?song\._studio:null/,"Only inherit exact original lyrics");
 assert.match(score,/showReaderCues\?ReaderCues\.decorateCollection\(parseSong\(lyrics,0\),arrangement,override,parsed\):parsed/,"Collection-specific cues remain independent");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Use saved section labels in all readers");

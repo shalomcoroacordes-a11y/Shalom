@@ -1,7 +1,8 @@
 "use strict";
 const assert=require("node:assert/strict");
 const {layoutAnchors}=require("../score-layout.js");
-const {parseAnchoredSong}=require("../native-chords.js");
+const {parseSong}=require("../native-chords.js");
+const parseAnchoredSong=(source,shift)=>parseSong(source,shift,true);
 const widths={i:3,l:4,m:13,M:15,W:15," ":5};
 function metrics(scale=1){
  const measure=s=>Array.from(s).reduce((sum,c)=>sum+(widths[c]||9)*scale,0);

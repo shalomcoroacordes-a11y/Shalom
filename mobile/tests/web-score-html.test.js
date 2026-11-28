@@ -99,3 +99,5 @@ assert.match(inter,/min:12,max:15/);
 assert.match(inter,/target.style.visibility="";scheduleMeasure/);
 for(const match of inter.matchAll(/<script>([\s\S]*?)<\/script>/g))new Function(match[1]);
 console.log("Inter: local font, bounded section fit, atomic reveal and safe script syntax.");
+
+assert.match(inter,/if\(interScore\)ShalomScoreReader\.relayout\(interScore\);scheduleMeasure\(\)/,"Manual pinch recalculates exact proportional chord geometry");

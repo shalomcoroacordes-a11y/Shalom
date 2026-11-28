@@ -134,7 +134,7 @@ function scoreHtml(rows,fontSize=15,fit={},assets=null){
   "var d=dist(e.touches[0],e.touches[1]);",
   "var next=clampZoom(startZoom*d/startDistance);",
   "if(Math.abs(next-zoom)<0.05)return;",
-  "fitMode=\"manual\";restoreRows();zoom=next;lyrics.style.fontSize=next+\"px\";scheduleMeasure();",
+  "fitMode=\"manual\";restoreRows();zoom=next;lyrics.style.fontSize=next+\"px\";if(interScore)ShalomScoreReader.relayout(interScore);scheduleMeasure();",
   "}",
   "function pinchEnd(e){",
   "if(!pinching)return;",
