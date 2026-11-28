@@ -6,16 +6,20 @@ const {names,safeWebUrl}=require("./catalog");
 const {hasFavorite}=require("./favorites");
 const {capoSelection}=require("./song-capo-core");
 const CollectionCapo=require("./collection-capo-ui");
+const {readingPages,currentPage}=require("./reading-sections-core");
+const {Mode,Pager}=require("./reading-sections-ui");
 const collectionKey=(kind,id,index)=>kind+":"+id+":"+index;
 const {clampReaderFont}=require("./score-zoom");
 const {repertoireType}=require("./repertoire-ui");
 const StudioCollections=require("./studio-collections");
 
-function RepertoireReader({rep,collectionCapos={},setCollectionCapo=()=>{},S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong}){
+function RepertoireReader({reading={},readerFont=15,renderAlignedScoreRows,rep,collectionCapos={},setCollectionCapo=()=>{},S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong}){
   const items=Array.isArray(rep.items)?rep.items:[];
   const kind=repertoireType(rep);
   const selections=items.map((item,index)=>capoSelection(model.songs.find(s=>String(s.id)===String(item.song_id)),collectionCapos[collectionKey("rep",rep.id,index)]||"none"));
   const plan=StudioCollections.plan(items.map((item,index)=>({...item,shift:transpose+selections[index].offset,capo:selections[index].chosen.position})),model.songs);
+  const pages=reading.mode==="sections"?readingPages(items.map((item,index)=>({lyrics:model.songs.find(s=>String(s.id)===String(item.song_id))?.lyrics||"Canto no disponible.",shift:transpose+selections[index].offset})),parseSong):[];
+  const active=currentPage(pages,reading.page);
   return h(View,{style:S.multiReader},
    h(View,{style:S.songMetaRow},
     h(View,{style:S.songMetaIcon},h(Image,{source:HOME_IMAGES[kind==="misa"?"mass":"repertoires"],
@@ -27,9 +31,10 @@ function RepertoireReader({rep,collectionCapos={},setCollectionCapo=()=>{},S,HOM
      h(View,{style:S.songTypeBadge},
       label(kind==="misa"?"Misa":kind==="ensayo"?"Ensayo":"Repertorio",S.songTypeText)))),
    (rep.location||rep.notes)?h(Text,{style:S.multiDescription},[rep.location,rep.notes].filter(Boolean).join(" · ")):null,
-   renderMultiReadingControls(),
+   renderMultiReadingControls(),h(Mode,reading),active?h(Pager,{...reading,pages}):null,
    !immersiveActive&&kind!=="misa"?renderStudioCollectionAction(plan,"Ensayar con guitarra"):null,
    ...items.map((item,index)=>{
+    if(active&&active.partIndex!==index)return null;
     const song=model.songs.find(s=>String(s.id)===String(item.song_id));
     const title=String(song?.title||item.song_title||"Canto no disponible");
     const moment=String(item.moment||"Canto "+(index+1));
@@ -43,24 +48,27 @@ function RepertoireReader({rep,collectionCapos={},setCollectionCapo=()=>{},S,HOM
        tone?label("Tono "+tone,S.multiPartDetail):null)),
      item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
      song?h(CollectionCapo,{selection:selections[index],transpose,onChange:id=>setCollectionCapo(collectionKey("rep",rep.id,index),id)}):null,
-     renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose+selections[index].offset,"rep-"+index),
+     active?renderAlignedScoreRows(active.rows,readerFont,"rep-section-"+index+"-"+active.sectionIndex):renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose+selections[index].offset,"rep-"+index),
      !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioPart(song,{shift:transpose+selections[index].offset,capo:selections[index].chosen.position})},label("♫ Practicar con guitarra",S.multiOriginalText)):null,
      song?h(Pressable,{onPress:()=>selectSong(song),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+title+" como canto individual",style:S.multiOriginalLink},
        label("Ver canto individual  ›",S.multiOriginalText)):null
     );
    }),
+   active?h(Pager,{...reading,pages}):null,
    !items.length?h(SectionEmpty,{message:"Este repertorio todavía no tiene cantos."}):null
   );
  }
 
-function MedleyReader({medley,collectionCapos={},setCollectionCapo=()=>{},S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb}){
+function MedleyReader({reading={},readerFont=15,renderAlignedScoreRows,medley,collectionCapos={},setCollectionCapo=()=>{},S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb}){
   const parts=Array.isArray(medley.parts)?medley.parts:[];
   const generalTone=String(medley.base_tone||"");
   const selections=parts.map((part,index)=>capoSelection(model.songs.find(s=>String(s.id)===String(part.song_id)),collectionCapos[collectionKey("medley",medley.id,index)]||"none"));
   const practiceParts=parts.map((part,index)=>({...part,shift:transpose+Number(part.shift||0)+selections[index].offset,capo:selections[index].chosen.position}));
   const plan=StudioCollections.plan(practiceParts,model.songs);
   const sequence=StudioCollections.sequencePlan(practiceParts,model.songs,medley.title);
+  const pages=reading.mode==="sections"?readingPages(practiceParts.map(part=>({lyrics:part.lyrics||model.songs.find(s=>String(s.id)===String(part.song_id))?.lyrics||"Sin letra guardada.",shift:part.shift})),parseSong):[];
+  const active=currentPage(pages,reading.page);
   return h(View,{style:S.multiReader},
    h(View,{style:S.songMetaRow},
     h(View,{style:S.songMetaIcon},
@@ -71,10 +79,11 @@ function MedleyReader({medley,collectionCapos={},setCollectionCapo=()=>{},S,HOME
       (generalTone?" · Tono "+transposeOne(generalTone,transpose):""),S.songArtist),
      h(View,{style:S.songTypeBadge},label(type(medley.song_type),S.songTypeText)))),
    medley.description?h(Text,{style:S.multiDescription},medley.description):null,
-   renderMultiReadingControls(),
+   renderMultiReadingControls(),h(Mode,reading),active?h(Pager,{...reading,pages}):null,
    !immersiveActive&&sequence?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(sequence)}},label("▶ Practicar popurrí completo",S.multiOriginalText)):null,
    !immersiveActive?renderStudioCollectionAction(plan,"Practicar fragmentos disponibles"):null,
    ...parts.map((part,index)=>{
+    if(active&&active.partIndex!==index)return null;
     const original=model.songs.find(song=>String(song.id)===String(part.song_id));
     const fragmentTitle=part.title||part.song_title||original?.title||"Canto "+(index+1);
     const shift=Number(part.shift||0);
@@ -99,7 +108,7 @@ function MedleyReader({medley,collectionCapos={},setCollectionCapo=()=>{},S,HOME
        otherCapos.length?label("Otros capos: "+otherCapos.map(c=>"traste "+c.capo_position+
         (c.capo_key?" · "+c.capo_key:"")).join(" / "),S.multiPartCapo):null)),
      original?h(CollectionCapo,{selection:selections[index],transpose:delta,onChange:id=>setCollectionCapo(collectionKey("medley",medley.id,index),id)}):null,
-     renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta+selections[index].offset,"medley-"+index),
+     active?renderAlignedScoreRows(active.rows,readerFont,"medley-section-"+index+"-"+active.sectionIndex):renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta+selections[index].offset,"medley-"+index),
      h(View,{style:S.multiQuickLinks},
       !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(plan.entries[index].payload)}},label("♫ Practicar fragmento",S.multiOriginalText)):null,
       original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
@@ -110,15 +119,18 @@ function MedleyReader({medley,collectionCapos={},setCollectionCapo=()=>{},S,HOME
        label("▶ "+x.title,S.multiOriginalText))))
     );
    }),
+   active?h(Pager,{...reading,pages}):null,
    !parts.length?h(SectionEmpty,{message:"Este popurrí todavía no tiene fragmentos."}):null
   );
  }
 
-function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont}){
+function SongReader({reading={},song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont}){
   const {choices,chosen,offset:capoOffset}=capoSelection(song,capo);
   const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
   const liked=hasFavorite(likedIds,song.id);
   const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset,true);
+  const pages=reading.mode==="sections"?readingPages([{lyrics:song.lyrics||"Sin letra guardada.",shift:transpose+capoOffset}],parseSong):[];
+  const active=currentPage(pages,reading.page);
   return h(View,{style:S.songReader},
    h(View,{style:S.songReaderIntro},
     label(type(song.song_type).toUpperCase(),S.songReaderKicker),
@@ -159,8 +171,9 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
     ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
+   h(Mode,reading),active?h(Pager,{...reading,pages}):null,
    h(View,{style:S.songScorePlain},
-    renderAlignedScoreRows(parsed,readerFont,"song-"+song.id))
+    renderAlignedScoreRows(active?active.rows:parsed,readerFont,"song-"+song.id)),active?h(Pager,{...reading,pages}):null
   );
  }
 

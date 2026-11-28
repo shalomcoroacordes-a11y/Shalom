@@ -100,6 +100,9 @@ function AppScreen() {
  const [collectionCapos,setCollectionCapos]=useState({});
  const setCollectionCapo=(key,id)=>setCollectionCapos(previous=>({...previous,[key]:id}));
  const [readerFont,setReaderFont]=useState(15);
+ const [readingMode,setReadingMode]=useState("continuous");
+ const [readingPage,setReadingPage]=useState(0);
+ const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:setReadingPage};
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
@@ -186,9 +189,9 @@ function AppScreen() {
   }
  });
  const {exportBackup:exportMyPersonalBackup,restoreBackup:restoreMyPersonalBackup}=backupControllerRef.current;
- function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
- function selectMedley(medley){setCollectionCapos({});openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
- function selectRepertoire(rep){setCollectionCapos({});openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
+ function selectSong(song){setReadingPage(0);openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
+ function selectMedley(medley){setReadingPage(0);setCollectionCapos({});openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
+ function selectRepertoire(rep){setReadingPage(0);setCollectionCapos({});openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
   return handleBack({
    profileMenuOpen,actionSongId,immersiveActive,settingsOpen,detail,capoExpanded,
@@ -352,9 +355,9 @@ function AppScreen() {
   return h(View,{style:{paddingVertical:8}},h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioCollection(plan)},
    label("♫ "+caption+" · "+plan.ready.length+"/"+plan.total,S.multiOriginalText)));
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{reading,readerFont,renderAlignedScoreRows,rep,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{reading,readerFont,renderAlignedScoreRows,medley,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }
@@ -412,7 +415,7 @@ function AppScreen() {
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont});}
+ function renderSongDetail(song){return h(SongReader,{reading,song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,
@@ -430,7 +433,7 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{renderAlignedScoreRows,store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
