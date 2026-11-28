@@ -328,7 +328,7 @@ function AppScreen() {
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
   function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
-  const parsed=parseSong(lyrics,delta);
+  const parsed=parseSong(lyrics,delta,true);
   return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){

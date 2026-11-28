@@ -10,7 +10,7 @@ function scoreMarkup(rows){
  return (rows||[]).map(row=>{
   if(row.kind==="space")return '<span class="song-empty-line"></span>';
   if(row.kind==="section")return '<span class="song-section-label">'+escapeHTML(row.text)+'</span>';
-  if(row.kind==="chords")return '<span class="song-line song-stacked-chords"><span class="chord-line">'+
+  if(row.kind==="chords")return '<span class="song-line song-stacked-chords"'+(Array.isArray(row.anchors)?' data-chord-anchors="'+escapeHTML(JSON.stringify(row.anchors))+'"':"")+'><span class="chord-line">'+
    escapeHTML(row.chordLine||" ")+'</span><span class="lyric-line">'+
    escapeHTML(row.lyricLine||" ")+'</span></span>';
   if(row.kind==="chordsOnly")return '<span class="song-standalone-chords">'+escapeHTML(row.text||" ")+'</span>';
@@ -28,7 +28,8 @@ function estimateScoreHeight(rows,fontSize){
  }
  return Math.max(80,Math.ceil(units+16));
 }
-function scoreHtml(rows,fontSize=15){
+function scoreHtml(rows,fontSize=15,assets=null){
+ const proportional=!!assets&&rows.every(row=>row.kind!=="chords"||Array.isArray(row.anchors));
  const size=clampReaderFont(fontSize);
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
@@ -100,9 +101,11 @@ function scoreHtml(rows,fontSize=15){
  ].join("");
  return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
   '<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">'+
-  '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; script-src &#39;unsafe-inline&#39;">'+
-  '<style>'+css+'</style></head><body>'+
+  '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; script-src &#39;unsafe-inline&#39;; font-src data:;">'+
+  '<style>'+css+(proportional?'@font-face{font-family:Inter;src:url(data:font/woff2;base64,'+assets.font+') format("woff2");font-weight:100 900;font-style:normal;}'+assets.css+':root{--gold:'+palette.green+';}':'')+'</style></head><body>'+
   '<div id="score" class="score-scroll"><div class="song-lyrics">'+scoreMarkup(rows)+'</div></div>'+
-  '<script>'+measure+'</script></body></html>';
+  '<script>'+measure+'</script>'+(proportional?'<script>'+assets.layout+'\n'+assets.reader+'\n'+
+  '(async function(){var wrapper=document.querySelector(".song-lyrics");try{if(!await ShalomScoreReader.loadFont())return;var score=ShalomScoreReader.buildMarkup(wrapper.innerHTML);var original=Array.from(wrapper.childNodes);wrapper.replaceChildren(score);try{ShalomScoreReader.relayout(score);}catch(e){wrapper.replaceChildren(...original);throw e;}window.dispatchEvent(new Event("resize"));}catch(e){console.warn("SHALOM: retained original score",e);}})();'+
+  '</script>':'')+'</body></html>';
 }
 module.exports={scoreHtml,scoreMarkup,estimateScoreHeight,escapeHTML};

@@ -112,7 +112,7 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
   const {choices,chosen,offset:capoOffset}=capoSelection(song,capo);
   const toned=transpose?transposeOne(song.tone||"",transpose):song.tone||"—";
   const liked=hasFavorite(likedIds,song.id);
-  const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset);
+  const parsed=parseSong(song.lyrics||"Sin letra guardada.",transpose+capoOffset,true);
   return h(View,{style:S.songReader},
    h(View,{style:S.songReaderIntro},
     label(type(song.song_type).toUpperCase(),S.songReaderKicker),

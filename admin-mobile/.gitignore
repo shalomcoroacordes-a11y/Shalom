@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+android/
+ios/
+src/score-reader-assets.js
+src/web-score-html.js
+src/score-zoom.js
+src/palette.js
+assets/fonts/Inter-OFL.txt

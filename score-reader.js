@@ -18,9 +18,9 @@
    return faces.length>0&&bold.length>0&&[...faces,...bold].every(face=>face.status==="loaded");
   }catch(_){return false;}
  }
- function build(source,options={}){
+ function buildMarkup(markup){
   const template=doc.createElement("template");
-  template.innerHTML=root.ShalomChords.render(source,{...options,includeAnchors:true});
+  template.innerHTML=markup;
   const score=create("div","score-proportional");
   for(const block of Array.from(template.content.children)){
    if(!block.hasAttribute("data-chord-anchors")){
@@ -40,6 +40,9 @@
    line.append(chords,lyric);score.append(line);
   }
   return score;
+ }
+ function build(source,options={}){
+  return buildMarkup(root.ShalomChords.render(source,{...options,includeAnchors:true}));
  }
  function measureLine(line){
   const lyric=line.querySelector(".score-lyric");
@@ -92,5 +95,5 @@
   relayout(score);
   return score;
  }
- root.ShalomScoreReader=Object.freeze({loadFont,build,render,relayout});
+ root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout});
 })(window);
