@@ -15,7 +15,8 @@ const {useCollectionSections,CollectionSectionControls,CollectionSectionScore}=S
 // One compact control, reused by both official and personal readers.
 function CollectionCapoControl({song,selection,onSelect,style,textStyle}){
  const [expanded,setExpanded]=useState(false);
- if(!song||selection.choices.length<=1)return null;
+ if(!song)return null;
+ if(selection.choices.length<=1)return h(Text,{style:textStyle},"Sin capo");
  const {chosen,choices}=selection;
  return h(View,{style:{gap:4,alignItems:"flex-start"}},
   h(Pressable,{style,onPress:()=>setExpanded(v=>!v),accessibilityRole:"button",accessibilityLabel:"Seleccionar capo de "+(song.title||"canto"),accessibilityState:{expanded}},h(Text,{style:textStyle},(chosen.id==="none"?"Sin capo":"Capo "+chosen.position+(chosen.key?" · "+chosen.key:""))+" ▾")),
@@ -184,10 +185,10 @@ function SongReader({song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,r
       label("CAPO",S.songControlCaption),
       h(Pressable,{style:[S.songCapoButton,S.songCapoCompact],onPress:()=>{
        if(choices.length>1)setCapoExpanded(v=>!v);
-       else Alert.alert("Capo","No hay variantes de capo registradas para este canto.");
-      },accessibilityRole:"button",accessibilityLabel:"Seleccionar capo",
+        
+      },disabled:choices.length<=1,accessibilityRole:"button",accessibilityLabel:"Seleccionar capo",
        accessibilityState:{expanded:capoExpanded,disabled:choices.length<=1}},
-       label(chosen.id==="none"?"Sin capo ▾":"Capo "+chosen.position+" ▾",S.songControlText))))),
+       label(chosen.id==="none"?(choices.length>1?"Sin capo ▾":"Sin capo"):"Capo "+chosen.position+" ▾",S.songControlText))))),
    capoExpanded&&choices.length>1?h(View,{style:S.songCapoVariants},
     ...choices.map(item=>h(Chip,{key:String(item.id),text:item.label,
      active:item.id===capo,onPress:()=>{setCapo(item.id);setCapoExpanded(false)}}))):null,

@@ -19,6 +19,9 @@ function createChordParser() {
     return isChord(clean) ? String(transpose(clean)) : token;
   });
 
+  // Source positions are captured before transposition changes the token widths.
+  const rowAnchors = (line, transpose, offset=0) => Array.from(String(line).matchAll(/\S+/g), match=>({position:offset+match.index,chord:String(transpose(unwrap(match[0])))}));
+
   // Combina acordes escritos en el renglón superior con los que aún estén
   // marcados entre paréntesis dentro del verso, sin duplicar su altura.
   const combineChordRows = (upper, lower) => {
@@ -44,10 +47,12 @@ function createChordParser() {
     let last = 0;
     let match;
     let hasChords = false;
+    const anchors=[];
 
     while ((match = regex.exec(line)) !== null) {
       lyricLine += line.slice(last, match.index);
       if (isChordGroup(match[1])) {
+        anchors.push(...rowAnchors(match[1],transpose,lyricLine.length));
         const converted = transformRow(match[1], transpose);
         // Si dos acordes están muy cerca, se separan sin perder el texto.
         const position = Math.max(lyricLine.length, chordLine.length ? chordLine.length + 1 : 0);
@@ -60,10 +65,10 @@ function createChordParser() {
     }
 
     lyricLine += line.slice(last);
-    return { chordLine, lyricLine, hasChords };
+    return { chordLine, lyricLine, hasChords, anchors };
   };
 
-  function parseRows(source, transpose = chord => chord) {
+  function parseRows(source, transpose = chord => chord, includeAnchors=false) {
     const lines = String(source ?? "").replace(/\r\n?/g, "\n").replaceAll("\t", "    ").split("\n");
     const rows = [];
     for (let index = 0; index < lines.length; index++) {
@@ -75,13 +80,13 @@ function createChordParser() {
         const next = lines[index + 1] || "";
         if (next.trim() && !/^\s*\[[^\]]+\]\s*$/.test(next) && !isChordRow(next)) {
           const lower = inlineChords(next, transpose), upper = transformRow(line, transpose);
-          rows.push({kind:"chords",layout:"stacked",chordLine:lower.hasChords?combineChordRows(upper,lower.chordLine):upper,lyricLine:lower.hasChords?lower.lyricLine:next});
+          rows.push({kind:"chords",layout:"stacked",chordLine:lower.hasChords?combineChordRows(upper,lower.chordLine):upper,lyricLine:lower.hasChords?lower.lyricLine:next,...(includeAnchors?{anchors:[...rowAnchors(line,transpose),...lower.anchors].sort((a,b)=>a.position-b.position)}:{})});
           index++;
         } else rows.push({kind:"chordsOnly",text:transformRow(line,transpose)});
         continue;
       }
       const parsed = inlineChords(line, transpose);
-      rows.push(parsed.hasChords?{kind:"chords",layout:"inline",chordLine:parsed.chordLine,lyricLine:parsed.lyricLine}:{kind:"lyric",text:line});
+      rows.push(parsed.hasChords?{kind:"chords",layout:"inline",chordLine:parsed.chordLine,lyricLine:parsed.lyricLine,...(includeAnchors?{anchors:parsed.anchors}:{})}:{kind:"lyric",text:line});
     }
     return rows;
   }
@@ -95,8 +100,8 @@ function transposeOne(value,shift){
  return String(value).replace(/^([A-G](?:#|b)?)(.*)$/,(_,root,rest)=>move(root)+rest.replace(/\/([A-G](?:#|b)?)/g,(_,bass)=>"/"+move(bass)));
 }
 const chordRow=shared.isChordRow;
-function parseSong(source,shift=0){
- return shared.parseRows(source,chord=>transposeOne(chord,shift)).map(row=>row.kind==="chords"?{kind:"chords",chordLine:row.chordLine,lyricLine:row.lyricLine}:row);
+function parseSong(source,shift=0,includeAnchors=false){
+ return shared.parseRows(source,chord=>transposeOne(chord,shift),includeAnchors).map(row=>row.kind==="chords"?{kind:"chords",chordLine:row.chordLine,lyricLine:row.lyricLine,...(includeAnchors?{anchors:row.anchors}:{})}:row);
 }
 // NBSP evita que Android colapse o redistribuya columnas y hace que todo el
 // renglón permanezca sin saltos, incluso dentro de scroll horizontal.

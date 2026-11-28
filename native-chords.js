@@ -8,8 +8,8 @@ function transposeOne(value,shift){
  return String(value).replace(/^([A-G](?:#|b)?)(.*)$/,(_,root,rest)=>move(root)+rest.replace(/\/([A-G](?:#|b)?)/g,(_,bass)=>"/"+move(bass)));
 }
 const chordRow=shared.isChordRow;
-function parseSong(source,shift=0){
- return shared.parseRows(source,chord=>transposeOne(chord,shift)).map(row=>row.kind==="chords"?{kind:"chords",chordLine:row.chordLine,lyricLine:row.lyricLine}:row);
+function parseSong(source,shift=0,includeAnchors=false){
+ return shared.parseRows(source,chord=>transposeOne(chord,shift),includeAnchors).map(row=>row.kind==="chords"?{kind:"chords",chordLine:row.chordLine,lyricLine:row.lyricLine,...(includeAnchors?{anchors:row.anchors}:{})}:row);
 }
 // NBSP evita que Android colapse o redistribuya columnas y hace que todo el
 // renglón permanezca sin saltos, incluso dentro de scroll horizontal.
