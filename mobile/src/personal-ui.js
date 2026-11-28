@@ -7,6 +7,11 @@ const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const {readingRows}=require("./personal-reader-core");
+const {capoSelection}=require("./song-capo-core");
+const CollectionCapo=require("./collection-capo-ui");
+const {readingPages,currentPage}=require("./reading-sections-core");
+const {Mode,Pager}=require("./reading-sections-ui");
+const {parseSong}=require("./chords");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme=require("./palette");
@@ -28,7 +33,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
+function PersonalCollectionsScreen({renderAlignedScoreRows,store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -54,6 +59,14 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  const [adding,setAdding]=useState(false);
  const [shareInput,setShareInput]=useState("");
  const [readerShift,setReaderShift]=useState(0);
+ const [readerCapos,setReaderCapos]=useState({});
+ const [readingMode,setReadingMode]=useState("continuous"),[readingPage,setReadingPage]=useState(0);
+ const [sectionAutoFit,setSectionAutoFit]=useState(true);
+ const fittedFont=React.useRef(null);
+ const goPage=page=>{setSectionAutoFit(true);fittedFont.current=null;setReadingPage(page);};
+ const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:goPage};
+ useEffect(()=>{goPage(0);},[entryId]);
+ const changeReaderFont=value=>{const fit=fittedFont.current;fittedFont.current=null;setSectionAutoFit(false);setReaderFont(previous=>Math.max(10,Math.min(46,typeof value==="function"?value(fit??previous):value)));};
  const [readerFont,setReaderFont]=useState(16);
  useEffect(()=>{onNavChange?.({folderId,entryId,view,kind:createKind,editReturn,shareReturn})},
   [folderId,entryId,view,createKind,editReturn,shareReturn]);
@@ -533,7 +546,10 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function readingView(){
   if(!folder||!entry)return folderView();
   const rows=readingRows(entry,catalog,readerShift);
-  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift})),songs);
+  const selections=rows.map(({part,song})=>capoSelection(song,readerCapos[entry.id+":"+part.id]||"none"));
+  const pages=readingMode==="sections"?readingPages(rows.map(({resolved,shift},index)=>({lyrics:resolved.lyrics||resolved.error||"Sin letra descargada.",shift:shift+selections[index].offset})),parseSong):[];
+  const active=currentPage(pages,readingPage);
+  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift},index)=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift:shift+selections[index].offset,capo:selections[index].chosen.position})),songs);
   return h(View,{style:styles.container},
    action("← Editar "+kindName(entry.kind),back,true),
    label(entry.title,styles.pageTitle),
@@ -542,10 +558,12 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("T−",()=>setReaderShift(v=>Math.max(-11,v-1)),true,readerShift<=-11),
     label(readerShift===0?"Tono original":(readerShift>0?"+":"")+readerShift+" semitonos",styles.meta),
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
-    action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
-    action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
+    action("A−",()=>changeReaderFont(v=>v-1),true,!sectionAutoFit&&readerFont<=10),
+    action("A+",()=>changeReaderFont(v=>v+1),true,!sectionAutoFit&&readerFont>=46)),
+   h(Mode,reading),active?h(Pager,{...reading,pages}):null,
    entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
    ...rows.map(({part:p,index,song,resolved,shift,tone})=>{
+    if(active&&active.partIndex!==index)return null;
     return h(View,{key:p.id,style:styles.readerPart},
      h(View,{style:styles.partHead},
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
@@ -553,12 +571,14 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
        label(song?.title||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
         (song?.tone?" · Tono "+tone:""),styles.meta))),
+     song?h(CollectionCapo,{selection:selections[index],transpose:shift,onChange:id=>setReaderCapos(previous=>({...previous,[entry.id+":"+p.id]:id}))}):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
+      resolved.lyrics?(active?renderAlignedScoreRows(active.rows,readerFont,"local-section-"+p.id+"-"+active.sectionIndex,{autoFit:sectionAutoFit,onAutoFont:value=>{fittedFont.current=value;},onFontSizeChange:changeReaderFont}):renderScore(resolved.lyrics,shift+selections[index].offset,"local-"+p.id,readerFont)):
        label("Este canto no tiene letra descargada.",styles.warning),
-     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift}),true):null,
+     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:shift+selections[index].offset,capo:selections[index].chosen.position}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
+   active?h(Pager,{...reading,pages}):null,
    action("Compartir",()=>showShare(entry,folder,"reading"),true));
  }
  if(view==="reading")return readingView();

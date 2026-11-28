@@ -24,9 +24,50 @@ for(const engine of engines){
   }
   for(const chord of chords)assert.equal(engine.transposeOne(chord,shift),source.transposeOne(chord,shift));
  }
+
+ // Los índices de origen no dependen de la longitud del acorde transpuesto.
+ const anchored=engine.parseAnchoredSong("C  G/B    Am\nÁbreme Señor",1)[0];
+ assert.deepEqual(anchored.anchors,[{position:0,chord:"C#"},{position:3,chord:"G#/C"},{position:10,chord:"A#m"}]);
+ assert.equal(anchored.lyricLine,"Ábreme Señor");
+ const inlineAnchors=engine.parseAnchoredSong("(C)Se(G/B)ñor (Am) mío",1)[0];
+ assert.deepEqual(inlineAnchors.anchors,[{position:0,chord:"C#"},{position:2,chord:"G#/C"},{position:6,chord:"A#m"}]);
+ assert.equal(inlineAnchors.lyricLine,"Señor  mío");
+ const merged=engine.parseAnchoredSong("C   G\n(Am)Hola (D)Señor",0)[0];
+ assert.deepEqual(merged.anchors,[{position:0,chord:"C"},{position:0,chord:"Am"},{position:4,chord:"G"},{position:5,chord:"D"}]);
+ for(const sample of samples){
+  for(let shift=-12;shift<=12;shift++){
+   const rows=engine.parseAnchoredSong(sample,shift);
+   assert.deepEqual(rows.map(({anchors,...row})=>row),engine.parseSong(sample,shift));
+   const zero=engine.parseAnchoredSong(sample,0);
+   assert.deepEqual(rows.map(row=>row.anchors?.map(a=>a.position)),zero.map(row=>row.anchors?.map(a=>a.position)));
+  }
+ }
+
  assert.equal(engine.preserveColumns("C  G"),"C\u00a0\u00a0G");
  assert.equal(engine.chordRow("C  G/B"),true);
  assert.equal(engine.chordRow("[Coro]"),false);
 }
 assert.equal(generate(read),read(files[0]));
 console.log("Native chords: canonical generation, drift detection, 500 parse cases and 900 transposition cases verified.");
+
+
+const vm=require("node:vm");
+const webContext={window:{}};
+vm.runInNewContext(read("song-chords.js"),webContext);
+const web=webContext.window.ShalomChords;
+const decode=value=>value.replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&");
+for(const sample of [...samples,"(C)Se(G/B)ñor (Am) mío","C  G/B    Am\nÁbreme Señor","C   G\n(Am)Hola (D)Señor"]){
+ for(let shift=-12;shift<=12;shift++){
+  const options={transpose:chord=>source.transposeOne(chord,shift)};
+  const baseline=web.render(sample,options);
+  const anchored=web.render(sample,{...options,includeAnchors:true});
+  const webAnchors=Array.from(anchored.matchAll(/ data-chord-anchors="([^"]*)"/g),match=>JSON.parse(decode(match[1])));
+  const nativeAnchors=source.parseAnchoredSong(sample,shift).filter(row=>row.kind==="chords").map(row=>row.anchors);
+  assert.deepEqual(webAnchors,nativeAnchors,"Web y apps conservan los mismos anclajes de origen");
+  assert.equal(anchored.replace(/ data-chord-anchors="[^"]*"/g,""),baseline,"No cambiar el HTML existente salvo metadatos optativos");
+ }
+}
+console.log("Web/native anchored score parity verified.");
+
+// La geometría proporcional debe conservar los anclajes antes de cambiar la fuente.
+require("./score-layout.cjs");

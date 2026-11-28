@@ -22,17 +22,25 @@ assert.doesNotMatch(medley,/h\(Card,|S\.lyricsArea|S\.listRow/,"No boxed lyrical
 assert.match(rep,/song\?\.lyrics/,"Repertoire reads saved original song lyrics");
 assert.match(rep,/item\.moment/,"Mass moments must be distinguished");
 assert.match(rep,/song\?\.tone\?transposeOne\(song\.tone,transpose\)/,"Repertoire song tone is transposed");
-assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",transpose/);
+assert.match(rep,/renderMultiReadingScore\(song\?\.lyrics\|\|"Canto no disponible\.",transpose\+selections\[index\]\.offset/);
+for(const reader of [rep,medley]){
+ assert.match(reader,/h\(Mode,reading\)/,"Reading mode switch is available");
+ assert.match(reader,/active\.partIndex!==index/,"Only the active song is shown in section mode");
+ assert.match(reader,/renderAlignedScoreRows\(active\.rows,readerFont/,"Sections share the anchored Inter renderer");
+ assert.match(reader,/h\(CollectionCapo/,"Preserve individual capo selection");
+}
 assert.match(medley,/part\.lyrics\|\|original\?\.lyrics/,"Retain fragment-only lyrics when available");
 assert.match(medley,/const delta=transpose\+/,"Keep original per-fragment pitch shifts");
 assert.match(medley,/capoPosition/,"Retain capo instructions per fragment");
 assert.match(medley,/otherCapos/,"Retain variant capo choices");
 assert.match(medley,/tutorials\.map/,"Preserve YouTube/tutorial links");
 assert.doesNotMatch(medley,/\.slice\(0,3\)/,"Every tutorial should remain available");
-assert.match(score,/parseSong\(lyrics,delta\)/,"Use the same parser as Cantos");
+assert.match(score,/parseSong\(lyrics,delta,true\)/,"Use the same parser as Cantos");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/row\.kind==="section"/,"Use saved section labels in all readers");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/song-section-label/,"Use green chorus and verse labels");
-assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/#27c98b/,"Use SHALOM green for chords");
+const palette=require("../mobile/src/palette");
+const {scoreHtml}=require("../mobile/src/web-score-html");
+assert.ok(scoreHtml([],15).includes("color:"+palette.green+"!important"),"Use the current canonical SHALOM green for chords");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/Courier New/, "Use identical browser font for lyrics");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/overflow-x:auto/,"Support horizontal chord scrolling");
 assert.match(grid,/h\(WebView,\{/,"Browser score remains selectable");

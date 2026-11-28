@@ -46,7 +46,7 @@
   const html=(rep.items||[]).map((item,i)=>{
    const song=songs.get(item.song_id);
    const lyrics=song?.lyrics||"Canto no disponible.";
-   const content=window.ShalomChords?.render?window.ShalomChords.render(lyrics):"<pre>"+esc(lyrics)+"</pre>";
+   const content=window.ShalomChords?.render?window.ShalomChords.render(lyrics,{includeAnchors:true}):"<pre>"+esc(lyrics)+"</pre>";
    return '<article class="rep-print-song rep-continuous-song" id="rep-song-'+i+'">'+
     '<h3>'+(i+1)+'. '+esc(item.moment||"Canto")+' — '+esc(song?.title||"Canto no disponible")+'</h3>'+
     (song?.tone?'<p class="muted-text">Tono '+esc(song.tone)+'</p>':"")+
@@ -56,6 +56,7 @@
   $("repPrintAll").innerHTML=html;
   $("repPrintAll").hidden=false;
   $("repPrintAll").setAttribute("aria-hidden","false");
+  for(const target of $("repPrintAll").querySelectorAll(".rep-reader-lyrics"))window.ShalomScoreReader?.upgrade(target);
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
    '<a class="rep-order-button" href="#rep-song-'+i+'"><strong>'+(i+1)+'. '+esc(item.moment||"Canto")+
    '</strong><span>'+esc(songs.get(item.song_id)?.title||"Canto no disponible")+'</span></a>').join("");

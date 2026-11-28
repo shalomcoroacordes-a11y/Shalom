@@ -2,7 +2,7 @@ const palette=require("./palette");
 // HTML autosuficiente para dibujar canciones como la web pública de SHALOM.
 // React Native Text no reproduce de manera consistente las columnas de Courier New
 // con acentos y espacios; Chromium utiliza las mismas reglas que el administrador.
-const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT}=require("./score-zoom");
+const {clampReaderFont,MIN_READER_FONT,MAX_READER_FONT,DEFAULT_READER_FONT}=require("./score-zoom");
 const escapeHTML=value=>String(value??"")
  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
@@ -10,7 +10,7 @@ function scoreMarkup(rows){
  return (rows||[]).map(row=>{
   if(row.kind==="space")return '<span class="song-empty-line"></span>';
   if(row.kind==="section")return '<span class="song-section-label">'+escapeHTML(row.text)+'</span>';
-  if(row.kind==="chords")return '<span class="song-line song-stacked-chords"><span class="chord-line">'+
+  if(row.kind==="chords")return '<span class="song-line song-stacked-chords"'+(Array.isArray(row.anchors)?' data-chord-anchors="'+escapeHTML(JSON.stringify(row.anchors))+'"':"")+'><span class="chord-line">'+
    escapeHTML(row.chordLine||" ")+'</span><span class="lyric-line">'+
    escapeHTML(row.lyricLine||" ")+'</span></span>';
   if(row.kind==="chordsOnly")return '<span class="song-standalone-chords">'+escapeHTML(row.text||" ")+'</span>';
@@ -28,12 +28,14 @@ function estimateScoreHeight(rows,fontSize){
  }
  return Math.max(80,Math.ceil(units+16));
 }
-function scoreHtml(rows,fontSize=15){
+function scoreHtml(rows,fontSize=15,assets=null,options={}){
+ const proportional=!!assets&&rows.every(row=>row.kind!=="chords"||Array.isArray(row.anchors));
  const size=clampReaderFont(fontSize);
+ const fitHeight=Number.isFinite(options.fitHeight)&&options.fitHeight>0?Math.round(options.fitHeight):0;
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
   'html,body{margin:0;padding:0;border:0;background:'+palette.bg+';color:'+palette.text+';}',
-  'body{overflow:hidden;}',
+  options.scrollDocument?'body{overflow:auto;}':'body{overflow:hidden;}',
   '.score-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}',
   '.song-lyrics{font-family:"Courier New",Courier,monospace!important;font-size:'+size+'px;',
   'font-variant-ligatures:none;letter-spacing:0!important;line-height:1.22;',
@@ -66,6 +68,7 @@ function scoreHtml(rows,fontSize=15){
   'scheduleMeasure();',
   'var lyrics=target&&target.querySelector(".song-lyrics");',
   'var zoom='+size+';var reportedZoom=zoom;var startZoom=zoom;var startDistance=0;var pinching=false;',
+  'if(window.addEventListener)window.addEventListener("shalom-score-fit",function(e){zoom=e.detail.fontSize;reportedZoom=zoom;startZoom=zoom;scheduleMeasure();if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:"score-fit",fontSize:zoom}));});',
   'function clampZoom(v){return Math.min('+MAX_READER_FONT+',Math.max('+MIN_READER_FONT+',Math.round(v*10)/10));}',
   "function dist(a,b){var x=a.clientX-b.clientX;var y=a.clientY-b.clientY;return Math.sqrt(x*x+y*y);}",
   "function pinchBegin(e){",
@@ -100,9 +103,11 @@ function scoreHtml(rows,fontSize=15){
  ].join("");
  return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
   '<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">'+
-  '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; script-src &#39;unsafe-inline&#39;">'+
-  '<style>'+css+'</style></head><body>'+
-  '<div id="score" class="score-scroll"><div class="song-lyrics">'+scoreMarkup(rows)+'</div></div>'+
-  '<script>'+measure+'</script></body></html>';
+  '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; script-src &#39;unsafe-inline&#39;; font-src data:;">'+
+  '<style>'+css+(proportional?'@font-face{font-family:Inter;src:url(data:font/woff2;base64,'+assets.font+') format("woff2");font-weight:100 900;font-style:normal;}'+assets.css+':root{--gold:'+palette.green+';}':'')+'</style></head><body>'+
+  '<div id="score" class="score-scroll"'+(proportional?' style="visibility:hidden"':'')+'><div class="song-lyrics">'+scoreMarkup(rows)+'</div></div>'+
+  '<script>'+measure+'</script>'+(proportional?'<script>(function(){var target=document.getElementById("score");var finished=false;function reveal(){if(finished)return false;finished=true;clearTimeout(timer);target.style.visibility="";window.dispatchEvent(new Event("resize"));return true;}var timer=setTimeout(reveal,2000);window.__shalomScorePending=function(){return !finished;};window.__shalomScoreReveal=reveal;})();</script><script>'+assets.layout+'\n'+assets.reader+'\n'+
+  '(async function(){var wrapper=document.querySelector(".song-lyrics");try{if(!await ShalomScoreReader.loadFont()||!window.__shalomScorePending())return;var score=ShalomScoreReader.buildMarkup(wrapper.innerHTML);var original=Array.from(wrapper.childNodes);wrapper.replaceChildren(score);try{ShalomScoreReader.relayout(score);}catch(e){wrapper.replaceChildren(...original);throw e;}var budget='+fitHeight+';if(budget>0){var result=ShalomScoreReader.fitSection(wrapper,score,{width:document.getElementById("score").clientWidth,height:budget,min:12,max:'+DEFAULT_READER_FONT+'});if(result)window.dispatchEvent(new CustomEvent("shalom-score-fit",{detail:result}));}window.dispatchEvent(new Event("resize"));}catch(e){console.warn("SHALOM: retained original score",e);}finally{window.__shalomScoreReveal();}})();'+
+  '</script>':'')+'</body></html>';
 }
 module.exports={scoreHtml,scoreMarkup,estimateScoreHeight,escapeHTML};

@@ -69,14 +69,60 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon :app:assembleRelease
-      - name: Verify preview APK and digest
+      - name: Verify preview APK signature, identity, architectures and digest
         run: |
-          test -s android/app/build/outputs/apk/release/app-release.apk
-          sha256sum android/app/build/outputs/apk/release/app-release.apk
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -s "$APK"
+          unzip -tq "$APK"
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          "$SIGNER" verify --verbose --print-certs "$APK"
+          "$AAPT" dump badging "$APK" | tee "$RUNNER_TEMP/preview-badging.txt"
+          grep -F "package: name='com.shalomcoroacordes.cancionero.preview'" "$RUNNER_TEMP/preview-badging.txt"
+          grep -F "'arm64-v8a'" "$RUNNER_TEMP/preview-badging.txt"
+          grep -F "'x86_64'" "$RUNNER_TEMP/preview-badging.txt"
+          sha256sum "$APK"
       - name: Upload isolated preview APK (no Release)
         uses: actions/upload-artifact@v4
         with:
           name: SHALOM-Preview-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+          retention-days: 14
+
+  smoke-install:
+    needs: preview-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: SHALOM-Preview-${{ github.sha }}
+          path: apk
+      - name: Check hardware acceleration
+        run: |
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+      - name: Install and launch on Android 16
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-linux-hw-accel: false
+          script: >-
+            bash -lc 'set -e; PKG=com.shalomcoroacordes.cancionero.preview;
+            adb install apk/app-release.apk;
+            adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1;
+            sleep 18; adb shell pidof "$PKG" || { adb logcat -d -v brief -s AndroidRuntime:E ReactNativeJS:E ReactNative:E | tail -n 140; exit 1; };
+            adb exec-out screencap -p > /tmp/shalom-preview-launch.png; test -s /tmp/shalom-preview-launch.png'
+      - name: Keep installation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM-PREVIEW-INSTALL-SMOKE
+          path: /tmp/shalom-preview-launch.png
+          if-no-files-found: warn
           retention-days: 14

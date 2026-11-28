@@ -8,3 +8,6 @@ build/
 *.log
 android/
 ios/
+
+src/score-reader-assets.js
+assets/fonts/Inter-OFL.txt

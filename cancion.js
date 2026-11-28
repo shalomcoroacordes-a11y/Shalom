@@ -8,6 +8,8 @@ let currentSong = null;
 let transpose = 0;
 let capoShift = 0;
 let capoLabel = "Sin capo";
+// Vista de desarrollo: la lectura estable permanece predeterminada hasta validar todas las plataformas.
+const previewInter = params.get("reader") === "inter";
 
 const escapeHTML = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const N = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -175,7 +177,7 @@ function renderChordLyrics() {
   const move = transpose + capoShift;
   target.className = "lyrics-block";
   target.innerHTML = window.ShalomChords?.render
-    ? window.ShalomChords.render(lyrics, { transpose: (value) => chordGroup(value, move) })
+    ? window.ShalomChords.render(lyrics, { includeAnchors: previewInter, transpose: (value) => chordGroup(value, move) })
     : String(lyrics).split("\n").map((line) => {
     if (!line.trim()) return "<span class='song-empty-line'></span>";
     const section = line.trim().match(/^\[([^\]]+)\]$/);
@@ -210,6 +212,7 @@ function renderChordLyrics() {
     return `<span class="song-line"><span class="chord-line">${escapeHTML(chordLine)}</span><span class="lyric-line">${escapeHTML(lyricLine)}</span></span>`;
   }).join("");
 
+  if (previewInter && window.ShalomChords?.render) window.ShalomScoreReader?.upgrade(target);
   const status = $("#transposeStatus");
   if (status) status.textContent = `${transpose === 0 ? "Tono original" : `Transposición ${transpose > 0 ? "+" : ""}${transpose}`} · ${capoLabel}`;
 }

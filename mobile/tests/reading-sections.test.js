@@ -1,0 +1,12 @@
+const assert=require("node:assert/strict");
+const {parseSong}=require("../src/chords"),{splitRows,readingPages,currentPage}=require("../src/reading-sections-core");
+const lyrics="[Verso]\n(C)Hola (G)Señor\n\n[Coro]\n(Am)Cantamos juntos";
+const rows=parseSong(lyrics,2,true),sections=splitRows(rows);
+assert.equal(sections.length,2);assert.deepEqual(sections.flatMap(s=>s.rows),rows);
+assert.deepEqual(sections.map(s=>s.title),["Verso","Coro"]);
+const pages=readingPages([{lyrics,shift:2},{lyrics:"[Salida]\n(F)Paz",shift:-1}],parseSong);
+assert.deepEqual(pages.map(p=>[p.partIndex,p.sectionIndex,p.title]),[[0,0,"Verso"],[0,1,"Coro"],[1,0,"Salida"]]);
+assert.equal(currentPage(pages,2).partIndex,1);assert.equal(currentPage(pages,99),pages[2]);assert.equal(currentPage([],0),null);
+assert.equal(sections[0].rows.find(r=>r.kind==="chords").anchors[0].chord,"D");
+assert.equal(splitRows(parseSong("(C)Sin encabezado",0,true)).length,1);
+console.log("Section reader preserves parsed musical rows, capo shifts and collection order.");

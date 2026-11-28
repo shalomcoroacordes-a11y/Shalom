@@ -4,14 +4,21 @@ const {useRef,useState}=React;
 const {View,Text,TextInput,ScrollView,Pressable,Modal,KeyboardAvoidingView,Platform,useWindowDimensions}=require("react-native");
 const {SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const {S,C}=require("../styles");
-const {renderLines}=require("../score");
+const {parseSong}=require("../chords");
+const {WebView}=require("react-native-webview");
+const {scoreHtml}=require("../web-score-html");
+const scoreAssets=require("../score-reader-assets");
 const h=React.createElement;
 const SECTIONS=["Intro","Verso 1","Pre-coro","Coro","Puente","Intermedio","Final"];
 function text(t,style){return h(Text,{style},t);}
 function tool(t,fn){return h(Pressable,{key:t,style:S.lyricTool,onPress:fn,accessibilityRole:"button"},text(t,{color:C.text,fontSize:12,fontWeight:"700"}));}
-function Preview({value}){
- return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,contentContainerStyle:{paddingVertical:12,paddingHorizontal:4,minWidth:"100%"}},
-  h(View,{style:{gap:3}},renderLines(value).map((line,i)=>text(line.text,[line.type==="chords"?S.chords:line.type==="section"?S.kicker:S.lyrics,{fontSize:15,lineHeight:25,marginTop:line.type==="section"?12:0}]))));
+function Preview({value,font}){
+ const html=React.useMemo(()=>scoreHtml(parseSong(value,0,true),font,scoreAssets,{scrollDocument:true}),[value,font]);
+ const source=React.useMemo(()=>({html}),[html]);
+ return h(WebView,{source,originWhitelist:["*"],javaScriptEnabled:true,domStorageEnabled:false,
+  allowFileAccess:false,mixedContentMode:"never",setSupportMultipleWindows:false,
+  javaScriptCanOpenWindowsAutomatically:false,style:{flex:1,backgroundColor:C.bg},
+  accessibilityLabel:"Vista previa de letra y acordes"});
 }
 function LyricsEditor({value,onChange}){
  const {height}=useWindowDimensions(),insets=useSafeAreaInsets();
@@ -62,7 +69,7 @@ function LyricsEditor({value,onChange}){
       h(View,{style:{flexDirection:"row",gap:8}},tool(preview?"✎ Editar":"◉ Vista previa",()=>setPreview(p=>!p)),
        tool("A−",()=>setFont(n=>Math.max(13,n-1))),tool("A+",()=>setFont(n=>Math.min(21,n+1)))),
       toolbar(),
-      preview?h(View,{style:{flex:1}},h(Preview,{value:content})):editor(true),
+      preview?h(View,{style:{flex:1}},h(Preview,{value:content,font})):editor(true),
       h(View,{style:{paddingBottom:Math.max(8,insets.bottom)}},text("Los cambios permanecen en este borrador hasta que lo guardes.",S.note))
      )))
   )

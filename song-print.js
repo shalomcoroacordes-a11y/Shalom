@@ -6,6 +6,12 @@
     const lyrics = document.querySelector("#songLyrics");
     if (!lyrics) return;
 
+    const proportional = lyrics.querySelector(".score-proportional");
+    // No comprimir a dos columnas una partitura proporcional hasta validar anchos impresos.
+    if (proportional) {
+      document.body.classList.remove(...layoutClasses);
+      return;
+    }
     const blocks = Array.from(lyrics.children);
     let weightedLines = 0;
     let longestLine = 0;

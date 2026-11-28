@@ -395,9 +395,11 @@
     const shift = state.shift + capo.offset;
     if (window.ShalomChords?.render) {
       target.innerHTML = window.ShalomChords.render(song.lyrics || "Sin letra.", {
+        includeAnchors: true,
         transpose: (value) => String(value || "").split(/(\s+)/).map((token) =>
           /^[A-G](?:#|b)?/.test(token) ? transposeChord(token, shift) : token).join("")
       });
+      window.ShalomScoreReader?.upgrade(target);
     } else {
       target.textContent = song.lyrics || "Sin letra.";
     }

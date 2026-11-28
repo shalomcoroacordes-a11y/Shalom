@@ -9,10 +9,11 @@
     "ios": "expo start --ios",
     "check": "expo install --check",
     "test": "node scripts/run-tests.js",
-    "test:syntax": "node scripts/check-syntax.js"
+    "test:syntax": "node scripts/check-syntax.js",
+    "postinstall": "node ../scripts/build-native-score.js"
   },
   "dependencies": {
-    "expo": "~58.0.0",
+    "expo": "~58.1.0",
     "react": "19.3.0",
     "react-native": "0.88.1",
     "expo-sqlite": "~58.0.17",

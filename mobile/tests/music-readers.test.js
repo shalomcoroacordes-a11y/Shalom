@@ -12,7 +12,10 @@ vm.runInNewContext(fs.readFileSync("src/music-readers-ui.js","utf8"),{module:mod
  if(name==="./chords")return{parseSong:(lyrics,shift)=>{calls.push(["parse",lyrics,shift]);return[]},transposeOne:(tone,shift)=>tone+"+"+shift};
  if(name==="./catalog")return{names:()=>"Coro",safeWebUrl:url=>url};
  if(name==="./favorites")return{hasFavorite:()=>true};
- if(name==="./song-capo-core")return{capoSelection:()=>({choices:[{id:"none",label:"Sin capo"},{id:"main",label:"Capo 2"}],chosen:{id:"main",position:2,key:"A"},offset:-2})};
+ if(name==="./collection-capo-ui")return "CollectionCapo";
+ if(name==="./reading-sections-core")return require("../src/reading-sections-core");
+ if(name==="./reading-sections-ui")return {Mode:"Mode",Pager:"Pager"};
+ if(name==="./song-capo-core")return{capoSelection:(_song,id)=>({choices:[{id:"none",label:"Sin capo"},{id:"main",label:"Capo 2"}],chosen:id==="main"?{id:"main",position:2,key:"A"}:{id:"none",position:0},offset:id==="main"?-2:0})};
  if(name==="./score-zoom")return{clampReaderFont:v=>v};
  if(name==="./repertoire-ui")return{repertoireType:()=>"misa"};
  if(name==="./studio-collections")return{plan:()=>plan,sequencePlan:()=>({id:"sequence"})};
@@ -26,4 +29,11 @@ let tree=SongReader(props);assert.ok(calls.some(x=>x[0]==="parse"&&x[2]===1));as
 tree=RepertoireReader(props);assert.ok(calls.some(x=>x[0]==="multi"&&x[1]===song.lyrics&&x[2]===3));find(tree,n=>n.props.accessibilityLabel==="Abrir Gloria como canto individual").props.onPress();assert.equal(calls.at(-1)[0],"selectSong");
 tree=MedleyReader(props);assert.ok(calls.some(x=>x[0]==="multi"&&x[1]==="Fragmento"&&x[2]===5));find(tree,n=>n.props.accessibilityLabel==="Abrir Video").props.onPress();assert.equal(calls.at(-1)[1],"https://example.test");
 assert.ok(!find(MedleyReader({...props,immersiveActive:true}),n=>n.type==="Studio"));
+let selected;calls.length=0;tree=RepertoireReader({...props,collectionCapos:{"rep:r:0":"main"},setCollectionCapo:(...args)=>selected=args});
+assert.ok(calls.some(x=>x[0]==="multi"&&x[2]===1),"Repertoire uses selected capo offset");
+find(tree,n=>n.type==="CollectionCapo").props.onChange("none");assert.equal(selected.join(","),"rep:r:0,none");
+calls.length=0;MedleyReader({...props,collectionCapos:{"medley:m:0":"main"}});assert.ok(calls.some(x=>x[0]==="multi"&&x[2]===3),"Medley uses part shift and capo offset");
+calls.length=0;tree=RepertoireReader({...props,reading:{mode:"sections",page:1},rep:{...rep,items:[...rep.items,...rep.items]}});
+assert.equal(calls.filter(x=>x[0]==="aligned").length,1,"Section reader shows exactly one part");
+assert.equal(find(tree,n=>n.type==="Pager").props.pages.length,2);
 console.log("Music readers: canonical parser inputs, capo offset, fragment shifts, favorites, original links and immersive controls verified.");

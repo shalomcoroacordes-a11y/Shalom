@@ -1,10 +1,11 @@
 const palette=require("./palette");
 const React=require("react");
 const {useMemo,useState,useEffect}=React;
-const {View,Text,StyleSheet}=require("react-native");
+const {View,Text,StyleSheet,useWindowDimensions}=require("react-native");
 const {WebView}=require("react-native-webview");
 const {scoreHtml,estimateScoreHeight}=require("./web-score-html");
-const {clampReaderFont}=require("./score-zoom");
+const scoreAssets=require("./score-reader-assets");
+const {clampReaderFont,DEFAULT_READER_FONT}=require("./score-zoom");
 const LegacyScore=require("./aligned-score-legacy-ui");
 const h=React.createElement;
 
@@ -12,10 +13,24 @@ const h=React.createElement;
 // El contenido no procede de una URL: sigue disponible sin internet.
 // En Android, RN Text aplica tratamientos de espacios/fuentes distintos de
 // los de la vista del editor web, incluso con 'monospace' y espaciado cero.
-function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
+function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,autoFit=false,onAutoFont}){
+ const {height:windowHeight,width:windowWidth}=useWindowDimensions();
+ const container=React.useRef(null);
+ const [budget,setBudget]=useState(null);
  const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
- const html=useMemo(()=>scoreHtml(rows,safeFont),[serialized,safeFont]);
+ const fitHeight=autoFit?budget:0;
+ const html=useMemo(()=>fitHeight?scoreHtml(rows,DEFAULT_READER_FONT,scoreAssets,{fitHeight}):scoreHtml(rows,safeFont,scoreAssets),[serialized,safeFont,fitHeight]);
+ useEffect(()=>{setBudget(null);},[variant,windowHeight,windowWidth,autoFit]);
+ useEffect(()=>{if(autoFit&&budget===null){const task=requestAnimationFrame(measureAvailable);return()=>cancelAnimationFrame(task);}},[autoFit,budget,variant,windowHeight,windowWidth]);
+ function measureAvailable(){
+  if(!autoFit||budget!==null)return;
+  container.current?.measureInWindow((_x,y,_w,h)=>{
+   if(!Number.isFinite(y)||!h)return;
+   // Reserve the lower navigation and safe-area margin. Never clip a long section.
+   setBudget(Math.max(100,Math.floor(windowHeight-Math.max(0,y)-88)));
+  });
+ }
  // Native height events must not construct a new document source.
  const source=useMemo(()=>({html}),[html]);
  const [height,setHeight]=useState(()=>estimateScoreHeight(rows,safeFont));
@@ -28,10 +43,14 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
   let value;
   try{value=JSON.parse(e.nativeEvent.data);}catch(_){return;}
   // La WebView avisa solo al terminar el pellizco: no se reinicia en cada movimiento.
+  if(value?.type==="score-fit"){
+   if(autoFit&&Number.isFinite(value.fontSize))onAutoFont?.(clampReaderFont(value.fontSize));
+   return;
+  }
   if(value?.type==="score-zoom"){
    if(Number.isFinite(value.fontSize)&&onFontSizeChange){
     const next=clampReaderFont(value.fontSize);
-    if(Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
+    if(autoFit||Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
    }
    return;
   }
@@ -43,7 +62,7 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
  if(failed)return h(View,null,
   h(Text,{style:S.fallback},"Este teléfono está usando el lector alternativo."),
   h(LegacyScore,{rows,fontSize:safeFont,variant}));
- return h(View,{style:S.container},
+ return h(View,{style:S.container,ref:container,collapsable:false,onLayout:measureAvailable},
   h(WebView,{
    // El contenido está generado localmente y la política CSP impide enlaces,
    // peticiones remotas o scripts externos. No carga el sitio de SHALOM.

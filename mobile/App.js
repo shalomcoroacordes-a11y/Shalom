@@ -97,7 +97,17 @@ function AppScreen() {
  const [folderId,setFolderId]=useState("");
  const [transpose,setTranspose]=useState(0);
  const [capo,setCapo]=useState("none");
- const [readerFont,setReaderFont]=useState(15);
+ const [collectionCapos,setCollectionCapos]=useState({});
+ const setCollectionCapo=(key,id)=>setCollectionCapos(previous=>({...previous,[key]:id}));
+ const [readerFont,setReaderFontValue]=useState(15);
+ const [sectionAutoFit,setSectionAutoFit]=useState(true);
+ const fittedFont=useRef(null);
+ const setReaderFont=value=>{const fit=fittedFont.current;fittedFont.current=null;setSectionAutoFit(false);setReaderFontValue(previous=>typeof value==="function"?value(fit??previous):value);};
+ const [readingMode,setReadingMode]=useState("continuous");
+ const [readingPage,setReadingPage]=useState(0);
+ const readerScroll=useRef(null);
+ const goReadingPage=page=>{setSectionAutoFit(true);fittedFont.current=null;setReadingPage(page);readerScroll.current?.scrollTo({y:0,animated:false});};
+ const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:goReadingPage};
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
  const [personal,setPersonal]=useState(emptyStore());
@@ -184,9 +194,9 @@ function AppScreen() {
   }
  });
  const {exportBackup:exportMyPersonalBackup,restoreBackup:restoreMyPersonalBackup}=backupControllerRef.current;
- function selectSong(song){openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
- function selectMedley(medley){openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
- function selectRepertoire(rep){openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
+ function selectSong(song){setSectionAutoFit(true);fittedFont.current=null;setReadingPage(0);openDetail({type:"song",id:song.id,from:tab});rememberRead({type:"song",id:song.id});setTranspose(0);setCapo("none");setCapoExpanded(false);}
+ function selectMedley(medley){setSectionAutoFit(true);fittedFont.current=null;setReadingPage(0);setCollectionCapos({});openDetail({type:"medley",id:medley.id,from:tab});rememberRead({type:"medley",id:medley.id});setTranspose(0);}
+ function selectRepertoire(rep){setSectionAutoFit(true);fittedFont.current=null;setReadingPage(0);setCollectionCapos({});openDetail({type:"repertoire",id:rep.id,from:tab});setTranspose(0);}
  function back(){
   return handleBack({
    profileMenuOpen,actionSongId,immersiveActive,settingsOpen,detail,capoExpanded,
@@ -323,12 +333,13 @@ function AppScreen() {
  }
  // Todos los lectores usan una sola cuadrícula de texto monoespaciado:
  // en un único Text padre, los acordes mantienen sus columnas al cambiar dispositivo.
- function renderAlignedScoreRows(rows,fontSize,keyPrefix){
+ function renderAlignedScoreRows(rows,fontSize,keyPrefix,section=false){
+  if(section)return h(AlignedScore,{key:keyPrefix,rows,fontSize,variant:keyPrefix,autoFit:sectionAutoFit,onAutoFont:value=>{fittedFont.current=value;},onFontSizeChange:next=>setReaderFont(clampReaderFont(next)),...(typeof section==="object"?section:{})});
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
   function renderMultiReadingScore(lyrics,delta,keyPrefix,fontOverride=readerFont){
-  const parsed=parseSong(lyrics,delta);
+  const parsed=parseSong(lyrics,delta,true);
   return renderAlignedScoreRows(parsed,fontOverride,keyPrefix);
  }
  function openStudioCollection(plan,index=0){
@@ -350,9 +361,9 @@ function AppScreen() {
   return h(View,{style:{paddingVertical:8}},h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioCollection(plan)},
    label("♫ "+caption+" · "+plan.ready.length+"/"+plan.total,S.multiOriginalText)));
  }
- function renderRepertoireDetail(rep){return h(RepertoireReader,{rep,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
+ function renderRepertoireDetail(rep){return h(RepertoireReader,{reading,readerFont,renderAlignedScoreRows,rep,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,openStudioPart,selectSong});}
  function renderMedleys(){return h(MedleysScreen,{S,label,type,SectionHero,SectionFilterBar,SectionSearch,SectionListCard,SectionEmpty,model,medleyTypeFilter,query,setMedleyTypeFilter,sectionSearchOpen,setQuery,selectMedley,copy});}
- function renderMedleyDetail(medley){return h(MedleyReader,{medley,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
+ function renderMedleyDetail(medley){return h(MedleyReader,{reading,readerFont,renderAlignedScoreRows,medley,collectionCapos,setCollectionCapo,S,HOME_IMAGES,label,type,SectionEmpty,model,transpose,immersiveActive,renderMultiReadingControls,renderStudioCollectionAction,renderMultiReadingScore,setStudioQueue,setStudioPayload,selectSong,openWeb});}
  function renderAlbums(){
   return h(AlbumsScreen,{S,SectionHero,SectionListCard,SectionSearch,SectionEmpty,label,model,query,sectionSearchOpen,setQuery,openDetail});
  }
@@ -410,7 +421,7 @@ function AppScreen() {
   if(result.added)savePersonal(result.store,{notice:"Agregado a tu "+({misa:"misa",popurri:"popurrí",repertorio:"repertorio"}[kind]||"colección")+" personal"});
   return result;
  }
- function renderSongDetail(song){return h(SongReader,{song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont});}
+ function renderSongDetail(song){return h(SongReader,{reading,song,S,label,type,Chip,capo,transpose,likedIds,toggleLike,renderToneStepper,setReaderFont,capoExpanded,setCapoExpanded,setCapo,renderAlignedScoreRows,readerFont});}
  function renderRequest(){
   return h(RequestScreen,{
    styles:S,online:network.online,sending,
@@ -428,7 +439,7 @@ function AppScreen() {
   :detail?.type==="album"&&focusedAlbum?renderAlbumDetail(focusedAlbum)
   :tab==="Canciones"?renderSongs():tab==="Popurrís"?renderMedleys():tab==="Artistas"?renderArtists()
   :tab==="Categorías"?renderCategories():tab==="Álbumes"?renderAlbums():tab==="Explorar"?renderExplore():tab==="Repertorios"?renderRepertoires()
-  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
+  :tab==="Mis colecciones"?h(PersonalCollectionsScreen,{renderAlignedScoreRows,store:personal,onChange:savePersonal,songs:model.songs,renderScore:renderMultiReadingScore,onSelectSong:selectSong,onStudioPart:openStudioPart,onStudioCollection:openStudioCollection,filterKind:personalFilter,onClearFilter:()=>setPersonalFilter(null),
     registerBack:registerNestedBack,initialNav:personalNavRef.current,onNavChange:next=>{personalNavRef.current=next;}})
    :tab==="Perfil"?h(ProfileScreen,{profile,onChange:saveProfile,likedSongs:model.songs.filter(s=>likedSet.has(String(s.id))),
      personal,openSong:selectSong,onLiked:toggleLike,onCollections:(kind,action)=>goTab("Mis colecciones",{personalKind:kind||null,personalAction:action||null}),
@@ -497,7 +508,7 @@ function AppScreen() {
    section:"Solicitudes",onBack:back
   }):null,
   !loaded?h(View,{style:{flex:1,justifyContent:"center"}},h(ActivityIndicator,{color:C.green})):
-  h(ScrollView,{key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
+  h(ScrollView,{ref:readerScroll,key:(detail?.type||tab)+(detail?.id||""),style:{flex:1},
    contentContainerStyle:detail&&(detail.type==="medley"||detail.type==="repertoire")?S.multiPage:S.page,
    keyboardShouldPersistTaps:"handled"},
    settingsOpen?renderSettings():page,h(View,{style:{height:27}})),
