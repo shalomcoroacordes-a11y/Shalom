@@ -68,3 +68,6 @@ for(const sample of [...samples,"(C)Se(G/B)ñor (Am) mío","C  G/B    Am\nÁbrem
  }
 }
 console.log("Web/native anchored score parity verified.");
+
+// La geometría proporcional debe conservar los anclajes antes de cambiar la fuente.
+require("./score-layout.cjs");
