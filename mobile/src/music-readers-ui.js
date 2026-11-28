@@ -48,7 +48,7 @@ function RepertoireReader({reading={},readerFont=15,renderAlignedScoreRows,rep,c
        tone?label("Tono "+tone,S.multiPartDetail):null)),
      item.notes?h(Text,{style:S.multiPartNote},item.notes):null,
      song?h(CollectionCapo,{selection:selections[index],transpose,onChange:id=>setCollectionCapo(collectionKey("rep",rep.id,index),id)}):null,
-     active?renderAlignedScoreRows(active.rows,readerFont,"rep-section-"+index+"-"+active.sectionIndex):renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose+selections[index].offset,"rep-"+index),
+     active?renderAlignedScoreRows(active.rows,readerFont,"rep-section-"+index+"-"+active.sectionIndex,true):renderMultiReadingScore(song?.lyrics||"Canto no disponible.",transpose+selections[index].offset,"rep-"+index),
      !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>openStudioPart(song,{shift:transpose+selections[index].offset,capo:selections[index].chosen.position})},label("♫ Practicar con guitarra",S.multiOriginalText)):null,
      song?h(Pressable,{onPress:()=>selectSong(song),accessibilityRole:"button",
        accessibilityLabel:"Abrir "+title+" como canto individual",style:S.multiOriginalLink},
@@ -108,7 +108,7 @@ function MedleyReader({reading={},readerFont=15,renderAlignedScoreRows,medley,co
        otherCapos.length?label("Otros capos: "+otherCapos.map(c=>"traste "+c.capo_position+
         (c.capo_key?" · "+c.capo_key:"")).join(" / "),S.multiPartCapo):null)),
      original?h(CollectionCapo,{selection:selections[index],transpose:delta,onChange:id=>setCollectionCapo(collectionKey("medley",medley.id,index),id)}):null,
-     active?renderAlignedScoreRows(active.rows,readerFont,"medley-section-"+index+"-"+active.sectionIndex):renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta+selections[index].offset,"medley-"+index),
+     active?renderAlignedScoreRows(active.rows,readerFont,"medley-section-"+index+"-"+active.sectionIndex,true):renderMultiReadingScore(part.lyrics||original?.lyrics||"Sin letra guardada.",delta+selections[index].offset,"medley-"+index),
      h(View,{style:S.multiQuickLinks},
       !immersiveActive&&plan.entries[index]?.ready?h(Pressable,{style:S.multiOriginalLink,accessibilityRole:"button",onPress:()=>{setStudioQueue(null);setStudioPayload(plan.entries[index].payload)}},label("♫ Practicar fragmento",S.multiOriginalText)):null,
       original?h(Pressable,{onPress:()=>selectSong(original),accessibilityRole:"button",
@@ -173,7 +173,7 @@ function SongReader({reading={},song,S,label,type,Chip,capo,transpose,likedIds,t
    chosen.id!=="none"?label("Capo "+chosen.position+(chosen.key?" · Figuras en "+chosen.key:""),S.songCapoNote):null,
    h(Mode,reading),active?h(Pager,{...reading,pages}):null,
    h(View,{style:S.songScorePlain},
-    renderAlignedScoreRows(active?active.rows:parsed,readerFont,"song-"+song.id)),active?h(Pager,{...reading,pages}):null
+    renderAlignedScoreRows(active?active.rows:parsed,readerFont,"song-"+song.id+(active?"-section-"+active.sectionIndex:""),!!active)),active?h(Pager,{...reading,pages}):null
   );
  }
 

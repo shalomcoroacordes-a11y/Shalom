@@ -94,6 +94,19 @@
  function relayout(score){
   return Array.from(score.querySelectorAll(".score-pair"),measureLine);
  }
+ // Fit a complete section using actual glyph metrics, not character counts.
+ // If even the minimum does not fit, keep all content scrollable.
+ function fitSection(wrapper,score,{width,height,min=10,max=46}){
+  if(!(width>0&&height>0&&min>0&&max>=min))return null;
+  function measure(size){
+   wrapper.style.fontSize=size+"px";relayout(score);
+   return wrapper.scrollWidth<=width+1&&wrapper.getBoundingClientRect().height<=height+1;
+  }
+  let lo=Math.ceil(min*10),hi=Math.floor(max*10),best=lo;
+  while(lo<=hi){const mid=Math.floor((lo+hi)/2);if(measure(mid/10)){best=mid;lo=mid+1;}else hi=mid-1;}
+  const fontSize=best/10, fits=measure(fontSize);
+  return {fontSize,fits};
+ }
  function render(target,source,options={}){
   const score=build(source,options);
   target.replaceChildren(score);
@@ -117,5 +130,5 @@
    return true;
   }catch(error){target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;console.warn("SHALOM: retained original reader",error);return false;}
  }
- root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade});
+ root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade,fitSection});
 })(window);

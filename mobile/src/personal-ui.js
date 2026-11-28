@@ -569,7 +569,7 @@ function PersonalCollectionsScreen({renderAlignedScoreRows,store,onChange,songs,
         (song?.tone?" · Tono "+tone:""),styles.meta))),
      song?h(CollectionCapo,{selection:selections[index],transpose:shift,onChange:id=>setReaderCapos(previous=>({...previous,[entry.id+":"+p.id]:id}))}):null,
      resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?(active?renderAlignedScoreRows(active.rows,readerFont,"local-section-"+p.id+"-"+active.sectionIndex):renderScore(resolved.lyrics,shift+selections[index].offset,"local-"+p.id,readerFont)):
+      resolved.lyrics?(active?renderAlignedScoreRows(active.rows,readerFont,"local-section-"+p.id+"-"+active.sectionIndex,true):renderScore(resolved.lyrics,shift+selections[index].offset,"local-"+p.id,readerFont)):
        label("Este canto no tiene letra descargada.",styles.warning),
      plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:shift+selections[index].offset,capo:selections[index].chosen.position}),true):null,
      song?action("Ver canto original",()=>onSelectSong(song),true):null);

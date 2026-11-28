@@ -99,11 +99,14 @@ function AppScreen() {
  const [capo,setCapo]=useState("none");
  const [collectionCapos,setCollectionCapos]=useState({});
  const setCollectionCapo=(key,id)=>setCollectionCapos(previous=>({...previous,[key]:id}));
- const [readerFont,setReaderFont]=useState(15);
+ const [readerFont,setReaderFontValue]=useState(15);
+ const [sectionAutoFit,setSectionAutoFit]=useState(true);
+ const fittedFont=useRef(null);
+ const setReaderFont=value=>{setSectionAutoFit(false);setReaderFontValue(previous=>typeof value==="function"?value(fittedFont.current??previous):value);fittedFont.current=null;};
  const [readingMode,setReadingMode]=useState("continuous");
  const [readingPage,setReadingPage]=useState(0);
  const readerScroll=useRef(null);
- const goReadingPage=page=>{setReadingPage(page);readerScroll.current?.scrollTo({y:0,animated:false});};
+ const goReadingPage=page=>{setSectionAutoFit(true);fittedFont.current=null;setReadingPage(page);readerScroll.current?.scrollTo({y:0,animated:false});};
  const reading={mode:readingMode,setMode:setReadingMode,page:readingPage,setPage:goReadingPage};
  const [capoExpanded,setCapoExpanded]=useState(false);
  const [likedIds,setLikedIds]=useState([]);
@@ -330,7 +333,8 @@ function AppScreen() {
  }
  // Todos los lectores usan una sola cuadrícula de texto monoespaciado:
  // en un único Text padre, los acordes mantienen sus columnas al cambiar dispositivo.
- function renderAlignedScoreRows(rows,fontSize,keyPrefix){
+ function renderAlignedScoreRows(rows,fontSize,keyPrefix,section=false){
+  if(section)return h(AlignedScore,{key:keyPrefix,rows,fontSize,variant:keyPrefix,autoFit:sectionAutoFit,onAutoFont:value=>{fittedFont.current=value;},onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
   return h(AlignedScore,{rows,fontSize,variant:keyPrefix,
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
