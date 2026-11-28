@@ -173,7 +173,7 @@ function renderChordLyrics() {
   const renderer = window.ShalomChords?.render;
   if (typeof renderer === "function") {
     // The canonical renderer validates and unwraps each chord token.
-    target.innerHTML = renderer(lyrics, { transpose: (value) => chord(value, move), arrangement: typeof readerArrangement==="undefined"?null:readerArrangement });
+    target.innerHTML = renderer(lyrics, { transpose: (value) => chord(value, move), arrangement: typeof readerArrangement==="undefined"?null:readerArrangement, includeAnchors:!!window.ShalomScoreReader });
     if(window.ShalomReaderCueControls)window.ShalomReaderCueControls.mount(target,readerCuesVisible,value=>{readerCuesVisible=value;renderChordLyrics();});
   } else {
     // Preserve the source as readable text if the shared script fails to load.
@@ -181,7 +181,9 @@ function renderChordLyrics() {
     target.textContent = lyrics;
   }
 
-  window.ShalomSectionReaderWeb?.mount(target,String(currentSong.id||""),{sticky:()=>document.body.classList.contains("song-reading-mode")?$("#songReaderToolbar"):null});
+  const mountSections=()=>window.ShalomSectionReaderWeb?.mount(target,String(currentSong.id||""),{sticky:()=>document.body.classList.contains("song-reading-mode")?$("#songReaderToolbar"):null});
+  mountSections();
+  window.ShalomScoreReader?.upgrade(target).then(changed=>{if(changed)mountSections();});
   const status = $("#transposeStatus");
   if (status) status.textContent = typeof renderer === "function"
     ? `${transpose === 0 ? "Tono original" : `Transposición ${transpose > 0 ? "+" : ""}${transpose}`} · ${capoLabel}`

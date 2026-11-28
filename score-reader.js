@@ -98,7 +98,7 @@
   return result;
  }
  function relayout(score){
-  return Array.from(score.querySelectorAll(".score-pair"),measureLine);
+  return Array.from(score.querySelectorAll(".score-pair")).filter(line=>line.getClientRects().length).map(measureLine);
  }
  // Fit a complete section using actual glyph metrics, not character counts.
  // If even the minimum does not fit, keep all content scrollable.

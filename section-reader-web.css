@@ -9,7 +9,7 @@
 .section-reader-buttons{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
 .section-reader-buttons span{font-size:.85rem}
 @media screen{
- .section-reader-active>.section-reader-excluded,.section-reader-excluded-article{display:none!important}
+ .section-reader-active>.section-reader-excluded,.section-reader-active>.score-proportional>.section-reader-excluded,.section-reader-excluded-article{display:none!important}
  #songLyrics.section-reader-active,#offlineLyrics.section-reader-active,.rep-reader-lyrics.section-reader-active,.medley-lyrics.section-reader-active{font-size:var(--section-reader-font,16px)!important;transition:none;overflow-x:auto}
  .rep-reader-lyrics.section-reader-active,.rep-reader-lyrics.section-reader-active .lyric-line{white-space:pre;font-family:"Courier New",Courier,monospace;letter-spacing:0}
 }

@@ -15,10 +15,10 @@ let click;controls.addEventListener=(name,fn)=>{if(name==="click")click=fn;};con
 Object.assign(env,{document,window:{innerHeight:500,addEventListener(){}},requestAnimationFrame:fn=>{callbacks.push(fn);return callbacks.length;}});
 vm.runInContext(fs.readFileSync("section-reader-web.js","utf8"),env);
 const reader=env.ShalomSectionReaderWeb,run=action=>click({target:{closest:()=>({dataset:{action}})}}),flush=()=>{while(callbacks.length)callbacks.shift()();};
-reader.mount(target,"one");run("toggle");flush();assert.equal(font,19);assert.equal(children[2].classList.excluded,true);
+reader.mount(target,"one");run("toggle");flush();assert.equal(font,15);assert.equal(children[2].classList.excluded,true);
 run("next");flush();assert.equal(children[0].classList.excluded,true);assert.equal(children[2].classList.excluded,false);
-assert.equal(reader.adjust(target,1),true);flush();assert.equal(font,20);
-reader.mount(target,"one");flush();assert.equal(children[0].classList.excluded,true);assert.equal(font,20);
+assert.equal(reader.adjust(target,1),true);flush();assert.equal(font,16);
+reader.mount(target,"one");flush();assert.equal(children[0].classList.excluded,true);assert.equal(font,16);
 reader.mount(target,"two");flush();assert.equal(children[0].classList.excluded,false);assert.equal(reader.adjust(target,1),false);
 const css=fs.readFileSync("section-reader-web.css","utf8");assert.match(css,/@media screen\s*\{/);assert.match(css,/@media print/);
 const sw=fs.readFileSync("offline-sw.js","utf8");for(const path of ["section-reader-web.js","section-reader-web.css","mobile/src/section-reader-core.js"])assert.ok(sw.includes("./"+path));

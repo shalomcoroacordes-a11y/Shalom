@@ -9,7 +9,8 @@
   text-align: left;
   direction: ltr;
   white-space: pre;
-  overflow-x: auto;
+  width: max-content;
+  min-width: 100%;
 }
 .score-proportional .score-pair {
   display: block;

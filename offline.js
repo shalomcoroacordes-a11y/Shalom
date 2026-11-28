@@ -396,7 +396,7 @@
     const shift = state.shift + capo.offset;
     if (window.ShalomChords?.render) {
       target.innerHTML = window.ShalomChords.render(song.lyrics || "Sin letra.", {
-        arrangement:song._studio,
+        arrangement:song._studio,includeAnchors:!!window.ShalomScoreReader,
         transpose: (value) => String(value || "").split(/(\s+)/).map((token) =>
           /^[A-G](?:#|b)?/.test(token) ? transposeChord(token, shift) : token).join("")
       });
@@ -404,7 +404,9 @@
       target.textContent = song.lyrics || "Sin letra.";
     }
     window.ShalomReaderCueControls?.mount(target,readerCuesVisible,value=>{readerCuesVisible=value;renderLyrics(song);});
-    window.ShalomSectionReaderWeb?.mount(target,String(song.id),{sticky:()=>document.querySelector(".app-header")});
+    const mountSections=()=>window.ShalomSectionReaderWeb?.mount(target,String(song.id),{sticky:()=>document.querySelector(".app-header")});
+    mountSections();
+    window.ShalomScoreReader?.upgrade(target).then(changed=>{if(changed&&state.activeId===song.id)mountSections();});
     const tone = state.shift === 0 ? "Tono original"
       : (state.shift > 0 ? "+" : "") + state.shift + " semitonos";
     $("#transposeLabel").textContent = ($("#capoPanel").hidden ? tone : tone + " · " + capo.label);

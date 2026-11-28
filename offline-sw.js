@@ -1,12 +1,17 @@
 /* El trabajador solamente guarda archivos públicos de SHALOM Offline.
    No intercepta el administrador ni almacena respuestas privadas de Supabase. */
-const VERSION = "shalom-offline-shell-v37-collection-sections";
+const VERSION = "shalom-offline-shell-v38-inter-reader";
 const ASSETS = [
   "./offline.html",
   "./offline.css",
   "./offline.js",
   "./offline-capo.js",
   "./song-chords.js",
+  "./assets/fonts/inter.css",
+  "./assets/fonts/InterVariable.woff2",
+  "./score-layout.js",
+  "./score-reader.css",
+  "./score-reader.js",
   "./mobile/src/section-reader-core.js",
   "./section-reader-web.js",
   "./section-reader-web.css",

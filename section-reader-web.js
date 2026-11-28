@@ -5,9 +5,10 @@
  if(!core)return;
  const readers=new WeakMap();
  const clamp=n=>Math.min(46,Math.max(10,Math.round(n*10)/10));
+ const scoreOf=target=>target.firstElementChild?.classList.contains("score-proportional")?target.firstElementChild:target;
  function rowsOf(target){
-  return [...target.children].map(node=>({
-   kind:node.classList.contains("song-section-label")?"section":node.classList.contains("song-empty-line")?"space":"content",
+  return [...scoreOf(target).children].map(node=>({
+   kind:(node.classList.contains("song-section-label")||node.classList.contains("score-section"))?"section":(node.classList.contains("song-empty-line")||node.classList.contains("score-empty"))?"space":"content",
    text:node.textContent,node
   }));
  }
@@ -68,7 +69,8 @@
   entries.forEach(({target,article},i)=>{
    const active=enabled&&i===current?.entryIndex;
    article?.classList.toggle("section-reader-excluded-article",enabled&&!active);
-   for(const node of target.children)node.classList.toggle("section-reader-excluded",active&&!selected.has(node));
+   for(const node of scoreOf(target).children)node.classList.toggle("section-reader-excluded",active&&!selected.has(node));
+   if((active||!enabled)&&scoreOf(target)!==target)window.ShalomScoreReader?.relayout(scoreOf(target));
    target.classList.toggle("section-reader-active",active);
    if(!active)target.style.removeProperty("--section-reader-font");
   });
@@ -105,11 +107,14 @@
   const controlRect=state.controls.getBoundingClientRect(),scoreRect=target.getBoundingClientRect();
   const gap=Math.max(0,scoreRect.top-controlRect.bottom)||0;
   const available=Math.max(1,(viewport?.height||window.innerHeight)-stickyHeight-controlRect.height-gap-20);
-  const font=core.chooseFitFont(10,46,n=>{
+  const font=core.chooseFitFont(12,15,n=>{
    setFont(state,n);
-   return target.scrollWidth<=target.clientWidth+1&&(state.mode==="width"||target.getBoundingClientRect().height<=available);
+   const score=scoreOf(target);
+   if(score!==target)window.ShalomScoreReader?.relayout(score);
+   return target.scrollWidth<=target.clientWidth+1&&score.scrollWidth<=score.clientWidth+1&&(state.mode==="width"||target.getBoundingClientRect().height<=available);
   });
   setFont(state,font);
+  if(scoreOf(target)!==target)window.ShalomScoreReader?.relayout(scoreOf(target));
  }
  function adjust(target,delta){
   const state=readers.get(target);

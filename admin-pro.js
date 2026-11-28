@@ -245,7 +245,7 @@ function apSongLinksDraft() { return AP.links.length ? AP.links.map((link, index
 function apCaposDraft() { return AP.capos.length ? AP.capos.map((item, index) => `<div class="admin-mini-item"><div><strong>${apEsc(item.label || `Capo ${item.capo_position}`)}</strong><br><small>Capo ${apEsc(item.capo_position)}${item.capo_key ? ` · Figuras en ${apEsc(item.capo_key)}` : ""}</small></div><button class="song-btn small-btn secondary" type="button" data-remove-capo="${index}">Quitar</button></div>`).join("") : `<p class="admin-note">Aún no hay versiones alternativas.</p>`; }
 function apSongPreview() {
   const draft = AP.draft || {};
-  return `<article class="admin-preview-card"><h3>Vista previa</h3><p class="hero-kicker">${apEsc(apType(draft.song_type))}</p><h2>${apEsc(draft.title || "Título del canto")}</h2><div class="admin-preview-meta"><span>${apEsc(draft.tone || "Tono")}</span>${draft.capo_position && Number(draft.capo_position) > 0 ? `<span>Capo ${apEsc(draft.capo_position)}${draft.capo_key ? ` · ${apEsc(draft.capo_key)}` : ""}</span>` : ""}${draft.difficulty ? `<span>${apEsc(draft.difficulty)}</span>` : ""}</div><div class="admin-preview-lyrics">${window.ShalomChords?.render ? window.ShalomChords.render(draft.lyrics || "[Intro]") : apEsc(draft.lyrics || "Aquí se verá la letra y sus acordes.")}</div></article>`;
+  return `<article class="admin-preview-card"><h3>Vista previa</h3><p class="hero-kicker">${apEsc(apType(draft.song_type))}</p><h2>${apEsc(draft.title || "Título del canto")}</h2><div class="admin-preview-meta"><span>${apEsc(draft.tone || "Tono")}</span>${draft.capo_position && Number(draft.capo_position) > 0 ? `<span>Capo ${apEsc(draft.capo_position)}${draft.capo_key ? ` · ${apEsc(draft.capo_key)}` : ""}</span>` : ""}${draft.difficulty ? `<span>${apEsc(draft.difficulty)}</span>` : ""}</div><div class="admin-preview-lyrics">${window.ShalomChords?.render ? window.ShalomChords.render(draft.lyrics || "[Intro]", {includeAnchors:!!window.ShalomScoreReader}) : apEsc(draft.lyrics || "Aquí se verá la letra y sus acordes.")}</div></article>`;
 }
 function apSongsHTML() {
   if (!AP.draft) apResetDraft();
@@ -293,6 +293,7 @@ function apBindAlbums() {
   apBindShowMore();
 }
 function apBindSongs() {
+  window.ShalomScoreReader?.upgrade(ap$(".admin-preview-lyrics"));
   const form = ap$("#songAdminForm");
   form?.addEventListener("submit", apSaveSong);
   if (form && AP.edits.song && window.ShalomStudioEntry) {
@@ -375,6 +376,7 @@ function apUpdatePreview() {
   } else {
     preview.innerHTML = updated.innerHTML;
   }
+  window.ShalomScoreReader?.upgrade(preview.querySelector(".admin-preview-lyrics"));
 }
 function apInsertSection(name) { const textarea = ap$("#songLyricsField"); if (!textarea) return; const start = textarea.selectionStart ?? textarea.value.length; const end = textarea.selectionEnd ?? start; const text = `\n[${name}]\n`; textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end); textarea.focus(); textarea.setSelectionRange(start + text.length, start + text.length); apCaptureSongDraft(); apUpdatePreview(); }
 function apAddLinkDraft() { apCaptureSongDraft(); const draft = AP.draft; if (!draft.new_link_title || !draft.new_link_url) { apNote("Escribe título y URL para el enlace.", true); return; } AP.links.push({ title: draft.new_link_title, link_type: draft.new_link_type || "Tutorial", platform: draft.new_link_platform || "", url: draft.new_link_url, sort_order: AP.links.length }); Object.assign(AP.draft, { new_link_title: "", new_link_url: "" }); apRenderView(); }
