@@ -24,6 +24,25 @@ for(const engine of engines){
   }
   for(const chord of chords)assert.equal(engine.transposeOne(chord,shift),source.transposeOne(chord,shift));
  }
+
+ // Los índices de origen no dependen de la longitud del acorde transpuesto.
+ const anchored=engine.parseAnchoredSong("C  G/B    Am\nÁbreme Señor",1)[0];
+ assert.deepEqual(anchored.anchors,[{position:0,chord:"C#"},{position:3,chord:"G#/C"},{position:10,chord:"A#m"}]);
+ assert.equal(anchored.lyricLine,"Ábreme Señor");
+ const inlineAnchors=engine.parseAnchoredSong("(C)Se(G/B)ñor (Am) mío",1)[0];
+ assert.deepEqual(inlineAnchors.anchors,[{position:0,chord:"C#"},{position:2,chord:"G#/C"},{position:6,chord:"A#m"}]);
+ assert.equal(inlineAnchors.lyricLine,"Señor  mío");
+ const merged=engine.parseAnchoredSong("C   G\n(Am)Hola (D)Señor",0)[0];
+ assert.deepEqual(merged.anchors,[{position:0,chord:"C"},{position:0,chord:"Am"},{position:4,chord:"G"},{position:5,chord:"D"}]);
+ for(const sample of samples){
+  for(let shift=-12;shift<=12;shift++){
+   const rows=engine.parseAnchoredSong(sample,shift);
+   assert.deepEqual(rows.map(({anchors,...row})=>row),engine.parseSong(sample,shift));
+   const zero=engine.parseAnchoredSong(sample,0);
+   assert.deepEqual(rows.map(row=>row.anchors?.map(a=>a.position)),zero.map(row=>row.anchors?.map(a=>a.position)));
+  }
+ }
+
  assert.equal(engine.preserveColumns("C  G"),"C\u00a0\u00a0G");
  assert.equal(engine.chordRow("C  G/B"),true);
  assert.equal(engine.chordRow("[Coro]"),false);

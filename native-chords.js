@@ -20,12 +20,18 @@ function chordRow(line){
 function transposeRow(line,shift){
  return String(line).replace(/\S+/g,t=>isChord(t)?transposeOne(unwrap(t),shift):t);
 }
+// Los anclajes guardan el índice original (UTF-16), antes de transponer o espaciar.
+function rowAnchors(line,shift,offset=0){
+ return Array.from(String(line).matchAll(/\S+/g),m=>({position:offset+m.index,chord:transposeOne(unwrap(m[0]),shift)}));
+}
 function inline(line,shift){
  let lyricLine="",chordLine="",last=0,hasChords=false,match;
+ const anchors=[];
  const rx=/\(([^)]+)\)/g;
  while((match=rx.exec(line))!==null){
   lyricLine+=line.slice(last,match.index);
   if(isChordGroup(match[1])){
+   anchors.push(...rowAnchors(match[1],shift,lyricLine.length));
    const converted=transposeRow(match[1],shift);
    const position=Math.max(lyricLine.length,chordLine.length?chordLine.length+1:0);
    chordLine=chordLine.padEnd(position," ")+converted;
@@ -34,7 +40,7 @@ function inline(line,shift){
   last=rx.lastIndex;
  }
  lyricLine+=line.slice(last);
- return {chordLine,lyricLine,hasChords};
+ return {chordLine,lyricLine,hasChords,anchors};
 }
 function merge(upper,lower){
  const chords=[];
@@ -49,7 +55,7 @@ function merge(upper,lower){
  }
  return result;
 }
-function parseSong(source,shift=0){
+function parseSong(source,shift=0,includeAnchors=false){
  const lines=String(source??"").replace(/\r\n?/g,"\n").replace(/\t/g,"    ").split("\n");
  const rows=[];
  for(let i=0;i<lines.length;i++){
@@ -63,14 +69,15 @@ function parseSong(source,shift=0){
     const lower=inline(next,shift),upper=transposeRow(line,shift);
     rows.push({kind:"chords",
      chordLine:lower.hasChords?merge(upper,lower.chordLine):upper,
-     lyricLine:lower.hasChords?lower.lyricLine:next});
+     lyricLine:lower.hasChords?lower.lyricLine:next,
+     ...(includeAnchors?{anchors:[...rowAnchors(line,shift),...lower.anchors].sort((a,b)=>a.position-b.position)}:{})});
     i++;
    }else rows.push({kind:"chordsOnly",text:transposeRow(line,shift)});
    continue;
   }
   const parsed=inline(line,shift);
   rows.push(parsed.hasChords?
-   {kind:"chords",chordLine:parsed.chordLine,lyricLine:parsed.lyricLine}:
+   {kind:"chords",chordLine:parsed.chordLine,lyricLine:parsed.lyricLine,...(includeAnchors?{anchors:parsed.anchors}:{})}:
    {kind:"lyric",text:line});
  }
  return rows;
@@ -85,4 +92,5 @@ function scoreColumns(rows){
 }
 // Margen pequeño por diferencias de medición de glifos; nunca reduce las columnas.
 const scoreWidth=(rows,fontSize)=>Math.ceil(scoreColumns(rows)*fontSize*0.65+18);
-module.exports={parseSong,transposeOne,chordRow,preserveColumns,scoreColumns,scoreWidth};
+const parseAnchoredSong=(source,shift=0)=>parseSong(source,shift,true);
+module.exports={parseSong,parseAnchoredSong,transposeOne,chordRow,preserveColumns,scoreColumns,scoreWidth};
