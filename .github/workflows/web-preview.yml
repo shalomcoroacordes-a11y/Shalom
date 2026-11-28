@@ -1,0 +1,21 @@
+name: SHALOM web preview package
+on:
+  workflow_dispatch:
+  push:
+    branches: [design/inter-music-reader]
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated static preview
+        run: |
+          node scripts/prepare-inter-font.js
+          node scripts/build-web-preview.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shalom-web-preview
+          path: preview-dist/
+          if-no-files-found: error
