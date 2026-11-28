@@ -33,7 +33,11 @@ assert.match(app,/\["Inicio","Canciones","Repertorios","Mis colecciones","Perfil
 assert.match(app,/!immersiveActive&&!settingsOpen&&!isReader\?h\(View,\{style:S.nav\}/,
  "All five pages use one common bottom navigation bar");
 assert.match(styles,/nav:\{marginHorizontal:11,marginBottom:8/);
-assert.match(styles,/navSelected:\{backgroundColor:"#063221"/);
+const palette=require("../src/palette");
+const makeStyles=require("node:vm").runInNewContext(styles+"\nmodule.exports",{module:{exports:{}},require:name=>{assert.equal(name,"react-native");return {StyleSheet:{create:value=>value}}}});
+const resolved=makeStyles(palette,"monospace");
+assert.equal(resolved.navSelected.backgroundColor,palette.panel,"Selected navigation uses the canonical panel background");
+assert.notEqual(resolved.navSelected.backgroundColor,palette.bg,"Selected navigation remains distinguishable");
 assert.match(profile,/toolRow\("⚙","Configuración"/);
 assert.match(personal,/label\("Mis creaciones",styles.collectionTitle\)/);
 assert.match(catalogScreens,/requestForm\("other"\);setRequestTitle\("Sugerencia de repertorio"\)/);

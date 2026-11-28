@@ -12,9 +12,10 @@ assert.match(readers,/h\(View,\{style:S\.songScorePlain\},\s*renderAlignedScoreR
 assert.doesNotMatch(styles,/songScoreCard:/,"No debe existir un recuadro azul de letras");
 assert.match(styles,/songScorePlain:\{width:"100%",marginTop:13,paddingBottom:10\}/,"Lectura ocupa todo el ancho disponible");
 assert.doesNotMatch(styles,/songScorePlain:\{[^}]*overflow:"hidden"/,"El área de letra no recorta el contenido");
-assert.match(ui,/container:\{width:"100%",backgroundColor:"#0e1219"/,"Fondo nativo igual al de la pantalla");
-assert.match(ui,/web:\{width:"100%",flex:0,backgroundColor:"#0e1219"/,"WebView sin caja de otro color");
-assert.match(source,/background:#0e1219/,"La web interna coincide con fondo SHALOM");
+const palette=require("../src/palette");
+assert.match(ui,/container:\{width:"100%",backgroundColor:palette.bg/,"Fondo nativo igual al de la pantalla");
+assert.match(ui,/web:\{width:"100%",flex:0,backgroundColor:palette.bg/,"WebView sin caja de otro color");
+assert.ok(source.includes("background:"+palette.bg),"La web interna coincide con fondo SHALOM");
 assert.match(source,/overflow-x:auto/,"Los acordes largos siguen desplazándose horizontalmente");
 assert.match(source,/white-space:pre!important/,"Las columnas originales siguen intactas");
 assert.match(source,/font-family:"Courier New",Courier,monospace/,"Se conserva el motor tipográfico web");

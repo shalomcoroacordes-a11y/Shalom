@@ -36,7 +36,7 @@ const ui=fs.readFileSync("src/aligned-score-ui.js","utf8");
 const web=fs.readFileSync("src/web-score-html.js","utf8");
 const app=fs.readFileSync("App.js","utf8");
 assert.match(ui,/require\("react-native-webview"\)/,"Use the exact same text layout engine as the website");
-assert.match(ui,/scoreHtml\(rows,safeFont\)/,"Render unchanged parsed chord lines locally");
+assert.match(ui,/scoreHtml\(rows,safeFont,scoreAssets\)/,"Render unchanged parsed chord lines locally");
 assert.match(ui,/onMessage:onHeight/,"Resize the native score to the browser-rendered height");
 assert.match(ui,/scrollEnabled:false/,"Native page retains the vertical scroll");
 assert.match(ui,/onError:\(\)=>setFailed\(true\)/,"Offer a readable fallback when WebView fails");

@@ -12,7 +12,8 @@ for(const [page,bundle] of [["popurris.html","medleys-page-bundle.css"],["repert
  assert.ok(html.indexOf(bundle)<html.indexOf("studio-collection-web.css"));
  assert.match(html,/src="studio-collection-web\.js\?v=2"/);
 }
-assert.match(sw,/shalom-offline-shell-v21-collection-styles/);
+assert.match(sw,/shalom-offline-shell-v22-score-reader/);
+for(const resource of ["./score-reader.js","./score-layout.js","./score-reader.css","./assets/fonts/inter.css","./assets/fonts/InterVariable.woff2"])assert.ok(sw.includes(JSON.stringify(resource)),"Offline score dependency: "+resource);
 assert.match(sw,/"\.\/studio-collection-web\.css"/);
 const dialogs=[],opened=[];
 function element(tag){
