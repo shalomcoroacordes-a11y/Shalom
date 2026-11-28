@@ -235,6 +235,19 @@ jobs:
           node scripts/prepare-inter-font.js --check
           node tests/inter-canonical-anchors.cjs
           node tests/score-layout.cjs
+      - name: Real browser Inter score and Studio identity regression
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/shalom-reader-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/tests/score-reader-browser.html > /dev/null; then break; fi
+            sleep 1
+          done
+          google-chrome --headless --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=12000 --dump-dom http://127.0.0.1:8765/tests/score-reader-browser.html > /tmp/shalom-reader-browser.html
+          grep -o '<p id="result"[^>]*>[^<]*</p>' /tmp/shalom-reader-browser.html
+          grep -q 'id="result" data-status="pass"' /tmp/shalom-reader-browser.html
+
 
       - name: Test canonical public chord rendering and degraded mode
         run: node tests/song-reader-chords.cjs
