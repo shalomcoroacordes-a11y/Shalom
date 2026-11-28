@@ -14,7 +14,7 @@ for(const [page,bundle] of [["popurris.html","medleys.css?v=1"],["repertorios.ht
  assert.ok(html.indexOf(bundle)<html.indexOf("studio-collection-web.css"));
  assert.match(html,/src="studio-collection-web\.js\?v=4"/);assert.match(html,/src="song-capo-core\.js\?v=1"/);
 }
-assert.match(sw,/shalom-offline-shell-v37-collection-sections/);
+assert.match(sw,/shalom-offline-shell-v38-inter-reader/);
 assert.match(sw,/"\.\/studio-collection-web\.css"/);
 const dialogs=[],opened=[];
 function element(tag){
@@ -45,3 +45,8 @@ options.children.find(n=>n.textContent==="Cambiar capo").click();assert.equal(op
 window.ShalomStudioCollectionWeb.openSongOptions({song:{id:"a",title:"Canto A"},article});
 dialogs.at(-1).children.find(n=>n.textContent==="Imprimir letra y acordes de este canto").click();assert.equal(printed,1);assert.equal(article.classList.contains("collection-print-target"),false);assert.equal(document.body.classList.contains("collection-print-single"),false);
 console.log("Context menu: per-occurrence capo and isolated print scope verified.");
+
+for(const path of ["assets/fonts/inter.css","assets/fonts/InterVariable.woff2","score-reader.js","score-reader.css","score-layout.js"])assert.ok(sw.includes('"./'+path+'"'),"Cache includes "+path);
+assert.match(js,/includeAnchors:!!window.ShalomScoreReader/);
+assert.match(js,/label.textContent="Sin capo"/);
+assert.match(js,/upgrade\(target,\{allowHidden:true\}\)/);

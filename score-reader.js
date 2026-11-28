@@ -133,17 +133,17 @@
  }
  // Upgrade only markup explicitly prepared by its owner. A stale asynchronous
  // result must never replace newer edits, a different song or a closed view.
- async function upgrade(target){
+ async function upgrade(target,{allowHidden=false}={}){
   if(!target||!target.isConnected||target.firstElementChild?.classList.contains("score-proportional"))return false;
   const original=Array.from(target.childNodes);
-  if(!original.length)return false;
+  if(!original.length||!target.children.length||Array.from(target.children).some(node=>node.classList.contains("song-line")&&!node.hasAttribute("data-chord-anchors")||node.tagName==="PRE"))return false;
   const release=hold(target);
   const scrollTop=target.scrollTop,scrollLeft=target.scrollLeft;
   try{
    if(!await loadFont()||!target.isConnected||
      original.length!==target.childNodes.length||original.some((node,i)=>node!==target.childNodes[i]))return false;
    const score=buildMarkup(target.innerHTML);
-   if(!target.getClientRects().length)return false;
+   if(!allowHidden&&!target.getClientRects().length)return false;
    target.replaceChildren(score);
    try{relayout(score);}catch(error){target.replaceChildren(...original);throw error;}
    target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;
@@ -151,5 +151,10 @@
   }catch(error){target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;console.warn("SHALOM: retained original reader",error);return false;}
   finally{release();}
  }
- root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade,fitSection,hold});
+ async function upgradeCollection(container,selector,onChanged){
+  if(!container)return;
+  const changed=await Promise.all(Array.from(container.querySelectorAll(selector),target=>upgrade(target,{allowHidden:true})));
+  if(changed.some(Boolean)&&container.isConnected)onChanged?.();
+ }
+ root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade,upgradeCollection,fitSection,hold});
 })(window);

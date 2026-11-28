@@ -70,9 +70,9 @@
    const active=enabled&&i===current?.entryIndex;
    article?.classList.toggle("section-reader-excluded-article",enabled&&!active);
    for(const node of scoreOf(target).children)node.classList.toggle("section-reader-excluded",active&&!selected.has(node));
-   if((active||!enabled)&&scoreOf(target)!==target)window.ShalomScoreReader?.relayout(scoreOf(target));
    target.classList.toggle("section-reader-active",active);
    if(!active)target.style.removeProperty("--section-reader-font");
+   if((active||!enabled)&&scoreOf(target)!==target)window.ShalomScoreReader?.relayout(scoreOf(target));
   });
   controls.querySelector(".section-reader-navigation").hidden=!enabled;
   const toggle=controls.querySelector('[data-action="toggle"]');
@@ -89,6 +89,8 @@
   for(const mode of ["auto","width"])controls.querySelector('[data-action="'+mode+'"]').setAttribute("aria-pressed",String(state.mode===mode));
   if(!enabled)return;
   setFont(state,state.font);
+  const currentScore=entries[current?.entryIndex]?.target;
+  if(currentScore&&scoreOf(currentScore)!==currentScore)window.ShalomScoreReader?.relayout(scoreOf(currentScore));
   schedule(state);
  }
  function schedule(state){

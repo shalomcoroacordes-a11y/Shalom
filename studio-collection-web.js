@@ -107,8 +107,9 @@ function mountCapos({client,container,articles,parts,songs,kind,title,shift=0,se
   const lyrics=part.lyrics??song?.lyrics??"Canto no disponible.";
   const delta=shift+Number(part.shift||0)+selection.offset;
   const arrangement=song&&lyrics===song.lyrics?song._studio:null;
-  target.innerHTML=chords.render(lyrics,{arrangement,cueOverride:part.cue_override,transpose:c=>move(c,delta)});
+  target.innerHTML=chords.render(lyrics,{arrangement,cueOverride:part.cue_override,transpose:c=>move(c,delta),includeAnchors:!!window.ShalomScoreReader});
   onRendered();
+  window.ShalomScoreReader?.upgrade(target,{allowHidden:true}).then(changed=>{if(changed&&target.isConnected)onRendered();});
  }
  resolved.forEach(({song,selection},i)=>{
   const article=articles[i];if(!article)return;
@@ -123,6 +124,10 @@ function mountCapos({client,container,articles,parts,songs,kind,title,shift=0,se
    select.value=selection.chosen.id;label.append(select);capoSelect=select;
    article.insertBefore(label,article.querySelector(".rep-reader-lyrics,.medley-lyrics"));
    select.addEventListener("change",()=>{selections.set(i,select.value);resolved[i].selection=capoCore.collectionCapo(song,resolved[i].part,select.value);paint(i);practice();});
+  }
+  if(song&&selection.choices.length<=1){
+   const label=document.createElement("span");label.className="collection-capo-control studio-collection-action";label.textContent="Sin capo";
+   article.insertBefore(label,article.querySelector(".rep-reader-lyrics,.medley-lyrics"));
   }
   if(song){const trigger=button("⋮",()=>{const item=C.plan(practiceParts(),songs).entries[i];openSongOptions({song,article,onCapo:capoSelect?()=>{capoSelect.focus();try{capoSelect.showPicker?.();}catch(_){} }:null,onPractice:item?.ready?()=>play(client,item):null});});
    trigger.className="song-btn small-btn secondary collection-song-options";trigger.setAttribute("aria-label","Opciones de "+(song.title||"canto"));article.insertBefore(trigger,article.querySelector(".rep-reader-lyrics,.medley-lyrics"));}
