@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="../score-reader.css">
 <style>body{margin:16px;background:#12171c;color:#fff}#score{font-size:19px;width:320px}</style>
 </head><body><main id="score"></main><p id="result">PENDING</p>
-<script src="../song-chords.js"></script><script src="../score-layout.js"></script><script src="../score-reader.js"></script>
+<script src="../song-chords.js"></script><script src="../score-layout.js"></script><script src="../score-reader.js"></script><script src="../studio-core.js"></script><script src="../studio-score-view.js"></script>
 <script>
 (async()=>{
  const report=document.getElementById("result"),target=document.getElementById("score");
@@ -47,6 +47,18 @@
   assert(await ShalomScoreReader.upgrade(target),"Admin/offline markup upgrade");
   check();
   assert(!await ShalomScoreReader.upgrade(target),"Already upgraded content must remain unchanged");
+  const studioSource="[Coro]\n(Cmaj7)(G/B)Mi (Am)vida\nC    F#m   G/B\nÁbreme Señor";
+  target.innerHTML=ShalomChords.render(studioSource);
+  const originalRows=Array.from(target.children);
+  const anchors=ShalomStudio.anchorsFromRows(originalRows.map(row=>row.classList.contains("song-line")?{kind:"chords",chordLine:row.querySelector(".chord-line").textContent}:{kind:"section",text:row.textContent}));
+  const signature=ShalomStudio.signature(anchors);
+  target.dataset.activeAnchor=anchors[1].id;
+  assert(await ShalomStudioScoreView.enhance(target,studioSource,anchors,c=>c)===2,"Studio paired rows use Inter");
+  assert(originalRows.every((row,i)=>row===target.children[i]),"Studio line IDs remain stable");
+  assert(ShalomStudio.signature(anchors)===signature,"Musical signature must not change");
+  assert(target.querySelector(".active-chord").dataset.studioAnchorId===anchors[1].id,"Preserve active chord identity");
+  assert(ShalomStudioScoreView.matchAnchors([{id:"1",chord:"C"}],[{position:0,chord:"D"}],c=>c)===null,"Ambiguous mapping must retain original reader");
+  check();
   report.textContent="PASS: real browser Inter anchors, collisions, zoom and escaped lyrics";
  }catch(e){report.textContent="FAIL: "+e.message;}
 })();

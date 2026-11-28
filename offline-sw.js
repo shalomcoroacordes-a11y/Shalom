@@ -21,6 +21,9 @@ const ASSETS = [
   "./studio-collection-web.js",
   "./studio-collection-web.css",
   "./studio-entry.js",
+  "./studio-save-state.js",
+  "./studio-reading-geometry.js",
+  "./studio-score-view.js",
   "./studio-lab.js",
   "./favicon.svg",
   "./site.webmanifest"

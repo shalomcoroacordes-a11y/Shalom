@@ -3,7 +3,7 @@
 const fs=require("node:fs"),path=require("node:path"),root=path.resolve(__dirname,"..");
 const read=name=>fs.readFileSync(path.join(root,name),"utf8");
 function bundle(read){
- let html=read("studio-lab.html").replace('<link rel="stylesheet" href="assets/fonts/inter.css">','<style>@font-face{font-family:Inter;src:url(data:font/woff2;base64,__STUDIO_INTER_FONT__) format("woff2");font-weight:100 900;font-style:normal;}</style>').replace('<link rel="stylesheet" href="studio.css">',()=>'<style>'+read("studio.css")+'</style>');
+ let html=read("studio-lab.html").replace('<link rel="stylesheet" href="assets/fonts/inter.css">','<style>@font-face{font-family:Inter;src:url(data:font/woff2;base64,__STUDIO_INTER_FONT__) format("woff2");font-weight:100 900;font-style:normal;}</style>').replace('<link rel="stylesheet" href="score-reader.css">',()=>'<style>'+read("score-reader.css")+'</style>').replace('<link rel="stylesheet" href="studio.css">',()=>'<style>'+read("studio.css")+'</style>');
  html=html.replace('<meta charset="utf-8">','<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; font-src data:;">');
  html=html.replace(/<script defer src="([^"]+)"><\/script>/g,(_,name)=>{
   let code=read(name);

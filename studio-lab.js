@@ -43,6 +43,9 @@ function submitSave(kind){
 
 function safe(fn){return async()=>{try{await fn()}catch(e){stop();note(e.message||String(e))}}}
 function elem(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e}
+function enhancePlayerScore(move){
+ window.ShalomStudioScoreView?.enhance($("score"),$("source").value,anchors,c=>shifted(c,move)).catch(error=>console.warn("Studio score",error));
+}
 function readRows(){
  const score=$("score");score.innerHTML=window.ShalomChords.render($("source").value);
  return Array.from(score.children).map(e=>e.classList.contains("song-section-label")?{kind:"section",text:e.textContent}:e.classList.contains("song-line")?{kind:"chords",chordLine:e.querySelector(".chord-line").textContent}:e.classList.contains("song-standalone-chords")?{kind:"chordsOnly",text:e.textContent}:{kind:"other"});
@@ -295,7 +298,9 @@ function showStep(timeline,i){
   score.querySelector(".active-chord")?.classList.remove("active-chord");
   if(anchor){const row=score.children[anchor.line],target=row?.querySelector(".chord-line")||row;
    if(target){if(!target.dataset.chordTokens){const parts=target.textContent.split(/(\s+)/);target.replaceChildren(...parts.map(p=>{if(!p.trim())return document.createTextNode(p);const span=elem("span",p);span.className="chord-token";return span}));target.dataset.chordTokens="1"}
-    const index=anchors.filter(a=>a.line===anchor.line&&a.column<anchor.column).length;target.querySelectorAll(".chord-token")[index]?.classList.add("active-chord");
+    const tokens=Array.from(target.querySelectorAll(".chord-token"));
+    const index=anchors.filter(a=>a.line===anchor.line&&a.column<anchor.column).length;
+    (tokens.find(token=>token.dataset.studioAnchorId===anchor.id)||tokens[index])?.classList.add("active-chord");
    }}
   score.dataset.activeAnchor=String(e.anchorId);
  }
@@ -321,6 +326,7 @@ function displayTrack(track,index){
  $("labNote").textContent=(index+1)+"/"+sequence.length+" · "+track.song.title+(track.range?.title?" · "+track.range.title:"");
  $("shift").value=track.shift;$("capo").value=track.capo;
  $("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;
+ enhancePlayerScore(track.shift);
 }
 async function playSequence(){
  stop();const tracks=prepareSequence(),speed=core.playbackSpeed($("speed").value);
@@ -356,7 +362,7 @@ async function playSequence(){
 async function play(range=null,inline=null){
  if(sequence)return playSequence();
  stop();validate();const move=Number($("shift").value);if(!Number.isInteger(move)||Math.abs(move)>12)throw Error("Transposición inválida.");const timeline=core.compile(anchors,config,c=>shifted(c,move));for(const c of new Set(timeline.map(e=>e.chord).filter(Boolean)))guitar.voicing(c);
- if(inline===null){$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;playerPanel();}
+ if(inline===null){$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;playerPanel();enhancePlayerScore(move);}
  const speed=core.playbackSpeed($("speed").value),capo=Number($("capo").value);if(!Number.isInteger(capo)||capo<0||capo>12)throw Error("Capo inválido");
  if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error("Audio no disponible en este dispositivo.");ctx=new Audio();engine=guitar.createEngine(ctx)}
  const generation=epoch;await ctx.resume();if(epoch!==generation)return;playing=true;inlineSection=inline;engine.volume(Number($("volume").value)/100);
@@ -372,7 +378,7 @@ async function play(range=null,inline=null){
  function animate(){if(!playing)return;const elapsed=Math.max(0,ctx.currentTime-start),position=core.playbackFrame(timeline,first,end,clock,speed,elapsed,loop());if(position.finished){stop();note("Práctica finalizada.");return}const {index:i,paused}=position;if(paused){if(inline===null){$("where").textContent="Pausa entre secciones";$("transportWhere").textContent="Pausa entre secciones";}else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent="Pausa entre secciones";}last=-1;}else if(i!==last){if(inline===null)showStep(timeline,i);else{const s=$("sectionCards").querySelector(".section-listen-status");if(s)s.textContent=(timeline[i].chord||"Silencio")+" · "+Math.round(timeline[i].tempo)+" BPM";}last=i}frame=requestAnimationFrame(animate)}
  timer=setInterval(tick,25);tick();animate();note("Guitarra sintetizada · reproducción local.");
 }
-function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){validate();const move=Number($("shift").value)||0;$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;showStep(core.compile(anchors,config,c=>shifted(c,move)),practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0);if(!edit){playerPanel();syncTransportSpace();}}
+function switchView(edit){if(mode==="public"&&edit)return;stop();if(!edit){validate();const move=Number($("shift").value)||0;$("score").innerHTML=window.ShalomChords.render($("source").value,{transpose:c=>shifted(c,move)});$("score").dataset.activeLine="";$("score").dataset.activeAnchor="";lastFollowedLine=null;showStep(core.compile(anchors,config,c=>shifted(c,move)),practiceRange?.start??0)}else{practiceRange=null;renderEditor();showStage(stage,false)}$("editor").hidden=!edit;$("player").hidden=edit;$("viewEdit").setAttribute("aria-pressed",String(edit));$("viewPlay").setAttribute("aria-pressed",String(!edit));window.scrollTo(0,edit?editorScroll:0);if(!edit){playerPanel();syncTransportSpace();enhancePlayerScore(Number($("shift").value)||0);}}
 function changeDivision(division){
  if(!config||division===config.division)return;
  const old=config.division;
