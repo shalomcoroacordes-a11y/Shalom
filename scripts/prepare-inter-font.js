@@ -6,7 +6,8 @@ const root=path.resolve(__dirname,"..");
 const revision="e3a3d4c57d5ecc01453a575621882a384c1995a3";
 const assets=[
  {source:"docs/font-files/InterVariable.woff2",target:"assets/fonts/InterVariable.woff2",sha:"5a8d3e72ad7ffb62af3b146e1b1f54ab5813a212",size:352240},
- {source:"LICENSE.txt",target:"assets/fonts/Inter-OFL.txt",sha:"9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea",size:4380}
+ {source:"LICENSE.txt",target:"assets/fonts/Inter-OFL.txt",sha:"9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea",size:4380},
+ {source:"docs/font-files/InterVariable.ttf",target:"assets/fonts/InterVariable.ttf",sha:"4ab79e0102bbe0ffa1ed879b13e52ac8c6487833",size:879708}
 ];
 function verify(bytes,asset){
  const hash=crypto.createHash("sha1").update("blob "+bytes.length+"\0").update(bytes).digest("hex");

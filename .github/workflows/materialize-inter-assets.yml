@@ -1,0 +1,35 @@
+name: Materialize verified Inter assets (development only)
+
+on:
+  push:
+    branches: [design/inter-music-reader]
+    paths: ['.github/workflows/materialize-inter-assets.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.ref == 'refs/heads/design/inter-music-reader'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/inter-music-reader
+      - name: Download and verify official Inter files
+        run: |
+          node scripts/prepare-inter-font.js
+          node scripts/prepare-inter-font.js --check
+      - name: Commit only verified font assets to development branch
+        run: |
+          set -eu
+          git add -f assets/fonts/InterVariable.woff2 assets/fonts/InterVariable.ttf
+          if git diff --cached --quiet; then
+            echo "Inter font assets already present"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Vendor verified official Inter font assets"
+          git push origin HEAD:refs/heads/design/inter-music-reader

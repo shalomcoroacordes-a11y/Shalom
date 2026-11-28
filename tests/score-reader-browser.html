@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="../assets/fonts/inter.css">
+<link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="../score-reader.css">
 <style>body{margin:16px;background:#12171c;color:#fff}#score{font-size:19px;width:320px}</style>
 </head><body><main id="score"></main><p id="result">PENDING</p>
@@ -26,7 +26,8 @@
   }
  }
  try{
-  assert(await ShalomScoreReader.loadFont(),"Official local Inter not loaded");
+  assert(await ShalomScoreReader.loadFont(),"Official local Inter not loaded through the site stylesheet");
+  assert(getComputedStyle(document.body).fontFamily.includes("Inter"),"General site typography uses Inter");
   for(const size of [13,19,26,32]){
    target.style.fontSize=size+"px";
    const score=ShalomScoreReader.render(target,"[Coro]\n(C)Ven (G)Señor\n(Cmaj7)(G/B)Mi (Am)vida\nC    F#m   G/B\nÁbreme Señor\n(D)A & <B>",{transpose:c=>c});
