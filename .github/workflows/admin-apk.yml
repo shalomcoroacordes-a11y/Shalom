@@ -195,6 +195,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require current official base and approved release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node ${{ github.workspace }}/scripts/release-base-guard.cjs --publish admin --approved-sha "${{ inputs.approved_sha }}"
       - uses: actions/download-artifact@v4
         with:
           name: SHALOM-ADMIN-Android-Preview

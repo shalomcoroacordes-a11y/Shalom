@@ -33,6 +33,12 @@ jobs:
         working-directory: mobile
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require current official base and approved release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node ${{ github.workspace }}/scripts/release-base-guard.cjs --publish public --approved-sha "${{ inputs.approved_sha }}"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
