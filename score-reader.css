@@ -42,7 +42,8 @@
 .score-proportional .score-instrumental { font-weight: 700; }
 .score-proportional .score-empty { height: 1.4em; }
 .score-proportional .score-space-probe { display: inline-block; width: auto; }
-body.song-hide-chords .score-proportional .score-chords,
+/* Ocultar sin perder las medidas al cambiar de tono mientras no hay acordes visibles. */
+body.song-hide-chords .score-proportional .score-chords { visibility: hidden; height: 0 !important; overflow: hidden; }
 body.song-hide-chords .score-proportional .score-instrumental { display: none; }
 @media print {
   .score-proportional { overflow: visible; color: #111; }

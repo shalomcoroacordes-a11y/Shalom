@@ -34,6 +34,10 @@
    assert(target.textContent.includes("A & <B>"),"Lyrics were not preserved");
    check();
    target.style.fontSize=(size*1.25)+"px";check();
+   document.body.classList.add("song-hide-chords");
+   const hidden=ShalomScoreReader.render(target,"(Cmaj7)(G/B)Mi (Am)vida");
+   assert(getComputedStyle(hidden.querySelector(".score-chords")).visibility==="hidden","Chord hiding must persist on render");
+   document.body.classList.remove("song-hide-chords");check();
   }
   report.textContent="PASS: real browser Inter anchors, collisions, zoom and escaped lyrics";
  }catch(e){report.textContent="FAIL: "+e.message;}
