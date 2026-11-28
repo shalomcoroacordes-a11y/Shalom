@@ -34,4 +34,4 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
 }
 return StudioScreen;
 }
-module.exports=createStudioScreen(require("./studio-bundle"));
+module.exports=createStudioScreen(payload=>require("./studio-bundle")(payload,require("./score-reader-assets").font));
