@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const {scoreHtml}=require("../src/web-score-html"),{parseSong}=require("../src/chords"),assets=require("../src/score-reader-assets");
+const html=scoreHtml(parseSong("[Coro]\n(C)Ven (G)Señor",0,true),16,{scrollDocument:true},assets);
+assert.ok(html.includes("data:font/woff2;base64,"+assets.font));
+assert.match(html,/body\{overflow-y:auto;overflow-x:hidden;/);
+assert.match(html,/data-chord-anchors=/);
+assert.match(html,/scoreExpired/);
+assert.match(html,/font-size:16px/);
+for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new Function(match[1]);
+const editor=fs.readFileSync("src/components/LyricsEditor.js","utf8");
+assert.match(editor,/scoreHtml\(parseSong\(value,0,true\),font,\{scrollDocument:true\},scoreAssets\)/);
+assert.match(editor,/onOpenCues\?tool/);
+assert.match(editor,/fontFamily:"monospace"/);
+assert.match(editor,/onContentProcessDidTerminate/);
+console.log("Admin Inter preview uses canonical local score; raw editor and cue actions preserved.");

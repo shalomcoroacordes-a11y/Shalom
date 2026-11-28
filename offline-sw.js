@@ -1,22 +1,36 @@
 /* El trabajador solamente guarda archivos públicos de SHALOM Offline.
    No intercepta el administrador ni almacena respuestas privadas de Supabase. */
-const VERSION = "shalom-offline-shell-v21-collection-styles";
+const VERSION = "shalom-offline-shell-v39-studio-inter";
 const ASSETS = [
   "./offline.html",
   "./offline.css",
   "./offline.js",
   "./offline-capo.js",
   "./song-chords.js",
+  "./assets/fonts/inter.css",
+  "./assets/fonts/InterVariable.woff2",
+  "./score-layout.js",
+  "./score-reader.css",
+  "./score-reader.js",
+  "./mobile/src/section-reader-core.js",
+  "./section-reader-web.js",
+  "./section-reader-web.css",
   "./studio-lab.html",
   "./studio.css",
   "./studio-core.js",
   "./studio-guitar.js",
   "./studio-codec.js",
+  "./studio-reader-cues.js",
+  "./song-reader-cues-web.js",
+  "./song-reader-cues.css",
   "./studio-collections.js",
+  "./studio-save-state.js",
+  "./studio-reading-geometry.js",
   "./studio-collection-web.js",
   "./studio-collection-web.css",
   "./studio-entry.js",
   "./studio-lab.js",
+  "./studio-score-view.js",
   "./favicon.svg",
   "./site.webmanifest"
 ];

@@ -2,9 +2,10 @@ const palette=require("./palette");
 const React=require("react");
 const {View,Text,ScrollView,Platform,StyleSheet}=require("react-native");
 const {columnCount}=require("./chord-grid");
+const {cueAppearance}=require("./studio-core");
 const h=React.createElement;
 const MONO=Platform.OS==="ios"?"Menlo":"monospace";
-const C={green:palette.green,pale:palette.green,text:palette.text};
+const C={green:palette.green,pale:palette.pale,text:palette.text};
 
 // La web SHALOM renderiza CADA línea completa con white-space: pre y una
 // única fuente monoespaciada. Android 0.4.4 dividía la letra por palabras y
@@ -32,6 +33,7 @@ function AlignedScore({rows=[],fontSize=16,variant="default"}){
   h(View,{style:[S.score,{width,minWidth:width}]},
    ...rows.map((row,i)=>{
     const key=variant+"-"+i;
+    if(row.kind==="cue"){const look=cueAppearance(row.action);return h(Text,{key,accessibilityLabel:row.text,style:{color:look.dark,fontSize:size*.85,fontStyle:"italic",maxWidth:width,marginVertical:3}},look.symbol+" "+row.text);}
     if(row.kind==="space")return h(View,{key,style:{height:size*1.45}});
     if(row.kind==="section"){
      const chorus=/coro|estribillo|refr[aá]n/i.test(row.text||"");

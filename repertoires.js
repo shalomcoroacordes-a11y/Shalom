@@ -3,7 +3,7 @@
  const db=window.supabaseClient,R=window.ShalomRepertoires;
  const $=id=>document.getElementById(id);
  const esc=R.html;
- let rows=[],current=null,songs=new Map(),loading=false;
+ let rows=[],current=null,songs=new Map(),loading=false,cuesVisible=true;
  const typeName=kind=>kind==="misa"?"Misa":"Ensayo";
  const friendlyDate=v=>R.formatDate(v);
  const menu=$("menuToggle"),nav=$("navMenu");
@@ -30,7 +30,7 @@
   const ids=[...new Set((rep.items||[]).map(x=>x.song_id))].filter(Boolean);
   songs=new Map();
   for(let i=0;i<ids.length;i+=100){
-   const {data,error}=await db.from("songs").select("id,title,lyrics,tone,song_type,updated_at").in("id",ids.slice(i,i+100));
+   const {data,error}=await db.from("songs").select("id,title,lyrics,tone,song_type,capo_position,capo_key,updated_at").in("id",ids.slice(i,i+100));
    if(error)throw error;
    for(const s of data||[])songs.set(s.id,s);
   }
@@ -46,7 +46,7 @@
   const html=(rep.items||[]).map((item,i)=>{
    const song=songs.get(item.song_id);
    const lyrics=song?.lyrics||"Canto no disponible.";
-   const content=window.ShalomChords?.render?window.ShalomChords.render(lyrics):"<pre>"+esc(lyrics)+"</pre>";
+   const content=window.ShalomChords?.render?window.ShalomChords.render(lyrics,{includeAnchors:!!window.ShalomScoreReader}):"<pre>"+esc(lyrics)+"</pre>";
    return '<article class="rep-print-song rep-continuous-song" id="rep-song-'+i+'">'+
     '<h3>'+(i+1)+'. '+esc(item.moment||"Canto")+' — '+esc(song?.title||"Canto no disponible")+'</h3>'+
     (song?.tone?'<p class="muted-text">Tono '+esc(song.tone)+'</p>':"")+
@@ -54,8 +54,13 @@
     '<div class="rep-reader-lyrics">'+content+'</div></article>';
   }).join("");
   $("repPrintAll").innerHTML=html;
+  const container=$("repPrintAll");
+  const syncSections=()=>window.ShalomSectionReaderWeb?.mountCollection(container,String(rep.id),{articleSelector:".rep-continuous-song",scoreSelector:".rep-reader-lyrics"});
+  function toggle(value){cuesVisible=value;window.ShalomReaderCueControls?.mount(container,cuesVisible,toggle);syncSections();}
+  toggle(cuesVisible);
   $("repPrintAll").hidden=false;
   $("repPrintAll").setAttribute("aria-hidden","false");
+  window.ShalomScoreReader?.upgradeCollection(container,".rep-reader-lyrics",()=>{if(current===rep)syncSections();});
   $("repSongOrder").innerHTML=(rep.items||[]).map((item,i)=>
    '<a class="rep-order-button" href="#rep-song-'+i+'"><strong>'+(i+1)+'. '+esc(item.moment||"Canto")+
    '</strong><span>'+esc(songs.get(item.song_id)?.title||"Canto no disponible")+'</span></a>').join("");
@@ -67,7 +72,9 @@
   $("repCurrentLink").hidden=true;
   document.title=rep.title+" | SHALOM Repertorios";
   window.scrollTo({top:0,behavior:"instant"});
-  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;const container=$("repPrintAll");window.ShalomStudioCollectionWeb.mount({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind});}).catch(()=>{});
+  window.ShalomStudioCollectionWeb?.load(db,(rep.items||[]).map(p=>p.song_id),[...songs.values()]).then(rows=>{if(current!==rep)return;
+   toggle(cuesVisible);
+   window.ShalomStudioCollectionWeb.mountCapos({client:db,container,articles:[...container.querySelectorAll(".rep-continuous-song")],parts:rep.items||[],songs:rows,kind:rep.kind,onRendered:()=>toggle(cuesVisible)});}).catch(()=>{});
  }
  function back(){
   current=null;$("repCatalog").hidden=false;$("repReader").hidden=true;
@@ -106,6 +113,12 @@
  $("repType")?.addEventListener("change",catalog);
  $("repBack")?.addEventListener("click",back);
 
+ $("repSongOrder")?.addEventListener("click",event=>{
+  const link=event.target.closest(".rep-order-button");
+  if(!link)return;
+  const index=[...$("repSongOrder").querySelectorAll(".rep-order-button")].indexOf(link);
+  if(window.ShalomSectionReaderWeb?.selectEntry($("repPrintAll"),index))event.preventDefault();
+ });
  $("repPrint")?.addEventListener("click",()=>window.print());
  window.addEventListener("popstate",()=>{if(current)back();});
  init();

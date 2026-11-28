@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/fonts/inter.css">
+<link rel="stylesheet" href="../score-reader.css">
+<style>body{margin:16px;background:#12171c;color:#fff;font-family:Inter,sans-serif}#score{font-size:19px;width:320px}</style>
+</head><body><main id="score"></main><p id="result" data-status="pending">PENDING</p>
+<script src="../song-chords.js"></script><script src="../score-layout.js"></script><script src="../score-reader.js"></script><script src="../studio-core.js"></script><script src="../studio-score-view.js"></script>
+<script>
+(async()=>{
+ const report=document.getElementById("result"),target=document.getElementById("score");
+ function assert(value,message){if(!value)throw Error(message);}
+ function check(){
+  for(const pair of target.querySelectorAll(".score-pair")){
+   const lyric=pair.querySelector(".score-lyric"),text=lyric.firstChild,notes=Array.from(pair.querySelectorAll(".score-chord"));
+   for(const note of notes){
+    const p=Number(note.dataset.position);
+    if(p<=text.length){
+     const r=document.createRange();r.setStart(text,p);r.collapse(true);
+     assert(Math.abs(note.getBoundingClientRect().left-r.getBoundingClientRect().left)<1,"Chord differs from lyric anchor: "+note.textContent);
+    }
+   }
+   for(let i=0;i<notes.length;i++)for(let j=i+1;j<notes.length;j++){
+    const a=notes[i].getBoundingClientRect(),b=notes[j].getBoundingClientRect();
+    assert(a.right<=b.left+.5||b.right<=a.left+.5||a.bottom<=b.top+.5||b.bottom<=a.top+.5,"Chords overlap");
+   }
+  }
+ }
+ try{
+  assert(await ShalomScoreReader.loadFont(),"Official local Inter not loaded through the site stylesheet");
+  assert(getComputedStyle(document.body).fontFamily.includes("Inter"),"General site typography uses Inter");
+  for(const size of [13,19,26,32]){
+   target.style.fontSize=size+"px";
+   const score=ShalomScoreReader.render(target,"[Coro]\n(C)Ven (G)Señor\n(Cmaj7)(G/B)Mi (Am)vida\nC    F#m   G/B\nÁbreme Señor\n(D)A & <B>",{transpose:c=>c});
+   assert(getComputedStyle(score).fontFamily.includes("Inter"),"Inter not in use");
+   assert(target.textContent.includes("A & <B>"),"Lyrics were not preserved");
+   check();
+   target.style.fontSize=(size*1.25)+"px";ShalomScoreReader.relayout(score);check();
+   document.body.classList.add("song-hide-chords");
+   const hidden=ShalomScoreReader.render(target,"(Cmaj7)(G/B)Mi (Am)vida");
+   assert(getComputedStyle(hidden.querySelector(".score-chords")).visibility==="hidden","Chord hiding must persist on render");
+   document.body.classList.remove("song-hide-chords");check();
+  }
+  target.innerHTML=ShalomChords.render("(C)Hola (G)Señor",{includeAnchors:true});
+  const pending=ShalomScoreReader.upgrade(target);
+  assert(target.style.visibility==="hidden","Old score never paints while preparing Inter");
+  target.innerHTML=ShalomChords.render("(D)Nuevo canto",{includeAnchors:true});
+  assert(!await pending,"Stale update must not replace newer draft");
+  assert(target.textContent.includes("Nuevo canto"),"Newer draft remains");
+  assert(target.style.visibility==="","Stale update does not leave lyrics hidden");
+  const first=ShalomScoreReader.upgrade(target);
+  target.innerHTML=ShalomChords.render("(D)Nuevo canto",{includeAnchors:true});
+  const latest=ShalomScoreReader.upgrade(target);
+  assert(!await first,"Older request is discarded");
+  assert(await latest,"Admin/offline markup upgrade");
+  assert(target.style.visibility==="","Only newest prepared score is revealed");
+  check();
+  assert(!await ShalomScoreReader.upgrade(target),"Already upgraded content must remain unchanged");
+  const studioSource="[Coro]\n(Cmaj7)(G/B)Mi (Am)vida\nC    F#m   G/B\nÁbreme Señor";
+  target.innerHTML=ShalomChords.render(studioSource);
+  const originalRows=Array.from(target.children);
+  const anchors=ShalomStudio.anchorsFromRows(originalRows.map(row=>row.classList.contains("song-line")?{kind:"chords",chordLine:row.querySelector(".chord-line").textContent}:{kind:"section",text:row.textContent}));
+  const signature=ShalomStudio.signature(anchors);
+  target.dataset.activeAnchor=anchors[1].id;
+  assert(await ShalomStudioScoreView.enhance(target,studioSource,anchors,c=>c)===2,"Studio paired rows use Inter");
+  assert(originalRows.every((row,i)=>row===target.children[i]),"Studio line IDs remain stable");
+  assert(ShalomStudio.signature(anchors)===signature,"Musical signature must not change");
+  assert(target.querySelector(".active-chord").dataset.studioAnchorId===anchors[1].id,"Preserve active chord identity");
+  assert(ShalomStudioScoreView.matchAnchors([{id:"1",chord:"C"}],[{position:0,chord:"D"}],c=>c)===null,"Ambiguous mapping must retain original reader");
+  check();
+  const wrap=document.createElement("div");wrap.style.width="max-content";wrap.style.minWidth="100%";wrap.style.padding="5px 4px 12px";wrap.style.boxSizing="border-box";
+  target.replaceChildren(wrap);const fitted=ShalomScoreReader.render(wrap,"[Coro]\n(C)Hoy cantamos (G)con alegría\n(F)Unidos en (C)la paz");
+  const fit=ShalomScoreReader.fitSection(wrap,fitted,{width:320,height:150});
+  assert(fit.fits&&fit.fontSize>=12&&fit.fontSize<=15,"Complete section fits at comfortable bounded size: "+JSON.stringify({fit,width:wrap.scrollWidth,height:wrap.getBoundingClientRect().height}));
+  assert(wrap.getBoundingClientRect().height<=151&&wrap.getBoundingClientRect().width<=321&&wrap.scrollWidth<=321,"Fit does not clip, including padding");
+  check();
+  target.style.width="900px";
+  const generous=ShalomScoreReader.fitSection(wrap,fitted,{width:900,height:900});
+  assert(generous.fontSize===15,"Short sections never inflate above the normal size");
+  target.style.width="50px";
+  const tiny=ShalomScoreReader.fitSection(wrap,fitted,{width:50,height:20});
+  assert(!tiny.fits&&tiny.fontSize===12&&wrap.textContent.includes("Unidos"),"Oversized sections remain complete and scrollable at readable minimum");
+  report.dataset.status="pass";report.textContent="PASS: real browser Inter anchors, collisions, zoom, escaped lyrics and stable Studio identities";
+ }catch(e){report.dataset.status="fail";report.textContent="FAIL: "+e.message;}
+})();
+</script></body></html>

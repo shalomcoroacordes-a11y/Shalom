@@ -4,7 +4,9 @@ const fs=require("node:fs"),path=require("node:path"),root=path.resolve(__dirnam
 const read=name=>fs.readFileSync(path.join(root,name),"utf8");
 function bundle(read){
  let html=read("studio-lab.html").replace('<link rel="stylesheet" href="studio.css">',()=>'<style>'+read("studio.css")+'</style>');
- html=html.replace('<meta charset="utf-8">','<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\';">');
+ html=html.replace('<link rel="stylesheet" href="assets/fonts/inter.css">','<style>@font-face{font-family:Inter;src:url(data:font/woff2;base64,__STUDIO_INTER_FONT__) format("woff2");font-weight:100 900;font-style:normal}</style>');
+ html=html.replace('<link rel="stylesheet" href="score-reader.css">',()=>'<style>'+read("score-reader.css")+'</style>');
+ html=html.replace('<meta charset="utf-8">','<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; font-src data:;">');
  html=html.replace(/<script defer src="([^"]+)"><\/script>/g,(_,name)=>{
   let code=read(name);
   if(name==="studio-lab.js"){
@@ -13,7 +15,7 @@ function bundle(read){
    code=code.replace('localStorage.setItem(storageKey,JSON.stringify(mode==="admin"?{revision:baseRevision,config}:{source:$("source").value,config}));finishSave(true,"Borrador guardado en este dispositivo; no publicado.");','window.ReactNativeWebView.postMessage(JSON.stringify({type:"shalom-studio-draft",arrangement}));note("Guardando borrador…");');
    code=code.replace('window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const d=e.data||{};','function receive(d){d=d||{};');
    code=code.replace('note(err.message)}});\n window.parent.postMessage({type:"shalom-studio-ready"},location.origin);','note(err.message)}}\n window.__shalomStudioReceive=receive;receive(window.__shalomStudioInit);');
-   code=code.replace('const published=d.arrangement?','if(d.draft)draft=window.ShalomStudioCodec.decode(anchors,d.draft);const published=d.arrangement?');
+   code=code.replace('const published=d.arrangement?','if(d.draft)draft=decodeConfig(d.draft);const published=d.arrangement?');
    if(!code.includes("receive(window.__shalomStudioInit)")||!code.includes("shalom-studio-draft"))throw Error("Studio bridge changed; update bundle adapter.");
   }
   return '<script>'+code.replace(/<\/script/gi,"<\\/script")+'</script>';
@@ -21,22 +23,31 @@ function bundle(read){
  // Inline scripts now run at the end of the body, after the controls exist.
  const scripts=[...html.matchAll(/<script>[\s\S]*?<\/script>/g)].map(m=>m[0]);
  html=html.replace(/<script>[\s\S]*?<\/script>/g,"").replace("</body>",()=>'<script>window.__shalomStudioInit=__STUDIO_PAYLOAD__;</script>'+scripts.join("")+"</body>");
- return '"use strict";\n// Generated from canonical Studio sources. Run node scripts/build-studio-native.js.\nconst template='+JSON.stringify(html)+';\nmodule.exports=function makeStudioHtml(payload){const json=JSON.stringify(payload).replace(/</g,"\\\\u003c").replace(/\\u2028/g,"\\\\u2028").replace(/\\u2029/g,"\\\\u2029");return template.replace("__STUDIO_PAYLOAD__",()=>json);};\n';
+ return '"use strict";\n// Generated from canonical Studio sources. Run node scripts/build-studio-native.js.\nconst template='+JSON.stringify(html)+';\nmodule.exports=function makeStudioHtml(payload,font=""){const json=JSON.stringify(payload).replace(/</g,"\\\\u003c").replace(/\\u2028/g,"\\\\u2028").replace(/\\u2029/g,"\\\\u2029");return template.replace("__STUDIO_INTER_FONT__",()=>/^[A-Za-z0-9+/=]*$/.test(font)?font:"").replace("__STUDIO_PAYLOAD__",()=>json);};\n';
 }
 function screen(read,admin=false){
  const source=read("studio-native-screen.js");
  const trailer="module.exports=createStudioScreen;\n";
  if(!source.endsWith(trailer))throw Error("Studio screen factory export changed.");
  const options=admin?', "✓ Acompañamiento guardado y publicado."':"";
- return "// Generated from studio-native-screen.js. Run node scripts/build-studio-native.js.\n"+source.slice(0,-trailer.length)+'module.exports=createStudioScreen(require("./studio-bundle")'+options+');\n';
+ return "// Generated from studio-native-screen.js. Run node scripts/build-studio-native.js.\n"+source.slice(0,-trailer.length)+'module.exports=createStudioScreen(payload=>require("./studio-bundle")(payload,require("./score-reader-assets").font)'+options+');\n';
 }
 function outputs(read){
  const html=bundle(read);
  return {
   "mobile/src/studio-bundle.js":html,
   "admin-mobile/src/studio-bundle.js":html,
+  "mobile/src/song-capo-core.js":read("song-capo-core.js"),
   "mobile/src/studio-collections.js":read("studio-collections.js"),
+  "mobile/src/studio-core.js":read("studio-core.js"),
+  "mobile/src/studio-codec.js":read("studio-codec.js"),
+  "mobile/src/studio-reader-cues.js":read("studio-reader-cues.js"),
   "mobile/src/studio-screen.js":screen(read),
+  "admin-mobile/src/collection-capo-options.js":read("collection-capo-options.js"),
+  "admin-mobile/src/studio-core.js":read("studio-core.js"),
+  "admin-mobile/src/studio-codec.js":read("studio-codec.js"),
+  "admin-mobile/src/studio-reader-cues.js":read("studio-reader-cues.js"),
+  "admin-mobile/src/collection-cue-editor.js":read("mobile/src/collection-cue-editor.js"),
   "admin-mobile/src/studio-screen.js":screen(read,true)
  };
 }

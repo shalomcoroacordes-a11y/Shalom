@@ -28,7 +28,7 @@ assert.match(app,/onPress:\(\)=>active\?setActionSongId\(String\(active\.id\)\)/
  "The reader menu opens actions for the active song");
 assert.match(app,/onShare:\(\)=>shareSong\(actionSong\)/,
  "The actions panel preserves sharing without editing");
-assert.match(app,/onPrint:\(\)=>printSong\(actionSong\)/,
+assert.match(app,/onPrint:actionContext\?\(\)=>Print\.printAsync[\s\S]*?:\(\)=>printSong\(actionSong\)/,
  "The actions panel preserves native printing");
 assert.match(songActions,/Compartir canción/,"Sharing remains visible in the actions panel");
 assert.match(songActions,/Imprimir letra y acordes/,"Printing remains visible in the actions panel");
@@ -45,10 +45,10 @@ assert.doesNotMatch(app,/style:S.songActionBar/,
 assert.ok(!favorites.includes("supabase"),"Personal likes module must have no Supabase calls");
 assert.match(database,/DELETE FROM catalog_records/,"Catalog syncing must only replace catalog records");
 assert.doesNotMatch(database,/DELETE FROM metadata/,"Catalog syncing must not erase local favorites");
-assert.match(reader,/renderAlignedScoreRows\(parsed,readerFont/,"Font size is applied to every aligned column");
+assert.match(reader,/renderAlignedScoreRows\(showReaderCues\?cueRows:parsed,readerFont/,"Font size is applied to every aligned column");
 assert.doesNotMatch(grid,/anchoredTokens\(|token\.column\*cell/,"Do not approximate character positions in native Text");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.chordLine\|\|" "\)/,"One complete chord line with no word fragmentation");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/escapeHTML\(row\.lyricLine\|\|" "\)/,"One complete continuous lyric line");
-assert.match(grid,/scoreHtml\(rows,safeFont\)/,"Both rows share the same CSS font size");
+assert.match(grid,/scoreHtml\(rows,safeFont,\{mode:fitMode,height:fitHeight\},scoreAssets\)/,"Both rows share the same CSS font size and local Inter assets");
 assert.match(fs.readFileSync("mobile/src/web-score-html.js","utf8"),/overflow-x:auto/,"Long lines scroll without wrapping");
 console.log("SHALOM Android reader: local-only likes, accessible controls and no editing verified.");

@@ -1,7 +1,7 @@
 -- Papelera restaurable de cantos, transacciones completas y control del propietario.
 -- Requiere supabase-studio-arrangements.sql. Validar en una base aislada antes de desplegar.
 begin;
-create or replace function public.admin_delete_song(p_song_id uuid)
+create or replace function public.admin_delete_song_complete(p_song_id uuid)
 returns boolean language plpgsql security definer set search_path=''
 as $$
 declare backup jsonb;
@@ -37,12 +37,20 @@ begin
  return true;
 end;
 $$;
+-- Existing Android versions retain their RPC contract; new web clients require
+-- the complete endpoint explicitly and never fall back to the old deployment.
+create or replace function public.admin_delete_song(p_song_id uuid)
+returns boolean language sql security invoker set search_path=''
+as $delegate$ select public.admin_delete_song_complete(p_song_id); $delegate$;
+
 create or replace function public.admin_restore_song(p_trash_id uuid)
 returns boolean language plpgsql security definer set search_path=''
 as $$
 declare old public.admin_trash%rowtype; song jsonb; parts jsonb;
 begin
- if auth.uid() is null or not public.admin_is_owner() then raise exception 'Solo el superadministrador puede restaurar la papelera';end if;
+ -- Owner status alone does not check access blocks in the deployed RBAC helper.
+ -- Every active owner has songs.delete; this additional gate rejects blocked owners.
+ if auth.uid() is null or public.admin_is_owner() is not true or public.admin_has_permission('songs.delete') is not true then raise exception 'Solo el superadministrador puede restaurar la papelera';end if;
  select * into old from public.admin_trash where id=p_trash_id for update;
  if not found or old.item_type<>'song' then raise exception 'No existe este canto en papelera';end if;
  if exists(select 1 from public.songs where id=old.original_id) then
@@ -81,8 +89,16 @@ begin
  return true;
 end;
 $$;
+-- Explicit capability for new clients; the legacy RPC remains compatible.
+create or replace function public.admin_restore_song_complete(p_trash_id uuid)
+returns boolean language sql security invoker set search_path=''
+as $delegate$ select public.admin_restore_song(p_trash_id); $delegate$;
+revoke all on function public.admin_restore_song_complete(uuid) from public,anon;
+grant execute on function public.admin_restore_song_complete(uuid) to authenticated;
+revoke all on function public.admin_delete_song_complete(uuid) from public,anon;
 revoke all on function public.admin_delete_song(uuid) from public,anon;
 revoke all on function public.admin_restore_song(uuid) from public,anon;
+grant execute on function public.admin_delete_song_complete(uuid) to authenticated;
 grant execute on function public.admin_delete_song(uuid) to authenticated;
 grant execute on function public.admin_restore_song(uuid) to authenticated;
 

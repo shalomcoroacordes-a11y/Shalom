@@ -25,8 +25,17 @@ Estas reglas se aplican a todo el repositorio, web pública, Admin, Studio, mobi
 ## Herramientas
 Revisar las herramientas de auditoría existentes en scripts/ y las pruebas de .github/workflows/. Incorporar analizadores externos de manera gradual con versiones fijadas y configuración adecuada a JavaScript clásico y Expo. Nunca borrar automáticamente candidatos de código no utilizado.
 
+## Trabajo por bloques integrales
+- Agrupa cambios relacionados por responsabilidad y contrato de datos. Planifica el bloque y sus pruebas antes de editar; no crear una rama por cada ajuste menor.
+- Ejecuta primero las pruebas específicas y de sintaxis; las validaciones completas de web, Admin, Android y actualización siguen siendo obligatorias según los archivos afectados antes de integrar.
+- No modifiques una rama que está compilando salvo que exista un fallo reproducido. Mientras tanto, revisa módulos independientes sin duplicar el trabajo ni abrir ramas superpuestas. Un resultado de CI pertenece al commit probado, no a futuras modificaciones.
+- Las cachés solo aceleran descargas; nunca sustituyen instalación, pruebas, verificación de firma, arranque o actualización. No almacenar APK, secretos ni datos de usuarios en cachés.
+- Antes de fusionar, verifica el estado de main, conflictos y las consecuencias de los workflows de publicación automática. No iniciar publicación oficial como parte de una prueba. La APK oficial requiere ejecución manual desde main y confirmación explícita; un push no debe publicar APK. Ver docs/DESARROLLO.md.
+
+- Los lockfiles de Pública y Admin deben permanecer versionados. Para instalar, usar npm ci; para cambiar dependencias, actualizar manifiesto y lockfile juntos y verificar Expo y todas las pruebas aplicables.
+
 ## Base oficial obligatoria (Pública, Admin, Studio y web)
-- Antes de editar, consulta las releases oficiales de Pública y Admin por separado: ignora borradores y prereleases, resuelve el tag al SHA real y comprueba que ambas releases sean ancestros de la base. No elegir main solo por ser la rama predeterminada. Si falla, detener y reconciliar la rama sin eliminar funciones ni datos.
-- Ejecuta `node scripts/release-base-guard.cjs --ref origin/main` tras `git fetch origin --prune`. Si main está atrasada o diverge, no crear ramas desde ella. Integra desde la release más reciente que incluya ambas líneas oficiales y conserva los cambios exclusivos de main mediante revisión. Ejecuta el mismo control en la rama candidata antes de editar, compilar o fusionar.
+- Antes de editar, consulta las releases oficiales de Pública y Admin por separado: ignora borradores y prereleases, resuelve el tag al SHA real y consulta el último despliegue exitoso de GitHub Pages en main. Comprueba que las tres referencias oficiales sean ancestros de la base. No elegir main solo por ser la rama predeterminada. Si falla, detener y reconciliar la rama sin eliminar funciones ni datos.
+- Ejecuta `node scripts/release-base-guard.cjs --ref origin/main` tras `git fetch origin --prune`. Si main está atrasada o diverge, no crear ramas desde ella. Integra desde la release más reciente que incluya las tres líneas oficiales y conserva los cambios exclusivos de main mediante revisión. Ejecuta el mismo control en la rama candidata antes de editar, compilar o fusionar.
 - Mantén manifiestos y locks coherentes; para publicar incrementa versión y versionCode respecto de la release real. El guard exige el SHA completo autorizado y no permite reutilizar una versión publicada. No cambiar etiquetas oficiales ni reemplazar APK existentes.
 - Ejecuta las regresiones completas de funciones aprobadas y los ensayos de actualización del candidato exacto. Nunca presentar una APK de ensayo como oficial. Si main o la release cambiaron desde la aprobación, repite la comprobación y las pruebas. No publicar automáticamente.

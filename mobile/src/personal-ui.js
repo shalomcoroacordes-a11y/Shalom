@@ -1,15 +1,18 @@
 const React=require("react");
 const {useState,useEffect}=React;
-const {View,Text,TextInput,Pressable,Share,Alert}=require("react-native");
+const {View,Text,TextInput,Pressable,Share,Alert,Image}=require("react-native");
 const Clipboard=require("expo-clipboard");
 const {CoverArt,CoverPicker,PRESETS}=require("./personal-cover-ui");
 const {chooseCover,removeCover}=require("./collection-covers");
 const {COLORS,MOMENTS,newCollection,newEntry,newPart,songSections,exportCode}=require("./personal-collections");
 const {transposeOne}=require("./chords");
 const {readingRows}=require("./personal-reader-core");
+const {CollectionCapoControl,CollectionSongMenu}=require("./music-readers-ui");
+const {useCollectionSections,CollectionSectionControls,CollectionSectionScore}=require("./section-reader-ui");
 const {items,createPersonal,receivePersonal,codePreview,kindName}=require("./personal-workflows");
 const h=React.createElement;
 const theme=require("./palette");
+const {MotionEntrance,MotionPressable}=require("./motion-ui");
 const styles=require("./personal-styles")(theme);
 const label=(str,style)=>h(Text,{style:style||styles.text},String(str==null?"":str));
 function action(title,onPress,secondary=false,disabled=false){
@@ -28,7 +31,7 @@ function input(value,setValue,placeholder,multiline=false){
   textAlignVertical:multiline?"top":"center",autoCorrect:false});
 }
 const {updateCollection,updateComposition,reorderParts}=require("./personal-store");
-function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSong,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange}){
+function PersonalCollectionsScreen({icons={},store,onChange,songs,renderScore,collectionScoreRows,onSelectSong,onSongOptions,onStudioPart,onStudioCollection,filterKind=null,onClearFilter=()=>{},registerBack,initialNav,onNavChange,showReaderCues=true,setShowReaderCues,onReadingChange,immersiveActive=false,onToggleFullscreen}){
  const [folderId,setFolderId]=useState(initialNav?.folderId||null);
  const [entryId,setEntryId]=useState(initialNav?.entryId||null);
  const [view,setView]=useState(initialNav?.view||"home");
@@ -63,7 +66,11 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  },[registerBack,view,showFolderForm,customize,adding,filterKind,editReturn,shareReturn]);
  const folder=store.collections.find(c=>c.id===folderId);
  const entry=folder?.entries.find(e=>e.id===entryId);
+ const readingActive=view==="reading"&&Boolean(folder&&entry);
+ useEffect(()=>{onReadingChange?.(readingActive);return()=>{if(readingActive)onReadingChange?.(false);};},[onReadingChange,readingActive]);
  const catalog=new Map(songs.map(song=>[String(song.id),song]));
+ const personalReadingRows=view==="reading"&&entry?readingRows(entry,catalog,readerShift):[];
+ const nav=useCollectionSections(personalReadingRows.map(({part,song,resolved,scoreShift,index})=>({title:[part.moment,song?.title||part.fragmentTitle||"Fragmento "+(index+1)].filter(Boolean).join(" · "),rows:collectionScoreRows(resolved.lyrics||resolved.error||"Este canto no tiene letra descargada.",scoreShift,song,part.cueOverride)})),readerFont);
  const commit=(next,options)=>onChange(next,options);
  const updateFolder=fn=>commit(updateCollection(store,folderId,fn));
  const updateEntry=(fn,options)=>commit(updateComposition(store,folderId,entryId,fn),options);
@@ -105,7 +112,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   setFolderId(targetFolder.id);setEntryId(item.id);
   setNameDraft(item.title);setSearch("");setAdding(false);
   setEditReturn(origin);setExpandedPartId(null);
-  setView(item.parts.length?"reading":"editing");setReaderShift(0);
+  nav.reset();setView(item.parts.length?"reading":"editing");setReaderShift(0);
  }
  function showShare(item,targetFolder,returnTo="home"){
   setFolderId(targetFolder.id);setEntryId(item.id);
@@ -155,6 +162,12 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
   if(value!==entry?.title)updateEntry(e=>({...e,title:value.slice(0,120)}),{notice:"Nombre actualizado"});
  }
  function changePart(id,fn){updateEntry(e=>({...e,parts:e.parts.map(p=>p.id===id?fn(p):p)}));}
+ function choosePartSection(part,sectionIndex,sectionTitle){
+  if(part.fragmentLyrics==null&&part.sectionIndex===sectionIndex&&part.sectionTitle===sectionTitle)return;
+  const apply=()=>changePart(part.id,x=>{const next={...x,sectionIndex,sectionTitle};delete next.fragmentLyrics;delete next.fragmentTitle;delete next.cueOverride;return next;});
+  if(part.fragmentLyrics!=null||part.cueOverride!=null)Alert.alert("Cambiar fragmento","Se reemplazará la letra de esta aparición y se restablecerán sus indicaciones personalizadas. El canto original no cambia.",[{text:"Cancelar",style:"cancel"},{text:"Cambiar",onPress:apply}]);
+  else apply();
+ }
  function movePart(index,delta){
   if(!entry||index+delta<0||index+delta>=entry.parts.length)return;
   updateEntry(e=>reorderParts(e,index,delta));
@@ -191,7 +204,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  function collectionCard(c){
   const compositions=c.entries.length;
   const fragments=c.entries.reduce((acc,item)=>acc+(item.parts?.length||0),0);
-  return h(Pressable,{key:c.id,style:[styles.collectionCard,{borderBottomColor:c.color}],
+  return h(MotionPressable,{key:c.id,style:[styles.collectionCard,{borderBottomColor:c.color}],
    accessibilityRole:"button",accessibilityLabel:"Abrir colección "+c.name,
    onPress:()=>openFolder(c)},
    h(CoverArt,{preset:c.coverPreset,photo:c.coverPhoto,color:c.color,height:124}),
@@ -204,14 +217,14 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      h(Text,{style:styles.collectionCardType},"Colección privada"),
      h(Pressable,{onPress:e=>{e?.stopPropagation?.();openFolder(c,true);},
       accessibilityRole:"button",accessibilityLabel:"Personalizar "+c.name,
-      style:styles.collectionCardMore},label("⋮",styles.moreIcon)))));
+      style:styles.collectionCardMore},h(Image,{source:icons.dots,style:{width:24,height:24,tintColor:theme.muted},resizeMode:"contain"})))));
  }
  function kindTile(kind,caption){
   const name=kind==="misa"?"Misa":kind==="popurri"?"Popurrí":"Repertorio";
-  const symbol=kind==="misa"?"♧":kind==="popurri"?"♫":"▣";
-  return h(Pressable,{key:kind,onPress:()=>startCreate(kind),
+  const symbol=kind==="misa"?"mass":kind==="popurri"?"medleys":"repertoires";
+  return h(MotionPressable,{key:kind,onPress:()=>startCreate(kind),
    style:styles.quickTile,accessibilityRole:"button",accessibilityLabel:"Crear "+name.toLowerCase()},
-   label(symbol,styles.quickTileIcon), label(kind==="repertorio"?"Nuevo Repertorio":"Nueva "+name,styles.quickTileText),
+   h(Image,{source:icons[symbol],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}), label(kind==="misa"?"Nueva misa":kind==="repertorio"?"Nuevo repertorio":"Nuevo popurrí",styles.quickTileText),
    label(caption,styles.quickTileCaption));
  }
  function homeView(){
@@ -228,7 +241,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     kindTile("popurri","Une varios cantos")),
    h(Pressable,{onPress:openReceive,accessibilityRole:"button",
     accessibilityLabel:"Recibir una composición por código",style:styles.receiveShortcut},
-    label("↓",styles.receiveIcon),
+    h(Image,{source:icons.download,style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"}),
     h(View,{style:{flex:1}},
      label("Recibir composición",styles.cardTitle),
      label("Pega el mensaje que te enviaron por WhatsApp.",styles.meta)),
@@ -242,7 +255,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    ...all.map(({folder:c,entry:item})=>h(View,{key:c.id+"-"+item.id,style:styles.creationRow},
     h(Pressable,{style:styles.creationOpen,onPress:()=>openEntry(item,c,"home"),
      accessibilityRole:"button",accessibilityLabel:"Abrir "+item.title},
-     h(View,{style:styles.creationIcon},label(item.kind==="misa"?"♧":item.kind==="repertorio"?"▣":"♫",styles.creationIconText)),
+     h(View,{style:styles.creationIcon},h(Image,{source:icons[item.kind==="misa"?"mass":item.kind==="repertorio"?"repertoires":"medleys"],style:{width:24,height:24,tintColor:theme.green},resizeMode:"contain"})),
      h(View,{style:{flex:1,minWidth:0}},
       h(Text,{style:styles.cardTitle,numberOfLines:2},item.title),
       label((item.kind==="misa"?"Misa":item.kind==="repertorio"?"Repertorio":"Popurrí")+
@@ -251,14 +264,14 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      label("›",styles.arrow)),
     item.parts.length?h(Pressable,{onPress:()=>showShare(item,c,"home"),
      style:styles.shareSmall,accessibilityRole:"button",
-     accessibilityLabel:"Compartir "+item.title},label("↗",styles.moreIcon)):null)),
+     accessibilityLabel:"Compartir "+item.title},h(Image,{source:icons.share,style:{width:24,height:24,tintColor:theme.muted},resizeMode:"contain",accessible:false})):null)),
    !all.length?h(View,{style:styles.emptyClean},
     label(listFilter==="all"?"Todavía no tienes composiciones.":
      "Aún no has creado "+(listFilter==="misa"?"misas":listFilter==="popurri"?"popurrís":"repertorios")+".",styles.emptyTitle),
     label("Elige una de las opciones de arriba para comenzar. No necesitas crear una carpeta.",styles.description)):null,
-   action("▣  Organizar por carpetas",()=>setView("folders"),true),
+   h(Pressable,{onPress:()=>setView("folders"),accessibilityRole:"button",style:[styles.action,styles.actionSecondary,styles.iconAction]},h(Image,{source:icons.folder,style:{width:24,height:24,tintColor:theme.text},resizeMode:"contain",accessible:false}),label("Organizar por carpetas",[styles.actionText,styles.actionTextSecondary])),
    h(View,{style:styles.privacyFooter},
-    label("🔒  Tus composiciones son privadas y no modifican los cantos oficiales de SHALOM.",styles.privateText)));
+    h(Image,{source:icons.lock,style:{width:16,height:16,tintColor:theme.muted},resizeMode:"contain",accessible:false}),label("Tus composiciones son privadas y no modifican los cantos oficiales de SHALOM.",styles.privateText)));
  }
  function createView(){
   const title=createKind==="misa"?"Nueva misa":createKind==="repertorio"?"Nuevo repertorio":"Nuevo popurrí";
@@ -269,9 +282,9 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    label("Dale un nombre. Después podrás elegir los cantos y ordenarlos.",styles.description),
    label("¿Qué vas a preparar?",styles.inputLabel),
    h(View,{style:styles.wrap},
-    chip("♧ Misa",createKind==="misa",()=>setCreateKind("misa")),
-    chip("▣ Repertorio",createKind==="repertorio",()=>setCreateKind("repertorio")),
-    chip("♫ Popurrí",createKind==="popurri",()=>setCreateKind("popurri"))),
+    chip("Misa",createKind==="misa",()=>setCreateKind("misa")),
+    chip("Repertorio",createKind==="repertorio",()=>setCreateKind("repertorio")),
+    chip("Popurrí",createKind==="popurri",()=>setCreateKind("popurri"))),
    label("Nombre",styles.inputLabel),
    input(createTitle,setCreateTitle,createKind==="misa"?"Ej. Misa del domingo":
     createKind==="repertorio"?"Ej. Ensayo del jueves":"Ej. Alabanzas de entrada"),
@@ -337,19 +350,19 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function shareView(){
   if(!folder||!entry)return homeView();
-  let code="";
-  try{code=exportCode(entry);}catch(_){}
+  let code="",shareError="";
+  try{code=exportCode(entry);}catch(error){shareError=error.message||"No se pudo preparar el código.";}
   const shareMessage="🕊️ SHALOM · "+kindName(entry.kind)+"\n"+entry.title+
    "\n\n"+code+"\n\nPara guardarlo: abre SHALOM → Mis creaciones → Recibir composición → Pegar mensaje.";
   async function shareNative(){
    try{
-    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    if(!code)throw new Error(shareError);
     await Share.share({title:"SHALOM · "+entry.title,message:shareMessage});
    }catch(e){Alert.alert("No se pudo compartir",e?.message||"Inténtalo de nuevo.");}
   }
   async function copyCode(){
    try{
-    if(!code)throw new Error("Agrega al menos un canto antes de compartir.");
+    if(!code)throw new Error(shareError);
     await Clipboard.setStringAsync(shareMessage);
     Alert.alert("Mensaje copiado","Ya puedes pegarlo en WhatsApp o en otra conversación.");
    }catch(e){Alert.alert("No se pudo copiar",e?.message||"Inténtalo de nuevo.");}
@@ -361,11 +374,13 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
    label(entry.title,styles.cardTitle),
    label(entry.parts.length+" cantos · "+kindName(entry.kind),styles.meta),
    label("La otra persona podrá guardarla en su SHALOM, sin que ninguno de los dos tenga que iniciar sesión.",styles.description),
+   shareError?label(shareError+" Puedes conservar la composición completa mediante Respaldo y restauración.",styles.warning):null,
    action("↗  Enviar por WhatsApp u otra app",shareNative,false,!code),
    action("▣  Copiar mensaje",copyCode,true,!code),
    h(View,{style:styles.infoCard},
     label("¿Qué recibe la otra persona?",styles.cardTitle),
-    label("El orden de los cantos, los fragmentos y sus tonos. No se envían tus fotos ni las letras completas.",styles.description),
+    label("El orden de los cantos, los fragmentos, tonos, capos y notas personalizadas. Las indicaciones pueden incluir las frases seleccionadas y los fragmentos modificados incluyen su letra y acordes. No se envían tus fotografías.",styles.description),
+    code.startsWith("SHALOM2-")?label("Quien lo reciba necesita una versión compatible con las indicaciones y capos personalizados.",styles.meta):null,
     label("Solo tiene que abrir Mis creaciones → Recibir composición y pegar el mensaje.",styles.meta)),
    action(showRawCode?"Ocultar código":"Ver código de SHALOM",()=>setShowRawCode(v=>!v),true),
    showRawCode?h(Text,{selectable:true,style:styles.codePreview},code):null);
@@ -408,7 +423,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     label("Estas son portadas de muestra, no colecciones ni cantos creados.",styles.emptyHint),
     action("+ Crear mi primera colección",()=>startNewFolder())):null,
    h(View,{style:styles.privacyFooter},
-    label("⌂  Guardado solo en este dispositivo. Tus misas y popurrís no modifican los cantos oficiales.",styles.privateText)));
+    h(Image,{source:icons.lock,style:{width:16,height:16,tintColor:theme.muted},resizeMode:"contain",accessible:false}),label("Guardado solo en este dispositivo. Tus misas y popurrís no modifican los cantos oficiales.",styles.privateText)));
  }
  function folderView(){
   if(!folder)return foldersView();
@@ -422,7 +437,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
       label(folder.entries.length+" composiciones · Guardado en tu teléfono",styles.meta)),
      h(Pressable,{onPress:()=>setCustomize(v=>!v),accessibilityRole:"button",
       accessibilityLabel:"Editar portada y colores",style:styles.folderCustomize},
-      label("✎",styles.folderCustomizeIcon)))),
+      h(Image,{source:icons.edit,style:{width:24,height:24,tintColor:theme.text},resizeMode:"contain",accessible:false})))),
    customize?h(View,{style:styles.customizerPanel},
     h(View,{style:styles.actions},
      label("Personalizar mi colección",styles.customTitle),
@@ -438,7 +453,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
     action("+ Repertorio",()=>createEntry("repertorio"),true),
     action("Recibir composición",()=>openReceive(folder.id),true)),
    ...folder.entries.map(item=>h(View,{key:item.id,style:styles.entryCard},
-    label(item.kind==="misa"?"⛪ MISA PERSONAL":item.kind==="repertorio"?"▣ REPERTORIO PERSONAL":"♫ POPURRÍ PERSONAL",styles.tag),
+    label(item.kind==="misa"?"MISA PERSONAL":item.kind==="repertorio"?"REPERTORIO PERSONAL":"POPURRÍ PERSONAL",styles.tag),
     label(item.title,styles.cardTitle),
     label(item.parts.length+" fragmentos · Lectura continua",styles.meta),
     h(View,{style:styles.actions},
@@ -500,7 +515,7 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
       h(View,{style:{flex:1,minWidth:0}},
        h(Text,{style:styles.cardTitle,numberOfLines:2},song?.title||"Canto pendiente de descargar"),
-       label((p.sectionIndex===null?"Completo":p.sectionTitle||"Fragmento")+" · "+
+       label((p.fragmentLyrics!=null?p.fragmentTitle||"Fragmento personalizado":p.sectionIndex===null?"Completo":p.sectionTitle||"Fragmento")+" · "+
         (song?.tone?transposeOne(song.tone,p.shift):"Sin tono")+
         (p.moment?" · "+p.moment:""),styles.meta))),
      h(View,{style:styles.actions},
@@ -511,9 +526,10 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
      expanded?h(View,{style:styles.partDetails},
       label("¿Qué parte quieres usar?",styles.inputLabel),
       song?h(View,{style:styles.wrap},
-       chip("Canto completo",p.sectionIndex===null,()=>changePart(p.id,x=>({...x,sectionIndex:null,sectionTitle:""}))),
+       p.fragmentLyrics!=null?label("Se conserva el fragmento de la copia oficial.",styles.meta):null,
+       chip("Canto completo",p.fragmentLyrics==null&&p.sectionIndex===null,()=>choosePartSection(p,null,"")),
        ...sections.map(section=>chip(section.title,p.sectionIndex===section.index,
-        ()=>changePart(p.id,x=>({...x,sectionIndex:section.index,sectionTitle:section.title}))))):
+        ()=>choosePartSection(p,section.index,section.title)))):
        label("Descarga la biblioteca para elegir estrofas.",styles.warning),
       entry.kind==="misa"?h(View,{style:{gap:7}},
        label("Momento de la misa",styles.inputLabel),
@@ -532,42 +548,49 @@ function PersonalCollectionsScreen({store,onChange,songs,renderScore,onSelectSon
  }
  function readingView(){
   if(!folder||!entry)return folderView();
-  const rows=readingRows(entry,catalog,readerShift);
-  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,shift})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift})),songs);
+  const rows=personalReadingRows;
+  const plan=require("./studio-collections").plan(rows.map(({part,song,resolved,scoreShift,selection})=>({songId:part.songId,title:song?.title,moment:part.moment,lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position})),songs);
   return h(View,{style:styles.container},
-   action("← Editar "+kindName(entry.kind),back,true),
-   label(entry.title,styles.pageTitle),
-   label((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description),
+   !immersiveActive?action("← Editar "+kindName(entry.kind),back,true):null,
+   label(entry.title,immersiveActive?styles.cardTitle:styles.pageTitle),
+   !immersiveActive?label((entry.kind==="misa"?"Misa":entry.kind==="repertorio"?"Repertorio":"Popurrí")+" personal · "+entry.parts.length+" fragmentos · Sin internet",styles.description):null,
+   onToggleFullscreen?action(immersiveActive?"Salir de pantalla completa":"⛶ Pantalla completa",onToggleFullscreen,true):null,
    h(View,{style:styles.toneRow},
     action("T−",()=>setReaderShift(v=>Math.max(-11,v-1)),true,readerShift<=-11),
     label(readerShift===0?"Tono original":(readerShift>0?"+":"")+readerShift+" semitonos",styles.meta),
     action("T+",()=>setReaderShift(v=>Math.min(11,v+1)),true,readerShift>=11),
-    action("A−",()=>setReaderFont(v=>Math.max(13,v-1)),true,readerFont<=13),
-    action("A+",()=>setReaderFont(v=>Math.min(22,v+1)),true,readerFont>=22)),
-   entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
-   ...rows.map(({part:p,index,song,resolved,shift,tone})=>{
+    action("A−",()=>nav.enabled?nav.manualFont(nav.fitFont-1):setReaderFont(v=>Math.max(13,v-1)),true,!nav.enabled&&readerFont<=13),
+    action("A+",()=>nav.enabled?nav.manualFont(nav.fitFont+1):setReaderFont(v=>Math.min(22,v+1)),true,!nav.enabled&&readerFont>=22)),
+   h(CollectionSectionControls,{nav}),
+   setShowReaderCues?action(showReaderCues?"Ocultar indicaciones":"Mostrar indicaciones",()=>setShowReaderCues(v=>!v),true):null,
+   !immersiveActive&&entry.kind!=="misa"&&plan.ready.length&&onStudioCollection?action("♫ "+(entry.kind==="popurri"?"Practicar fragmentos":"Ensayar con guitarra")+" · "+plan.ready.length+"/"+plan.total,()=>onStudioCollection(plan),true):null,
+   ...rows.map(({part:p,index,song,resolved,scoreShift,selection,tone})=>{
+    if(nav.enabled&&nav.current?.entryIndex!==index)return null;
     return h(View,{key:p.id,style:styles.readerPart},
      h(View,{style:styles.partHead},
       h(View,{style:styles.number},label(String(index+1),styles.numberText)),
       h(View,{style:{flex:1}},entry.kind==="misa"&&p.moment?label(p.moment,styles.tag):null,
-       label(song?.title||"Canto no disponible",styles.cardTitle),
+       label(song?.title||p.fragmentTitle||"Canto no disponible",styles.cardTitle),
        label((resolved.section||p.sectionTitle||"")+
-        (song?.tone?" · Tono "+tone:""),styles.meta))),
-     resolved.lyrics===null?label(resolved.error,styles.warning):
-      resolved.lyrics?renderScore(resolved.lyrics,shift,"local-"+p.id,readerFont):
+        (song?.tone?" · Tono "+tone:""),styles.meta)),
+      h(CollectionSongMenu,{song,style:styles.chip,textStyle:styles.chipText,onPress:onSongOptions&&resolved.lyrics!==null?()=>onSongOptions(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position,override:p.cueOverride,personalTarget:{folderId:folder.id,entryId:entry.id,partId:p.id},practiceReady:!!plan.entries[index]?.ready}):null})),
+     h(CollectionCapoControl,{song,selection,onSelect:id=>changePart(p.id,x=>({...x,capoId:id})),style:styles.chip,textStyle:styles.chipText}),
+     p.notes?label(p.notes,styles.meta):null,
+     nav.enabled?h(CollectionSectionScore,{nav,fontSize:readerFont,S:{songReaderHint:styles.meta},immersiveActive}):resolved.lyrics===null?label(resolved.error,styles.warning):
+      resolved.lyrics?renderScore(resolved.lyrics,scoreShift,"local-"+p.id,readerFont,song,p.cueOverride):
        label("Este canto no tiene letra descargada.",styles.warning),
-     plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift}),true):null,
-     song?action("Ver canto original",()=>onSelectSong(song),true):null);
+     !immersiveActive&&plan.entries[index]?.ready&&onStudioPart?action("♫ Practicar con guitarra",()=>onStudioPart(song,{lyrics:resolved.lyrics,shift:scoreShift,capo:selection.chosen.position}),true):null,
+     !immersiveActive&&song?action("Ver canto original",()=>onSelectSong(song),true):null);
    }),
-   action("Compartir",()=>showShare(entry,folder,"reading"),true));
+   !immersiveActive?action("Compartir",()=>showShare(entry,folder,"reading"),true):null);
  }
  if(view==="reading")return readingView();
  if(view==="editing")return editView();
  if(view==="share")return shareView();
  if(view==="import")return receiveView();
  if(view==="create")return createView();
- if(view==="folder")return folderView();
- if(view==="folders")return foldersView();
+ if(view==="folder")return h(MotionEntrance,{key:"folder"},folderView());
+ if(view==="folders")return h(MotionEntrance,{key:"folders"},foldersView());
  return homeView();
 }
 module.exports=PersonalCollectionsScreen;

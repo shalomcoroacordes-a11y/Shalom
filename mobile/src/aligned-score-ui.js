@@ -4,6 +4,7 @@ const {useMemo,useState,useEffect}=React;
 const {View,Text,StyleSheet}=require("react-native");
 const {WebView}=require("react-native-webview");
 const {scoreHtml,estimateScoreHeight}=require("./web-score-html");
+const scoreAssets=require("./score-reader-assets");
 const {clampReaderFont}=require("./score-zoom");
 const LegacyScore=require("./aligned-score-legacy-ui");
 const h=React.createElement;
@@ -12,10 +13,10 @@ const h=React.createElement;
 // El contenido no procede de una URL: sigue disponible sin internet.
 // En Android, RN Text aplica tratamientos de espacios/fuentes distintos de
 // los de la vista del editor web, incluso con 'monospace' y espaciado cero.
-function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
+function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,fitMode="manual",fitHeight=0,onFitFont}){
  const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
- const html=useMemo(()=>scoreHtml(rows,safeFont),[serialized,safeFont]);
+ const html=useMemo(()=>scoreHtml(rows,safeFont,{mode:fitMode,height:fitHeight},scoreAssets),[serialized,safeFont,fitMode,fitHeight]);
  // Native height events must not construct a new document source.
  const source=useMemo(()=>({html}),[html]);
  const [height,setHeight]=useState(()=>estimateScoreHeight(rows,safeFont));
@@ -23,15 +24,19 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
  useEffect(()=>{
   setHeight(estimateScoreHeight(rows,safeFont));
   setFailed(false);
- },[serialized,safeFont]);
+ },[serialized,safeFont,fitMode,fitHeight]);
  const onHeight=e=>{
   let value;
   try{value=JSON.parse(e.nativeEvent.data);}catch(_){return;}
   // La WebView avisa solo al terminar el pellizco: no se reinicia en cada movimiento.
+  if(value?.type==="score-fit"){
+   if(Number.isFinite(value.fontSize)&&onFitFont)onFitFont(clampReaderFont(value.fontSize));
+   return;
+  }
   if(value?.type==="score-zoom"){
    if(Number.isFinite(value.fontSize)&&onFontSizeChange){
     const next=clampReaderFont(value.fontSize);
-    if(Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
+    if(fitMode!=="manual"||Math.abs(next-safeFont)>=0.05)onFontSizeChange(next);
    }
    return;
   }
@@ -50,6 +55,8 @@ function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange}){
    source,
    originWhitelist:["*"],
    javaScriptEnabled:true,
+   // Explicit reader sizes, not a second Android system text scale.
+   textZoom:100,
    domStorageEnabled:false,
    allowFileAccess:false,
    mixedContentMode:"never",

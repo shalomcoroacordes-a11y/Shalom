@@ -1,0 +1,54 @@
+/* Propietario del diseño del lector proporcional. El editor de columnas no usa este componente. */
+.score-proportional {
+  font-family: Inter, sans-serif !important;
+  font-weight: 400;
+  font-optical-sizing: none;
+  font-variant-ligatures: none;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-align: left;
+  direction: ltr;
+  white-space: pre;
+  width: max-content;
+  min-width: 100%;
+}
+.score-proportional .score-pair {
+  display: block;
+  width: max-content;
+  margin: 0 0 .55em;
+  break-inside: avoid;
+}
+.score-proportional .score-lyric, .score-proportional .score-plain {
+  font: inherit;
+  white-space: pre;
+  width: max-content;
+}
+.score-proportional .score-chords {
+  position: relative;
+  font: inherit;
+  white-space: pre;
+}
+.score-proportional .score-chord {
+  position: absolute;
+  font: inherit;
+  font-weight: 700;
+  color: var(--gold, #69cba7);
+  line-height: 1.16;
+}
+.score-proportional .score-section, .score-proportional .score-instrumental {
+  font-weight: 600;
+  color: var(--gold, #69cba7);
+}
+.score-proportional .score-section { margin: 1em 0 .4em; }
+.score-proportional .score-instrumental { font-weight: 700; }
+.score-proportional .score-empty { height: 1.4em; }
+.score-proportional .score-space-probe { display: inline-block; width: auto; }
+/* Ocultar sin perder las medidas al cambiar de tono mientras no hay acordes visibles. */
+body.song-hide-chords .score-proportional .score-chords { visibility: hidden; height: 0 !important; overflow: hidden; }
+body.song-hide-chords .score-proportional .score-instrumental { display: none; }
+@media print {
+  .score-proportional { overflow: visible; color: #111; }
+  .score-proportional .score-chord,
+  .score-proportional .score-section,
+  .score-proportional .score-instrumental { color: #111; }
+}

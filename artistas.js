@@ -9,11 +9,10 @@ let activeType = "";
 let searchTimer = 0;
 
 const norm = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-const esc = (value) => String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+const {esc,card: catalogCard,createLoadMore} = window.ShalomCatalogListView;
 const cleanDescription = (value) => String(value || "").replace(/<!--JHD_ARTIST_META:[\s\S]*?-->\s*$/, "").trim();
 const biography = (person) => cleanDescription(person?.bio || person?.description);
 const initials = (value) => String(value || "JHD").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
-const countLabel = (count) => `${count} ${count === 1 ? "canto" : "cantos"}`;
 
 
 
@@ -33,31 +32,16 @@ function typeLabel(person) {
 
 function card(person) {
   const key = person.slug || person.id;
-  const description = biography(person) || "Explora sus cantos, álbumes y colaboraciones.";
-  const count = Number(person.song_count || 0);
-  return `<a class="artist-card catalog-artist-card" href="artista.html?slug=${encodeURIComponent(key)}" aria-label="Ver perfil de ${esc(person.name || "Ministerio")}"><div class="catalog-card-heading"><span class="catalog-avatar" aria-hidden="true">${esc(initials(person.name))}</span><div><p class="catalog-card-kicker">${esc(typeLabel(person))}</p><h3>${esc(person.name || "Ministerio")}</h3></div><span class="catalog-card-arrow" aria-hidden="true">→</span></div><p class="catalog-card-description">${esc(description)}</p><div class="catalog-card-footer"><span class="catalog-card-count"><span aria-hidden="true">♫</span> ${esc(countLabel(count))}</span><strong>Ver perfil →</strong></div></a>`;
+  return catalogCard({
+    kind:"artist",href:"artista.html?slug="+encodeURIComponent(key),
+    ariaLabel:"Ver perfil de "+(person.name || "Ministerio"),
+    iconClass:"catalog-avatar",icon:initials(person.name),kicker:typeLabel(person),
+    title:person.name || "Ministerio",description:biography(person) || "Explora sus cantos, álbumes y colaboraciones.",
+    count:Number(person.song_count || 0),action:"Ver perfil →"
+  });
 }
 
-function ensureLoadMore() {
-  let button = document.querySelector("#artistsLoadMore");
-  if (button || !grid) return button;
-  const wrap = document.createElement("div");
-  wrap.className = "catalog-load-more";
-  wrap.innerHTML = '<button class="song-btn secondary" id="artistsLoadMore" type="button" hidden>Cargar más artistas</button>';
-  grid.after(wrap);
-  button = wrap.querySelector("#artistsLoadMore");
-  button.addEventListener("click", () => fetchArtists(true));
-  return button;
-}
-
-function updateLoadMore() {
-  const button = ensureLoadMore();
-  if (!button) return;
-  const hasMore = catalog.state.rows.length < catalog.state.total;
-  button.hidden = !hasMore;
-  button.disabled = catalog.state.loading;
-  button.textContent = catalog.state.loading ? "Cargando…" : "Cargar más artistas";
-}
+const loadMore = createLoadMore({grid,id:"artistsLoadMore",label:"Cargar más artistas",onLoad:()=>fetchArtists(true)});
 
 function mountFilters() {
   if (document.querySelector("#artistTypeFilters")) return;
@@ -92,18 +76,13 @@ function renderArtists() {
   grid.innerHTML = catalog.state.rows.length
     ? catalog.state.rows.map(card).join("")
     : '<article class="artist-card"><h3>Sin resultados</h3><p>Prueba con otro nombre o tipo de artista.</p></article>';
-  updateLoadMore();
+  loadMore.update(catalog.state);
 }
 
 function beginFreshLoad() {
   if (grid) grid.innerHTML = '<article class="artist-card shimmer-card"><h3>Buscando artistas…</h3><p>Un momento por favor.</p></article>';
   setStatus("Buscando artistas…");
-  const button = ensureLoadMore();
-  if (button) {
-    button.hidden = true;
-    button.disabled = true;
-    button.textContent = "Cargar más artistas";
-  }
+  loadMore.reset();
 }
 
 function rpcErrorMessage(error) {
@@ -121,13 +100,12 @@ const catalog = window.ShalomCatalogSongRow.createPager({
     if (error) throw error;
     return data || [];
   },
-  onStart: append => append ? updateLoadMore() : beginFreshLoad(),
+  onStart: append => append ? loadMore.update(catalog.state) : beginFreshLoad(),
   onRender: renderArtists,
   onError: error => {
     if (grid) grid.innerHTML = `<article class="artist-card"><h3>Error al cargar</h3><p>${esc(rpcErrorMessage(error))}</p></article>`;
     setStatus("No se pudieron cargar los artistas.");
-    const button = ensureLoadMore();
-    if (button) button.hidden = true;
+    loadMore.hide();
   }
 });
 function fetchArtists(append = false) {
@@ -142,7 +120,7 @@ function start() {
     return;
   }
   mountFilters();
-  ensureLoadMore();
+  loadMore.ensure();
   fetchArtists(false);
 }
 

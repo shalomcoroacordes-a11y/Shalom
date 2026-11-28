@@ -1,0 +1,11 @@
+const assert=require("node:assert/strict");
+const web=require("../song-chords"),native=require("../mobile/src/chords");
+const source="[Verso]\nG                  D\nAhí en la Eucaristía\n(Cmaj7)(G/B)Mi (Am)vida";
+const legacy=native.parseSong(source,2),anchored=native.parseSong(source,2,true);
+assert.deepEqual(anchored.map(({anchors,...row})=>row),legacy);
+assert.deepEqual(anchored[1].anchors.map(a=>a.position),[0,19]);
+assert.deepEqual(anchored[2].anchors.map(a=>a.position),[0,0,3]);
+assert.deepEqual(web.parseRows(source,c=>native.transposeOne(c,2),true).filter(r=>r.kind==="chords").map(r=>r.anchors),anchored.filter(r=>r.kind==="chords").map(r=>r.anchors));
+assert.ok(web.render(source,{includeAnchors:true}).includes("data-chord-anchors"));
+assert.ok(!web.render(source).includes("data-chord-anchors"));
+console.log("Canonical parser: opt-in anchors preserve legacy rows and actual source positions.");

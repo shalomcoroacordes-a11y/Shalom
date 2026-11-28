@@ -1,3 +1,4 @@
+const {createStyles}=require("./design-system");
 const palette=require("./palette");
 const React=require("react");
 const {View,Text,Pressable,Image,StyleSheet}=require("react-native");
@@ -58,7 +59,7 @@ function CoverPicker({preset,photo,color,onPreset,onColor,onChoosePhoto,onClearP
   h(ColorChoices,{value:color,onChange:onColor}),
   h(Text,{style:S.hint},"Tu foto y tus colores solo se guardan en este teléfono. No se envían a Supabase."));
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  fill:{position:"absolute",top:0,bottom:0,left:0,right:0,width:"100%",height:"100%"},
  art:{overflow:"hidden",borderRadius:13,position:"relative",justifyContent:"center"},
  artContents:{alignItems:"center",justifyContent:"center",flex:1},

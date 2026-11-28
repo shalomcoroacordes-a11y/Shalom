@@ -12,31 +12,16 @@
   const state = { type: "", folderId: "" };
   const idOf = (value) => String(value || "");
   const unique = (items) => [...new Set((Array.isArray(items) ? items : []).map(idOf).filter(Boolean))];
-  const category = (key) => (AP.categories || []).find((row) => idOf(row.id) === idOf(key));
+  const tree = window.ShalomAdminCategoryHierarchy;
+  const category = key => tree.byId(AP.categories || [], key);
   const categoryType = (row) => {
     const type = apNorm(row?.song_type || "");
     return names[type] ? type : "general";
   };
-  const sorted = (rows) => [...rows].sort((a, b) =>
-    Number(a.sort_order || 0) - Number(b.sort_order || 0) ||
-    String(a.name || "").localeCompare(String(b.name || ""), "es")
-  );
-  const children = (parentId) =>
-    sorted((AP.categories || []).filter((row) => idOf(row.parent_id) === idOf(parentId)));
-  const roots = (type) =>
-    sorted((AP.categories || []).filter((row) => !row.parent_id && categoryType(row) === type));
-
-  function ancestors(row) {
-    const path = [];
-    const seen = new Set();
-    let current = row;
-    while (current && !seen.has(idOf(current.id))) {
-      seen.add(idOf(current.id));
-      path.unshift(current);
-      current = category(current.parent_id);
-    }
-    return path;
-  }
+  const sorted = rows => tree.sorted(rows);
+  const children = parentId => tree.children(AP.categories || [], parentId);
+  const roots = type => sorted((AP.categories || []).filter(row => !row.parent_id && categoryType(row) === type));
+  const ancestors = row => tree.path(AP.categories || [], row);
   const fullPath = (row) => {
     const path = ancestors(row);
     const root = path[0] || row;

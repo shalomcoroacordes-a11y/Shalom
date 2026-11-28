@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+dist/
+build/
+.env
+.env.*
+!*.example
+*.log
+android/
+ios/
+src/score-reader-assets.js
+src/web-score-html.js
+src/score-zoom.js
+src/palette.js
+src/section-reader-core.js
+assets/fonts/Inter-OFL.txt

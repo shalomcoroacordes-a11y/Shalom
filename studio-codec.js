@@ -8,6 +8,17 @@ function ranges(value,total){
  const seen=new Set();
  return value.map(r=>{if(!r||!Number.isInteger(r.index)||r.index<0||r.index>250||seen.has(r.index)||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<0||r.end<=r.start||r.end>total)throw Error("Rango de fragmento inválido.");seen.add(r.index);return {index:r.index,start:r.start,end:r.end}});
 }
+// A lyric-only record deliberately has no rhythm, chords or synthesized playback.
+function encodeLyricCues(cues){
+ const j=core.normalizeLyricCues(cues).map(c=>[c.start,c.end,c.source,c.action,c.audience,c.text]);
+ const value={v:1,k:"lyrics",j};
+ if(JSON.stringify(value).length>64000)throw Error("Indicaciones demasiado grandes.");
+ return value;
+}
+function decodeLyricCues(value){
+ if(!value||value.v!==1||value.k!=="lyrics"||Object.keys(value).some(k=>!["v","k","j"].includes(k))||!Array.isArray(value.j)||value.j.some(c=>!Array.isArray(c)||c.length!==6)||JSON.stringify(value).length>64000)throw Error("Indicaciones de letra inválidas.");
+ return core.normalizeLyricCues(value.j.map(([start,end,source,action,audience,text])=>({start,end,source,action,audience,text})));
+}
 function encode(anchors,config){
  core.compile(anchors,config);
  const dictionary=[],index=new Map(),sections=[];
@@ -22,6 +33,8 @@ function encode(anchors,config){
  const local=(config.sections||[]).filter(p=>p.patterns?.length).map(p=>[p.index,p.patterns.map(r=>[r.start,r.hits.map(h=>h.accent?symbols[h.hit].toUpperCase():symbols[h.hit]).join("")])]);if(local.length)value.z=local;
  const h=config.changes.map(c=>c.hold==="ring"?1:c.hold==="mute"?2:0);if(h.some(Boolean))value.h=h;
  const f=ranges(config.fragments,config.totalSteps);if(f.length)value.f=f;
+ const cues=core.normalizeCues(config.cues,config);if(cues.length)value.i=cues.map(c=>[c.index,c.ticks,c.action,c.audience,c.text]);
+ const lyricCues=core.normalizeLyricCues(config.lyricCues);if(lyricCues.length)value.j=lyricCues.map(c=>[c.start,c.end,c.source,c.action,c.audience,c.text]);
  if(JSON.stringify(value).length>64000)throw Error("Acompañamiento demasiado grande.");
  return value;
 }
@@ -45,7 +58,10 @@ function decode(anchors,value){
    if(!Array.isArray(value.z)||!config.sections)throw Error("Patrones locales inválidos.");
    const seen=new Set();for(const pair of value.z){const p=config.sections.find(s=>s.index===pair?.[0]);if(!Array.isArray(pair)||pair.length!==2||!p||seen.has(p.index)||!Array.isArray(pair[1]))throw Error("Referencia local inválida.");seen.add(p.index);p.patterns=pair[1].map(r=>{if(!Array.isArray(r)||r.length!==2||typeof r[1]!=="string"||r[1].length!==size||!/^[durmDURM]+$/.test(r[1]))throw Error("Patrón local inválido.");return {start:r[0],hits:[...r[1]].map(c=>({hit:hits[c.toLowerCase()],accent:c!==c.toLowerCase()}))}});}
  }
- config.fragments=ranges(value.f,config.totalSteps);core.compile(anchors,config);return config;
+ config.fragments=ranges(value.f,config.totalSteps);
+ if(value.i!==undefined){if(!Array.isArray(value.i)||value.i.some(c=>!Array.isArray(c)||c.length!==5))throw Error("Indicaciones inválidas.");config.cues=core.setCues(config,value.i.map(([index,ticks,action,audience,text])=>({index,ticks,action,audience,text}))).cues;}
+ if(value.j!==undefined){if(!Array.isArray(value.j)||value.j.some(c=>!Array.isArray(c)||c.length!==6))throw Error("Indicaciones de letra inválidas.");config.lyricCues=core.normalizeLyricCues(value.j.map(([start,end,source,action,audience,text])=>({start,end,source,action,audience,text})));}
+ core.compile(anchors,config);return config;
 }
-return Object.freeze({encode,decode});
+return Object.freeze({encode,decode,encodeLyricCues,decodeLyricCues});
 });

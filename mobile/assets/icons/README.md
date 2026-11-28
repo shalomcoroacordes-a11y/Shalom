@@ -1,0 +1,1 @@
+Iconos derivados de Lucide (https://github.com/lucide-icons/lucide), revisión 4bf621064bed45d114ba31435b85760513830d1c. Trazo de 1.8, color blanco para tintColor; corazón relleno. Nota musical y cáliz: dibujos propios. Inter: expo/google-fonts, revisión fb77a3ea686757b67aa6917259f12f218d607fe2; licencia OFL en ../fonts/OFL.txt.

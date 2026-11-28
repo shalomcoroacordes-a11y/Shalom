@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Run from repository root. Preserve all app-private data across in-place installation.
 set -euo pipefail
-PKG="com.shalomcoroacordes.cancionero"
-OLD="$RUNNER_TEMP/shalom-upgrade/SHALOM-Android-v${BASELINE_VERSION:-0.4.18}.apk"
-NEW="mobile/android/app/build/outputs/apk/release/app-release.apk"
+case "${1:-public}" in
+  public) PKG=com.shalomcoroacordes.cancionero; APK_PREFIX=SHALOM-Android; APP_DIR=mobile ;;
+  admin) PKG=com.shalomcoroacordes.admin; APK_PREFIX=SHALOM-Admin; APP_DIR=admin-mobile ;;
+  *) echo "Unknown SHALOM application" >&2; exit 1 ;;
+esac
+OLD="$RUNNER_TEMP/shalom-upgrade/${APK_PREFIX}-v${BASELINE_VERSION:?Set BASELINE_VERSION}.apk"
+NEW="$APP_DIR/android/app/build/outputs/apk/release/app-release.apk"
 test -s "$OLD" && test -s "$NEW"
 package_uid(){
   local listing
@@ -31,7 +35,7 @@ fi
 test -n "$new_uid"
 test "$old_uid" = "$new_uid"
 adb shell pm path "$PKG" | grep -q '^package:'
-adb shell dumpsys package "$PKG" | grep -q "versionCode=${CANDIDATE_CODE:-42}"
+adb shell dumpsys package "$PKG" | grep -q "versionCode=${CANDIDATE_CODE:?Set CANDIDATE_CODE}"
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 sleep 12
@@ -48,6 +52,11 @@ take_screen(){
   adb exec-out screencap -p > "$SCREEN_DIR/$1.png"
   test -s "$SCREEN_DIR/$1.png"
 }
+if [[ "$APP_DIR" == admin-mobile ]]; then
+  take_screen "01-admin-login"
+  echo "Admin upgrade: UID and launch verified; actual login and local data tests remain manual."
+  exit 0
+fi
 take_screen "01-inicio"
 RES=$(adb shell wm size | tr -d '\r' | sed -n 's/.*Physical size: \([0-9][0-9]*x[0-9][0-9]*\).*/\1/p' | head -1)
 if [[ "$RES" =~ ^[0-9]+x[0-9]+$ ]]; then

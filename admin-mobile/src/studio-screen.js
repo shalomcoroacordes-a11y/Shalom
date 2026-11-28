@@ -24,7 +24,7 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
   h(SafeAreaView,{style:{flex:1,backgroundColor:"#131c18"},edges:["top","bottom","left","right"]},
    h(View,{style:{flexDirection:"row",alignItems:"center",padding:12,borderBottomWidth:1,borderColor:"#34463b"}},
     h(Pressable,{onPress:close,accessibilityRole:"button",accessibilityLabel:"Regresar al canto",style:{padding:8}},h(Text,{style:{color:"#a8d9b5",fontSize:17}},"‹ Regresar")),
-    h(Text,{style:{color:"#edf3ee",fontWeight:"700",marginLeft:12}},"SHALOM Studio")),
+    h(Text,{style:{color:"#edf3ee",fontWeight:"700",marginLeft:12}},payload.cueOnly?"Indicaciones de letra":"SHALOM Studio")),
    queue?h(View,{style:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",paddingHorizontal:16,paddingVertical:8}},
     h(Pressable,{disabled:queue.index===0,onPress:()=>onNext(-1),accessibilityRole:"button"},h(Text,{style:{color:queue.index===0?"#64746a":"#a8d9b5"}},"‹ Anterior")),
     h(Text,{style:{color:"#edf3ee"}},(queue.index+1)+" de "+queue.entries.length),
@@ -34,4 +34,4 @@ function StudioScreen({payload,onClose,onSaveDraft,onPublish,queue,onNext}){
 }
 return StudioScreen;
 }
-module.exports=createStudioScreen(require("./studio-bundle"), "✓ Acompañamiento guardado y publicado.");
+module.exports=createStudioScreen(payload=>require("./studio-bundle")(payload,require("./score-reader-assets").font), "✓ Acompañamiento guardado y publicado.");

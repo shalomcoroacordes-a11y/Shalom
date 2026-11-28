@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 # Only one expensive Gradle preview build per PR/branch.
 concurrency:
   group: shalom-android-preview-${{ github.event.pull_request.number || github.ref }}
@@ -30,15 +31,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Restore npm download cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-node22-mobile-${{ hashFiles('mobile/package.json', 'mobile/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-node22-mobile-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+      - name: Restore Gradle dependency downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches/modules-2
+            ~/.gradle/wrapper/dists
+          key: ${{ runner.os }}-gradle-deps-jdk17-mobile-${{ hashFiles('mobile/package.json', 'mobile/package-lock.json', 'mobile/app.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-deps-jdk17-mobile-
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
       - name: Install JavaScript dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Verify Expo compatibility and native unit tests
         run: |
           npx expo install --check

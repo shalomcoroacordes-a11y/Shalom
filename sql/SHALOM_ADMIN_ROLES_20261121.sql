@@ -279,8 +279,8 @@ begin
  foreach t in array array['admin_roles','admin_role_permissions','admin_user_roles','admin_permission_overrides','admin_access_blocks','admin_invites','admin_profiles','admin_audit_log']
  loop
   execute format('alter table public.%I enable row level security',t);
-  execute format('revoke all on public.%I from anon',t);
-  execute format('grant select on public.%I to authenticated',t);
+  execute format('revoke all privileges on table public.%I from anon, authenticated',t);
+  execute format('grant select on table public.%I to authenticated',t);
  end loop;
 end$$;
 create policy "Roles visible a administradores" on public.admin_roles for select to authenticated using (
@@ -289,7 +289,7 @@ create policy "Roles visible a administradores" on public.admin_roles for select
 );
 create policy "Permisos del rol visibles a administradores" on public.admin_role_permissions for select to authenticated using (
  public.admin_is_owner() or public.admin_has_permission('roles.view') or exists(
- select 1 from public.admin_user_roles u where u.role_id=role_id and u.user_id=auth.uid())
+ select 1 from public.admin_user_roles u where u.role_id=admin_role_permissions.role_id and u.user_id=auth.uid())
 );
 create policy "Asignaciones visibles a propietario y a sí mismo" on public.admin_user_roles for select to authenticated using (
  public.admin_is_owner() or user_id=auth.uid()

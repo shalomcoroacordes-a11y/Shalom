@@ -12,7 +12,7 @@ function fixture(file,mode,queue){
  const React={createElement:(type,props,...children)=>({type,props:props||{},children}),useRef:value=>{const ref={current:value};refs.push(ref);return ref},useMemo:fn=>fn(),useEffect:fn=>effects.push(fn)};
  const rn={Modal:"Modal",View:"View",Text:"Text",Pressable:"Pressable",AppState:{addEventListener:(name,fn)=>{events[name]=fn;return {remove:()=>delete events[name]}}},Alert:{alert:(...args)=>alerts.push(args)}};
  const module={exports:{}};
- const req=name=>name==="react"?React:name==="react-native"?rn:name==="react-native-safe-area-context"?{SafeAreaView:"SafeAreaView"}:name==="react-native-webview"?{WebView:"WebView"}:name==="./studio-bundle"?payload=>"html:"+payload.mode:undefined;
+ const req=name=>name==="react"?React:name==="react-native"?rn:name==="react-native-safe-area-context"?{SafeAreaView:"SafeAreaView"}:name==="react-native-webview"?{WebView:"WebView"}:name==="./score-reader-assets"?{font:"QUJD"}:name==="./studio-bundle"?(payload,font)=>{assert.equal(font,"QUJD","Studio must forward the local Inter font");return "html:"+payload.mode}:undefined;
  vm.runInNewContext(read(file),{module,require:req});
  const tree=module.exports({payload:{mode},onClose:()=>calls.push("close"),onSaveDraft:async()=>calls.push("draft"),onPublish:async()=>calls.push("publish"),queue,onNext:n=>calls.push(n)});
  const all=node=>node&&typeof node==="object"?[node,...node.children.flatMap(all)]:[];

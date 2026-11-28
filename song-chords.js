@@ -5,14 +5,9 @@
  *   (F#)Hola, Dios, soy yo (D#m)otra vez. <- formato anterior
  */
 (() => {
+// BEGIN CANONICAL CHORD PARSER
+function createChordParser() {
   const chordToken = /^[A-G](?:#|b)?(?:maj(?:7|9|11|13)?|m(?:maj7|[0-9]*)?|min(?:[0-9]*)?|sus[24]?|add\d+|dim7?|aug|\+|-|[0-9]*)?(?:\/[A-G](?:#|b)?)?$/;
-  const escapeHTML = (text) => String(text ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
   const unwrap = (token) => String(token || "").replace(/^\(([^)]+)\)$/, "$1");
   const isChord = (token) => chordToken.test(unwrap(token));
   const isChordGroup = (text) => {
@@ -28,6 +23,9 @@
     const clean = unwrap(token);
     return isChord(clean) ? String(transpose(clean)) : token;
   });
+
+  // Source positions are captured before transposition changes the token widths.
+  const rowAnchors = (line, transpose, offset=0) => Array.from(String(line).matchAll(/\S+/g), match=>({position:offset+match.index,chord:String(transpose(unwrap(match[0])))}));
 
   // Combina acordes escritos en el renglón superior con los que aún estén
   // marcados entre paréntesis dentro del verso, sin duplicar su altura.
@@ -54,10 +52,12 @@
     let last = 0;
     let match;
     let hasChords = false;
+    const anchors=[];
 
     while ((match = regex.exec(line)) !== null) {
       lyricLine += line.slice(last, match.index);
       if (isChordGroup(match[1])) {
+        anchors.push(...rowAnchors(match[1],transpose,lyricLine.length));
         const converted = transformRow(match[1], transpose);
         // Si dos acordes están muy cerca, se separan sin perder el texto.
         const position = Math.max(lyricLine.length, chordLine.length ? chordLine.length + 1 : 0);
@@ -70,56 +70,61 @@
     }
 
     lyricLine += line.slice(last);
-    return { chordLine, lyricLine, hasChords };
+    return { chordLine, lyricLine, hasChords, anchors };
   };
 
-  const pair = (chords, lyrics, extraClass = "") =>
-    `<span class="song-line${extraClass ? ` ${extraClass}` : ""}"><span class="chord-line">${escapeHTML(chords)}</span><span class="lyric-line">${escapeHTML(lyrics)}</span></span>`;
-
-  function render(source, options = {}) {
-    const transpose = typeof options.transpose === "function" ? options.transpose : (chord) => chord;
+  function parseRows(source, transpose = chord => chord, includeAnchors=false) {
     const lines = String(source ?? "").replace(/\r\n?/g, "\n").replaceAll("\t", "    ").split("\n");
-    const rendered = [];
-
+    const rows = [];
     for (let index = 0; index < lines.length; index++) {
       const line = lines[index];
-      if (!line.trim()) {
-        // Cada Enter del editor debe producir su propio renglón visible.
-        // No condensar los silencios/separadores que el administrador escribió.
-        rendered.push('<span class="song-empty-line"></span>');
-        continue;
-      }
-
+      if (!line.trim()) { rows.push({kind:"space"}); continue; }
       const heading = line.trim().match(/^\[([^\]]+)\]$/);
-      if (heading) {
-        rendered.push(`<span class="song-section-label">${escapeHTML(heading[1])}</span>`);
-        continue;
-      }
-
+      if (heading) { rows.push({kind:"section",text:heading[1]}); continue; }
       if (isChordRow(line)) {
         const next = lines[index + 1] || "";
-        const nextInline = next ? inlineChords(next, transpose) : null;
         if (next.trim() && !/^\s*\[[^\]]+\]\s*$/.test(next) && !isChordRow(next)) {
-          const upperChords = transformRow(line, transpose);
-          rendered.push(pair(
-            nextInline?.hasChords ? combineChordRows(upperChords, nextInline.chordLine) : upperChords,
-            nextInline?.hasChords ? nextInline.lyricLine : next,
-            "song-stacked-chords"
-          ));
+          const lower = inlineChords(next, transpose), upper = transformRow(line, transpose);
+          rows.push({kind:"chords",layout:"stacked",chordLine:lower.hasChords?combineChordRows(upper,lower.chordLine):upper,lyricLine:lower.hasChords?lower.lyricLine:next,...(includeAnchors?{anchors:[...rowAnchors(line,transpose),...lower.anchors].sort((a,b)=>a.position-b.position)}:{})});
           index++;
-        } else {
-          rendered.push(`<span class="song-standalone-chords">${escapeHTML(transformRow(line, transpose))}</span>`);
-        }
+        } else rows.push({kind:"chordsOnly",text:transformRow(line,transpose)});
         continue;
       }
-
       const parsed = inlineChords(line, transpose);
-      rendered.push(parsed.hasChords
-        ? pair(parsed.chordLine, parsed.lyricLine, "song-inline-chords")
-        : `<span class="song-plain-line">${escapeHTML(line)}</span>`);
+      rows.push(parsed.hasChords?{kind:"chords",layout:"inline",chordLine:parsed.chordLine,lyricLine:parsed.lyricLine,...(includeAnchors?{anchors:parsed.anchors}:{})}:{kind:"lyric",text:line});
     }
-    return rendered.join("");
+    return rows;
   }
+  return Object.freeze({parseRows,isChordRow});
+}
+// END CANONICAL CHORD PARSER
 
-  window.ShalomChords = Object.freeze({ render, isChordRow });
+  const {parseRows,isChordRow}=createChordParser();
+  const escapeHTML = (text) => String(text ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  const pair = (chords, lyrics, extraClass = "", anchors) =>
+    `<span class="song-line${extraClass ? ` ${extraClass}` : ""}"${anchors ? ` data-chord-anchors="${escapeHTML(JSON.stringify(anchors))}"` : ""}><span class="chord-line">${escapeHTML(chords)}</span><span class="lyric-line">${escapeHTML(lyrics)}</span></span>`;
+
+  function render(source, options = {}) {
+    const transpose = typeof options.transpose === "function" ? options.transpose : chord => chord;
+    const displayRows=parseRows(source,transpose,options.includeAnchors===true);
+    const cues=typeof window!=="undefined"?window.ShalomReaderCues:null;
+    const rows=options.cueOverride&&cues?.decorateCollection?cues.decorateCollection(parseRows(source),options.arrangement,options.cueOverride,displayRows):(options.arrangement?.i?.length||options.arrangement?.j?.length)&&cues?cues.decorate(parseRows(source),options.arrangement,displayRows):displayRows;
+    return rows.map(row=>{
+      if(row.kind==="cue")return cues.cueMarkup?cues.cueMarkup(row,escapeHTML):'<span class="song-reader-cue">'+escapeHTML(row.text)+'</span>';
+      if(row.kind==="space")return '<span class="song-empty-line"></span>';
+      if(row.kind==="section")return '<span class="song-section-label">'+escapeHTML(row.text)+'</span>';
+      if(row.kind==="chords")return pair(row.chordLine,row.lyricLine,"song-"+row.layout+"-chords",row.anchors);
+      if(row.kind==="chordsOnly")return '<span class="song-standalone-chords">'+escapeHTML(row.text)+'</span>';
+      return '<span class="song-plain-line">'+escapeHTML(row.text)+'</span>';
+    }).join("");
+  }
+  const api=Object.freeze({render,isChordRow,parseRows});
+  if(typeof module==="object"&&module.exports)module.exports=api;
+  else window.ShalomChords=api;
 })();

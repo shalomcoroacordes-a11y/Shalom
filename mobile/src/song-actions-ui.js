@@ -1,12 +1,16 @@
 const palette=require("./palette");
+const {createStyles,GUTTER}=require("./design-system");
 const React=require("react");
 const {useState}=React;
-const {Modal,View,Text,TextInput,Pressable,ScrollView,StyleSheet,KeyboardAvoidingView,Platform,Alert}=require("react-native");
+const {Modal,View,Text,TextInput,Pressable,ScrollView,StyleSheet,Image,KeyboardAvoidingView,Platform,Alert}=require("react-native");
 const {InitialCover}=require("./visual-ui");
+const {useReducedMotion,MotionPressable}=require("./motion-ui");
 const {entriesOf,NAMES}=require("./song-actions-core");
+const CollectionCueEditor=require("./collection-cue-editor");
 const h=React.createElement;
 const T={bg:palette.bg,panel:palette.panel,surface:palette.panel,line:palette.border,text:palette.text,muted:palette.muted,green:palette.green};
-function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
+function SongActionsSheet({icons={},song,liked=false,offline=false,store,onDismiss,context,onSaveCues,onOpenOriginal,onLike,onShare,onPrint,onDownload,onAdd,onFullScreen,onResetTone,onOpenLink,onOpenSongPage,onVideo,onStudio}){
+ const reduced=useReducedMotion();
  const [phase,setPhase]=useState("menu");
  const [kind,setKind]=useState(null);
  const [name,setName]=useState("");
@@ -18,13 +22,13 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const back=()=>{
   if(busy)return;
   if(phase==="create"){setPhase("targets");return}
-  if(phase==="targets"||phase==="reading"||phase==="links"){setPhase("menu");return}
+  if(phase==="targets"||phase==="reading"||phase==="links"||phase==="cues"){setPhase("menu");return}
   close();
  };
  const button=(icon,title,action,subtitle=null,disabled=false,keyValue=title)=>
-  h(Pressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:S.action,
+  h(MotionPressable,{key:keyValue,onPress:action,disabled:busy||disabled,style:S.action,
    accessibilityRole:"button",accessibilityLabel:title,accessibilityState:{disabled:busy||disabled}},
-   lbl(icon,S.actionIcon),
+   h(Image,{source:icons[icon],resizeMode:"contain",style:{width:24,height:24,tintColor:icon==="heart-filled"?T.green:T.text}}),
    h(View,{style:{flex:1}},lbl(title,S.actionTitle),
     subtitle?lbl(subtitle,S.actionSub):null),lbl("›",S.chevron));
  const go=next=>{setKind(next);setPhase("targets");setName("");setFolderId(store.collections[0]?.id||"")};
@@ -64,7 +68,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
  const youtubeAvailable=links.some(item=>/youtube\.com|youtu\.be/i.test(item.url));
  const targets=kind?entriesOf(store,kind):[];
  const selectedFolder=store.collections.some(c=>c.id===folderId)?folderId:"";
- return h(Modal,{visible:true,transparent:true,animationType:"slide",onRequestClose:back,statusBarTranslucent:true,
+ return h(Modal,{visible:true,transparent:true,animationType:reduced?"none":"slide",onRequestClose:back,statusBarTranslucent:true,
   accessibilityViewIsModal:true},
   h(KeyboardAvoidingView,{style:S.root,behavior:Platform.OS==="ios"?"padding":undefined},
    h(Pressable,{style:S.dismissLayer,onPress:back,accessibilityRole:"button",accessibilityLabel:"Cerrar opciones"}),
@@ -80,34 +84,37 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
     h(View,{style:S.rule}),
     phase==="menu"?h(ScrollView,{keyboardShouldPersistTaps:"handled",showsVerticalScrollIndicator:false,
       contentContainerStyle:S.menu},
-     button(liked?"♥":"♡",liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta",
+     context&&onOpenOriginal?button("song","Abrir canto original",()=>run(onOpenOriginal,true),"Sin modificar esta colección"):null,
+     onSaveCues?button("edit","Editar indicaciones de este canto",()=>setPhase("cues"),"Solo en esta colección personal"):null,
+     button(liked?"heart-filled":"heart",liked?"Quitar de Mis me gusta":"Agregar a Mis me gusta",
       ()=>run(onLike)),
-     button("▣","Agregar a repertorio",()=>go("repertorio"),"Repertorio personal · en este teléfono"),
-     button("♧","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
-     button("♫","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
+     button("repertoires","Agregar a repertorio",()=>go("repertorio"),"Repertorio personal · en este teléfono"),
+     button("mass","Agregar a misa",()=>go("misa"),"Elige una misa personal"),
+     button("song","Agregar a popurrí",()=>go("popurri"),"Combina este canto con otros"),
      h(View,{style:S.rule}),
-     song._studio&&onStudio?button("♫","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
-     button("↗","Ver enlaces y tutoriales",()=>setPhase("links"),
+     song._studio&&song._studio.k!=="lyrics"&&onStudio?button("song","Practicar con guitarra",()=>run(onStudio,true),"Rasgueos y acompañamiento sin conexión"):null,
+     button("link","Ver enlaces y tutoriales",()=>setPhase("links"),
       links.length+" enlace(s) registrado(s)"),
-     youtubeAvailable?button("▶","Abrir YouTube",()=>run(onVideo,true)):null,
-     button("↗","Compartir canción",()=>run(onShare,true)),
-     button("▤","Imprimir letra y acordes",()=>run(onPrint,true),"Impresión nativa desde el teléfono"),
-     button("↓","Descargar sin conexión",()=>run(onDownload,true),
+     youtubeAvailable?button("play","Abrir YouTube",()=>run(onVideo,true)):null,
+     button("link",context?"Compartir canto original":"Compartir canción",()=>run(onShare,true)),
+     button("print","Imprimir letra y acordes",()=>run(onPrint,true),context?"Imprimir como aparece en esta colección":"Impresión nativa desde el teléfono"),
+     button("download","Descargar sin conexión",()=>run(onDownload,true),
       offline?"Este canto ya está disponible sin conexión":"Actualizar biblioteca local"),
      h(View,{style:S.rule}),
-     button("⛶","Opciones de lectura",()=>setPhase("reading"),"Pantalla completa y tono original")
-    ):phase==="reading"?h(View,{style:S.menu},
+     button("fullscreen","Opciones de lectura",()=>setPhase("reading"),"Pantalla completa y tono original")
+    ):phase==="cues"?h(ScrollView,{keyboardShouldPersistTaps:"handled",contentContainerStyle:S.menu},h(CollectionCueEditor,{lyrics:context.lyrics,initial:context.override,styles:S,onSave:value=>{onSaveCues(value);onDismiss();}})):
+    phase==="reading"?h(View,{style:S.menu},
      lbl("Opciones de lectura",S.sectionTitle),
-     button("⛶","Pantalla completa",()=>run(onFullScreen)),
-     button("↺","Restablecer tono original",()=>run(onResetTone)),
+     button("fullscreen","Pantalla completa",()=>run(onFullScreen)),
+     onResetTone?button("refresh","Restablecer tono original",()=>run(onResetTone)):null,
      h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
       lbl("← Volver al panel",S.createLabel))
     ):phase==="links"?h(ScrollView,{keyboardShouldPersistTaps:"handled",
       showsVerticalScrollIndicator:false,contentContainerStyle:S.menu},
      lbl("Enlaces de este canto",S.sectionTitle),
-     ...links.map((link,index)=>button("↗",link.title,
+     ...links.map((link,index)=>button("link",link.title,
       ()=>run(()=>onOpenLink(link.url),true),link.url,false,"link-"+index)),
-     button("↗","Ver canto en la página SHALOM",()=>run(onOpenSongPage,true),
+     button("link","Ver canto en la página SHALOM",()=>run(onOpenSongPage,true),
       "Abrir el canto desde el sitio oficial"),
      !links.length?lbl("Este canto aún no tiene tutoriales registrados.",S.hint):null,
      h(Pressable,{onPress:back,style:S.createButton,accessibilityRole:"button"},
@@ -116,7 +123,7 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
       contentContainerStyle:S.menu},
      lbl("Agregar a "+NAMES[kind],S.sectionTitle),
      lbl("Elige una composición guardada o crea una nueva. No se modifica Supabase.",S.hint),
-     ...targets.map(item=>button("♫",item.title,
+     ...targets.map(item=>button("song",item.title,
       ()=>save({folderId:item.folderId,entryId:item.entryId}),
       item.folderName+" · "+item.count+" fragmentos",item.count>=30)),
      h(Pressable,{style:S.createButton,onPress:()=>{setPhase("create");setName("");},
@@ -141,11 +148,11 @@ function SongActionsSheet({song,liked=false,offline=false,store,onDismiss,onLike
    ))
  );
 }
-const S=StyleSheet.create({
+const S=createStyles(StyleSheet,{
  root:{flex:1,justifyContent:"flex-end"},
  dismissLayer:{...StyleSheet.absoluteFillObject,backgroundColor:"rgba(0,0,0,0.58)"},
  sheet:{backgroundColor:T.bg,borderTopLeftRadius:24,borderTopRightRadius:24,borderTopWidth:1,
-  borderColor:palette.border,paddingTop:10,paddingHorizontal:17,paddingBottom:20,maxHeight:"86%"},
+  borderColor:palette.border,paddingTop:10,paddingHorizontal:GUTTER,paddingBottom:20,maxHeight:"86%"},
  handle:{width:40,height:5,borderRadius:5,backgroundColor:palette.muted,alignSelf:"center",marginBottom:16},
  songHead:{flexDirection:"row",alignItems:"center",gap:11,paddingBottom:14},
  songName:{fontSize:16,fontWeight:"850",color:T.text,lineHeight:22},

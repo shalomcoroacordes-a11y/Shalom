@@ -35,9 +35,9 @@ function SongRow({song,onPress}) {
   label("›",S.rowArrow));
 }
 function EntityRow({item,onPress,description,kind}) {
- const categoryIcon=kind==="folder"?(/misa|liturg/i.test(item.name||"")?"⛪":/adoraci/i.test(item.name||"")?"✦":/alabanza/i.test(item.name||"")?"♫":/navidad/i.test(item.name||"")?"★":/pascua/i.test(item.name||"")?"☀":"📁"):null;
+ const categoryIcon=kind==="folder"?(/misa|liturg/i.test(item.name||"")?"mass":"categories"):null;
  return h(Pressable,{onPress,style:S.listRow,accessibilityRole:"button",key:item.id},
-  h(View,{style:S.entityIcon},label(kind==="artist"?"♪":kind==="folder"?categoryIcon:"▣",S.entityEmoji)),
+  h(View,{style:S.entityIcon},h(Image,{source:HOME_IMAGES[kind==="artist"?"artists":kind==="folder"?categoryIcon:"repertoires"],resizeMode:"contain",style:{width:24,height:24,tintColor:C.green}})),
   h(View,{style:{flex:1}},
    label(item.name||item.title||"Sin nombre",S.listTitle),
    label(description||"Abrir detalles",S.rowMeta)),
@@ -53,14 +53,14 @@ function Photo({url,labelText}) {
 function AppSectionHeader({section,onBack,onSettings}){
  return h(View,{style:S.sectionTopBar},
   onBack?h(Pressable,{style:S.sectionHeaderSide,onPress:onBack,accessibilityRole:"button",accessibilityLabel:"Volver"},
-   label("←",S.sectionHeaderArrow)):h(View,{style:S.sectionHeaderSide}),
+   h(Image,{source:HOME_IMAGES.back,resizeMode:"contain",style:{width:24,height:24,tintColor:C.text}})):h(View,{style:S.sectionHeaderSide}),
   h(View,{style:S.sectionHeaderIdentity},
    h(Image,{source:HOME_IMAGES.logo,resizeMode:"contain",style:S.sectionHeaderLogo,accessibilityLabel:"Logo oficial de SHALOM"}),
    h(View,{style:{flexShrink:1,minWidth:0}},
     label("SHALOM",S.sectionHeaderBrand),
     h(Text,{style:S.sectionHeaderSubtitle,numberOfLines:1},section||"Coro y Alabanza"))),
   onSettings?h(Pressable,{style:S.sectionHeaderSide,onPress:onSettings,accessibilityRole:"button",accessibilityLabel:"Abrir configuración"},
-   label("⚙",S.sectionHeaderGear)):h(View,{style:S.sectionHeaderSide})
+   h(Image,{source:HOME_IMAGES.settings,resizeMode:"contain",style:{width:24,height:24,tintColor:C.text}})):h(View,{style:S.sectionHeaderSide})
  );
 }
 function AppDetailHeader(props){return h(AppSectionHeader,{...props})}
@@ -93,12 +93,12 @@ function SectionSearch({value,onChangeText,placeholder}){
 function SectionListCard({title,subtitle,meta,icon,onPress}){
  return h(Pressable,{style:S.repCard,onPress,accessibilityRole:"button",
   accessibilityLabel:[title,subtitle].filter(Boolean).join(", ")},
-  h(InitialCover,{title:title||"Canto",size:53}),
+  icon&&HOME_IMAGES[icon]?h(View,{style:S.repCardIconWrap},h(Image,{source:HOME_IMAGES[icon],style:S.repCardIcon,resizeMode:"contain",accessible:false})):h(InitialCover,{title:title||"Canto",size:53}),
   h(View,{style:{flex:1,minWidth:0}},
    h(Text,{style:S.repCardTitle,numberOfLines:2},title||"Sin título"),
    subtitle?h(Text,{style:S.repCardCount,numberOfLines:2},subtitle):null,
    meta?h(Text,{style:S.repCardMeta,numberOfLines:1},meta):null),
-  label("›",S.repArrow));
+  h(Image,{source:HOME_IMAGES.chevron,resizeMode:"contain",style:{width:24,height:24,tintColor:C.muted},accessible:false}));
 }
 function SectionEmpty({message}){
  return h(View,{style:S.repEmptyCard},

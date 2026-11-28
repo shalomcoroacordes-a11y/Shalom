@@ -27,3 +27,15 @@ assert.deepEqual(readingRows(entry,catalog,0).map(r=>r.shift),[2,0,0],
 assert.deepEqual(readingRows(null,catalog),[]);
 assert.equal(JSON.stringify(entry),original,"No alterar las letras ni los datos personales");
 console.log("SHALOM: lector local separa fragmentos, tonos y errores sin mutación.");
+
+const withCapo={...song,capo_position:2,capo_key:"A#"};
+const repeated={...entry,parts:[{...selected,capoId:"main"},{...selected,id:"other",capoId:"none"}]};
+const capos=readingRows(repeated,new Map([[song.id,withCapo]]),1);
+assert.deepEqual(capos.map(r=>r.scoreShift),[1,3]);
+assert.deepEqual(capos.map(r=>r.selection.chosen.position),[2,0]);
+assert.deepEqual(capos.map(r=>r.tone),["D#","D#"]);
+const {occurrenceKey,collectionCapo}=require("../src/song-capo-core");
+assert.notEqual(occurrenceKey({id:"m"},0,{song_id:song.id}),occurrenceKey({id:"m"},1,{song_id:song.id}));
+assert.equal(collectionCapo(withCapo,{capo_id:"main"}).chosen.position,2);
+assert.equal(collectionCapo(withCapo,{capo_id:"main"},"none").chosen.position,0);
+assert.equal(collectionCapo(withCapo,{capo_id:"missing"}).chosen.position,0);

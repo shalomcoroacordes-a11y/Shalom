@@ -26,6 +26,17 @@ jobs:
       - name: Test clean architecture guard
         run: python3 tests/clean-changes-regression.py
 
+      - name: Verify explicit Android release authorization
+        run: node tests/android-release-authorization.cjs
+      - name: Verify next release manifests and upgrade identities
+        run: |
+          node tests/next-release-identity.cjs
+          node tests/android-upgrade-rehearsal-regression.cjs
+          bash -n mobile/scripts/verify-upgrade-candidate.sh
+          bash -n mobile/scripts/verify-upgrade-on-emulator.sh
+          bash -n admin-mobile/scripts/verify-upgrade-candidate.sh
+          bash -n admin-mobile/scripts/verify-upgrade-on-emulator.sh
+
       - name: Test home search source rendering
         run: node tests/home-search-render-regression.cjs
 
@@ -68,9 +79,16 @@ jobs:
       - name: Test category parent hierarchy validation
         run: node tests/category-hierarchy-regression.cjs
 
+      - name: Test shared Admin category tree operations
+        run: node tests/admin-category-hierarchy.cjs
+
       - name: Test category type normalization against Supabase constraint
         run: node tests/category-type-regression.cjs
 
+      - name: Test shared musical and liturgical cues
+        run: node tests/studio-cues.cjs
+      - name: Test static reader indications
+        run: node tests/studio-reader-cues.cjs
       - name: Test guided Studio editor and scoped rhythm controls
         run: node tests/studio-guided-editor.cjs
 
@@ -95,8 +113,37 @@ jobs:
       - name: Test isolated sections and complete rhythm copy
         run: node tests/studio-section-independence.cjs
 
+      - name: Test pure Studio arrangement review summary and offline dependencies
+        run: node tests/studio-review-summary.cjs
+
+      - name: Test Studio playback planning and live section isolation
+        run: node tests/studio-playback-planning.cjs
+
+      - name: Test Studio rhythm and timing editing controls
+        run: node tests/studio-editing-controls.cjs
+
+      - name: Test Studio duration and fragment synchronization
+        run: node tests/studio-duration-sync.cjs
+
+      - name: Test Studio undo revision safety
+        run: node tests/studio-safe-undo.cjs
+
+      - name: Test single Studio fingerprint per editor refresh
+        run: node tests/studio-render-fingerprint.cjs
+
+      - name: Test Studio score reuse and playback invalidation
+        run: node tests/studio-score-rendering.cjs
+
+      - name: Test indexed upcoming chord lookup
+        run: node tests/studio-upcoming-chord-index.cjs
+
+      - name: Test active anchor lookup and lyric column mapping
+        run: node tests/studio-active-anchor-index.cjs
+
       - name: Test persistent Studio save and publication status
         run: node tests/studio-save-state.cjs
+      - name: Test Studio historical recovery contracts
+        run: node tests/studio-history-admin.cjs
 
       - name: Verify canonical Studio sources for both native apps
         run: |
@@ -148,8 +195,22 @@ jobs:
       - name: Test admin song form saving
         run: node tests/admin-save-regression.cjs
 
+      - name: Test pure admin song draft preparation and capture
+        run: node tests/admin-song-draft.cjs
+
+      - name: Test pure admin publication validation and RPC payload
+        run: node tests/admin-song-publication.cjs
+
       - name: Verify legacy admin cleanup and active dependencies
         run: node tests/legacy-admin-cleanup-regression.cjs
+
+      - name: Verify retirement of the historical Admin guard
+        run: node tests/obsolete-admin-guard.cjs
+
+      - name: Verify reproducible public CSS bundles
+        run: |
+          node scripts/build-public-css-bundles.cjs --check
+          node tests/public-css-generation.cjs
 
       - name: Verify informational page CSS equivalence
         run: node tests/public-info-bundle-regression.cjs
@@ -163,6 +224,40 @@ jobs:
       - name: Test shared catalog RPC row normalization
         run: node tests/catalog-song-row.cjs
 
+      - name: Test shared artist and album presentation
+        run: node tests/catalog-list-view.cjs
+
+      - name: Test related song catalog queries and ranking
+        run: node tests/song-related-catalog.cjs
+
+      - name: Test Inter anchor identity and layout
+        run: |
+          node scripts/prepare-inter-font.js --check
+          node tests/inter-canonical-anchors.cjs
+          node tests/score-layout.cjs
+      - name: Real browser Inter score and Studio identity regression
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/shalom-reader-http.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/tests/score-reader-browser.html > /dev/null; then break; fi
+            sleep 1
+          done
+          google-chrome --headless --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=12000 --dump-dom http://127.0.0.1:8765/tests/score-reader-browser.html > /tmp/shalom-reader-browser.html
+          grep -o '<p id="result"[^>]*>[^<]*</p>' /tmp/shalom-reader-browser.html
+          grep -q 'id="result" data-status="pass"' /tmp/shalom-reader-browser.html
+
+
+      - name: Test canonical public chord rendering and degraded mode
+        run: node tests/song-reader-chords.cjs
+
+      - name: Verify web and native chord interpretation parity
+        run: node tests/chord-engine-parity.cjs
+
+      - name: Verify canonical chord parser ownership and exact markup
+        run: node tests/canonical-chord-parser.cjs
+
       - name: Verify song detail CSS bundle against original files
         run: node tests/song-detail-bundle-regression.cjs
 
@@ -174,6 +269,9 @@ jobs:
 
       - name: Test all admin section tabs
         run: node tests/admin-tabs-regression.cjs
+
+      - name: Test per-song admin editor cursor and scroll lifecycle
+        run: node tests/admin-editor-position.cjs
 
       - name: Test explicit artist search lifecycle
         run: node tests/admin-artist-search-lifecycle.cjs
@@ -216,6 +314,9 @@ jobs:
 
       - name: Test explicit reading mode and preferences lifecycle
         run: node tests/song-reading-lifecycle.cjs
+
+      - name: Test shared section navigation and fit for individual and collection readers
+        run: node tests/web-section-reader.cjs
 
       - name: Test shared Studio collection stylesheet
         run: node tests/studio-collection-styles.cjs

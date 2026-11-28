@@ -31,8 +31,21 @@ assert.deepEqual(require("../mobile/src/navigation-core.js").tabs,
 assert.ok(app.includes('require("./src/navigation-core")'),"La app importa la navegación desde su módulo");
 assert.match(app,/goTab\(routeForTab\(name\)\)/,"La pestaña Mis creaciones utiliza su ruta existente");
 assert.match(iconGenerator,/home-.*\.png/);
-assert.match(iconGenerator,/"mass":/);
-assert.match(iconGenerator,/"calendar":/);
-assert.match(iconGenerator,/"search":/);
+const iconCatalog=JSON.parse(fs.readFileSync("mobile/assets/icons/catalog.json","utf8"));
+assert.match(iconGenerator,/catalog\.json/);
+assert.match(iconGenerator,/for name, svg in icons\.items\(\):/);
+assert.match(iconGenerator,/render_ui\(svg, "home-" \+ name \+ "\.png"/);
+for(const name of ["mass","calendar","search"]){
+ assert.match(iconCatalog[name],/<svg\b/);
+ assert.match(iconCatalog[name],/viewBox="0 0 24 24"/);
+ assert.match(iconCatalog[name],/stroke-width="1\.8"/);
+ assert.ok(app.includes('require("./assets/home-'+name+'.png")'),"The icon is consumed by the native app: "+name);
+}
+assert.notEqual(iconCatalog.mass,iconCatalog.calendar,"Distinct liturgy and calendar icons");
+assert.notEqual(iconCatalog.song,iconCatalog.medleys,"Distinct song and medley icons");
+for(const match of app.matchAll(/require\("\.\/assets\/home-([a-z-]+)\.png"\)/g)){
+ if(["logo","waves","banner"].includes(match[1]))continue;
+ assert.ok(iconCatalog[match[1]],"Missing vector source: "+match[1]);
+}
 assert.doesNotMatch(catalog.slice(catalog.indexOf("function RepertoiresScreen("),catalog.indexOf("function MedleysScreen(")),/INSERT INTO|fetch\(|supabaseClient/);
 console.log("SHALOM repertory layout uses real counts, working filters and original dove branding.");

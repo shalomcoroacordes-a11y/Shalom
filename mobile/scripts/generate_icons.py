@@ -74,24 +74,8 @@ C1073 228 1116 230 1123 197 C1130 161 1096 139 1061 155 V5"/>
 </g></svg>"""
 render_ui(home_banner, "home-banner.png", 1200, 350)
 
-# Iconos monocromos transparentes: tintColor en React Native puede resaltar el activo.
-icons = {
- "song": '<path d="M29 19V63a11 11 0 1 1-7-10V28l33-9v33a11 11 0 1 1-7-10V10Z"/>',
- "repertoires": '<path d="M15 27 40 12 65 27 40 42Z M15 39 40 54 65 39 M15 51 40 66 65 51"/>',
- "artists": '<circle cx="40" cy="23" r="10"/><path d="M21 64v-9c0-17 38-17 38 0v9 M17 33c-14 2-14 18-11 25 M63 33c14 2 14 18 11 25"/>',
- "categories": '<path d="M11 22V15q0-5 5-5h19l9 10h20q5 0 5 5v39q0 5-5 5H16q-5 0-5-5Z"/>',
- "medleys": '<path d="M12 22H46 M12 37H38 M12 52H31 M55 20V56a10 10 0 1 1-7-10V14l21-6v33a10 10 0 1 1-7-10"/>',
- "albums": '<rect x="12" y="16" width="56" height="48" rx="7"/><path d="m33 29 19 11-19 11Z"/>',
- "home": '<path d="M8 36 40 11 72 36 M17 34V68h46V34 M34 68V48h13v20"/>',
- "more": '<circle cx="17" cy="40" r="3"/><circle cx="40" cy="40" r="3"/><circle cx="63" cy="40" r="3"/>',
- "bell": '<path d="M21 59h38l-8-11V31c0-14-22-18-22 0v17Z M34 66q6 10 13 0"/>',
- "menu": '<path d="M10 22h60 M10 40h60 M10 58h60"/>',
- "church": '<path d="M9 65h62 M16 65V34L40 13l24 21v31 M33 65V48q7-9 14 0v17 M40 3v13 M32 9h16"/>',
- "mass": '<path d="M12 17 H68 L61 35 Q56 48 40 48 Q24 48 19 35 Z M40 48V66 M22 68H58 M40 3V19 M31 11H49"/>',
- "calendar": '<rect x="10" y="18" width="60" height="54" rx="7"/><path d="M10 33H70 M26 8V26 M54 8V26 M40 43L44 51L54 52L47 59L49 68L40 64L31 68L33 59L26 52L36 51Z"/>',
- "search": '<circle cx="34" cy="33" r="20"/><path d="M48 48L69 69"/>'
-}
-for name, drawing in icons.items():
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
-    <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">{drawing}</g></svg>"""
+# Lucide SVG sources, pinned and licensed locally. Existing logo is unchanged.
+import json
+icons = json.loads((assets / "icons" / "catalog.json").read_text(encoding="utf-8"))
+for name, svg in icons.items():
     render_ui(svg, "home-" + name + ".png", 100, 100)

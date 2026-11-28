@@ -27,13 +27,13 @@ const mountStart=backup.indexOf("  function renderBackupView(view)");
 const mountEnd=backup.indexOf("  // The main admin renderer",mountStart);
 assert.ok(mountStart>=0&&mountEnd>mountStart);
 const actions=[];
-const context={backupViewHTML:()=>"<p>Backup</p>",downloadBackup(){},loadTrash(){actions.push("trash")},window:{ShalomAdminBackupImport:{mount(){actions.push("import")}}},document:{getElementById(id){return {addEventListener(event,handler){actions.push(id+":"+event)}}}}};
+const context={backupViewHTML:()=>"<p>Backup</p>",downloadBackup(){},downloadStudioHistory(){},loadTrash(){actions.push("trash")},window:{ShalomAdminBackupImport:{mount(){actions.push("import")}}},document:{getElementById(id){return {addEventListener(event,handler){actions.push(id+":"+event)}}}}};
 vm.createContext(context);
 vm.runInContext(backup.slice(mountStart,mountEnd),context);
 const view={innerHTML:""};
 context.renderBackupView(view);
 assert.equal(view.innerHTML,"<p>Backup</p>");
-assert.deepEqual(actions,["jhdDownloadBackup:click","jhdRefreshTrash:click","import","trash"]);
+assert.deepEqual(actions,["jhdDownloadBackup:click","jhdDownloadStudioHistory:click","jhdRefreshTrash:click","import","trash"]);
 console.log("Backup view: explicit importer mount, controls and trash loading verified without database writes.");
 
 const coreWindow={};
@@ -70,24 +70,28 @@ sharedPagination().catch(error=>{console.error(error);process.exitCode=1});
 const deleteStart=backup.indexOf("  async function deleteSavedItem("),deleteEnd=backup.indexOf("  async function downloadBackup()",deleteStart);
 assert.ok(deleteStart>=0&&deleteEnd>deleteStart);
 assert.doesNotMatch(backup,/function removeArchive\(/);
-function trashFixture({archiveId="snapshot",archiveError=null,failTable=null,confirmDelete=true,refreshError=null}={}){
+function trashFixture({archiveId="snapshot",archiveError=null,failTable=null,confirmDelete=true,refreshError=null,rpcResult={data:true},rpcError=null}={}){
  const calls=[],notes=[],refreshes=[];
- const ctx={busy:false,checkDelete:()=>true,itemName:()=>"Canto",confirm:()=>confirmDelete,say:(message,bad)=>notes.push({message,bad}),archive:async()=>{calls.push("archive");if(archiveError)throw archiveError;return archiveId},db:{from(table){return {delete(){return {async eq(key,id){calls.push(table+":"+key+":"+id);return {error:table===failTable?{message:"Sin permiso"}:null}}}}}}},window:{async apRefresh(message){refreshes.push(message);if(refreshError)throw refreshError}}};
+ const ctx={busy:false,checkDelete:()=>true,itemName:()=>"Canto",confirm:()=>confirmDelete,say:(message,bad)=>notes.push({message,bad}),archive:async()=>{calls.push("archive");if(archiveError)throw archiveError;return archiveId},db:{async rpc(name,args){calls.push(name+":"+args.p_song_id);if(rpcError)throw rpcError;return rpcResult},from(table){return {delete(){return {async eq(key,id){calls.push(table+":"+key+":"+id);return {error:table===failTable?{message:"Sin permiso"}:null}}}}}}},window:{async apRefresh(message){refreshes.push(message);if(refreshError)throw refreshError}}};
  vm.createContext(ctx);vm.runInContext(backup.slice(deleteStart,deleteEnd),ctx);
  return {ctx,calls,notes,refreshes,run:(kind="song")=>ctx.deleteSavedItem(kind,"song-id")};
 }
 async function trashRecoverySafety(){
- const absent=trashFixture({archiveId:null});await absent.run();assert.deepEqual(absent.calls,["archive"]);assert.match(absent.notes.at(-1).message,/No se inició la eliminación/);assert.equal(absent.ctx.busy,false);
- const noBackup=trashFixture({archiveError:Error("Sin conexión")});await noBackup.run();assert.deepEqual(noBackup.calls,["archive"]);assert.match(noBackup.notes.at(-1).message,/No se confirmó el respaldo/);
+ const absent=trashFixture({archiveId:null});await absent.run("album");assert.deepEqual(absent.calls,["archive"]);assert.match(absent.notes.at(-1).message,/No se inició la eliminación/);assert.equal(absent.ctx.busy,false);
+ const noBackup=trashFixture({archiveError:Error("Sin conexión")});await noBackup.run("artist");assert.deepEqual(noBackup.calls,["archive"]);assert.match(noBackup.notes.at(-1).message,/No se confirmó el respaldo/);
  const cancel=trashFixture({confirmDelete:false});await cancel.run();assert.deepEqual(cancel.calls,[]);
- for(const [kind,table] of [["song","song_categories"],["song","songs"],["album","album_songs"],["album","albums"],["artist","artists"],["category","categories"]]){
+ for(const [kind,table] of [["album","album_songs"],["album","albums"],["artist","artists"],["category","categories"]]){
   const failed=trashFixture({failTable:table});await failed.run(kind);assert.equal(failed.calls[0],"archive");assert.ok(failed.calls.some(call=>call.startsWith(table+":")));assert.ok(failed.calls.every(call=>!call.startsWith("admin_trash:")));assert.match(failed.notes.at(-1).message,/respaldo se conserva/);assert.equal(failed.refreshes.length,0);assert.equal(failed.ctx.busy,false);
-  if(table==="song_categories")assert.ok(!failed.calls.some(call=>call.startsWith("songs:")));
   if(table==="album_songs")assert.ok(!failed.calls.some(call=>call.startsWith("albums:")));
  }
- const ok=trashFixture();await ok.run();assert.equal(ok.calls[0],"archive");assert.equal(ok.calls.at(-1),"songs:id:song-id");assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
- const refresh=trashFixture({refreshError:Error("Sin conexión")});await refresh.run();assert.match(refresh.notes.at(-1).message,/respaldo se conserva/);
- console.log("Trash safety: confirmed backup gate, cancellation, six failure scenarios, successful removal and refresh failure verified.");
+ const rpcCall=["admin_delete_song_complete:song-id"];
+ const ok=trashFixture();await ok.run();assert.deepEqual(ok.calls,rpcCall);assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
+ for(const result of [{data:false},{error:{message:"RPC not found"}},{error:{message:"Sin permiso"}}]){
+  const failed=trashFixture({rpcResult:result});await failed.run();assert.deepEqual(failed.calls,rpcCall);assert.equal(failed.refreshes.length,0);assert.match(failed.notes.at(-1).message,/No se confirmó la eliminación segura/);
+ }
+ const network=trashFixture({rpcError:Error("Sin conexión")});await network.run();assert.deepEqual(network.calls,rpcCall);assert.match(network.notes.at(-1).message,/No se intentó una eliminación alternativa/);
+ const refresh=trashFixture({refreshError:Error("Sin conexión")});await refresh.run();assert.deepEqual(refresh.calls,rpcCall);assert.match(refresh.notes.at(-1).message,/El canto está en la papelera/);
+ console.log("Trash safety: atomic song RPC, no fallback, confirmation, network uncertainty, refresh failure and legacy non-song archive verified.");
 }
 trashRecoverySafety().catch(error=>{console.error(error);process.exitCode=1});
 
@@ -118,7 +122,9 @@ relationRecovery().catch(error=>{console.error(error);process.exitCode=1});
 
 // Native snapshot restoration uses the exact same RPC as native Admin.
 const nativeApi=fs.readFileSync("admin-mobile/src/api.js","utf8");
-assert.match(nativeApi,/rpc\/admin_restore_song/);
+assert.match(nativeApi,/recoveryRpc\("admin_restore_song_complete",\{p_trash_id:trashId\},owner\)/);
+assert.match(nativeApi,/recoveryRpc\("admin_delete_song_complete",\{p_song_id:id\},owner\)/);
+assert.doesNotMatch(nativeApi,/rpc\/admin_(?:delete|restore)_song["']/);
 const restoreStart=backup.indexOf("  async function restoreTrash("),restoreEnd=backup.indexOf("  async function purgeTrash(",restoreStart);
 assert.ok(restoreStart>=0&&restoreEnd>restoreStart);
 function restoreFixture(snapshot,{kind="song",original="s",rpcResult={data:true},accepted=true}={}){
@@ -129,7 +135,7 @@ function restoreFixture(snapshot,{kind="song",original="s",rpcResult={data:true}
 }
 async function nativeRecovery(){
  const snapshot={song:{id:"s"},song_versions:[{parent_song_id:"s",version_song_id:"v"}]};
- const ok=restoreFixture(snapshot);await ok.run();assert.equal(JSON.stringify(ok.calls),JSON.stringify([["rpc","admin_restore_song",{p_trash_id:"trash"}]]));assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
+ const ok=restoreFixture(snapshot);await ok.run();assert.equal(JSON.stringify(ok.calls),JSON.stringify([["rpc","admin_restore_song_complete",{p_trash_id:"trash"}]]));assert.equal(ok.refreshes.length,1);assert.equal(ok.ctx.busy,false);
  for(const response of [{error:{message:"Sin permiso"}},{error:{message:"CONFLICT"}},{error:{message:"Función no disponible",code:"PGRST202"}},{data:false}]){
   const failed=restoreFixture(snapshot,{rpcResult:response});await failed.run();assert.equal(failed.calls.length,1);assert.equal(failed.calls[0][0],"rpc");assert.equal(failed.refreshes.length,0);assert.match(failed.notes[0].message,/No se pudo restaurar/);assert.equal(failed.ctx.busy,false);
  }
@@ -147,7 +153,7 @@ const trashSql=fs.readFileSync("sql/SHALOM_ADMIN_SONG_TRASH_20261121.sql","utf8"
 const delSql=trashSql.slice(0,trashSql.indexOf("create or replace function public.admin_restore_song"));
 const restoreSql=trashSql.slice(trashSql.indexOf("create or replace function public.admin_restore_song"));
 assert.match(delSql,/auth\.uid\(\) is null or not public\.admin_has_permission\('songs.delete'\)/);
-assert.match(restoreSql,/auth\.uid\(\) is null or not public\.admin_is_owner\(\)/);
+assert.match(restoreSql,/auth\.uid\(\) is null or public\.admin_is_owner\(\) is not true or public\.admin_has_permission\('songs\.delete'\) is not true/);
 assert.ok(delSql.indexOf("perform 1 from public.song_studio_arrangements")<delSql.indexOf("select jsonb_build_object"));
 assert.match(delSql,/'song_studio_arrangements',coalesce\(\(select jsonb_agg\(to_jsonb\(r\)\) from public\.song_studio_arrangements/);
 assert.ok(delSql.indexOf("'song_studio_arrangements',coalesce")<delSql.indexOf("delete from public.songs"));
@@ -238,3 +244,28 @@ async function importControllerFlow(){
  console.log("Backup controller: full sequence, preflight failure, intermediate failure, cancellation and legacy compatibility verified.");
 }
 importControllerFlow().catch(error=>{console.error(error);process.exitCode=1});
+
+const historyStart=backup.indexOf("  async function verifyStudioHistoryAccess("),historyEnd=backup.indexOf("  function trashHTML()",historyStart);
+assert.ok(historyStart>=0&&historyEnd>historyStart);
+function historyFixture({denied=false,missing=false,changed=false}={}){
+ const button={disabled:false},status={},downloads=[],calls=[];
+ const user={id:"admin-a"};
+ const ctx={app:()=>({user}),document:{getElementById:id=>id==="jhdDownloadStudioHistory"?button:status},
+  db:{auth:{getUser:async()=>({data:{user:{id:user.id}}})},async rpc(name,args){calls.push(name);assert.equal(args.p_permission,"songs.publish");return {data:!denied}}},
+  selectAll:async table=>{calls.push(table);if(missing)throw Error("Historial no instalado");if(changed)user.id="admin-b";return [{id:table}]},
+  downloadJson:(payload,name)=>downloads.push({payload,name}),filenameDate:()=>"date"};
+ vm.createContext(ctx);vm.runInContext(backup.slice(historyStart,historyEnd),ctx);
+ return{button,status,downloads,calls,run:()=>ctx.downloadStudioHistory()};
+}
+(async()=>{
+ const ok=historyFixture();await ok.run();
+ assert.deepEqual(ok.calls,["admin_has_permission","song_studio_history","song_studio_arrangements","admin_has_permission"]);
+ assert.equal(ok.downloads.length,1);assert.equal(ok.downloads[0].payload.format,"SHALOM Studio history");
+ assert.equal(ok.downloads[0].payload.history.length,1);assert.equal(ok.downloads[0].payload.arrangements.length,1);
+ assert.equal(ok.downloads[0].name,"shalom-studio-historial-date.json");
+ assert.equal(ok.button.disabled,false);
+ for(const options of [{denied:true},{missing:true},{changed:true}]){
+  const f=historyFixture(options);await f.run();assert.equal(f.downloads.length,0);assert.match(f.status.textContent,/No se pudo descargar/);assert.equal(f.button.disabled,false);
+ }
+ console.log("Studio history export: separate recovery format, authorization, session change and missing schema verified.");
+})().catch(error=>{console.error(error);process.exitCode=1});

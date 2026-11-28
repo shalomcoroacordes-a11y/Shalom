@@ -6,8 +6,8 @@ Esta guía describe **cómo trabajar con el repositorio actual**. No exige mover
 
 1. Clonar `shalomcoroacordes-a11y/Shalom` y abrirlo en VS Code.
 2. Leer `docs/ARQUITECTURA.md` para localizar las piezas.
-3. Crear una rama para cada cambio. No editar directamente la versión pública para experimentar.
-4. Cambiar una sola funcionalidad y probarla antes de mezclar otras.
+3. Crear una rama por bloque cohesivo de trabajo. No editar directamente la versión pública para experimentar.
+4. Agrupar cambios relacionados, probar cada responsabilidad y ejecutar controles integrales al terminar el bloque.
 
 ## Sitio web
 
@@ -28,7 +28,7 @@ Requiere Node.js 22 o compatible con el SDK Expo configurado.
 
 ```bash
 cd mobile
-npm install
+npm ci
 npx expo install --check
 node tests/chords.test.js
 node tests/catalog.test.js
@@ -46,7 +46,7 @@ npx expo start
 - `mobile/src/requests.js`: solicitudes de cantos/correcciones.
 - `mobile/src/config.js`: URL y clave **publicable**; nunca colocar secretos.
 
-Para publicar Android, actualizar de forma coherente `mobile/package.json` (`version`) y `mobile/app.json` (`version` y `android.versionCode`). El workflow `.github/workflows/android-apk.yml` compila y publica una versión de prueba en GitHub Releases. No afirmar que un APK está listo hasta verificar que el workflow terminó y que existe el archivo en la versión publicada.
+Para publicar Android, actualizar de forma coherente `mobile/package.json` (`version`) y `mobile/app.json` (`version` y `android.versionCode`). El workflow `.github/workflows/android-apk.yml` publica la APK oficial únicamente mediante ejecución manual desde `main` con `publish_official` confirmado. Para pruebas sin publicación utilizar `android-preview.yml` o `android-upgrade-rehearsal.yml`. No afirmar que un APK está listo hasta verificar que el workflow terminó y que existe el archivo en la versión publicada.
 
 ## Pruebas web
 
@@ -95,3 +95,35 @@ Para la verificación completa de HTML y rutas, usar el workflow de GitHub Actio
 3. Comparar con la última versión funcional.
 4. Revertir solo el cambio problemático o restaurar una versión verificada.
 5. Documentar la causa y agregar una prueba cuando sea posible.
+
+## Flujo de entrega por bloques
+
+1. Inventario de responsabilidades, dependencias y pruebas; definir qué se conserva y qué se retira.
+2. Desarrollo en rama: una revisión coherente puede incluir varios archivos y pruebas, sin mezclar migraciones de producción ni cambios de identidad de APK.
+3. Pruebas rápidas durante el desarrollo; al cerrar el bloque ejecutar los workflows aplicables y revisar el commit exacto. Los informes no se trasladan a commits posteriores sin validación.
+4. Consolidación con comparación contra main. No reenviar una fusión que agotó el tiempo de respuesta sin verificar primero el historial. Cerrar solicitudes redundantes solo si su historial está integrado.
+5. Las APK de preview y de ensayo son artefactos temporales. Revisar los workflows de publicación antes de fusionar cambios: Admin y Pública requieren autorización manual explícita desde main para publicar APK oficial; los pushes y PR no publican. Admin sigue compilando el paquete preview cuando no se autoriza publicación. El ensayo de actualización exige certificado, paquete y versionCode compatibles y prueba en emulador.
+
+### Caché de dependencias
+
+Los workflows de pruebas nativas, preview público, ensayo de actualización y Admin recuperan descargas de npm (Node 22) y Gradle (Java 17, solo módulos y distribuciones) con claves separadas por aplicación y manifiestos. No se almacenan node_modules, APK, claves, datos de usuarios ni resultados de pruebas. Se mantiene npm ci y Gradle completos; no se usa modo offline forzado. El primer build puede no mejorar y la caché puede faltar o quedar invalidada. Medir tiempos reales antes de atribuir mejoras.
+
+Ambas aplicaciones incluyen sus lockfiles generados por npm y verificados con Node 22 en la ejecución 45678838254. Los workflows nativos instalan con npm ci. La caché de descargas no sustituye la resolución fijada ni verifica por sí sola el APK.
+
+### Autorización de APK oficiales
+
+Después de validar CI, las migraciones necesarias, el respaldo y la versión, ir a Actions, elegir el workflow oficial de Pública o Admin, seleccionar `main` y marcar `publish_official` solo para un lanzamiento autorizado. En Pública, cualquier otra ejecución omite la tarea oficial; en Admin se conserva el flujo de prueba con paquete `.preview`. No ejecutar desde ramas de integración. Los controles de versión, certificado, emulador y prohibición de sobrescribir un Release permanecen obligatorios. Esto no modifica la publicación web de GitHub Pages desde main.
+
+### Generación y verificación de lockfiles nativos
+
+El workflow `native-dependency-locks.yml` resuelve por separado los manifiestos de Pública y Admin en Node 22. Exige los lockfiles versionados y verifica su correspondencia con cada manifiesto. Después valida identidad del manifiesto, origen e integridad de paquetes, ejecuta `npm ci`, compatibilidad Expo, sintaxis y pruebas, y comprueba que el lock no cambió. Los candidatos y su procedencia se conservan como artefactos temporales, sin permisos de escritura en GitHub ni publicaciones.
+
+Los dos archivos exactos quedaron incorporados en la rama candidata. Falta validar la compilación y actualización completas con `npm ci` antes de integrar. Para cambiar dependencias, actualizar manifiesto y lockfile conjuntamente con npm bajo Node 22. No cambiar los manifiestos para lograr una validación verde sin investigar la causa.
+
+### Publicadores históricos retirados
+
+Los workflows `publish-android-apk.yml`, `publish-shalom-icon.yml` y `publish-shalom-v2.yml` apuntaban a ejecuciones fijas de las versiones 0.1.0, 0.1.1 y 0.2.0. Se retiran de Actions porque son procesos de un solo uso, no rutas de mantenimiento. Se conserva su historial Git y no se modifica ninguna release, etiqueta, APK publicada ni enlace. Las dos rutas oficiales son `android-apk.yml` y `admin-apk.yml`; los demás workflows de compilación generan artefactos de prueba. El control de autorización rechaza reintroducir los publicadores históricos o comandos de publicación en otros workflows.
+
+## Cierre de lanzamiento
+
+Seguir [PROTOCOLO-LANZAMIENTO.md](PROTOCOLO-LANZAMIENTO.md). Las validaciones por rama no sustituyen la verificación del commit candidato exacto. La publicación web desde main y los APK oficiales son operaciones diferentes; antes de la fusión, confirmar compatibilidad del esquema, respaldo restaurable y pruebas de dispositivos. No publicar automáticamente desde una rama candidata.
