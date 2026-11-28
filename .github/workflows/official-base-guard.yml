@@ -1,0 +1,26 @@
+name: SHALOM official base guard
+on:
+  pull_request:
+  push:
+    branches: [main, "integration/**", "feature/**", "design/**", "quality/**"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  base:
+    name: Official base guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Regression tests for release guard
+        run: node tests/release-base-guard.cjs
+      - name: Require both latest published release commits and version identities
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-base-guard.cjs

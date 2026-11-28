@@ -1,11 +1,17 @@
 name: SHALOM Android APK
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "mobile/**"
-      - ".github/workflows/android-apk.yml"
+    inputs:
+      publish_official:
+        description: Confirmar publicación oficial
+        type: boolean
+        required: true
+        default: false
+      approved_sha:
+        description: SHA completo aprobado
+        type: string
+        required: true
+        default: ""
 permissions:
   contents: write
 concurrency:
@@ -17,6 +23,7 @@ env:
   CANDIDATE_CODE: "47"
 jobs:
   build-apk:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_official == true && github.sha == inputs.approved_sha
     runs-on: ubuntu-latest
     timeout-minutes: 50
     defaults:
@@ -24,6 +31,13 @@ jobs:
         working-directory: mobile
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require latest official base and approved release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+        run: node "${{ github.workspace }}/scripts/release-base-guard.cjs" --publish public --approved-sha "$APPROVED_SHA"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -104,6 +118,6 @@ jobs:
             echo "::error::La versión ya existe. No se sobrescribe una APK publicada."
             exit 1
           else
-            gh release create "$TAG" "$APK" --title "SHALOM Android v${VERSION}" --notes "Versión oficial con secciones independientes, copia musical completa, contexto de letra, subdivisiones ampliables y reproductor compacto con seguimiento opcional y pellizco para ajustar letra y acordes. Firma, actualización y arranque Android verificados en emulador."
+            gh release create "$TAG" --target "$GITHUB_SHA" "$APK" --title "SHALOM Android v${VERSION}" --notes "Versión oficial con secciones independientes, copia musical completa, contexto de letra, subdivisiones ampliables y reproductor compacto con seguimiento opcional y pellizco para ajustar letra y acordes. Firma, actualización y arranque Android verificados en emulador."
           fi
 

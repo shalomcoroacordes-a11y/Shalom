@@ -24,3 +24,9 @@ Estas reglas se aplican a todo el repositorio, web pública, Admin, Studio, mobi
 
 ## Herramientas
 Revisar las herramientas de auditoría existentes en scripts/ y las pruebas de .github/workflows/. Incorporar analizadores externos de manera gradual con versiones fijadas y configuración adecuada a JavaScript clásico y Expo. Nunca borrar automáticamente candidatos de código no utilizado.
+
+## Base oficial obligatoria (Pública, Admin, Studio y web)
+- Antes de editar, consulta las releases oficiales de Pública y Admin por separado: ignora borradores y prereleases, resuelve el tag al SHA real y comprueba que ambas releases sean ancestros de la base. No elegir main solo por ser la rama predeterminada. Si falla, detener y reconciliar la rama sin eliminar funciones ni datos.
+- Ejecuta `node scripts/release-base-guard.cjs --ref origin/main` tras `git fetch origin --prune`. Si main está atrasada o diverge, no crear ramas desde ella. Integra desde la release más reciente que incluya ambas líneas oficiales y conserva los cambios exclusivos de main mediante revisión. Ejecuta el mismo control en la rama candidata antes de editar, compilar o fusionar.
+- Mantén manifiestos y locks coherentes; para publicar incrementa versión y versionCode respecto de la release real. El guard exige el SHA completo autorizado y no permite reutilizar una versión publicada. No cambiar etiquetas oficiales ni reemplazar APK existentes.
+- Ejecuta las regresiones completas de funciones aprobadas y los ensayos de actualización del candidato exacto. Nunca presentar una APK de ensayo como oficial. Si main o la release cambiaron desde la aprobación, repite la comprobación y las pruebas. No publicar automáticamente.
