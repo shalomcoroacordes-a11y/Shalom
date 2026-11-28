@@ -15,18 +15,27 @@
   if(!bySection)return songs;
   return songs.flatMap(song=>song.source.split(/(?=^\[[^\]\n]+\])/m).filter(s=>s.trim()).map(source=>({...song,source})));
  }
+ function updateMeta(){
+  const capo=Number($("capo").value),delta=shift-capo;
+  $("meta").textContent="Tono "+transpose("C",shift)+(capo?" · Capo "+capo+" · Figuras "+transpose("C",delta):"")+" · "+size+" px";
+ }
+ function resizeScore(value){
+  size=Math.max(10,Math.min(46,Math.round(value*10)/10));
+  for(const target of $("scores").querySelectorAll(".preview-score"))target.style.fontSize=size+"px";
+  updateMeta();
+ }
  function render(){
   const parts=groups();section=Math.max(0,Math.min(section,parts.length-1));const capo=Number($("capo").value),delta=shift-capo;
-  $("heading").textContent=labels[mode];$("meta").textContent="Tono "+transpose("C",shift)+(capo?" · Capo "+capo+" · Figuras "+transpose("C",delta):"")+" · "+size+" px";
+  $("heading").textContent=labels[mode];updateMeta();
   $("tone").textContent=transpose("C",shift);$("edit").hidden=mode!=="admin";$("sectionNav").hidden=!bySection;
   $("progress").textContent=(section+1)+" / "+parts.length;$("prev").disabled=section===0;$("next").disabled=section>=parts.length-1;
   $("scores").replaceChildren();$("index").replaceChildren();
   (bySection?parts.slice(section,section+1):parts).forEach((song,i)=>{
    const article=document.createElement("article");article.id="preview-song-"+i;
    const title=document.createElement("h2");title.textContent=song.title;const meta=document.createElement("p");meta.textContent=mode==="misa"?song.moment:"Tono "+transpose("C",shift);
-   const target=document.createElement("div");target.style.fontSize=size+"px";article.append(title,meta,target);$("scores").append(article);
+   const target=document.createElement("div");target.className="preview-score";target.style.fontSize=size+"px";article.append(title,meta,target);$("scores").append(article);
    const options={transpose:c=>transpose(c,delta)};
-   if(ready&&!legacy)window.ShalomScoreReader.render(target,song.source,options);else{target.className="legacy";target.innerHTML=window.ShalomChords.render(song.source,options);}
+   if(ready&&!legacy)window.ShalomScoreReader.render(target,song.source,options);else{target.classList.add("legacy");target.innerHTML=window.ShalomChords.render(song.source,options);}
    if(!bySection&&parts.length>1){const link=document.createElement("a");link.href="#"+article.id;link.textContent=(i+1)+". "+song.title;$("index").append(link);}
   });
   $("status").textContent=ready?(legacy?"Comparación: tipografía anterior":"Inter local verificada · lector proporcional"):"Inter no disponible · lector alternativo";
@@ -35,7 +44,22 @@
  $("modes").addEventListener("click",e=>{const b=e.target.closest("[data-mode]");if(!b)return;mode=b.dataset.mode;section=0;for(const el of $("modes").querySelectorAll("button"))el.setAttribute("aria-pressed",String(el===b));render();});
  function toggle(id,fn){$(id).onclick=()=>{$(id).setAttribute("aria-pressed",String(fn()));render();};}
  $("source").oninput=render;$("capo").onchange=render;
- $("fontDown").onclick=()=>{size=Math.max(10,size-1);render();};$("fontUp").onclick=()=>{size=Math.min(46,size+1);render();};
+ $("fontDown").onclick=()=>resizeScore(size-1);$("fontUp").onclick=()=>resizeScore(size+1);
+ // Preserve the current DOM and scroll while scaling the shared reader.
+ // All chord offsets are expressed in em, so lyric and chord positions scale together.
+ const scoreArea=$("scores");
+ let pinch=null;
+ const distance=touches=>Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);
+ scoreArea.addEventListener("touchstart",event=>{
+  if(event.touches.length!==2)return;
+  const start=distance(event.touches);if(start>0){pinch={start,size};if(event.cancelable)event.preventDefault();}
+ },{passive:false});
+ scoreArea.addEventListener("touchmove",event=>{
+  if(!pinch||event.touches.length!==2)return;
+  if(event.cancelable)event.preventDefault();
+  resizeScore(pinch.size*distance(event.touches)/pinch.start);
+ },{passive:false});
+ for(const type of ["touchend","touchcancel"])scoreArea.addEventListener(type,event=>{if(event.touches.length<2||type==="touchcancel")pinch=null;});
  $("toneDown").onclick=()=>{shift=Math.max(-12,shift-1);render();};$("toneUp").onclick=()=>{shift=Math.min(12,shift+1);render();};
  toggle("reading",()=>{bySection=!bySection;section=0;return bySection;});toggle("hide",()=>document.body.classList.toggle("song-hide-chords"));toggle("compare",()=>legacy=!legacy);
  $("prev").onclick=()=>{section--;render();};$("next").onclick=()=>{section++;render();};
