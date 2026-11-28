@@ -42,10 +42,17 @@
   }
   target.innerHTML=ShalomChords.render("(C)Hola (G)Señor",{includeAnchors:true});
   const pending=ShalomScoreReader.upgrade(target);
+  assert(target.style.visibility==="hidden","Old score never paints while preparing Inter");
   target.innerHTML=ShalomChords.render("(D)Nuevo canto",{includeAnchors:true});
   assert(!await pending,"Stale update must not replace newer draft");
   assert(target.textContent.includes("Nuevo canto"),"Newer draft remains");
-  assert(await ShalomScoreReader.upgrade(target),"Admin/offline markup upgrade");
+  assert(target.style.visibility==="","Stale update does not leave lyrics hidden");
+  const first=ShalomScoreReader.upgrade(target);
+  target.innerHTML=ShalomChords.render("(D)Nuevo canto",{includeAnchors:true});
+  const latest=ShalomScoreReader.upgrade(target);
+  assert(!await first,"Older request is discarded");
+  assert(await latest,"Admin/offline markup upgrade");
+  assert(target.style.visibility==="","Only newest prepared score is revealed");
   check();
   assert(!await ShalomScoreReader.upgrade(target),"Already upgraded content must remain unchanged");
   const studioSource="[Coro]\n(Cmaj7)(G/B)Mi (Am)vida\nC    F#m   G/B\nÁbreme Señor";

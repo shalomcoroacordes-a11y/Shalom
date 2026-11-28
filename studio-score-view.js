@@ -6,8 +6,10 @@
   return visual.map((a,i)=>({position:a.position,chord:transpose(a.chord),id:saved[i].id}));
  }
  async function enhance(score,source,anchors,transpose){
-  const rows=Array.from(score.children);
-  if(!root.ShalomScoreReader||!await root.ShalomScoreReader.loadFont()||
+  if(!root.ShalomScoreReader)return 0;
+  const rows=Array.from(score.children),release=root.ShalomScoreReader.hold(score);
+  try{
+  if(!await root.ShalomScoreReader.loadFont()||
      rows.length!==score.children.length||rows.some((row,i)=>row!==score.children[i])||
      !score.getClientRects().length)return 0;
   const template=document.createElement("template");
@@ -37,6 +39,7 @@
    catch(error){row.replaceChildren(...before);console.warn("SHALOM Studio retained original row",error);}
   }
   return count;
+  }finally{release();}
  }
  root.ShalomStudioScoreView=Object.freeze({matchAnchors,enhance});
 })(window);

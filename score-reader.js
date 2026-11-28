@@ -12,7 +12,10 @@
  };
  let fontRequest;
  function loadFont(){
-  if(!fontRequest)fontRequest=checkFont();
+  if(!fontRequest){
+   let timer;
+   fontRequest=Promise.race([checkFont(),new Promise(resolve=>{timer=root.setTimeout(()=>resolve(false),1800);})]).finally(()=>root.clearTimeout(timer));
+  }
   return fontRequest;
  }
  async function checkFont(){
@@ -113,15 +116,29 @@
   relayout(score);
   return score;
  }
+ // Reserve layout while preparing the final score. Visibility (not display)
+ // keeps real glyph geometry measurable. Only the latest request may reveal it.
+ const pending=new WeakMap();
+ function hold(target){
+  const previous=pending.get(target),ticket={visibility:previous?previous.visibility:target.style.visibility};
+  pending.set(target,ticket);
+  target.style.visibility="hidden";
+  return ()=>{
+   if(pending.get(target)!==ticket)return;
+   pending.delete(target);target.style.visibility=ticket.visibility;
+  };
+ }
  // Upgrade only markup explicitly prepared by its owner. A stale asynchronous
  // result must never replace newer edits, a different song or a closed view.
  async function upgrade(target){
   if(!target||!target.isConnected||target.firstElementChild?.classList.contains("score-proportional"))return false;
   const original=Array.from(target.childNodes);
-  if(!await loadFont()||!target.isConnected||!original.length||
-    original.length!==target.childNodes.length||original.some((node,i)=>node!==target.childNodes[i]))return false;
+  if(!original.length)return false;
+  const release=hold(target);
   const scrollTop=target.scrollTop,scrollLeft=target.scrollLeft;
   try{
+   if(!await loadFont()||!target.isConnected||
+     original.length!==target.childNodes.length||original.some((node,i)=>node!==target.childNodes[i]))return false;
    const score=buildMarkup(target.innerHTML);
    if(!target.getClientRects().length)return false;
    target.replaceChildren(score);
@@ -129,6 +146,7 @@
    target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;
    return true;
   }catch(error){target.scrollTop=scrollTop;target.scrollLeft=scrollLeft;console.warn("SHALOM: retained original reader",error);return false;}
+  finally{release();}
  }
- root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade,fitSection});
+ root.ShalomScoreReader=Object.freeze({loadFont,build,buildMarkup,render,relayout,upgrade,fitSection,hold});
 })(window);
