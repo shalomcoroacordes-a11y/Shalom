@@ -4,6 +4,7 @@ const {useMemo,useState,useEffect}=React;
 const {View,Text,StyleSheet}=require("react-native");
 const {WebView}=require("react-native-webview");
 const {scoreHtml,estimateScoreHeight}=require("./web-score-html");
+const scoreAssets=require("./score-reader-assets");
 const {clampReaderFont}=require("./score-zoom");
 const LegacyScore=require("./aligned-score-legacy-ui");
 const h=React.createElement;
@@ -15,7 +16,7 @@ const h=React.createElement;
 function AlignedScore({rows=[],fontSize=15,variant="default",onFontSizeChange,fitMode="manual",fitHeight=0,onFitFont}){
  const safeFont=clampReaderFont(fontSize);
  const serialized=JSON.stringify(rows);
- const html=useMemo(()=>fitMode==="manual"?scoreHtml(rows,safeFont):scoreHtml(rows,safeFont,{mode:fitMode,height:fitHeight}),[serialized,safeFont,fitMode,fitHeight]);
+ const html=useMemo(()=>scoreHtml(rows,safeFont,{mode:fitMode,height:fitHeight},scoreAssets),[serialized,safeFont,fitMode,fitHeight]);
  // Native height events must not construct a new document source.
  const source=useMemo(()=>({html}),[html]);
  const [height,setHeight]=useState(()=>estimateScoreHeight(rows,safeFont));

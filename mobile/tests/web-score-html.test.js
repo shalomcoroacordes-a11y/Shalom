@@ -69,7 +69,7 @@ assert.match(bridge,/\bsource,\s*originWhitelist/,"Use bundled HTML, never the p
 assert.match(bridge,/scrollEnabled:false/,"Native outer screen controls vertical scrolling");
 assert.match(bridge,/onError:\(\)=>setFailed\(true\)/,"Keep a fallback for devices without WebView");
 assert.match(bridge,/LegacyScore/,"Keep readable native fallback");
-assert.match(bridge,/scoreHtml\(rows,safeFont\)/);
+assert.match(bridge,/scoreHtml\(rows,safeFont,\{mode:fitMode,height:fitHeight\},scoreAssets\)/);
 console.log("SHALOM: native offline browser text matches web/admin chords and lyrics at all font sizes.");
 
 const longChords="A              Em A7                Dm        B7",longLyric="Rey coronado de amor, de justicia y de paz eterna";
@@ -89,3 +89,13 @@ assert.match(auto,/fitWrapped\(zoom\)/);
 assert.match(auto,/-webkit-text-size-adjust:none/);
 assert.match(bridge,/textZoom:100/);
 console.log("Aligned overflow projection preserves both original rows and measures the actual visible width.");
+
+const localAssets=require("../src/score-reader-assets");
+const inter=scoreHtml(parseSong(source,2,true),15,{mode:"auto",height:400},localAssets);
+assert.match(inter,/data-chord-anchors=/);
+assert.ok(inter.includes("data:font/woff2;base64,"+localAssets.font));
+assert.match(inter,/class="score-scroll" style="visibility:hidden"/);
+assert.match(inter,/min:12,max:15/);
+assert.match(inter,/target.style.visibility="";scheduleMeasure/);
+for(const match of inter.matchAll(/<script>([\s\S]*?)<\/script>/g))new Function(match[1]);
+console.log("Inter: local font, bounded section fit, atomic reveal and safe script syntax.");

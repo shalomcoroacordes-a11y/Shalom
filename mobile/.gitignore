@@ -8,3 +8,4 @@ build/
 *.log
 android/
 ios/
+src/score-reader-assets.js

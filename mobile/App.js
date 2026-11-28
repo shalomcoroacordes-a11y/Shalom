@@ -371,7 +371,7 @@ function AppScreen() {
     onFontSizeChange:next=>setReaderFont(clampReaderFont(next))});
  }
  function collectionScoreRows(lyrics,delta,song=null,override=null){
-  const parsed=parseSong(lyrics,delta);
+  const parsed=parseSong(lyrics,delta,true);
   const arrangement=song&&lyrics===song.lyrics?song._studio:null;
   const rows=showReaderCues?ReaderCues.decorateCollection(parseSong(lyrics,0),arrangement,override,parsed):parsed;
   return rows;

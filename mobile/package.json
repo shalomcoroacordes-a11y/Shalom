@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "check": "expo install --check",
     "test": "node scripts/run-tests.js",
-    "test:syntax": "node scripts/check-syntax.js"
+    "test:syntax": "node scripts/check-syntax.js",
+    "postinstall": "node ../scripts/build-native-score.js"
   },
   "dependencies": {
     "@react-native-community/netinfo": "12.0.1",
