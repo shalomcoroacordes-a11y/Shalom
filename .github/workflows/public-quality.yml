@@ -23,6 +23,12 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python3 scripts/check_clean_changes.py "$BASE_SHA" "$HEAD_SHA"
 
+      - name: Verify local Inter and proportional reader in browser
+        run: |
+          node scripts/prepare-inter-font.js
+          node scripts/prepare-inter-font.js --check
+          node scripts/test-score-reader-browser.js
+
       - name: Test clean architecture guard
         run: python3 tests/clean-changes-regression.py
 

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/fonts/inter.css">
+<link rel="stylesheet" href="../score-reader.css">
+<style>body{margin:16px;background:#12171c;color:#fff}#score{font-size:19px;width:320px}</style>
+</head><body><main id="score"></main><p id="result">PENDING</p>
+<script src="../song-chords.js"></script><script src="../score-layout.js"></script><script src="../score-reader.js"></script>
+<script>
+(async()=>{
+ const report=document.getElementById("result"),target=document.getElementById("score");
+ function assert(value,message){if(!value)throw Error(message);}
+ function check(){
+  for(const pair of target.querySelectorAll(".score-pair")){
+   const lyric=pair.querySelector(".score-lyric"),text=lyric.firstChild,notes=Array.from(pair.querySelectorAll(".score-chord"));
+   for(const note of notes){
+    const p=Number(note.dataset.position);
+    if(p<=text.length){
+     const r=document.createRange();r.setStart(text,p);r.collapse(true);
+     assert(Math.abs(note.getBoundingClientRect().left-r.getBoundingClientRect().left)<1,"Chord differs from lyric anchor: "+note.textContent);
+    }
+   }
+   for(let i=0;i<notes.length;i++)for(let j=i+1;j<notes.length;j++){
+    const a=notes[i].getBoundingClientRect(),b=notes[j].getBoundingClientRect();
+    assert(a.right<=b.left+.5||b.right<=a.left+.5||a.bottom<=b.top+.5||b.bottom<=a.top+.5,"Chords overlap");
+   }
+  }
+ }
+ try{
+  assert(await ShalomScoreReader.loadFont(),"Official local Inter not loaded");
+  for(const size of [13,19,26,32]){
+   target.style.fontSize=size+"px";
+   const score=ShalomScoreReader.render(target,"[Coro]\n(C)Ven (G)Señor\n(Cmaj7)(G/B)Mi (Am)vida\nC    F#m   G/B\nÁbreme Señor\n(D)A & <B>",{transpose:c=>c});
+   assert(getComputedStyle(score).fontFamily.includes("Inter"),"Inter not in use");
+   assert(target.textContent.includes("A & <B>"),"Lyrics were not preserved");
+   check();
+   target.style.fontSize=(size*1.25)+"px";check();
+  }
+  report.textContent="PASS: real browser Inter anchors, collisions, zoom and escaped lyrics";
+ }catch(e){report.textContent="FAIL: "+e.message;}
+})();
+</script></body></html>
