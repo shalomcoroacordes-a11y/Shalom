@@ -62,7 +62,7 @@ function scoreHtml(rows,fontSize=15,fit={},assets=null){
  // CSS reproduce las reglas de song-chords.css en admin y la web pública.
  const css=[
   'html,body{margin:0;padding:0;border:0;background:'+palette.bg+';color:'+palette.text+';-webkit-text-size-adjust:none;text-size-adjust:none;}',
-  'body{overflow:hidden;}',
+  fit.scrollDocument?'body{overflow-y:auto;overflow-x:hidden;}':'body{overflow:hidden;}',
   '.score-scroll{width:100%;max-width:100vw;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}',
   '.song-lyrics{font-family:"Courier New",Courier,monospace!important;font-size:'+size+'px;',
   'font-variant-ligatures:none;letter-spacing:0!important;line-height:1.22;',
@@ -120,7 +120,7 @@ function scoreHtml(rows,fontSize=15,fit={},assets=null){
   'target.scrollLeft=0;reportedZoom=zoom;send();',
   'if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:"score-fit",fontSize:zoom}));}',
   'if(fitMode!=="manual"){window.addEventListener("resize",fitScore);window.addEventListener("load",fitScore);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitScore);fitScore();}',
-  proportional?'(async function(){var original=Array.from(lyrics.childNodes);try{if(await ShalomScoreReader.loadFont()){interScore=ShalomScoreReader.buildMarkup(lyrics.innerHTML);lyrics.replaceChildren(interScore);ShalomScoreReader.relayout(interScore);}}catch(e){interScore=null;lyrics.replaceChildren(...original);console.warn("SHALOM: retained original score",e);}finally{preparing=false;try{fitScore();}finally{target.style.visibility="";scheduleMeasure();}}})();':'',
+  proportional?'(async function(){var original=Array.from(lyrics.childNodes);try{if(await ShalomScoreReader.loadFont()&&target.dataset.scoreExpired!=="true"){interScore=ShalomScoreReader.buildMarkup(lyrics.innerHTML);lyrics.replaceChildren(interScore);ShalomScoreReader.relayout(interScore);}}catch(e){interScore=null;lyrics.replaceChildren(...original);console.warn("SHALOM: retained original score",e);}finally{preparing=false;try{fitScore();}finally{target.style.visibility="";scheduleMeasure();}}})();':'',
   "function dist(a,b){var x=a.clientX-b.clientX;var y=a.clientY-b.clientY;return Math.sqrt(x*x+y*y);}",
   "function pinchBegin(e){",
   "if(preparing||!lyrics||e.touches.length!==2)return;",
@@ -157,6 +157,6 @@ function scoreHtml(rows,fontSize=15,fit={},assets=null){
   '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; script-src &#39;unsafe-inline&#39;; font-src data:;">'+
   '<style>'+css+(proportional?'@font-face{font-family:Inter;src:url(data:font/woff2;base64,'+assets.font+') format("woff2");font-weight:100 900;font-style:normal;}'+assets.css+':root{--gold:'+palette.green+';}':'')+'</style></head><body>'+
   '<div id="score" class="score-scroll"'+(proportional?' style="visibility:hidden"':'')+'><div class="song-lyrics">'+scoreMarkup(rows)+'</div></div>'+
-  (proportional?'<script>'+assets.layout+'\n'+assets.reader+'</script>':'')+'<script>'+measure+'</script></body></html>';
+  (proportional?'<script>setTimeout(function(){var target=document.getElementById("score");if(target.style.visibility==="hidden"){target.dataset.scoreExpired="true";target.style.visibility="";window.dispatchEvent(new Event("resize"));}},2200);</script><script>'+assets.layout+'\n'+assets.reader+'</script>':'')+'<script>'+measure+'</script></body></html>';
 }
 module.exports={scoreHtml,scoreMarkup,estimateScoreHeight,escapeHTML,wrapScoreColumns};

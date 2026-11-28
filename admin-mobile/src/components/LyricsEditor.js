@@ -5,13 +5,26 @@ const {View,Text,TextInput,ScrollView,Pressable,Modal,KeyboardAvoidingView,Platf
 const {SafeAreaView,useSafeAreaInsets}=require("react-native-safe-area-context");
 const {S,C}=require("../styles");
 const {renderLines}=require("../score");
+const {parseSong}=require("../chords");
+const {WebView}=require("react-native-webview");
+const {scoreHtml}=require("../web-score-html");
+const scoreAssets=require("../score-reader-assets");
 const h=React.createElement;
 const SECTIONS=["Intro","Verso 1","Pre-coro","Coro","Puente","Intermedio","Final"];
 function text(t,style){return h(Text,{style},t);}
 function tool(t,fn){return h(Pressable,{key:t,style:S.lyricTool,onPress:fn,accessibilityRole:"button"},text(t,{color:C.text,fontSize:12,fontWeight:"700"}));}
-function Preview({value}){
- return h(ScrollView,{horizontal:true,nestedScrollEnabled:true,contentContainerStyle:{paddingVertical:12,paddingHorizontal:4,minWidth:"100%"}},
-  h(View,{style:{gap:3}},renderLines(value).map((line,i)=>text(line.text,[line.type==="chords"?S.chords:line.type==="section"?S.kicker:S.lyrics,{fontSize:15,lineHeight:25,marginTop:line.type==="section"?12:0}]))));
+function Preview({value,font}){
+ const [failed,setFailed]=useState(false);
+ const html=React.useMemo(()=>scoreHtml(parseSong(value,0,true),font,{scrollDocument:true},scoreAssets),[value,font]);
+ const source=React.useMemo(()=>({html}),[html]);
+ React.useEffect(()=>setFailed(false),[html]);
+ if(failed)return h(ScrollView,{horizontal:true,nestedScrollEnabled:true},
+  h(ScrollView,{contentContainerStyle:{padding:4}},renderLines(value).map((line,i)=>h(Text,{key:i,style:[line.type==="chords"?S.chords:line.type==="section"?S.kicker:S.lyrics,{fontSize:font,lineHeight:font*1.6}]},line.text))));
+ return h(WebView,{source,originWhitelist:["*"],javaScriptEnabled:true,domStorageEnabled:false,
+  allowFileAccess:false,mixedContentMode:"never",setSupportMultipleWindows:false,
+  javaScriptCanOpenWindowsAutomatically:false,textZoom:100,onError:()=>setFailed(true),
+  onContentProcessDidTerminate:()=>setFailed(true),style:{flex:1,backgroundColor:C.bg},
+  accessibilityLabel:"Vista previa de letra y acordes"});
 }
 function LyricsEditor({value,onChange,onOpenCues}){
  const {height}=useWindowDimensions(),insets=useSafeAreaInsets();
@@ -62,7 +75,7 @@ function LyricsEditor({value,onChange,onOpenCues}){
       h(View,{style:{flexDirection:"row",gap:8}},tool(preview?"✎ Editar":"◉ Vista previa",()=>setPreview(p=>!p)),
        tool("A−",()=>setFont(n=>Math.max(13,n-1))),tool("A+",()=>setFont(n=>Math.min(21,n+1)))),
       toolbar(),
-      preview?h(View,{style:{flex:1}},h(Preview,{value:content})):editor(true),
+      preview?h(View,{style:{flex:1}},h(Preview,{value:content,font})):editor(true),
       h(View,{style:{paddingBottom:Math.max(8,insets.bottom)}},text("Los cambios permanecen en este borrador hasta que lo guardes.",S.note))
      )))
   )
