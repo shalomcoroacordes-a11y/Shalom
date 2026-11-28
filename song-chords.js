@@ -29,6 +29,9 @@
     return isChord(clean) ? String(transpose(clean)) : token;
   });
 
+  // Los índices de origen se capturan antes de transponer, sin medir espacios en píxeles.
+  const rowAnchors = (line, transpose, offset = 0) => Array.from(String(line).matchAll(/\S+/g), match => ({ position: offset + match.index, chord: String(transpose(unwrap(match[0]))) }));
+
   // Combina acordes escritos en el renglón superior con los que aún estén
   // marcados entre paréntesis dentro del verso, sin duplicar su altura.
   const combineChordRows = (upper, lower) => {
@@ -54,10 +57,12 @@
     let last = 0;
     let match;
     let hasChords = false;
+    const anchors = [];
 
     while ((match = regex.exec(line)) !== null) {
       lyricLine += line.slice(last, match.index);
       if (isChordGroup(match[1])) {
+        anchors.push(...rowAnchors(match[1], transpose, lyricLine.length));
         const converted = transformRow(match[1], transpose);
         // Si dos acordes están muy cerca, se separan sin perder el texto.
         const position = Math.max(lyricLine.length, chordLine.length ? chordLine.length + 1 : 0);
@@ -70,11 +75,11 @@
     }
 
     lyricLine += line.slice(last);
-    return { chordLine, lyricLine, hasChords };
+    return { chordLine, lyricLine, hasChords, anchors };
   };
 
-  const pair = (chords, lyrics, extraClass = "") =>
-    `<span class="song-line${extraClass ? ` ${extraClass}` : ""}"><span class="chord-line">${escapeHTML(chords)}</span><span class="lyric-line">${escapeHTML(lyrics)}</span></span>`;
+  const pair = (chords, lyrics, extraClass = "", anchors) =>
+    `<span class="song-line${extraClass ? ` ${extraClass}` : ""}"${anchors ? ` data-chord-anchors="${escapeHTML(JSON.stringify(anchors))}"` : ""}><span class="chord-line">${escapeHTML(chords)}</span><span class="lyric-line">${escapeHTML(lyrics)}</span></span>`;
 
   function render(source, options = {}) {
     const transpose = typeof options.transpose === "function" ? options.transpose : (chord) => chord;
@@ -104,7 +109,8 @@
           rendered.push(pair(
             nextInline?.hasChords ? combineChordRows(upperChords, nextInline.chordLine) : upperChords,
             nextInline?.hasChords ? nextInline.lyricLine : next,
-            "song-stacked-chords"
+            "song-stacked-chords",
+            options.includeAnchors ? [...rowAnchors(line, transpose), ...nextInline.anchors].sort((a,b) => a.position - b.position) : undefined
           ));
           index++;
         } else {
@@ -115,7 +121,7 @@
 
       const parsed = inlineChords(line, transpose);
       rendered.push(parsed.hasChords
-        ? pair(parsed.chordLine, parsed.lyricLine, "song-inline-chords")
+        ? pair(parsed.chordLine, parsed.lyricLine, "song-inline-chords", options.includeAnchors ? parsed.anchors : undefined)
         : `<span class="song-plain-line">${escapeHTML(line)}</span>`);
     }
     return rendered.join("");

@@ -49,3 +49,22 @@ for(const engine of engines){
 }
 assert.equal(generate(read),read(files[0]));
 console.log("Native chords: canonical generation, drift detection, 500 parse cases and 900 transposition cases verified.");
+
+
+const vm=require("node:vm");
+const webContext={window:{}};
+vm.runInNewContext(read("song-chords.js"),webContext);
+const web=webContext.window.ShalomChords;
+const decode=value=>value.replace(/&quot;/g,'"').replace(/&#039;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&");
+for(const sample of [...samples,"(C)Se(G/B)ñor (Am) mío","C  G/B    Am\nÁbreme Señor","C   G\n(Am)Hola (D)Señor"]){
+ for(let shift=-12;shift<=12;shift++){
+  const options={transpose:chord=>source.transposeOne(chord,shift)};
+  const baseline=web.render(sample,options);
+  const anchored=web.render(sample,{...options,includeAnchors:true});
+  const webAnchors=Array.from(anchored.matchAll(/ data-chord-anchors="([^"]*)"/g),match=>JSON.parse(decode(match[1])));
+  const nativeAnchors=source.parseAnchoredSong(sample,shift).filter(row=>row.kind==="chords").map(row=>row.anchors);
+  assert.deepEqual(webAnchors,nativeAnchors,"Web y apps conservan los mismos anclajes de origen");
+  assert.equal(anchored.replace(/ data-chord-anchors="[^"]*"/g,""),baseline,"No cambiar el HTML existente salvo metadatos optativos");
+ }
+}
+console.log("Web/native anchored score parity verified.");
